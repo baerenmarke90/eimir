@@ -6419,6 +6419,7 @@
         }
       },
       "indexes": {
+        "ix_notifications_operator_expires_at": "CREATE INDEX ix_notifications_operator_expires_at ON public.notifications USING btree (expires_at) WHERE (space_id IS NULL)",
         "ix_notifications_recipient_space_created_id": "CREATE INDEX ix_notifications_recipient_space_created_id ON public.notifications USING btree (recipient_account_id, space_id, created_at, id)",
         "ix_notifications_recipient_space_unread": "CREATE INDEX ix_notifications_recipient_space_unread ON public.notifications USING btree (recipient_account_id, space_id, created_at) WHERE (read_at IS NULL)",
         "pk_notifications": "CREATE UNIQUE INDEX pk_notifications ON public.notifications USING btree (id)",

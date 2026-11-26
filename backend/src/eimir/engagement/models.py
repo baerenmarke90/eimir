@@ -425,6 +425,13 @@ class Notification(IdMixin, Base):
             "created_at",
             "id",
         ),
+        # The alert job prunes expired operator notices (#2314) without
+        # scanning couple notices.
+        Index(
+            "ix_notifications_operator_expires_at",
+            "expires_at",
+            postgresql_where=text("space_id IS NULL"),
+        ),
         Index(
             "ix_notifications_recipient_space_unread",
             "recipient_account_id",

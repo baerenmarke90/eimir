@@ -87,6 +87,12 @@ def upgrade() -> None:
         "notifications",
         f"operator_topic IS NULL OR operator_topic IN ({_TOPICS})",
     )
+    op.create_index(
+        "ix_notifications_operator_expires_at",
+        "notifications",
+        ["expires_at"],
+        postgresql_where=sa.text("space_id IS NULL"),
+    )
     op.add_column(
         "instance_administration_settings",
         sa.Column(
@@ -108,6 +114,7 @@ def downgrade() -> None:
     # Push deliveries of operator notices cascade with their notification.
     op.execute(f"DELETE FROM notifications WHERE kind IN ({_NEW_KIND})")
     op.execute(f"DELETE FROM notification_preferences WHERE kind IN ({_NEW_KIND})")
+    op.drop_index("ix_notifications_operator_expires_at", table_name="notifications")
     for name in (
         "notification_operator_topic_allowed",
         "notification_operator_topic_matches_kind",

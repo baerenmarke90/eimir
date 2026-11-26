@@ -128,3 +128,13 @@ def test_operator_notifications_upgrade_and_rollback(session: Session) -> None:
         session.add(_row(account.id))
         session.flush()
     assert session.get(Notification, couple.id) is not None
+
+
+def test_expired_operator_notices_are_found_through_a_partial_index(session: Session) -> None:
+    # The alert job prunes every five minutes; it must never scan couple rows.
+    indexes = {
+        index["name"]: index for index in inspect(session.connection()).get_indexes("notifications")
+    }
+    index = indexes["ix_notifications_operator_expires_at"]
+    assert index["column_names"] == ["expires_at"]
+    assert "space_id IS NULL" in index["dialect_options"]["postgresql_where"]

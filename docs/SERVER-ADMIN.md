@@ -161,9 +161,12 @@ and one push.
   names only the condition. Every device shows the neutral eimir. notice; the
   topic appears after the tap, which opens the matching ServerAdmin page
   (failed jobs: System › Jobs; new reports: the new reports; a Space near its
-  quota: the Situation; otherwise System › Monitoring). The account's Quiet
-  Hours apply. Delivery and the tap re-check that the account is still a
-  verified allow-listed ServerAdmin. Notices expire after 24 hours and are
+  quota: the Situation; otherwise System › Monitoring). The tap is resolved
+  through the account's current Space, so an account in no Space lands on its
+  notification list and opens ServerAdmin itself. The account's Quiet Hours
+  apply; alerts held overnight arrive as one notice that opens the latest
+  topic, while the mails name each one. Delivery and the tap re-check that the
+  account is still a verified allow-listed ServerAdmin. Notices expire after 24 hours and are
   deleted a day later. Topic text on the Android lock screen needs a later
   native release.
 

@@ -118,6 +118,8 @@ def prune(session: Session, *, at: datetime) -> int:
         "CursorResult[Any]",
         session.execute(
             delete(Notification).where(
+                # Matches the partial index; only operator notices have no Space.
+                Notification.space_id.is_(None),
                 Notification.kind == NotificationKind.OPERATOR_ALERT.value,
                 Notification.expires_at < at - KEEP_EXPIRED,
             )

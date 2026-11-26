@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut android:shortcutId="moment"
+        android:icon="@drawable/shortcut_moment"
+        android:shortcutShortLabel="@string/shortcut_moment"
+        android:shortcutLongLabel="@string/shortcut_moment">
+        <intent android:action="de.eimir.app.APP_SHORTCUT"
+            android:targetPackage="@string/shortcut_target_package"
+            android:targetClass="de.eimir.app.AppShortcutActivity">
+            <extra android:name="shortcutAction" android:value="moment" />
+        </intent>
+    </shortcut>
+    <shortcut android:shortcutId="wish"
+        android:icon="@drawable/shortcut_wish"
+        android:shortcutShortLabel="@string/shortcut_wish"
+        android:shortcutLongLabel="@string/shortcut_wish">
+        <intent android:action="de.eimir.app.APP_SHORTCUT"
+            android:targetPackage="@string/shortcut_target_package"
+            android:targetClass="de.eimir.app.AppShortcutActivity">
+            <extra android:name="shortcutAction" android:value="wish" />
+        </intent>
+    </shortcut>
+    <shortcut android:shortcutId="plan"
+        android:icon="@drawable/shortcut_plan"
+        android:shortcutShortLabel="@string/shortcut_plan"
+        android:shortcutLongLabel="@string/shortcut_plan">
+        <intent android:action="de.eimir.app.APP_SHORTCUT"
+            android:targetPackage="@string/shortcut_target_package"
+            android:targetClass="de.eimir.app.AppShortcutActivity">
+            <extra android:name="shortcutAction" android:value="plan" />
+        </intent>
+    </shortcut>
+</shortcuts>

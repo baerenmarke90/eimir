@@ -571,3 +571,14 @@ Shared-only surfaces (Today, Discover, recaps, map, activity, notifications, Peo
 **Reuse review.** `@capacitor-community/privacy-screen` 8.0.0 (MIT, maintained, Capacitor 8) offers a global enable/disable switch. It was not selected: it adds a Gradle module with new dependency-verification entries, enables protection globally by default, and has no hold count or confirmed state, so the fail-closed ordering would still need the same Web layer. The in-house plugin is 50 lines on platform API only, follows the other in-house plugins in `MainActivity`, and needs no new dependency. Fallback: without the plugin a hold rejects and private content stays unpainted.
 
 **Verification.** `SecureWindowFlagsTest` (JVM) and `SecureScreenTest` (instrumentation through the real Capacitor bridge, including Activity recreation) run in CI; Web unit tests cover hold ordering, the unpainted gate and the once-message order. A device check on a Pixel (screenshot blocked, blank Recents preview) is still open.
+
+## App icon quick actions
+
+Android and iOS expose Capture a moment, Add a wish and Create a plan from the
+OS app-icon menu. Static registration is available before first launch; Android
+includes every selectable launcher alias and the debug package. A local
+`AppShortcuts` bridge retains a content-free action until the authenticated Space
+shell can open the existing composer. Draft guards defer competing entry; the
+current editor is never reset by reselecting it. See the [contract and validation
+evidence](product/design/evidence/app-icon-shortcuts/README.md) for delivery,
+localization, privacy, reuse and outstanding native-device acceptance.

@@ -272,5 +272,6 @@ final class EimirBridgeViewController: CAPBridgeViewController {
     override func capacitorDidLoad() {
         bridge?.registerPluginInstance(IosPushPlugin())
         bridge?.registerPluginInstance(IosSessionStorage())
+        bridge?.registerPluginInstance(IosAppShortcutsPlugin())
     }
 }

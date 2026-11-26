@@ -45,6 +45,7 @@ android {
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
         applicationId "de.eimir.app"
+        resValue "string", "shortcut_target_package", applicationId
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode eimirVersionCode
@@ -84,6 +85,7 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix ".debug"
+            resValue "string", "shortcut_target_package", "${android.defaultConfig.applicationId}.debug"
             versionNameSuffix "-debug"
         }
         release {

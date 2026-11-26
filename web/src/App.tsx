@@ -162,6 +162,7 @@ import { useAccountLanguage } from './client/useAccountLanguage';
 import { useCalendarGoogleAppReturn } from './client/useCalendarGoogleAppReturn';
 import { useIdentityEntry } from './client/useIdentityEntry';
 import { usePlanShortLinkAppOpen } from './client/usePlanShortLinkAppOpen';
+import { useAppShortcuts } from './client/useAppShortcuts';
 import { useSessionRefresh } from './client/useSessionRefresh';
 import { useSystemTimeZone } from './client/useSystemTimeZone';
 import { useVideoTransferNavigation } from './client/useVideoTransferNavigation';
@@ -527,6 +528,7 @@ function AuthenticatedApp({
   serverAdmin: boolean;
   storyStartupReads?: StoryStartupReads;
 }) {
+  useAppShortcuts();
   const { t } = useTranslation();
   const location = useLocation();
   const queryClient = useQueryClient();

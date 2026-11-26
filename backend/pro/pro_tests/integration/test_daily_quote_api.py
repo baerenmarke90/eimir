@@ -217,9 +217,11 @@ def test_daily_saying_follows_the_account_language(client, session: Session, cou
     saying = before.json()["quote"]
     assert saying["locale"] == "de"
     assert saying["categoryIds"] == ["motivation"]
-    assert saying["authorDisplay"] == ""
-    assert saying["attributionRequired"] is False
-    assert saying["sourceDisplay"] is None
+    german = catalog.get_quote_by_id(saying["id"])
+    assert german is not None
+    assert saying["authorDisplay"] == german.author_display
+    assert saying["attributionRequired"] is bool(german.author_display)
+    assert saying["sourceDisplay"] == german.source_display
 
     language_path = "/api/v1/account/language-preference"
     language = client.get(language_path, headers=headers)
@@ -236,12 +238,14 @@ def test_daily_saying_follows_the_account_language(client, session: Session, cou
     assert after.status_code == 200
     english = after.json()["quote"]
     assert english["locale"] == "en"
+    # German and English share the entry id, so the quote of the day stays the same one.
     assert english["id"] == saying["id"].replace("saying-de-", "saying-en-", 1)
     assert english["categoryIds"] == ["motivation"]
-    assert english["authorDisplay"] == ""
-    assert english["attributionRequired"] is False
     translation = catalog.get_quote_by_id(english["id"])
     assert translation is not None
+    assert english["authorDisplay"] == translation.author_display == german.author_display
+    assert english["attributionRequired"] is bool(translation.author_display)
+    assert english["sourceDisplay"] == translation.source_display
     assert english["text"] == translation.text
     assert english["text"] != saying["text"]
     assert english["rightsClassification"] == translation.rights_classification

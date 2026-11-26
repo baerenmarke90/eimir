@@ -1,0 +1,17 @@
+{
+  "license_notice": "Quotations from public-domain works. Author died in 1955 or earlier (Germany: life + 70 years) and the text was first published in 1930 or earlier (United States). The original wording of every entry was checked against a transcription or scan of the cited work; `source_url` names that page. Where the quotation is cut at a natural line or sentence end, only the final punctuation mark may differ from the source. The version in the language other than the original is an eimir. catalog translation, contributed under CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Candidates were found with the help of a secondary quotation list (KNJA, derived from Wikiquote); no wording, selection or database content of that list is taken over, see PROVENANCE.md.",
+  "translations": {
+    "en": {
+      "translator": "eimir. catalog translation from the German original",
+      "source_display": "English translation",
+      "rights_basis": "The English text is an eimir. catalog translation contributed under CC0 1.0 Universal."
+    },
+    "de": {
+      "translator": "eimir. catalog translation from the English original",
+      "source_display": "Deutsche Übersetzung",
+      "rights_basis": "The German text is an eimir. catalog translation contributed under CC0 1.0 Universal."
+    }
+  },
+  "collections": {},
+  "entries": []
+}

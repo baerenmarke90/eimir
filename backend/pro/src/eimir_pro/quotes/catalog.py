@@ -1,11 +1,16 @@
 """Curated, code-owned catalog of daily quotes, categories, and sources.
 
-This catalog is closed and code-owned (#1151):
-- Every saying is AI-generated text without an individual author. It is selected for
+This catalog is closed and code-owned (#1151). It is loaded from two bundled resources:
+- `daily_sayings.json`: AI-generated text without an individual author. It is selected for
   eimir. and used under the repository license, so no author or citation is shown.
-- The previous catalog of public-domain quotations and first-party editorial sayings is
-  archived in `backend/pro/archive/quotes` and no longer served.
-- Rights and provenance stay recorded per saying in `daily_sayings.json`.
+- `daily_sayings_public_domain.json`: attributed quotations from public-domain works. Each
+  quotation was checked against a transcription of the original text; the card shows author
+  and work. German and English versions exist for every entry, and the version that is not
+  the original language is an eimir. catalog translation labelled as such.
+- The earlier catalog of public-domain quotations and first-party editorial sayings is
+  archived in `backend/pro/archive/quotes`; none of it is served unless it was verified
+  again for `daily_sayings_public_domain.json`.
+- Rights and provenance stay recorded per saying in the resource that holds it.
 - Each saying expresses a complete thought and carries exactly one category.
 """
 
@@ -139,19 +144,39 @@ SOURCES: tuple[QuoteSource, ...] = (
 SOURCE_MAP: dict[str, QuoteSource] = {source.id: source for source in SOURCES}
 
 
-def _load_localized_sayings() -> tuple[DailyQuote, ...]:
-    resource = files("eimir_pro.quotes").joinpath("daily_sayings.json")
+#: Catalog resources served by the Daily Quote feature, in serving order. Both use the same
+#: schema (collections, entries, per-locale texts) and the same loader, so there is one
+#: catalog, one selection mechanism and one API (#1151).
+#:
+#: - `daily_sayings.json`: authorless AI-generated sayings (1,000 per language).
+#: - `daily_sayings_public_domain.json`: attributed quotations from public-domain works,
+#:   each independently verified against its original text.
+CATALOG_RESOURCES: tuple[str, ...] = (
+    "daily_sayings.json",
+    "daily_sayings_public_domain.json",
+)
+
+
+def _load_localized_sayings(resource_name: str) -> tuple[DailyQuote, ...]:
+    resource = files("eimir_pro.quotes").joinpath(resource_name)
     data = json.loads(resource.read_text(encoding="utf-8"))
     sayings = []
     for entry in data["entries"]:
         collection = data["collections"][entry["collection"]]
         author = collection["author_display"]
+        # An entry may refine its collection: the work title shown on the card, the edition
+        # and permalink of the independently verified source text, and the first-publication
+        # year. Collections that carry these once keep working unchanged.
+        entry_source_display = entry.get("source_display", collection.get("source_display"))
+        entry_source_edition = entry.get("source_edition") or collection["source_edition"]
+        entry_source_url = entry.get("source_url") or collection["source_url"]
+        entry_publication_year = entry.get("publication_year", collection.get("publication_year"))
         for locale, text in entry["texts"].items():
             rights = RightsClassification(
                 collection.get("rights_classification", RightsClassification.PUBLIC_DOMAIN)
             )
             rights_basis = collection["rights_basis"]
-            source_display = collection.get("source_display")
+            source_display = entry_source_display
             translator = collection.get("translator")
             original_locale = collection.get("original_locale", "de")
             if locale != original_locale and (
@@ -159,7 +184,7 @@ def _load_localized_sayings() -> tuple[DailyQuote, ...]:
             ):
                 translation = data["translations"][locale]
                 translation_label = translation["source_display"]
-                if author and rights is RightsClassification.EDITORIAL_CURATED and source_display:
+                if author and source_display:
                     source_display = f"{source_display} · {translation_label}"
                 else:
                     source_display = translation_label if author else None
@@ -178,8 +203,8 @@ def _load_localized_sayings() -> tuple[DailyQuote, ...]:
                     rights_classification=rights,
                     attribution_required=bool(author),
                     original_work=entry["work"],
-                    source_edition=f"{collection['source_edition']} {collection['source_url']}",
-                    publication_year=collection.get("publication_year"),
+                    source_edition=f"{entry_source_edition} {entry_source_url}",
+                    publication_year=entry_publication_year,
                     translator=translator,
                     rights_basis=rights_basis,
                 )
@@ -187,7 +212,9 @@ def _load_localized_sayings() -> tuple[DailyQuote, ...]:
     return tuple(sayings)
 
 
-QUOTES = _load_localized_sayings()
+QUOTES = tuple(
+    quote for resource_name in CATALOG_RESOURCES for quote in _load_localized_sayings(resource_name)
+)
 
 
 QUOTE_MAP: dict[str, DailyQuote] = {quote.id: quote for quote in QUOTES}

@@ -31,11 +31,20 @@ def test_catalog_categories_and_sources_are_defined() -> None:
     assert "poetic_wisdom" in source_ids
 
 
-def test_catalog_holds_one_thousand_unique_sayings_in_each_app_language() -> None:
+def _ai_sayings(locale: str | None = None) -> list[catalog.DailyQuote]:
+    """The authorless AI-generated sayings, without the attributed public-domain quotations."""
+    return [
+        quote
+        for quote in catalog.get_quotes(locale=locale, active_only=False)
+        if quote.id.startswith(f"saying-{quote.locale}-ai-")
+    ]
+
+
+def test_catalog_holds_one_thousand_unique_ai_sayings_in_each_app_language() -> None:
     languages = set(language_catalogs())
     assert languages == {"de", "en"}
     for locale in languages:
-        quotes = catalog.get_quotes(locale=locale, active_only=False)
+        quotes = _ai_sayings(locale)
         assert len(quotes) == 1_000
         assert len({quote.id for quote in quotes}) == len(quotes)
         assert len({quote.text for quote in quotes}) == len(quotes)
@@ -48,13 +57,24 @@ def test_catalog_holds_one_thousand_unique_sayings_in_each_app_language() -> Non
         assert set(per_category.values()) == {100}
 
 
+def test_whole_catalog_has_unique_ids_and_texts_and_equal_language_coverage() -> None:
+    by_locale = {
+        locale: catalog.get_quotes(locale=locale, active_only=False) for locale in ("de", "en")
+    }
+    assert len(by_locale["de"]) == len(by_locale["en"])
+    for locale, quotes in by_locale.items():
+        assert len({quote.id for quote in quotes}) == len(quotes)
+        assert len({quote.text for quote in quotes}) == len(quotes)
+        assert {quote.locale for quote in quotes} == {locale}
+        assert {quote.category_ids[0] for quote in quotes} == CATEGORY_IDS
+    ids = {quote.id for quote in catalog.get_quotes(active_only=False)}
+    assert len(ids) == len(catalog.QUOTES)
+    assert set(catalog.QUOTE_MAP) == ids
+
+
 def test_every_english_saying_translates_one_german_original() -> None:
-    originals = {
-        quote.id.removeprefix("saying-de-"): quote for quote in catalog.get_quotes(locale="de")
-    }
-    translations = {
-        quote.id.removeprefix("saying-en-"): quote for quote in catalog.get_quotes(locale="en")
-    }
+    originals = {quote.id.removeprefix("saying-de-"): quote for quote in _ai_sayings("de")}
+    translations = {quote.id.removeprefix("saying-en-"): quote for quote in _ai_sayings("en")}
     assert translations.keys() == originals.keys()
     for key, translation in translations.items():
         original = originals[key]
@@ -73,7 +93,7 @@ def test_all_sayings_are_authorless_ai_generated_text_with_recorded_rights() -> 
     valid_sources = {s.id for s in catalog.get_sources()}
     valid_categories = {c.id for c in catalog.get_categories()}
 
-    for quote in catalog.get_quotes(active_only=False):
+    for quote in _ai_sayings():
         assert quote.id.startswith(f"saying-{quote.locale}-ai-")
         assert quote.text.strip() == quote.text
         assert len(quote.text) >= 10
@@ -109,19 +129,21 @@ def test_previous_catalog_is_archived_and_no_longer_served() -> None:
     previous = json.loads(archive.read_text(encoding="utf-8"))
     assert len(previous["entries"]) == 1_000
 
-    served_texts = {quote.text for quote in catalog.get_quotes(active_only=False)}
+    # The AI sayings never reuse archived wording. Archived public-domain quotations are served
+    # again only through `daily_sayings_public_domain.json`, after a fresh source verification.
+    served_texts = {quote.text for quote in _ai_sayings()}
     archived_texts = {text for entry in previous["entries"] for text in entry["texts"].values()}
     assert served_texts.isdisjoint(archived_texts)
 
 
 def test_get_quotes_filters_by_locale() -> None:
     german = catalog.get_quotes(locale="de")
-    assert len(german) == 1_000
+    assert len(german) >= 1_000
     assert {category for quote in german for category in quote.category_ids} == CATEGORY_IDS
     assert catalog.get_quotes(locale="de-DE") == german
 
     english = catalog.get_quotes(locale="en-US")
-    assert len(english) == 1_000
+    assert len(english) == len(german)
     assert {quote.locale for quote in english} == {"en"}
 
 

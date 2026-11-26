@@ -89,9 +89,14 @@ describe('ServerAdmin area navigation', () => {
     expect(markup(<ServerAdminSubNavigation activeSection="overview" />)).toBe(
       '',
     );
-    expect(markup(<ServerAdminSubNavigation activeSection="reports" />)).toBe(
-      '',
-    );
+  });
+
+  it('shows the Help pages as sub-navigation', () => {
+    const pages = markup(<ServerAdminSubNavigation activeSection="reports" />);
+    expect(pages).toContain('section=replyTemplates');
+    expect(pages).toContain(serverAdmin.navigation.replyTemplates);
+    const [current] = currentLinks(pages);
+    expect(current).not.toContain('section=replyTemplates');
   });
 
   describe('leaving the reports section with an unsent draft', () => {

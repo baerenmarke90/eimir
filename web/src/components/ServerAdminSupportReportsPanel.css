@@ -501,3 +501,38 @@
   padding: 0;
   border-radius: 999px;
 }
+
+/* Help > Reply templates (#2327): the create pill, then one card per template. */
+.server-admin-template-create {
+  margin: var(--space-4) 0;
+}
+
+.server-admin-template-list {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.server-admin-template-row {
+  display: grid;
+  width: 100%;
+  min-height: var(--touch-target-comfortable);
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  color: var(--color-text);
+  font-weight: 400;
+  text-align: start;
+}
+
+.server-admin-template-row-text {
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

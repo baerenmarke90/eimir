@@ -29,6 +29,7 @@ from eimir.engagement import service as engagement_service
 from eimir.identity import deletion_jobs as account_deletion_jobs
 from eimir.jobs import maintenance
 from eimir.jobs.worker import registry, run_once
+from eimir.monitoring.heartbeat import worker_heartbeat
 from eimir.observability import configure_logging
 from eimir.places import photo_enrichment
 from eimir.plugins.dormant import warn_dormant_plugin_data_once
@@ -130,8 +131,11 @@ def main() -> None:
     unclaimed = plugins.unclaimed_job_kinds(registry)
     _ensure_maintenance()
     last_checked = time.monotonic()
+    heartbeat = worker_heartbeat(settings, role="worker")
+    heartbeat.start()
 
     while not _shutdown:
+        heartbeat.progress()
         if time.monotonic() - last_checked >= MAINTENANCE_CHECK_SECONDS:
             _ensure_maintenance()
             last_checked = time.monotonic()
@@ -158,9 +162,11 @@ def main() -> None:
             log.exception("worker round failed")
             completed = 0
 
+        heartbeat.progress()
         if completed == 0:
             time.sleep(IDLE_SLEEP_SECONDS)
 
+    heartbeat.stop()
     log.info("worker stopped", extra={"worker": name})
 
 

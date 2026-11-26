@@ -12,7 +12,6 @@ import os
 import signal
 import socket
 import time
-from datetime import timedelta
 from types import FrameType
 
 from eimir.attachments import video_jobs
@@ -20,6 +19,7 @@ from eimir.attachments.service import ATTACHMENT_AUDIO_VALIDATION, ATTACHMENT_VI
 from eimir.config import get_settings
 from eimir.db.session import unit_of_work
 from eimir.jobs.worker import JobRegistry, registry, run_once
+from eimir.monitoring.heartbeat import VIDEO_LEASE, worker_heartbeat
 from eimir.observability import configure_logging
 from eimir.plugins.loader import loaded_plugins
 
@@ -59,19 +59,24 @@ def main() -> None:
         if recovered < video_jobs.RECOVERY_BATCH_SIZE:
             break
     name = f"video-{socket.gethostname()}-{os.getpid()}"
+    heartbeat = worker_heartbeat(settings, role="video-worker")
+    heartbeat.start()
     while not _shutdown:
+        heartbeat.progress()
         try:
             completed = run_once(
                 name,
                 limit=1,
                 kinds=kinds,
-                lease=timedelta(minutes=30),
+                lease=VIDEO_LEASE,
             )
         except Exception:
             log.exception("video worker round failed")
             completed = 0
+        heartbeat.progress()
         if not completed:
             time.sleep(2)
+    heartbeat.stop()
 
 
 if __name__ == "__main__":

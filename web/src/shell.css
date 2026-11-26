@@ -516,6 +516,13 @@
   margin-inline: auto;
 }
 
+/* Once the prepared page has drawn (a map's first complete view), the panel
+   rests like a parked tab: its rendering state is kept, but photos that
+   still arrive no longer lay it out or paint it until the first visit. */
+.product-main > .primary-tab-panel[data-primary-tab-prewarm="rested"] {
+  content-visibility: hidden;
+}
+
 /* Resolve the shell's width before descendants introduce their own containers. */
 @property --shell-inline-size {
   syntax: "<length>";

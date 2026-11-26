@@ -50,7 +50,7 @@ import { choreography, now } from './choreography';
 import { hasPlayed, markPlayed } from './playRegistry';
 import { prefersReducedMotion } from './reducedMotion';
 import { durationMs } from './tokens';
-import { isVisibleNow, observeVisibility } from './visibility';
+import { isVisibleNow, keptViewParked, observeVisibility } from './visibility';
 
 export const STAGE_ANIMATION_PREFIX = 'eimir-motion-stage-';
 export const STAGE_ATTRIBUTE = 'data-motion-stage';
@@ -432,7 +432,7 @@ function arm(identity: string): void {
     end(identity);
     return;
   }
-  if (options.deferWhileHidden && !isVisibleNow(root).keptView) {
+  if (options.deferWhileHidden && keptViewParked(root)) {
     deferUntilShown(identity, root);
     return;
   }

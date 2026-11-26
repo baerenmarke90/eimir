@@ -282,6 +282,7 @@ export default function PlaceMapCanvas({
   connection,
   ariaLabel,
   revealWhenComplete = false,
+  onComplete,
 }: {
   value?: MapPoint;
   focus?: MapFocus;
@@ -306,9 +307,16 @@ export default function PlaceMapCanvas({
    * the viewer. A cap keeps a slow or failing basemap from hiding it.
    */
   revealWhenComplete?: boolean;
+  /** Called when the opening view and its photos are complete, or the cap passed. */
+  onComplete?: () => void;
 }) {
   const { t } = useTranslation();
   const [complete, setComplete] = useState(false);
+  const completeRef = useRef(onComplete);
+  completeRef.current = onComplete;
+  useEffect(() => {
+    if (complete) completeRef.current?.();
+  }, [complete]);
   const revealRequested = useRef(revealWhenComplete);
   revealRequested.current = revealWhenComplete;
   const container = useRef<HTMLDivElement>(null);

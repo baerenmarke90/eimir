@@ -18,6 +18,7 @@ import {
   useNavigationType,
 } from 'react-router-dom';
 import { PrimaryTabActiveContext } from '../client/primaryTabActive';
+import { PrimaryTabPreparedContext } from '../client/primaryTabPrepared';
 import {
   primaryTabPeekGeometry,
   usePrimaryTabPeek,
@@ -276,6 +277,7 @@ const TabRouteContent = memo(function TabRouteContent({
   active,
   location,
   previewKey,
+  prepared,
   fallback,
 }: {
   path: string;
@@ -283,6 +285,8 @@ const TabRouteContent = memo(function TabRouteContent({
   active: boolean;
   location: Location;
   previewKey?: string;
+  /** Set while the tab is prepared before its first visit. */
+  prepared?: () => void;
   fallback: ReactNode;
 }) {
   const kept = useMemo(
@@ -301,11 +305,13 @@ const TabRouteContent = memo(function TabRouteContent({
   );
   return (
     <PrimaryTabActiveContext.Provider value={active}>
-      <PrimaryTabTaskOriginScope active={active}>
-        <AppErrorBoundary resetKey={kept.key} fallback={fallback}>
-          <KeptRoute path={path} element={element} location={kept} />
-        </AppErrorBoundary>
-      </PrimaryTabTaskOriginScope>
+      <PrimaryTabPreparedContext.Provider value={prepared ?? null}>
+        <PrimaryTabTaskOriginScope active={active}>
+          <AppErrorBoundary resetKey={kept.key} fallback={fallback}>
+            <KeptRoute path={path} element={element} location={kept} />
+          </AppErrorBoundary>
+        </PrimaryTabTaskOriginScope>
+      </PrimaryTabPreparedContext.Provider>
     </PrimaryTabActiveContext.Provider>
   );
 });
@@ -376,6 +382,22 @@ export function PrimaryTabPanels({
     !locations.current.has(path) &&
     panels.some((panel) => panel.path === path && panel.retain !== false);
   const prepared = usePrewarm(candidates.filter(unbuilt));
+  // A prepared page says when it has drawn what it is prepared for; its panel
+  // then rests with its contents skipped until the first visit. One stable
+  // callback per path, so telling it never renders the page.
+  const [rested, setRested] = useState<ReadonlySet<string>>(() => new Set());
+  const restCallbacks = useRef(new Map<string, () => void>());
+  const restFor = (path: string) => {
+    let rest = restCallbacks.current.get(path);
+    if (!rest) {
+      rest = () =>
+        setRested((current) =>
+          current.has(path) ? current : new Set(current).add(path),
+        );
+      restCallbacks.current.set(path, rest);
+    }
+    return rest;
+  };
   const index = primaryTabIndex(pathname);
   const neighbours =
     prewarmNeighbours && index >= 0
@@ -501,7 +523,9 @@ export function PrimaryTabPanels({
         className="primary-tab-panel"
         data-primary-tab={path}
         data-primary-tab-peek={peeking ? 'true' : undefined}
-        data-primary-tab-prewarm={preparing ? 'true' : undefined}
+        data-primary-tab-prewarm={
+          preparing ? (rested.has(path) ? 'rested' : 'true') : undefined
+        }
         data-primary-tab-rehearse={
           prebuilt && rehearsing === path ? 'true' : undefined
         }
@@ -521,6 +545,7 @@ export function PrimaryTabPanels({
           previewKey={
             visited ? undefined : `${peeking ? 'peek' : 'prewarm'}-${path}`
           }
+          prepared={preparing ? restFor(path) : undefined}
           fallback={fallback}
         />
       </div>

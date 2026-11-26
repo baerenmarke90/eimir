@@ -105,7 +105,8 @@ def test_only_owner_can_read_or_change_personal_push_choice(client, session: Ses
     initial = client.get(BASE, headers=auth(anna_token))
     assert initial.status_code == 200
     assert initial.headers["Cache-Control"] == "private, no-store"
-    assert len(initial.json()["items"]) == len(NotificationKind)
+    # Operator notices (#2314) are ServerAdmin alerts, never a couple's choice.
+    assert len(initial.json()["items"]) == len(NotificationKind) - 1
     thinking = _entry(initial.json(), NotificationKind.THINKING_OF_YOU.value)
     assert thinking["deliveryClass"] == "IMMEDIATE"
     assert _channel(thinking, "PUSH") == {"channel": "PUSH", "enabled": True, "configurable": True}
@@ -141,6 +142,23 @@ def test_only_owner_can_read_or_change_personal_push_choice(client, session: Ses
     assert _channel(_entry(own, "REMINDER_DUE"), "PUSH")["enabled"] is True
     assert client.get(BASE).status_code == 401
     assert client.patch(f"{BASE}/REMINDER_DUE/PUSH", json={"enabled": False}).status_code == 401
+
+
+def test_preferences_api_hides_operator_alert(client, session: Session) -> None:  # type: ignore[no-untyped-def]
+    account = make_account(session, "Operator")
+    token = sign_in(session, account)
+
+    listed = client.get(BASE, headers=auth(token))
+    assert NotificationKind.OPERATOR_ALERT.value not in {
+        item["kind"] for item in listed.json()["items"]
+    }
+    for channel in ("IN_APP", "PUSH", "EMAIL"):
+        changed = client.patch(
+            f"{BASE}/OPERATOR_ALERT/{channel}", json={"enabled": False}, headers=auth(token)
+        )
+        assert changed.status_code == 409
+        assert changed.json()["code"] == "NOTIFICATION_CHANNEL_NOT_CONFIGURABLE"
+    assert session.execute(select(NotificationPreference)).scalars().all() == []
 
 
 def test_in_app_choice_is_independent_per_kind_and_account(client, session: Session) -> None:  # type: ignore[no-untyped-def]

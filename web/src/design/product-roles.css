@@ -124,6 +124,8 @@
   --duration-map-stack: 600ms;
   --duration-controls-return: 480ms;
   --duration-sequence-beat: 200ms;
+  --duration-module-enter: 600ms;
+  --motion-module-rise: 8px;
   --duration-send-flight: 560ms;
   --duration-gesture-moment: 900ms;
   --duration-stagger-item: 60ms;
@@ -218,6 +220,7 @@
     --duration-map-stack: 0ms;
     --duration-controls-return: 0ms;
     --duration-sequence-beat: 0ms;
+    --duration-module-enter: 0ms;
     --duration-send-flight: 0ms;
     --duration-gesture-moment: 0ms;
     --duration-stagger-item: 0ms;

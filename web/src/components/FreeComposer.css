@@ -306,10 +306,12 @@
   margin: 0;
 }
 
-/* A collapsed tag field has no container-query content to size yet. */
+/* A collapsed tag field has no container-query content to size yet. The
+   editor names its entry state itself: a `:has()` on `[hidden]` would make
+   every `hidden` toggle in the app (the kept tabs) restyle whole subtrees. */
 .quiet-composer
   .composer-enrichment
-  > .context-tag-disclosure:has(> div[hidden]) {
+  > .context-tag-disclosure[data-entry="closed"] {
   container-type: normal;
   flex-shrink: 0;
   inline-size: fit-content;
@@ -317,7 +319,7 @@
 
 .quiet-composer
   .composer-enrichment
-  > .context-tag-disclosure:has(> div:not([hidden])),
+  > .context-tag-disclosure[data-entry="open"],
 .quiet-composer .composer-enrichment > .ordered-moment-places:has(> ol > li),
 .quiet-composer
   .composer-enrichment

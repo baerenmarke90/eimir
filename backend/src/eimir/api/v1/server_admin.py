@@ -26,9 +26,10 @@ from eimir.administration.models import (
 from eimir.api.deps import CurrentServerAdmin, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
+from eimir.attachments import quota as storage_quota
 from eimir.attachments.models import Attachment, AttachmentStatus
 from eimir.auth import cloud
-from eimir.config import MailTransport
+from eimir.config import Deployment, MailTransport
 from eimir.config import get_settings as get_runtime_settings
 from eimir.core.clock import ensure_utc, now
 from eimir.core.errors import NotFoundError, ValidationError
@@ -54,6 +55,8 @@ from eimir.identity.models import (
 )
 from eimir.jobs.models import Job, JobStatus
 from eimir.mail import sender as mail_sender
+from eimir.monitoring import heartbeat
+from eimir.monitoring.status import failed_deliveries_since
 from eimir.plugins.loader import loaded_plugins
 from eimir.relationship import service as relationship_service
 from eimir.relationship.models import (
@@ -66,12 +69,32 @@ from eimir.support_reports import service as support_reports
 
 router = APIRouter(prefix="/server-admin", tags=["server-admin"])
 _PROCESS_STARTED_AT = now()
+# The Situation's attention lists (ServerAdmin redesign part 1).
+_STORAGE_PRESSURE_RATIO = 0.85
+_EXPIRING_GRANT_WINDOW = timedelta(days=7)
+_ATTENTION_LIMIT = 5
 
 AccountStatusFilter = Literal["all", "active", "suspended"]
 VerificationFilter = Literal["all", "verified", "unverified"]
 SpaceStatusFilter = Literal["all", "active", "inactive", "empty", "anomaly"]
 SpaceLifecycleStatus = Literal["active", "inactive", "empty"]
 AuditCategoryFilter = Literal["all", "settings", "accounts", "spaces", "destructive"]
+
+
+class ServerAdminStoragePressureItem(ApiModel):
+    """A Space at or above 85 % of its Cloud quota: id and bytes only."""
+
+    space_id: UUID
+    used_bytes: int
+    quota_bytes: int
+
+
+class ServerAdminExpiringGrantItem(ApiModel):
+    """An operator grant that ends within seven days: ids and end only."""
+
+    space_id: UUID
+    grant_id: UUID
+    effective_until: datetime
 
 
 class ServerAdminFailedJob(ApiModel):
@@ -126,6 +149,15 @@ class ServerAdminOverview(ApiModel):
     recent_failed_jobs: list[ServerAdminFailedJob]
     support_reports_new: int
     support_reports_operator_available: bool
+    worker_last_seen_at: datetime | None
+    video_worker_status: str
+    email_failures_last_hour: int
+    push_failures_last_hour: int
+    backup_status: Literal["not_configured"]
+    storage_pressure_count: int
+    storage_pressure: list[ServerAdminStoragePressureItem]
+    expiring_admin_grant_count: int
+    expiring_admin_grants: list[ServerAdminExpiringGrantItem]
     warning_codes: list[str]
 
 
@@ -143,6 +175,8 @@ class ServerAdminSettings(ApiModel):
     registration_enabled: bool
     maintenance_mode: bool
     effective_registration_enabled: bool
+    monitoring_alerts_enabled: bool
+    monitoring_push_enabled: bool
     version: int
 
 
@@ -333,6 +367,8 @@ def _settings_view(settings: InstanceAdministrationSettings) -> ServerAdminSetti
         registration_enabled=registration_enabled,
         maintenance_mode=maintenance_mode,
         effective_registration_enabled=(registration_enabled and not maintenance_mode),
+        monitoring_alerts_enabled=bool(settings.monitoring_alerts_enabled),
+        monitoring_push_enabled=bool(settings.monitoring_push_enabled),
         version=int(settings.version),
     )
 
@@ -716,6 +752,40 @@ def get_server_admin_overview(
             now=current_time,
         )
 
+    storage_pressure_count, storage_pressure = storage_quota.spaces_near_quota(
+        session,
+        ratio=_STORAGE_PRESSURE_RATIO,
+        limit=_ATTENTION_LIMIT,
+        settings=settings,
+    )
+    expiring_filters = (
+        EntitlementGrant.source_type == EntitlementSourceType.ADMIN_GRANT.value,
+        EntitlementGrant.status == EntitlementStatus.ACTIVE.value,
+        EntitlementGrant.effective_until > current_time,
+        EntitlementGrant.effective_until <= current_time + _EXPIRING_GRANT_WINDOW,
+    )
+    expiring_admin_grant_count = session.execute(
+        select(func.count()).select_from(EntitlementGrant).where(*expiring_filters)
+    ).scalar_one()
+    expiring_admin_grants = (
+        session.execute(
+            select(EntitlementGrant)
+            .where(*expiring_filters)
+            .order_by(EntitlementGrant.effective_until.asc())
+            .limit(_ATTENTION_LIMIT)
+        )
+        .scalars()
+        .all()
+    )
+
+    worker_status, worker_last_seen_at = heartbeat.worker_state(session, "worker", current_time)
+    video_worker_status, _video_last_seen = heartbeat.worker_state(
+        session, "video-worker", current_time
+    )
+    email_failures, push_failures = failed_deliveries_since(
+        session, current_time - timedelta(hours=1)
+    )
+
     warning_codes: list[str] = []
     admin_settings = administration.get_access_state(session)
     if admin_settings.maintenance_mode:
@@ -732,11 +802,18 @@ def get_server_admin_overview(
         warning_codes.append("failed_jobs_present")
     if unread_reports_warning:
         warning_codes.append("support_reports_unread")
+    if storage_pressure_count:
+        warning_codes.append("storage_quota_pressure")
+    if expiring_admin_grant_count:
+        warning_codes.append("admin_grants_expiring")
+    # No backup signal exists yet (#2317); on Cloud that is a risk to name.
+    if settings.deployment is Deployment.CLOUD:
+        warning_codes.append("backup_not_configured")
 
     return ServerAdminOverview(
         application_status="ok",
         database_status="ok",
-        worker_status="no_heartbeat_signal",
+        worker_status=worker_status,
         media_status="not_probed",
         deployment=settings.deployment.value,
         environment=settings.environment.value,
@@ -784,6 +861,26 @@ def get_server_admin_overview(
         support_reports_operator_available=support_reports_operator_available(
             enabled=settings.support_reports_enabled
         ),
+        worker_last_seen_at=worker_last_seen_at,
+        video_worker_status=video_worker_status,
+        email_failures_last_hour=email_failures,
+        push_failures_last_hour=push_failures,
+        backup_status="not_configured",
+        storage_pressure_count=storage_pressure_count,
+        storage_pressure=[
+            ServerAdminStoragePressureItem(space_id=space_id, used_bytes=used, quota_bytes=quota)
+            for space_id, used, quota in storage_pressure
+        ],
+        expiring_admin_grant_count=expiring_admin_grant_count,
+        expiring_admin_grants=[
+            ServerAdminExpiringGrantItem(
+                space_id=grant.space_id,
+                grant_id=grant.id,
+                effective_until=ensure_utc(grant.effective_until),
+            )
+            for grant in expiring_admin_grants
+            if grant.effective_until is not None
+        ],
         warning_codes=warning_codes,
     )
 
@@ -1366,6 +1463,46 @@ def update_maintenance_setting(
         session,
         actor_id=admin.id,
         setting=AdministrationSetting.MAINTENANCE_MODE,
+        enabled=body.enabled,
+    )
+    return _settings_view(settings)
+
+
+@router.put(
+    "/settings/monitoring-alerts",
+    response_model=ServerAdminSettings,
+    responses=problem_responses(401, 403, 422),
+)
+def update_monitoring_alerts_setting(
+    body: ServerAdminSettingUpdate,
+    admin: CurrentServerAdmin,
+    session: DbSession,
+) -> ServerAdminSettings:
+    """Turn the monitoring alert mails to ServerAdmins on or off (#2317)."""
+    settings = administration.update_setting(
+        session,
+        actor_id=admin.id,
+        setting=AdministrationSetting.MONITORING_ALERTS_ENABLED,
+        enabled=body.enabled,
+    )
+    return _settings_view(settings)
+
+
+@router.put(
+    "/settings/monitoring-push",
+    response_model=ServerAdminSettings,
+    responses=problem_responses(401, 403, 422),
+)
+def update_monitoring_push_setting(
+    body: ServerAdminSettingUpdate,
+    admin: CurrentServerAdmin,
+    session: DbSession,
+) -> ServerAdminSettings:
+    """Turn the monitoring alerts as app push to ServerAdmins on or off (#2314)."""
+    settings = administration.update_setting(
+        session,
+        actor_id=admin.id,
+        setting=AdministrationSetting.MONITORING_PUSH_ENABLED,
         enabled=body.enabled,
     )
     return _settings_view(settings)

@@ -315,6 +315,17 @@
   }
 }
 
+/* A ServerAdmin alert (#2314) nudges once, sideways, without a bounce. */
+@keyframes eimir-motion-notice-operator-alert {
+  from {
+    opacity: 0;
+    transform: translateX(-12%);
+  }
+  to {
+    transform: none;
+  }
+}
+
 @keyframes eimir-motion-notice-recap-grew {
   from {
     opacity: 0;

@@ -296,6 +296,12 @@ class Settings(IdentityCompatibleSettings):
     s3_secret_access_key: SecretStr | None = None
     s3_session_token: SecretStr | None = None
 
+    # ServerAdmin monitoring (#2317). The push URL is the operator's Uptime Kuma
+    # push monitor; it carries a token and is never logged or returned by an API.
+    heartbeat_push_url: SecretStr | None = None
+    # Stable heartbeat identity; defaults to the host name of the process.
+    worker_name: str | None = None
+
     # Application-controlled encryption at rest (issue #797, docs/ENCRYPTION-AT-REST.md).
     # Not end-to-end encryption: this process holds the keys.
     #

@@ -9,7 +9,9 @@ import time
 from starlette.datastructures import Headers, MutableHeaders
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from eimir.core.clock import now
 from eimir.core.ids import new_id
+from eimir.monitoring import requests as request_metrics
 from eimir.observability.context import (
     set_correlation_id,
     set_request_id,
@@ -75,7 +77,19 @@ class RequestLoggingMiddleware:
         if re.fullmatch(r"/api/v1/spaces/[^/]+/gentle-prompts(?:/.*)?", path):
             # Own-use receipts and suggestion actions must not become a log-based
             # behavioral history. Request IDs and normal security checks remain.
-            await self.app(scope, receive, send)
+            # They still count, without their path, in the monitoring totals.
+            async def counting_send(message: Message) -> None:
+                nonlocal status_code
+                if message["type"] == "http.response.start":
+                    status_code = message.get("status", 200)
+                await send(message)
+
+            try:
+                await self.app(scope, receive, counting_send)
+            finally:
+                request_metrics.observe(
+                    path, status_code, (time.monotonic() - start_time) * 1000, now()
+                )
             return
         method = scope.get("method", "")
 
@@ -89,6 +103,7 @@ class RequestLoggingMiddleware:
             await self.app(scope, receive, send_wrapper)
         finally:
             duration_ms = round((time.monotonic() - start_time) * 1000, 2)
+            request_metrics.observe(path, status_code, duration_ms, now())
             _ACCESS_LOG.info(
                 "%s %s -> %d (%.2fms)",
                 method,

@@ -79,6 +79,11 @@ import {
     ServerAdminJobListToJSON,
 } from '../models/ServerAdminJobList';
 import {
+    type ServerAdminMonitoring,
+    ServerAdminMonitoringFromJSON,
+    ServerAdminMonitoringToJSON,
+} from '../models/ServerAdminMonitoring';
+import {
     type ServerAdminOverview,
     ServerAdminOverviewFromJSON,
     ServerAdminOverviewToJSON,
@@ -151,6 +156,10 @@ export interface DeleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeleti
 
 export interface GetServerAdminAccountApiV1ServerAdminAccountsAccountIdGetRequest {
     accountId: string;
+}
+
+export interface GetServerAdminMonitoringApiV1ServerAdminMonitoringGetRequest {
+    range?: GetServerAdminMonitoringApiV1ServerAdminMonitoringGetRangeEnum;
 }
 
 export interface GetServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRequest {
@@ -229,6 +238,14 @@ export interface RevokeServerAdminSpaceEntitlementGrantApiV1ServerAdminSpacesSpa
 }
 
 export interface UpdateMaintenanceSettingApiV1ServerAdminSettingsMaintenancePutRequest {
+    serverAdminSettingUpdate: ServerAdminSettingUpdate;
+}
+
+export interface UpdateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPutRequest {
+    serverAdminSettingUpdate: ServerAdminSettingUpdate;
+}
+
+export interface UpdateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPutRequest {
     serverAdminSettingUpdate: ServerAdminSettingUpdate;
 }
 
@@ -423,6 +440,49 @@ export class ServerAdminApi extends runtime.BaseAPI {
      */
     async getServerAdminActivityApiV1ServerAdminActivityGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<ServerAdminActivityItem>> {
         const response = await this.getServerAdminActivityApiV1ServerAdminActivityGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getServerAdminMonitoringApiV1ServerAdminMonitoringGet without sending the request
+     */
+    async getServerAdminMonitoringApiV1ServerAdminMonitoringGetRequestOpts(requestParameters: GetServerAdminMonitoringApiV1ServerAdminMonitoringGetRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['range'] != null) {
+            queryParameters['range'] = requestParameters['range'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/server-admin/monitoring`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Return history, storage forecast and service states for the chosen range.
+     * Get Server Admin Monitoring
+     */
+    async getServerAdminMonitoringApiV1ServerAdminMonitoringGetRaw(requestParameters: GetServerAdminMonitoringApiV1ServerAdminMonitoringGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ServerAdminMonitoring>> {
+        const requestOptions = await this.getServerAdminMonitoringApiV1ServerAdminMonitoringGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ServerAdminMonitoringFromJSON(jsonValue));
+    }
+
+    /**
+     * Return history, storage forecast and service states for the chosen range.
+     * Get Server Admin Monitoring
+     */
+    async getServerAdminMonitoringApiV1ServerAdminMonitoringGet(requestParameters: GetServerAdminMonitoringApiV1ServerAdminMonitoringGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminMonitoring> {
+        const response = await this.getServerAdminMonitoringApiV1ServerAdminMonitoringGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -1287,6 +1347,104 @@ export class ServerAdminApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for updateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPut without sending the request
+     */
+    async updateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPutRequestOpts(requestParameters: UpdateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPutRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['serverAdminSettingUpdate'] == null) {
+            throw new runtime.RequiredError(
+                'serverAdminSettingUpdate',
+                'Required parameter "serverAdminSettingUpdate" was null or undefined when calling updateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPut().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/server-admin/settings/monitoring-alerts`;
+
+        return {
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: ServerAdminSettingUpdateToJSON(requestParameters['serverAdminSettingUpdate']),
+        };
+    }
+
+    /**
+     * Turn the monitoring alert mails to ServerAdmins on or off (#2317).
+     * Update Monitoring Alerts Setting
+     */
+    async updateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPutRaw(requestParameters: UpdateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPutRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ServerAdminSettings>> {
+        const requestOptions = await this.updateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPutRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ServerAdminSettingsFromJSON(jsonValue));
+    }
+
+    /**
+     * Turn the monitoring alert mails to ServerAdmins on or off (#2317).
+     * Update Monitoring Alerts Setting
+     */
+    async updateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPut(requestParameters: UpdateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPutRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminSettings> {
+        const response = await this.updateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPutRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for updateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPut without sending the request
+     */
+    async updateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPutRequestOpts(requestParameters: UpdateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPutRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['serverAdminSettingUpdate'] == null) {
+            throw new runtime.RequiredError(
+                'serverAdminSettingUpdate',
+                'Required parameter "serverAdminSettingUpdate" was null or undefined when calling updateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPut().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/server-admin/settings/monitoring-push`;
+
+        return {
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: ServerAdminSettingUpdateToJSON(requestParameters['serverAdminSettingUpdate']),
+        };
+    }
+
+    /**
+     * Turn the monitoring alerts as app push to ServerAdmins on or off (#2314).
+     * Update Monitoring Push Setting
+     */
+    async updateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPutRaw(requestParameters: UpdateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPutRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ServerAdminSettings>> {
+        const requestOptions = await this.updateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPutRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ServerAdminSettingsFromJSON(jsonValue));
+    }
+
+    /**
+     * Turn the monitoring alerts as app push to ServerAdmins on or off (#2314).
+     * Update Monitoring Push Setting
+     */
+    async updateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPut(requestParameters: UpdateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPutRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminSettings> {
+        const response = await this.updateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPutRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for updateRegistrationSettingApiV1ServerAdminSettingsRegistrationPut without sending the request
      */
     async updateRegistrationSettingApiV1ServerAdminSettingsRegistrationPutRequestOpts(requestParameters: UpdateRegistrationSettingApiV1ServerAdminSettingsRegistrationPutRequest): Promise<runtime.RequestOpts> {
@@ -1453,6 +1611,15 @@ export class ServerAdminApi extends runtime.BaseAPI {
 
 }
 
+/**
+ * @export
+ */
+export const GetServerAdminMonitoringApiV1ServerAdminMonitoringGetRangeEnum = {
+    _24h: '24h',
+    _30d: '30d',
+    _90d: '90d'
+} as const;
+export type GetServerAdminMonitoringApiV1ServerAdminMonitoringGetRangeEnum = typeof GetServerAdminMonitoringApiV1ServerAdminMonitoringGetRangeEnum[keyof typeof GetServerAdminMonitoringApiV1ServerAdminMonitoringGetRangeEnum];
 /**
  * @export
  */

@@ -5050,7 +5050,7 @@
       },
       "constraints": {
         "ck_instance_administration_events_setting_valid": {
-          "definition": "CHECK (setting::text = ANY (ARRAY['registration_enabled'::character varying, 'maintenance_mode'::character varying]::text[]))",
+          "definition": "CHECK (setting::text = ANY (ARRAY['registration_enabled'::character varying, 'maintenance_mode'::character varying, 'monitoring_alerts_enabled'::character varying, 'monitoring_push_enabled'::character varying]::text[]))",
           "kind": "c"
         },
         "fk_instance_administration_events_actor_id_accounts": {
@@ -5078,6 +5078,20 @@
         },
         "maintenance_mode": {
           "default": "false",
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "boolean"
+        },
+        "monitoring_alerts_enabled": {
+          "default": "true",
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "boolean"
+        },
+        "monitoring_push_enabled": {
+          "default": "true",
           "generated": null,
           "identity": null,
           "nullable": false,
@@ -6144,6 +6158,47 @@
         "uq_milestones_id_space_id": "CREATE UNIQUE INDEX uq_milestones_id_space_id ON public.milestones USING btree (id, space_id)"
       }
     },
+    "monitoring_alert_states": {
+      "columns": {
+        "active_since": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": true,
+          "type": "timestamp with time zone"
+        },
+        "code": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "character varying(64)"
+        },
+        "high_water_mark": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": true,
+          "type": "timestamp with time zone"
+        },
+        "last_sent_at": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": true,
+          "type": "timestamp with time zone"
+        }
+      },
+      "constraints": {
+        "pk_monitoring_alert_states": {
+          "definition": "PRIMARY KEY (code)",
+          "kind": "p"
+        }
+      },
+      "indexes": {
+        "pk_monitoring_alert_states": "CREATE UNIQUE INDEX pk_monitoring_alert_states ON public.monitoring_alert_states USING btree (code)"
+      }
+    },
     "notification_preferences": {
       "columns": {
         "account_id": {
@@ -6202,7 +6257,7 @@
           "kind": "c"
         },
         "ck_notification_preferences_notif_pref_kind_allowed": {
-          "definition": "CHECK (kind::text = ANY (ARRAY['ONCE_MESSAGE_RECEIVED'::character varying, 'GENTLE_PROMPT'::character varying, 'REMINDER_CREATED'::character varying, 'TRANSFER_READY'::character varying, 'TRANSFER_COMPLETED'::character varying, 'TRANSFER_FAILED'::character varying, 'VIDEO_PROCESSING_FAILED'::character varying, 'PLAN_CREATED'::character varying, 'PLAN_CHANGED'::character varying, 'PLAN_CANCELLED'::character varying, 'WISH_SELECTION_SHARED'::character varying, 'WISH_SELECTION_READY'::character varying, 'PHOTO_REACTION'::character varying, 'PARTNER_JOINED'::character varying, 'COUPLE_EXPERIENCE_SHARED'::character varying, 'COMMENT_CREATED'::character varying, 'THINKING_OF_YOU'::character varying, 'PARTNER_KISS'::character varying, 'PARTNER_CHECK_IN'::character varying, 'REMINDER_DUE'::character varying, 'WISH_REMINDER_DUE'::character varying, 'WISH_DATE_PROPOSED'::character varying, 'WISH_DATE_COUNTERED'::character varying, 'WISH_DATE_ACCEPTED'::character varying, 'WISH_SELECTION_RANDOM_REQUESTED'::character varying, 'WISH_SELECTION_RANDOM_ACCEPTED'::character varying, 'WISH_SELECTION_RANDOM_DECLINED'::character varying, 'COLLECTION_SENT'::character varying, 'HEART_HUNT_HIDDEN'::character varying, 'HEART_HUNT_FOUND'::character varying, 'PICTURE_PING_PONG_TURN'::character varying, 'SHARED_NOTE_CREATED'::character varying, 'SHARED_NOTE_CHANGED'::character varying, 'GARDEN_SEED_ARRIVED'::character varying, 'RECAP_READY'::character varying, 'RECAP_GREW'::character varying, 'COUPLE_GAME_TURN'::character varying, 'PICTURE_PING_PONG_FINISHED'::character varying, 'SUPPORT_REPLY'::character varying]::text[]))",
+          "definition": "CHECK (kind::text = ANY (ARRAY['ONCE_MESSAGE_RECEIVED'::character varying, 'GENTLE_PROMPT'::character varying, 'REMINDER_CREATED'::character varying, 'TRANSFER_READY'::character varying, 'TRANSFER_COMPLETED'::character varying, 'TRANSFER_FAILED'::character varying, 'VIDEO_PROCESSING_FAILED'::character varying, 'PLAN_CREATED'::character varying, 'PLAN_CHANGED'::character varying, 'PLAN_CANCELLED'::character varying, 'WISH_SELECTION_SHARED'::character varying, 'WISH_SELECTION_READY'::character varying, 'PHOTO_REACTION'::character varying, 'PARTNER_JOINED'::character varying, 'COUPLE_EXPERIENCE_SHARED'::character varying, 'COMMENT_CREATED'::character varying, 'THINKING_OF_YOU'::character varying, 'PARTNER_KISS'::character varying, 'PARTNER_CHECK_IN'::character varying, 'REMINDER_DUE'::character varying, 'WISH_REMINDER_DUE'::character varying, 'WISH_DATE_PROPOSED'::character varying, 'WISH_DATE_COUNTERED'::character varying, 'WISH_DATE_ACCEPTED'::character varying, 'WISH_SELECTION_RANDOM_REQUESTED'::character varying, 'WISH_SELECTION_RANDOM_ACCEPTED'::character varying, 'WISH_SELECTION_RANDOM_DECLINED'::character varying, 'COLLECTION_SENT'::character varying, 'HEART_HUNT_HIDDEN'::character varying, 'HEART_HUNT_FOUND'::character varying, 'PICTURE_PING_PONG_TURN'::character varying, 'SHARED_NOTE_CREATED'::character varying, 'SHARED_NOTE_CHANGED'::character varying, 'GARDEN_SEED_ARRIVED'::character varying, 'RECAP_READY'::character varying, 'RECAP_GREW'::character varying, 'COUPLE_GAME_TURN'::character varying, 'PICTURE_PING_PONG_FINISHED'::character varying, 'SUPPORT_REPLY'::character varying, 'OPERATOR_ALERT'::character varying]::text[]))",
           "kind": "c"
         },
         "fk_notification_preferences_account_id_accounts": {
@@ -6267,6 +6322,13 @@
           "nullable": false,
           "type": "character varying(64)"
         },
+        "operator_topic": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": true,
+          "type": "character varying(32)"
+        },
         "read_at": {
           "default": null,
           "generated": null,
@@ -6292,7 +6354,7 @@
           "default": null,
           "generated": null,
           "identity": null,
-          "nullable": false,
+          "nullable": true,
           "type": "uuid"
         },
         "target_id": {
@@ -6312,7 +6374,19 @@
       },
       "constraints": {
         "ck_notifications_notification_kind_allowed": {
-          "definition": "CHECK (kind::text = ANY (ARRAY['ONCE_MESSAGE_RECEIVED'::character varying, 'GENTLE_PROMPT'::character varying, 'REMINDER_CREATED'::character varying, 'TRANSFER_READY'::character varying, 'TRANSFER_COMPLETED'::character varying, 'TRANSFER_FAILED'::character varying, 'VIDEO_PROCESSING_FAILED'::character varying, 'PLAN_CREATED'::character varying, 'PLAN_CHANGED'::character varying, 'PLAN_CANCELLED'::character varying, 'WISH_SELECTION_SHARED'::character varying, 'WISH_SELECTION_READY'::character varying, 'PHOTO_REACTION'::character varying, 'PARTNER_JOINED'::character varying, 'COUPLE_EXPERIENCE_SHARED'::character varying, 'COMMENT_CREATED'::character varying, 'THINKING_OF_YOU'::character varying, 'PARTNER_KISS'::character varying, 'PARTNER_CHECK_IN'::character varying, 'REMINDER_DUE'::character varying, 'WISH_REMINDER_DUE'::character varying, 'WISH_DATE_PROPOSED'::character varying, 'WISH_DATE_COUNTERED'::character varying, 'WISH_DATE_ACCEPTED'::character varying, 'WISH_SELECTION_RANDOM_REQUESTED'::character varying, 'WISH_SELECTION_RANDOM_ACCEPTED'::character varying, 'WISH_SELECTION_RANDOM_DECLINED'::character varying, 'COLLECTION_SENT'::character varying, 'HEART_HUNT_HIDDEN'::character varying, 'HEART_HUNT_FOUND'::character varying, 'PICTURE_PING_PONG_TURN'::character varying, 'SHARED_NOTE_CREATED'::character varying, 'SHARED_NOTE_CHANGED'::character varying, 'GARDEN_SEED_ARRIVED'::character varying, 'RECAP_READY'::character varying, 'RECAP_GREW'::character varying, 'COUPLE_GAME_TURN'::character varying, 'PICTURE_PING_PONG_FINISHED'::character varying, 'SUPPORT_REPLY'::character varying]::text[]))",
+          "definition": "CHECK (kind::text = ANY (ARRAY['ONCE_MESSAGE_RECEIVED'::character varying, 'GENTLE_PROMPT'::character varying, 'REMINDER_CREATED'::character varying, 'TRANSFER_READY'::character varying, 'TRANSFER_COMPLETED'::character varying, 'TRANSFER_FAILED'::character varying, 'VIDEO_PROCESSING_FAILED'::character varying, 'PLAN_CREATED'::character varying, 'PLAN_CHANGED'::character varying, 'PLAN_CANCELLED'::character varying, 'WISH_SELECTION_SHARED'::character varying, 'WISH_SELECTION_READY'::character varying, 'PHOTO_REACTION'::character varying, 'PARTNER_JOINED'::character varying, 'COUPLE_EXPERIENCE_SHARED'::character varying, 'COMMENT_CREATED'::character varying, 'THINKING_OF_YOU'::character varying, 'PARTNER_KISS'::character varying, 'PARTNER_CHECK_IN'::character varying, 'REMINDER_DUE'::character varying, 'WISH_REMINDER_DUE'::character varying, 'WISH_DATE_PROPOSED'::character varying, 'WISH_DATE_COUNTERED'::character varying, 'WISH_DATE_ACCEPTED'::character varying, 'WISH_SELECTION_RANDOM_REQUESTED'::character varying, 'WISH_SELECTION_RANDOM_ACCEPTED'::character varying, 'WISH_SELECTION_RANDOM_DECLINED'::character varying, 'COLLECTION_SENT'::character varying, 'HEART_HUNT_HIDDEN'::character varying, 'HEART_HUNT_FOUND'::character varying, 'PICTURE_PING_PONG_TURN'::character varying, 'SHARED_NOTE_CREATED'::character varying, 'SHARED_NOTE_CHANGED'::character varying, 'GARDEN_SEED_ARRIVED'::character varying, 'RECAP_READY'::character varying, 'RECAP_GREW'::character varying, 'COUPLE_GAME_TURN'::character varying, 'PICTURE_PING_PONG_FINISHED'::character varying, 'SUPPORT_REPLY'::character varying, 'OPERATOR_ALERT'::character varying]::text[]))",
+          "kind": "c"
+        },
+        "ck_notifications_notification_operator_topic_allowed": {
+          "definition": "CHECK (operator_topic IS NULL OR (operator_topic::text = ANY (ARRAY['failed_jobs'::character varying, 'space_quota_pressure'::character varying, 'disk_pressure'::character varying, 'delivery_failures'::character varying, 'backup_not_configured'::character varying, 'support_reports'::character varying]::text[])))",
+          "kind": "c"
+        },
+        "ck_notifications_notification_operator_topic_matches_kind": {
+          "definition": "CHECK ((operator_topic IS NULL) = (kind::text <> 'OPERATOR_ALERT'::text))",
+          "kind": "c"
+        },
+        "ck_notifications_notification_space_matches_kind": {
+          "definition": "CHECK ((space_id IS NULL) = (kind::text = 'OPERATOR_ALERT'::text))",
           "kind": "c"
         },
         "ck_notifications_notification_target_reference_complete": {
@@ -6345,6 +6419,7 @@
         }
       },
       "indexes": {
+        "ix_notifications_operator_expires_at": "CREATE INDEX ix_notifications_operator_expires_at ON public.notifications USING btree (expires_at) WHERE (space_id IS NULL)",
         "ix_notifications_recipient_space_created_id": "CREATE INDEX ix_notifications_recipient_space_created_id ON public.notifications USING btree (recipient_account_id, space_id, created_at, id)",
         "ix_notifications_recipient_space_unread": "CREATE INDEX ix_notifications_recipient_space_unread ON public.notifications USING btree (recipient_account_id, space_id, created_at) WHERE (read_at IS NULL)",
         "pk_notifications": "CREATE UNIQUE INDEX pk_notifications ON public.notifications USING btree (id)",
@@ -6748,6 +6823,103 @@
       },
       "indexes": {
         "pk_once_receptions": "CREATE UNIQUE INDEX pk_once_receptions ON public.once_receptions USING btree (space_id, account_id)"
+      }
+    },
+    "operational_metric_hours": {
+      "columns": {
+        "active_spaces": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "integer"
+        },
+        "disk_total_bytes": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": true,
+          "type": "bigint"
+        },
+        "disk_used_bytes": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": true,
+          "type": "bigint"
+        },
+        "failed_emails": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "integer"
+        },
+        "failed_jobs": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "integer"
+        },
+        "failed_pushes": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "integer"
+        },
+        "hour": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "timestamp with time zone"
+        },
+        "new_accounts": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "integer"
+        },
+        "p95_ms": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": true,
+          "type": "integer"
+        },
+        "requests": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "integer"
+        },
+        "server_errors": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "integer"
+        },
+        "stored_bytes": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "bigint"
+        }
+      },
+      "constraints": {
+        "pk_operational_metric_hours": {
+          "definition": "PRIMARY KEY (hour)",
+          "kind": "p"
+        }
+      },
+      "indexes": {
+        "pk_operational_metric_hours": "CREATE UNIQUE INDEX pk_operational_metric_hours ON public.operational_metric_hours USING btree (hour)"
       }
     },
     "outbox_events": {
@@ -10987,6 +11159,47 @@
         "uq_reminders_id_space_id": "CREATE UNIQUE INDEX uq_reminders_id_space_id ON public.reminders USING btree (id, space_id)"
       }
     },
+    "request_metric_minutes": {
+      "columns": {
+        "latency_buckets": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "jsonb"
+        },
+        "minute": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "timestamp with time zone"
+        },
+        "requests": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "integer"
+        },
+        "server_errors": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "integer"
+        }
+      },
+      "constraints": {
+        "pk_request_metric_minutes": {
+          "definition": "PRIMARY KEY (minute)",
+          "kind": "p"
+        }
+      },
+      "indexes": {
+        "pk_request_metric_minutes": "CREATE UNIQUE INDEX pk_request_metric_minutes ON public.request_metric_minutes USING btree (minute)"
+      }
+    },
     "rule_preferences": {
       "columns": {
         "account_id": {
@@ -13616,6 +13829,58 @@
         "ix_wishes_space_id_status": "CREATE INDEX ix_wishes_space_id_status ON public.wishes USING btree (space_id, status)",
         "pk_wishes": "CREATE UNIQUE INDEX pk_wishes ON public.wishes USING btree (id)",
         "uq_wishes_id_space_id": "CREATE UNIQUE INDEX uq_wishes_id_space_id ON public.wishes USING btree (id, space_id)"
+      }
+    },
+    "worker_heartbeats": {
+      "columns": {
+        "build_revision": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "character varying(64)"
+        },
+        "last_progress_at": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "timestamp with time zone"
+        },
+        "last_seen_at": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "timestamp with time zone"
+        },
+        "role": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "character varying(16)"
+        },
+        "worker_name": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "character varying(128)"
+        }
+      },
+      "constraints": {
+        "ck_worker_heartbeats_role_valid": {
+          "definition": "CHECK (role::text = ANY (ARRAY['worker'::character varying, 'video-worker'::character varying]::text[]))",
+          "kind": "c"
+        },
+        "pk_worker_heartbeats": {
+          "definition": "PRIMARY KEY (worker_name)",
+          "kind": "p"
+        }
+      },
+      "indexes": {
+        "pk_worker_heartbeats": "CREATE UNIQUE INDEX pk_worker_heartbeats ON public.worker_heartbeats USING btree (worker_name)"
       }
     }
   }

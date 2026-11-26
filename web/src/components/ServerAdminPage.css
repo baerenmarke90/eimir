@@ -76,35 +76,123 @@
   align-items: start;
 }
 
-.server-admin-section-nav {
+/* Areas (ServerAdmin redesign part 1): a side list from the shell's 840 px
+   breakpoint, the app shell's bottom bar below it. */
+.server-admin-area-nav-side {
   position: sticky;
   top: var(--space-4);
   display: grid;
   gap: var(--space-1);
-  padding: var(--space-3);
-  border: var(--border-surface-width) solid var(--color-border-subtle);
-  border-radius: var(--radius-large);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-soft);
 }
 
-.server-admin-section-link {
-  display: block;
-  padding: var(--space-3);
-  border-radius: var(--radius-medium);
+.server-admin-area-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 3rem;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-pill);
   color: var(--color-text-secondary);
+  font-weight: 600;
   text-decoration: none;
 }
 
-.server-admin-section-link:hover {
+.server-admin-area-link:hover {
   background: var(--color-surface-subtle);
   color: var(--color-text);
 }
 
-.server-admin-section-link[aria-current="page"] {
+.server-admin-area-link[aria-current="page"] {
+  background: var(--color-surface-raised);
+  color: var(--color-shared);
+  box-shadow: var(--shadow-soft);
+}
+
+.server-admin-area-label {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.server-admin-area-count {
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--color-private);
+  color: var(--color-on-accent);
+  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.server-admin-area-bar {
+  display: none;
+}
+
+/* The shell bar has five fixed slots; ServerAdmin shows three or four
+   areas, so they share the bar evenly instead. */
+.mobile-bottom-shell .mobile-bottom-nav.server-admin-area-nav-compact {
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+}
+
+.server-admin-subnav {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.server-admin-subnav-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-pill);
   background: var(--color-surface-subtle);
   color: var(--color-text);
-  font-weight: 700;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.server-admin-subnav-link[aria-current="page"] {
+  background: var(--color-brand-strong);
+  color: var(--color-on-accent);
+}
+
+@media (max-width: 52.4375rem) {
+  .server-admin-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .server-admin-area-nav-side {
+    display: none;
+  }
+
+  .server-admin-area-bar {
+    display: grid;
+  }
+
+  .server-admin-main {
+    padding-bottom: calc(
+      var(--shell-floating-nav-height) +
+      var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) +
+      var(--space-6)
+    );
+  }
+
+  .server-admin-subnav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
+  .server-admin-subnav-link {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
 }
 
 .server-admin-grid {
@@ -125,6 +213,161 @@
   border-radius: var(--radius-large);
   background: var(--color-surface);
   box-shadow: var(--shadow-soft);
+}
+
+/* Situation (ServerAdmin redesign part 1). */
+.server-admin-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-block: var(--space-4);
+  box-shadow: none;
+  border: 0;
+}
+
+.server-admin-summary h2 {
+  margin: 0;
+}
+
+.server-admin-summary.is-ok {
+  background: var(--color-success-surface);
+  color: var(--color-success);
+}
+
+.server-admin-summary.is-attention {
+  background: color-mix(
+    in srgb,
+    var(--color-warning) 14%,
+    var(--color-surface)
+  );
+  color: var(--color-warning);
+}
+
+.server-admin-summary h2,
+.server-admin-summary .eimir-icon {
+  color: inherit;
+}
+
+.server-admin-needs-you {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.server-admin-needs-you li + li {
+  border-top: var(--border-surface-width) solid var(--color-border-subtle);
+}
+
+.server-admin-needs-you-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 3.5rem;
+  padding: var(--space-2) 0;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.server-admin-needs-you-icon {
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-medium);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-subtle);
+  color: var(--color-shared);
+}
+
+.is-danger .server-admin-needs-you-icon {
+  background: var(--color-error-surface);
+  color: var(--color-error);
+}
+
+.is-warning .server-admin-needs-you-icon {
+  background: color-mix(
+    in srgb,
+    var(--color-warning) 14%,
+    var(--color-surface)
+  );
+  color: var(--color-warning);
+}
+
+.server-admin-needs-you-text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: var(--space-1);
+  overflow-wrap: anywhere;
+}
+
+.server-admin-needs-you-text span {
+  color: var(--color-text-secondary);
+}
+
+.server-admin-services {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(9rem, 100%), 1fr));
+  gap: var(--space-2);
+}
+
+.server-admin-service {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+}
+
+.server-admin-service-dot {
+  flex: none;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-text-tertiary);
+}
+
+.server-admin-service.is-ok .server-admin-service-dot {
+  background: var(--color-success);
+}
+
+.server-admin-service.is-problem {
+  background: var(--color-error-surface);
+}
+
+.server-admin-service.is-problem .server-admin-service-dot {
+  background: var(--color-error);
+}
+
+.server-admin-service-text {
+  display: grid;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.server-admin-service-text span {
+  color: var(--color-text-secondary);
+}
+
+.server-admin-registrations {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.server-admin-registrations dt {
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+.server-admin-registrations dd {
+  margin: var(--space-1) 0 0;
+  font-size: var(--type-title-size);
+  font-weight: 700;
 }
 
 .server-admin-panel h2 {
@@ -451,22 +694,6 @@
 }
 
 @media (max-width: 64rem) {
-  .server-admin-workspace {
-    /* minmax(0, …): the scrolling navigation must not widen the page. */
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .server-admin-section-nav {
-    position: static;
-    display: flex;
-    overflow-x: auto;
-  }
-
-  .server-admin-section-link {
-    flex: 0 0 auto;
-    white-space: nowrap;
-  }
-
   .server-admin-account-detail-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -536,4 +763,134 @@
   .server-admin-pagination {
     flex-wrap: wrap;
   }
+}
+
+/* Monitoring (ServerAdmin redesign part 2, #2317). */
+.server-admin-monitoring {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5);
+}
+
+.server-admin-range {
+  display: flex;
+  flex-wrap: wrap;
+  /* A fieldset keeps its min-content width by default; at 200 % text that
+     pushed the whole page past a 360 px viewport. */
+  min-inline-size: 0;
+  min-width: 0;
+  gap: var(--space-1);
+  margin: 0;
+  padding: var(--space-1);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-subtle);
+  justify-self: start;
+  max-width: 100%;
+}
+
+.server-admin-range button {
+  min-height: 2.75rem;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.server-admin-range button[aria-pressed="true"] {
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  box-shadow: var(--shadow-soft);
+}
+
+.server-admin-monitoring-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
+  gap: var(--space-3);
+}
+
+.server-admin-monitoring-card,
+.server-admin-monitoring-storage {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.server-admin-monitoring-card strong,
+.server-admin-monitoring-storage strong {
+  font-size: var(--type-title-size);
+}
+
+.server-admin-sparkline {
+  width: 100%;
+  height: 2.5rem;
+}
+
+.server-admin-sparkline path {
+  stroke: var(--color-shared);
+}
+
+.server-admin-sparkline.is-danger path {
+  stroke: var(--color-error);
+}
+
+.server-admin-monitoring-services {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.server-admin-monitoring-services li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 3rem;
+}
+
+.server-admin-monitoring-services li > span:last-child {
+  display: grid;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.server-admin-monitoring-services li > span:last-child > span {
+  color: var(--color-text-secondary);
+}
+
+.server-admin-monitoring-services .is-ok .server-admin-service-dot {
+  background: var(--color-success);
+}
+
+.server-admin-monitoring-services
+  :is(.is-silent, .is-problem)
+  .server-admin-service-dot {
+  background: var(--color-error);
+}
+
+.server-admin-monitoring-alerts {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.server-admin-monitoring-alerts > span {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.server-admin-monitoring-alerts input {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  accent-color: var(--color-brand-strong);
 }

@@ -16,6 +16,7 @@ from sqlalchemy import (
     SmallInteger,
     String,
     func,
+    true,
 )
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, mapped_column
@@ -29,6 +30,8 @@ class AdministrationSetting(StrEnum):
 
     REGISTRATION_ENABLED = "registration_enabled"
     MAINTENANCE_MODE = "maintenance_mode"
+    MONITORING_ALERTS_ENABLED = "monitoring_alerts_enabled"
+    MONITORING_PUSH_ENABLED = "monitoring_push_enabled"
 
 
 class AdministrationAction(StrEnum):
@@ -67,6 +70,14 @@ class InstanceAdministrationSettings(TimestampMixin, VersionMixin, Base):
     singleton_key: Mapped[int] = mapped_column(SmallInteger, primary_key=True, default=1)
     registration_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     maintenance_mode: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # Mail alerts to ServerAdmins (#2317); on unless an operator turns them off.
+    monitoring_alerts_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=true()
+    )
+    # The same alerts as app push to ServerAdmin accounts (#2314 part 2b).
+    monitoring_push_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=true()
+    )
 
     __table_args__ = (
         CheckConstraint(
@@ -94,7 +105,8 @@ class InstanceAdministrationEvent(IdMixin, Base):
 
     __table_args__ = (
         CheckConstraint(
-            "setting IN ('registration_enabled', 'maintenance_mode')",
+            "setting IN ('registration_enabled', 'maintenance_mode', "
+            "'monitoring_alerts_enabled', 'monitoring_push_enabled')",
             name="setting_valid",
         ),
         Index("ix_instance_administration_events_created_at", "created_at"),

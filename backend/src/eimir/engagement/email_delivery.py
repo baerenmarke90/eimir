@@ -205,11 +205,17 @@ def _send_claimed(
     current_ids = {notification.recipient_account_id}
     if notification.actor_id is not None:
         current_ids.add(notification.actor_id)
-    if current_ids != account_ids or any(
-        not account_effects.has_active_membership(
-            session, account_id=account_id, space_id=notification.space_id
+    # Only couple notices have notice mails; an operator notice (#2314) has no Space.
+    space_id = notification.space_id
+    if (
+        current_ids != account_ids
+        or space_id is None
+        or any(
+            not account_effects.has_active_membership(
+                session, account_id=account_id, space_id=space_id
+            )
+            for account_id in account_ids
         )
-        for account_id in account_ids
     ):
         _finish(delivery, EmailDeliveryStatus.UNAVAILABLE, "ACCOUNT_UNAVAILABLE")
         return None
@@ -234,7 +240,7 @@ def _send_claimed(
         return None
     module = _SPACE_MODULES.get(notification.kind)
     if module is not None and not space_configuration.is_module_enabled(
-        session, notification.space_id, module, lock_space=True
+        session, space_id, module, lock_space=True
     ):
         _finish(delivery, EmailDeliveryStatus.UNAVAILABLE, "MODULE_DISABLED")
         return None
@@ -245,7 +251,7 @@ def _send_claimed(
     if not service.notification_target_available(
         session,
         notification,
-        AuthorizationContext(account_id=recipient_id, space_id=notification.space_id),
+        AuthorizationContext(account_id=recipient_id, space_id=space_id),
     ):
         _finish(delivery, EmailDeliveryStatus.UNAVAILABLE, "TARGET_UNAVAILABLE")
         return None

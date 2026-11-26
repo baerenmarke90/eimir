@@ -88,12 +88,112 @@ projection including available signals for:
   the switch was on;
 - `supportReportsOperatorAvailable`: whether the operator Reports section is
   available, see [Support reports](#support-reports);
+- `storagePressure` / `storagePressureCount`: Spaces at or above 85 % of their
+  Cloud storage quota, fullest first, at most five listed (Space id, counted
+  bytes and quota only; always empty on Self-Hosted, which is unmetered), with
+  the `storage_quota_pressure` warning while any exist;
+- `expiringAdminGrants` / `expiringAdminGrantCount`: active `ADMIN_GRANT`
+  entitlement grants ending within the next seven days, soonest first, at most
+  five listed (Space id, grant id and end only), with the
+  `admin_grants_expiring` warning while any exist;
+- worker liveness: `workerStatus` / `videoWorkerStatus` (`ok`, `silent` or
+  `no_heartbeat_signal`) and `workerLastSeenAt`, see [Monitoring](#monitoring);
+- `emailFailuresLastHour` / `pushFailuresLastHour` (counts only);
+- `backupStatus`: `not_configured` until a backup job reports a signal; on Cloud
+  this adds the `backup_not_configured` warning;
 - privacy-safe warning codes for actionable configuration/runtime conditions.
 
 Where no authoritative runtime primitive exists yet, the API reports that the
 signal is not available instead of fabricating health. In particular, the
-current worker model has no heartbeat primitive and the media adapters do not
-expose a generic health probe.
+media adapters do not expose a generic health probe.
+
+## Monitoring
+
+`GET /api/v1/server-admin/monitoring?range=24h|30d|90d` returns history points
+(hourly for 24 h, daily for 30/90 days), a storage summary and service states.
+The data comes from four tables that hold counts, bytes, durations and
+timestamps only:
+
+- `worker_heartbeats`: each worker process writes its row every 60 seconds from
+  a small thread, together with the last time its loop made progress. A process
+  is alive when its row is at most 3 minutes old and its loop moved within the
+  job lease plus 3 minutes (5 minutes for the worker, 30 for the video worker),
+  so a long job does not look dead and a hung loop does. Rows older than seven
+  days are pruned.
+- `request_metric_minutes`: each API process counts requests, 5xx responses and
+  latency buckets per minute (health probes excluded) and adds them from a
+  background thread; kept for 48 hours.
+- `operational_metric_hours`: the hourly `monitoring_history` job writes one row
+  per hour (requests, server errors, p95, new accounts, active Spaces, stored
+  bytes, media filesystem usage when the local media store is used, failed jobs,
+  failed email and push deliveries); kept for 90 days.
+- `monitoring_alert_states`: see the alert job.
+
+The storage summary shows the media filesystem's used and total bytes and a
+linear "full in" estimate when the local media store is used and usage rises.
+With object storage there is no total; the page shows stored bytes only.
+
+`EIMIR_HEARTBEAT_PUSH_URL` (optional) is the push-monitor URL of the operator's
+own Uptime Kuma. The worker pings it after each heartbeat while the process is
+alive, so Kuma alerts when the worker or the whole host stops. The URL carries a
+token: it is never logged or returned by any API. `EIMIR_WORKER_NAME` gives a
+process a stable heartbeat name (default: the host name).
+
+`PUT /api/v1/server-admin/settings/monitoring-alerts` with `{"enabled": bool}`
+turns the alert mails on or off, and `PUT /api/v1/server-admin/settings/monitoring-push`
+turns the same alerts as app push on or off (#2314); both are on by default and
+both changes are recorded in the privileged audit like the other settings.
+
+### Alert mails and push
+
+The `monitoring_alerts` job runs every five minutes and alerts the allow-listed
+ServerAdmin accounts with a verified address when a condition becomes active,
+and at most once a day while it stays active. Nothing is sent on resolution,
+and conditions that become active while both switches are off are not sent
+later. Both channels share one state per condition: one activation is one mail
+and one push.
+
+- **Mail** goes to each verified allow-listed address, names the condition and
+  links to System › Monitoring (new reports link to Help › Reports).
+- **Push** goes once to each such account's registered devices, as an operator
+  notice of kind `OPERATOR_ALERT`: it belongs to no Space, never appears in a
+  couple's Notification Center, unread count or notification settings, and
+  names only the condition. Every device shows the neutral eimir. notice; the
+  topic appears after the tap, which opens the matching ServerAdmin page
+  (failed jobs: System › Jobs; new reports: the new reports; a Space near its
+  quota: the Situation; otherwise System › Monitoring). The tap is resolved
+  through the account's current Space, so an account in no Space lands on its
+  notification list and opens ServerAdmin itself. The account's Quiet Hours
+  apply; alerts held overnight arrive as one notice that opens the latest
+  topic, while the mails name each one. Delivery and the tap re-check that the
+  account is still a verified allow-listed ServerAdmin. Notices expire after 24 hours and are
+  deleted a day later. Topic text on the Android lock screen needs a later
+  native release.
+
+| Code | Active when |
+| --- | --- |
+| `failed_jobs` | a job failed after the last mailed failure |
+| `space_quota_pressure` | a Cloud Space uses at least 85 % of its quota |
+| `disk_pressure` | the local media filesystem is at least 85 % full |
+| `delivery_failures` | more than 5 email or push deliveries failed in the last hour |
+| `backup_not_configured` | Cloud without a backup signal (sent once only) |
+| `support_reports` | a new unarchived report arrived after the last notice, while reports are collected and the operator plugin can triage them |
+
+### Runbook: external watch with Uptime Kuma and Arcane
+
+eimir. cannot report its own outage. The operator therefore runs an Uptime Kuma
+instance on a **different host** than eimir. (if it ran on the same host, it
+would go down with it):
+
+1. In Uptime Kuma, add an **HTTP(s)** monitor for
+   `https://<your eimir host>/api/v1/health/ready` with a 60-second interval. It
+   answers 200 only while the API and its database work and returns no content.
+2. Add a **Push** monitor (heartbeat interval 120 seconds). Copy its push URL into
+   the eimir. configuration as `EIMIR_HEARTBEAT_PUSH_URL` for the worker and
+   redeploy. Kuma then alerts when the worker hangs, stops, or the host is gone.
+3. Set up a notification (for example email) for both monitors.
+4. Use Arcane for the container overview (running, health, restarts). Container
+   state alone does not show a hung worker; the push monitor does.
 
 The overview does not expose:
 

@@ -14,13 +14,17 @@ Name | Type
 `activeSessionCount` | number
 `activeSpaceCount` | number
 `applicationStatus` | string
+`backupStatus` | string
 `buildRevision` | string
 `databaseProvider` | string
 `databaseStatus` | string
 `demoMode` | boolean
 `deployment` | string
+`emailFailuresLastHour` | number
 `enabledAccountCount` | number
 `environment` | string
+`expiringAdminGrantCount` | number
+`expiringAdminGrants` | [Array&lt;ServerAdminExpiringGrantItem&gt;](ServerAdminExpiringGrantItem.md)
 `jobsFailed` | number
 `jobsPending` | number
 `jobsRunning` | number
@@ -37,15 +41,20 @@ Name | Type
 `passkeyAccountCount` | number
 `processStartedAt` | Date
 `publicBaseUrl` | string
+`pushFailuresLastHour` | number
 `recentFailedJobs` | [Array&lt;ServerAdminFailedJob&gt;](ServerAdminFailedJob.md)
 `serverAdminAllowlistCount` | number
 `serverAdminVerifiedMatchCount` | number
+`storagePressure` | [Array&lt;ServerAdminStoragePressureItem&gt;](ServerAdminStoragePressureItem.md)
+`storagePressureCount` | number
 `supportReportsNew` | number
 `supportReportsOperatorAvailable` | boolean
 `suspendedAccountCount` | number
 `unverifiedPrimaryEmailCount` | number
 `verifiedPrimaryEmailCount` | number
+`videoWorkerStatus` | string
 `warningCodes` | Array&lt;string&gt;
+`workerLastSeenAt` | Date
 `workerStatus` | string
 
 ## Example
@@ -62,13 +71,17 @@ const example = {
   "activeSessionCount": null,
   "activeSpaceCount": null,
   "applicationStatus": null,
+  "backupStatus": null,
   "buildRevision": null,
   "databaseProvider": null,
   "databaseStatus": null,
   "demoMode": null,
   "deployment": null,
+  "emailFailuresLastHour": null,
   "enabledAccountCount": null,
   "environment": null,
+  "expiringAdminGrantCount": null,
+  "expiringAdminGrants": null,
   "jobsFailed": null,
   "jobsPending": null,
   "jobsRunning": null,
@@ -85,15 +98,20 @@ const example = {
   "passkeyAccountCount": null,
   "processStartedAt": null,
   "publicBaseUrl": null,
+  "pushFailuresLastHour": null,
   "recentFailedJobs": null,
   "serverAdminAllowlistCount": null,
   "serverAdminVerifiedMatchCount": null,
+  "storagePressure": null,
+  "storagePressureCount": null,
   "supportReportsNew": null,
   "supportReportsOperatorAvailable": null,
   "suspendedAccountCount": null,
   "unverifiedPrimaryEmailCount": null,
   "verifiedPrimaryEmailCount": null,
+  "videoWorkerStatus": null,
   "warningCodes": null,
+  "workerLastSeenAt": null,
   "workerStatus": null,
 } satisfies ServerAdminOverview
 

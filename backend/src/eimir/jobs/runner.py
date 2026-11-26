@@ -29,6 +29,9 @@ from eimir.engagement import service as engagement_service
 from eimir.identity import deletion_jobs as account_deletion_jobs
 from eimir.jobs import maintenance
 from eimir.jobs.worker import registry, run_once
+from eimir.monitoring import alerts as monitoring_alerts
+from eimir.monitoring import history as monitoring_history
+from eimir.monitoring.heartbeat import worker_heartbeat
 from eimir.observability import configure_logging
 from eimir.places import photo_enrichment
 from eimir.plugins.dormant import warn_dormant_plugin_data_once
@@ -81,6 +84,8 @@ def _ensure_maintenance() -> None:
             space_retention.ensure_scheduled(session)
             photo_enrichment.ensure_scheduled(session)
             context_tag_jobs.ensure_scheduled(session)
+            monitoring_history.ensure_scheduled(session)
+            monitoring_alerts.ensure_scheduled(session)
             for plugin in loaded_plugins().plugins:
                 plugin.ensure_scheduled(session)
     except Exception:
@@ -110,6 +115,8 @@ def main() -> None:
     photo_enrichment.register_handlers()
     context_tag_jobs.register_handlers()
     maintenance.register_handlers()
+    monitoring_history.register_handlers()
+    monitoring_alerts.register_handlers()
     gentle_jobs.register_handlers()
     media_cleanup.register_handlers()
     account_media.register_handlers()
@@ -130,8 +137,11 @@ def main() -> None:
     unclaimed = plugins.unclaimed_job_kinds(registry)
     _ensure_maintenance()
     last_checked = time.monotonic()
+    heartbeat = worker_heartbeat(settings, role="worker")
+    heartbeat.start()
 
     while not _shutdown:
+        heartbeat.progress()
         if time.monotonic() - last_checked >= MAINTENANCE_CHECK_SECONDS:
             _ensure_maintenance()
             last_checked = time.monotonic()
@@ -150,6 +160,7 @@ def main() -> None:
                     ATTACHMENT_AUDIO_VALIDATION,
                     *sorted(unclaimed),
                 ],
+                on_progress=heartbeat.progress,
             )
         except Exception:
             # A failure while polling must not terminate the process; otherwise
@@ -158,9 +169,11 @@ def main() -> None:
             log.exception("worker round failed")
             completed = 0
 
+        heartbeat.progress()
         if completed == 0:
             time.sleep(IDLE_SLEEP_SECONDS)
 
+    heartbeat.stop()
     log.info("worker stopped", extra={"worker": name})
 
 

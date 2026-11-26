@@ -210,6 +210,9 @@ declare('duration-map-camera', value('motion.duration.mapCamera'));
 declare('duration-map-stack', value('motion.duration.mapStack'));
 declare('duration-controls-return', value('motion.duration.controlsReturn'));
 declare('duration-sequence-beat', value('motion.duration.sequenceBeat'));
+// Motion Contract 4.1, Enter module: the one entrance of a page module.
+declare('duration-module-enter', value('motion.duration.moduleEnter'));
+declare('motion-module-rise', value('motion.module.rise'));
 declare('duration-send-flight', value('motion.duration.sendFlight'));
 declare('duration-gesture-moment', value('motion.duration.gestureMoment'));
 // Motion Contract 5.3: Enter stagger steps and their cap (#2073).
@@ -346,6 +349,7 @@ ${storyColorDeclarations('dark', '    ')}
     --duration-map-stack: ${value('motion.duration.instant')};
     --duration-controls-return: ${value('motion.duration.instant')};
     --duration-sequence-beat: ${value('motion.duration.instant')};
+    --duration-module-enter: ${value('motion.duration.instant')};
     --duration-send-flight: ${value('motion.duration.instant')};
     --duration-gesture-moment: ${value('motion.duration.instant')};
     --duration-stagger-item: ${value('motion.duration.instant')};

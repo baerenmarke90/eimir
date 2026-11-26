@@ -85,6 +85,12 @@ export interface NotificationItem {
      */
     kind: NotificationKind;
     /**
+     * The ServerAdmin page a tapped operator notice opens (#2314); set only for OPERATOR_ALERT, without any identifier.
+     * @type {string}
+     * @memberof NotificationItem
+     */
+    operatorRoute?: string | null;
+    /**
      * 
      * @type {Date}
      * @memberof NotificationItem
@@ -155,6 +161,7 @@ export function NotificationItemFromJSONTyped(json: any, ignoreDiscriminator: bo
         'createdAt': (new Date(json['createdAt'])),
         'id': json['id'],
         'kind': NotificationKindFromJSON(json['kind']),
+        'operatorRoute': json['operatorRoute'] === undefined ? undefined : json['operatorRoute'] === null ? null : json['operatorRoute'],
         'readAt': (json['readAt'] == null ? null : new Date(json['readAt'])),
         'selectionSize': json['selectionSize'] === undefined ? undefined : json['selectionSize'] === null ? null : json['selectionSize'],
         'sourceEventId': json['sourceEventId'],
@@ -181,6 +188,7 @@ export function NotificationItemToJSONTyped(value?: NotificationItem | null, ign
         'createdAt': value['createdAt'].toISOString(),
         'id': value['id'],
         'kind': NotificationKindToJSON(value['kind']),
+        'operatorRoute': value['operatorRoute'],
         'readAt': value['readAt'] == null ? value['readAt'] : value['readAt'].toISOString(),
         'selectionSize': value['selectionSize'],
         'sourceEventId': value['sourceEventId'],

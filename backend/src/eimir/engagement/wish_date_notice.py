@@ -139,15 +139,14 @@ def current_predicate() -> Any:
 
 def lock_delivery_target(session: Session, notice: Notification) -> bool:
     """Serialize detail handoff with departure and changes to the linked source."""
-    if notice.actor_id is None or notice.target_id is None:
+    space_id = notice.space_id
+    if notice.actor_id is None or notice.target_id is None or space_id is None:
         return False
     locked_space = session.scalar(
-        select(Space.id).where(Space.id == notice.space_id).with_for_update(read=True, nowait=True)
+        select(Space.id).where(Space.id == space_id).with_for_update(read=True, nowait=True)
     )
     if locked_space is None or not all(
-        account_effects.has_active_membership(
-            session, account_id=account_id, space_id=notice.space_id
-        )
+        account_effects.has_active_membership(session, account_id=account_id, space_id=space_id)
         for account_id in (notice.actor_id, notice.recipient_account_id)
     ):
         return False

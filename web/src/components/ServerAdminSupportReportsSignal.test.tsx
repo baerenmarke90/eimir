@@ -61,6 +61,15 @@ function overview(
     recentFailedJobs: [],
     serverAdminAllowlistCount: 1,
     serverAdminVerifiedMatchCount: 1,
+    workerLastSeenAt: null,
+    videoWorkerStatus: 'no_heartbeat_signal',
+    emailFailuresLastHour: 0,
+    pushFailuresLastHour: 0,
+    backupStatus: 'not_configured',
+    storagePressure: [],
+    storagePressureCount: 0,
+    expiringAdminGrants: [],
+    expiringAdminGrantCount: 0,
     supportReportsNew: 0,
     supportReportsOperatorAvailable: false,
     suspendedAccountCount: 0,
@@ -111,14 +120,21 @@ describe('ServerAdmin support report signal', () => {
     api.getOverview.mockResolvedValue(
       overview({
         supportReportsNew: 3,
+        supportReportsOperatorAvailable: true,
         warningCodes: ['support_reports_unread'],
       }),
     );
 
     renderOverview();
 
+    // The Situation's queue names the reports and keeps the 14-day hint.
     expect(
       await screen.findByText(serverAdmin.warnings.supportReportsUnread),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        serverAdmin.situation.reports_other.replace('{{count, number}}', '3'),
+      ),
     ).toBeTruthy();
     const label = screen.getByText(serverAdmin.usage.supportReportsNew);
     expect(label.closest('div')?.textContent).toContain('3');
@@ -150,8 +166,8 @@ describe('ServerAdmin support report signal', () => {
       await screen.findByText(serverAdmin.reportsUnavailable.title),
     ).toBeTruthy();
     expect(
-      screen.queryByRole('link', { name: serverAdmin.navigation.reports }),
-    ).toBeNull();
+      screen.queryAllByRole('link', { name: serverAdmin.areas.help }),
+    ).toHaveLength(0);
     expect(api.listSupportReports).not.toHaveBeenCalled();
   });
 
@@ -166,15 +182,22 @@ describe('ServerAdmin support report signal', () => {
 
     renderOverview();
 
-    const link = await screen.findByRole('link', {
-      name: serverAdmin.warnings.openReports,
-    });
-    expect(link.getAttribute('href')).toBe(
+    const title = await screen.findByText(
+      serverAdmin.situation.reports_other.replace('{{count, number}}', '2'),
+    );
+    expect(title.closest('a')?.getAttribute('href')).toBe(
       '/server-admin?section=reports&state=NEW',
     );
+    // Both area navigations (Compact bar, Expanded list) offer Help with
+    // the unread count in its name.
     expect(
-      screen.getByRole('link', { name: serverAdmin.navigation.reports }),
-    ).toBeTruthy();
+      screen.getAllByRole('link', {
+        name: serverAdmin.areas.helpUnread_other.replace(
+          '{{count, number}}',
+          '2',
+        ),
+      }),
+    ).toHaveLength(2);
   });
 
   it('loads the reports panel lazily on the reports section', async () => {

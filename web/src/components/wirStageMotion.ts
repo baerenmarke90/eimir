@@ -34,8 +34,9 @@ export function wirIntroBeat(): number {
  *   portrait has landed, so it never fades inside a fading column (joins late);
  * - the time together: 1.8 for 1.3;
  * - the daily quote: 2.2 for 1.3 (joins late);
- * - the modules in view: 2.5 for their header and 2.7 for their body, one
- *   `--duration-stagger-item` apart in reading order, within 1.8 beats.
+ * - the modules in view: from 2.5, each as one block with Enter `module`
+ *   (Motion Contract 4.1), one `--duration-stagger-item` apart in reading
+ *   order, within 1.8 beats.
  */
 export const WIR_STAGE_BEATS = Object.freeze({
   portraits: { start: 0, partnerLead: 0.3, length: 1.6 },

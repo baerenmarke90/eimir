@@ -24,6 +24,7 @@ from eimir.engagement.models import (
     Notification,
     NotificationKind,
 )
+from eimir.monitoring import operator_push
 
 router = APIRouter()
 
@@ -71,6 +72,13 @@ class NotificationItem(ApiModel):
     )
     created_at: datetime
     read_at: datetime | None
+    operator_route: str | None = Field(
+        default=None,
+        description=(
+            "The ServerAdmin page a tapped operator notice opens (#2314); "
+            "set only for OPERATOR_ALERT, without any identifier."
+        ),
+    )
 
 
 class NotificationPage(ApiModel):
@@ -414,4 +422,7 @@ def _notification_item(
         selection_size=selection_size,
         created_at=item.created_at,
         read_at=item.read_at,
+        operator_route=(
+            operator_push.route(item.operator_topic) if item.operator_topic is not None else None
+        ),
     )

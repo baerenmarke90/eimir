@@ -157,6 +157,7 @@ def get_own_notification_preferences(
                 ],
             )
             for kind in NotificationKind
+            if notification_policy.couple_facing(kind.value)
         ],
         capabilities=[
             NotificationChannelCapability(
@@ -234,6 +235,11 @@ def update_own_notification_preference(
     response: Response,
 ) -> NotificationPreferenceUpdated:
     """Change only the authenticated recipient's implemented channel choice."""
+    if not notification_policy.couple_facing(kind.value):
+        raise ConflictError(
+            "This notification kind has no personal channel choice.",
+            ErrorCode.NOTIFICATION_CHANNEL_NOT_CONFIGURABLE,
+        )
     if channel is NotificationChannel.EMAIL and not notification_policy.email_choice_allowed(
         kind.value
     ):

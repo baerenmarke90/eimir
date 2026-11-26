@@ -1,5 +1,5 @@
 import { focusManager } from '@tanstack/react-query';
-import { type ReactNode, useLayoutEffect, useState } from 'react';
+import { type ReactNode, useLayoutEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import type { MediaType } from '../api/generated/models/MediaType';
 import { useTranslation } from '../i18n';
@@ -12,11 +12,22 @@ export function useSensitiveMediaReveals(identity: string, enabled = true) {
   const [state, setState] = useState<{ identity: string; ids: Set<string> }>(
     () => ({ identity, ids: new Set() }),
   );
+  // Whether anything is revealed now. Concealing what is already concealed
+  // renders nothing: every preview with protected media uses this hook, so a
+  // render per preview on mount and on leaving the app added up.
+  const revealed = useRef(false);
+  revealed.current = state.identity === identity && state.ids.size > 0;
   useLayoutEffect(() => {
-    setState({ identity, ids: new Set() });
+    const concealed = (current: { identity: string; ids: Set<string> }) =>
+      current.identity === identity && current.ids.size === 0
+        ? current
+        : { identity, ids: new Set<string>() };
+    setState(concealed);
     if (!enabled) return;
-    const conceal = () =>
-      flushSync(() => setState({ identity, ids: new Set() }));
+    // Synchronous, so the app switcher never captures a revealed item.
+    const conceal = () => {
+      if (revealed.current) flushSync(() => setState(concealed));
+    };
     const visibility = () => {
       if (document.visibilityState === 'hidden') conceal();
     };

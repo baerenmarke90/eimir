@@ -8,6 +8,7 @@ All URIs are relative to *http://localhost*
 | [**getServerAdminAccountApiV1ServerAdminAccountsAccountIdGet**](ServerAdminApi.md#getserveradminaccountapiv1serveradminaccountsaccountidget) | **GET** /api/v1/server-admin/accounts/{accountId} | Get Server Admin Account |
 | [**getServerAdminActionActivityApiV1ServerAdminActivityActionsGet**](ServerAdminApi.md#getserveradminactionactivityapiv1serveradminactivityactionsget) | **GET** /api/v1/server-admin/activity/actions | Get Server Admin Action Activity |
 | [**getServerAdminActivityApiV1ServerAdminActivityGet**](ServerAdminApi.md#getserveradminactivityapiv1serveradminactivityget) | **GET** /api/v1/server-admin/activity | Get Server Admin Activity |
+| [**getServerAdminMonitoringApiV1ServerAdminMonitoringGet**](ServerAdminApi.md#getserveradminmonitoringapiv1serveradminmonitoringget) | **GET** /api/v1/server-admin/monitoring | Get Server Admin Monitoring |
 | [**getServerAdminOverviewApiV1ServerAdminOverviewGet**](ServerAdminApi.md#getserveradminoverviewapiv1serveradminoverviewget) | **GET** /api/v1/server-admin/overview | Get Server Admin Overview |
 | [**getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGet**](ServerAdminApi.md#getserveradminprivilegedactivityapiv1serveradminactivityprivilegedget) | **GET** /api/v1/server-admin/activity/privileged | Get Server Admin Privileged Activity |
 | [**getServerAdminSettingsApiV1ServerAdminSettingsGet**](ServerAdminApi.md#getserveradminsettingsapiv1serveradminsettingsget) | **GET** /api/v1/server-admin/settings | Get Server Admin Settings |
@@ -25,6 +26,8 @@ All URIs are relative to *http://localhost*
 | [**revokeServerAdminAccountSessionsApiV1ServerAdminAccountsAccountIdSessionsRevokePost**](ServerAdminApi.md#revokeserveradminaccountsessionsapiv1serveradminaccountsaccountidsessionsrevokepost) | **POST** /api/v1/server-admin/accounts/{accountId}/sessions/revoke | Revoke Server Admin Account Sessions |
 | [**revokeServerAdminSpaceEntitlementGrantApiV1ServerAdminSpacesSpaceIdEntitlementGrantsGrantIdRevokePost**](ServerAdminApi.md#revokeserveradminspaceentitlementgrantapiv1serveradminspacesspaceidentitlementgrantsgrantidrevokepost) | **POST** /api/v1/server-admin/spaces/{space_id}/entitlement/grants/{grant_id}/revoke | Revoke Server Admin Space Entitlement Grant |
 | [**updateMaintenanceSettingApiV1ServerAdminSettingsMaintenancePut**](ServerAdminApi.md#updatemaintenancesettingapiv1serveradminsettingsmaintenanceput) | **PUT** /api/v1/server-admin/settings/maintenance | Update Maintenance Setting |
+| [**updateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPut**](ServerAdminApi.md#updatemonitoringalertssettingapiv1serveradminsettingsmonitoringalertsput) | **PUT** /api/v1/server-admin/settings/monitoring-alerts | Update Monitoring Alerts Setting |
+| [**updateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPut**](ServerAdminApi.md#updatemonitoringpushsettingapiv1serveradminsettingsmonitoringpushput) | **PUT** /api/v1/server-admin/settings/monitoring-push | Update Monitoring Push Setting |
 | [**updateRegistrationSettingApiV1ServerAdminSettingsRegistrationPut**](ServerAdminApi.md#updateregistrationsettingapiv1serveradminsettingsregistrationput) | **PUT** /api/v1/server-admin/settings/registration | Update Registration Setting |
 | [**updateServerAdminAccountSuspensionApiV1ServerAdminAccountsAccountIdSuspensionPut**](ServerAdminApi.md#updateserveradminaccountsuspensionapiv1serveradminaccountsaccountidsuspensionput) | **PUT** /api/v1/server-admin/accounts/{accountId}/suspension | Update Server Admin Account Suspension |
 | [**verifyServerAdminAccountEmailApiV1ServerAdminAccountsAccountIdEmailsAccountEmailIdVerifyPost**](ServerAdminApi.md#verifyserveradminaccountemailapiv1serveradminaccountsaccountidemailsaccountemailidverifypost) | **POST** /api/v1/server-admin/accounts/{accountId}/emails/{accountEmailId}/verify | Verify Server Admin Account Email |
@@ -286,6 +289,76 @@ No authorization required
 | **200** | Successful Response |  -  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getServerAdminMonitoringApiV1ServerAdminMonitoringGet
+
+> ServerAdminMonitoring getServerAdminMonitoringApiV1ServerAdminMonitoringGet(range)
+
+Get Server Admin Monitoring
+
+Return history, storage forecast and service states for the chosen range.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  ServerAdminApi,
+} from '';
+import type { GetServerAdminMonitoringApiV1ServerAdminMonitoringGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new ServerAdminApi();
+
+  const body = {
+    // '24h' | '30d' | '90d' (optional)
+    range: range_example,
+  } satisfies GetServerAdminMonitoringApiV1ServerAdminMonitoringGetRequest;
+
+  try {
+    const data = await api.getServerAdminMonitoringApiV1ServerAdminMonitoringGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **range** | `24h`, `30d`, `90d` |  | [Optional] [Defaults to `&#39;24h&#39;`] [Enum: 24h, 30d, 90d] |
+
+### Return type
+
+[**ServerAdminMonitoring**](ServerAdminMonitoring.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -1475,6 +1548,146 @@ async function example() {
 
   try {
     const data = await api.updateMaintenanceSettingApiV1ServerAdminSettingsMaintenancePut(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **serverAdminSettingUpdate** | [ServerAdminSettingUpdate](ServerAdminSettingUpdate.md) |  | |
+
+### Return type
+
+[**ServerAdminSettings**](ServerAdminSettings.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## updateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPut
+
+> ServerAdminSettings updateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPut(serverAdminSettingUpdate)
+
+Update Monitoring Alerts Setting
+
+Turn the monitoring alert mails to ServerAdmins on or off (#2317).
+
+### Example
+
+```ts
+import {
+  Configuration,
+  ServerAdminApi,
+} from '';
+import type { UpdateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPutRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new ServerAdminApi();
+
+  const body = {
+    // ServerAdminSettingUpdate
+    serverAdminSettingUpdate: ...,
+  } satisfies UpdateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPutRequest;
+
+  try {
+    const data = await api.updateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPut(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **serverAdminSettingUpdate** | [ServerAdminSettingUpdate](ServerAdminSettingUpdate.md) |  | |
+
+### Return type
+
+[**ServerAdminSettings**](ServerAdminSettings.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## updateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPut
+
+> ServerAdminSettings updateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPut(serverAdminSettingUpdate)
+
+Update Monitoring Push Setting
+
+Turn the monitoring alerts as app push to ServerAdmins on or off (#2314).
+
+### Example
+
+```ts
+import {
+  Configuration,
+  ServerAdminApi,
+} from '';
+import type { UpdateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPutRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new ServerAdminApi();
+
+  const body = {
+    // ServerAdminSettingUpdate
+    serverAdminSettingUpdate: ...,
+  } satisfies UpdateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPutRequest;
+
+  try {
+    const data = await api.updateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPut(body);
     console.log(data);
   } catch (error) {
     console.error(error);

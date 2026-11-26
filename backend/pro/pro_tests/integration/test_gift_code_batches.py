@@ -22,7 +22,9 @@ from eimir.entitlements.models import (
     EntitlementStatus,
     EntitlementTier,
 )
+from eimir.security import lifecycle
 from tests.conftest import make_account, make_space, requires_database
+from tests.support.plugins import without_plugins
 
 pytestmark = [pytest.mark.integration, requires_database]
 
@@ -327,3 +329,16 @@ def test_the_plugin_retention_hook_prunes_batches(session: Session) -> None:
     session.expire_all()
 
     assert session.get(GiftCodeBatch, batch_id) is None
+
+
+def test_encryption_status_reports_the_existing_chain_table_without_the_plugin(
+    session: Session,
+) -> None:
+    """A chain table that exists is covered also after the plugin was removed."""
+    _batch(session, count=2)
+
+    with without_plugins():
+        reports = {report.table: report for report in lifecycle.payload_status(session)}
+
+    assert {"gift_codes"} <= set(reports)
+    assert sum(reports["gift_codes"].by_crypto_version.values()) >= 2

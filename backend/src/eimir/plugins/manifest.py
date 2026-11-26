@@ -331,6 +331,10 @@ PRO_CAPABILITIES = frozenset(
 )
 """Capabilities implemented by the Pro plugin; granted only while it is loaded.
 
+``gift_codes.operator`` is operator access, not a Space feature: like the
+operator plugin's ``support.operator`` it is in
+``entitlements.service.NON_ENTITLEMENT_CAPABILITIES`` and no grant carries it.
+
 The capabilities without any implementation (including ``daily.insights``,
 whose Einblicke implementation was removed and archived in #2210) keep
 today's behavior and join this set when an implementation lands in a plugin.

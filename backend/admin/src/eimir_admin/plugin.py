@@ -53,7 +53,7 @@ class AdminPlugin:
         return ADMIN_CAPABILITIES
 
     def model_modules(self) -> Sequence[str]:
-        return ("eimir_admin.support_tickets.models",)
+        return ("eimir_admin.support_tickets.models", "eimir_admin.reply_templates.models")
 
     def routers(self) -> Sequence[APIRouter]:
         from eimir_admin.api import support_reports

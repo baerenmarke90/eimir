@@ -29,24 +29,28 @@ collect_ignore_glob = ["*"] if importlib.util.find_spec("eimir_admin") is None e
 
 
 @pytest.fixture(scope="module", autouse=True)
-def _ticket_table(request: pytest.FixtureRequest) -> Iterator[None]:
-    """The plugin's own table exists only while its tests run.
+def _plugin_tables(request: pytest.FixtureRequest) -> Iterator[None]:
+    """The plugin's own tables exist only while its tests run.
 
     Core migrations that downgrade past ``support_reports`` cannot drop that table
     while the ticket table references it, so the shared test database never keeps
-    it. The table is dropped again, before the report table, after each module.
+    the plugin chain's tables. They are dropped again, before the report table,
+    after each module.
     """
     from tests.conftest import DATABASE_AVAILABLE
 
     if not DATABASE_AVAILABLE:
         yield
         return
+    from eimir_admin.reply_templates.models import SupportReplyTemplate
     from eimir_admin.support_tickets.models import SupportReportTicket
 
     database = request.getfixturevalue("engine")
     SupportReportTicket.__table__.create(database, checkfirst=True)  # type: ignore[attr-defined]
+    SupportReplyTemplate.__table__.create(database, checkfirst=True)  # type: ignore[attr-defined]
     try:
         yield
     finally:
         with database.begin() as connection:
             connection.execute(text("DROP TABLE IF EXISTS support_report_tickets"))
+            connection.execute(text("DROP TABLE IF EXISTS support_reply_templates"))

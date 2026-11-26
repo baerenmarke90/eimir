@@ -15,6 +15,7 @@ const AREA_ICONS: Record<ServerAdminArea, EimirIconName> = {
   situation: 'statistiken',
   people: 'gemeinsam',
   help: 'hilfe',
+  pro: 'pro',
   system: 'einstellungen',
 };
 
@@ -34,19 +35,25 @@ function guardLeave(
 export function ServerAdminAreaNavigation({
   activeSection,
   supportReportsAvailable,
+  proAreaAvailable = false,
   supportReportsNew,
   confirmLeave,
 }: {
   activeSection: ServerAdminSection;
   /** The overview's `supportReportsOperatorAvailable`: the operator plugin. */
   supportReportsAvailable: boolean;
+  /** The overview's `proAreaAvailable`: the Pro plugin on eimir. Cloud. */
+  proAreaAvailable?: boolean;
   supportReportsNew: number;
   /** Asked before another area opens; false keeps the current one. */
   confirmLeave?: () => boolean;
 }) {
   const { t } = useTranslation();
   const activeArea = areaForSection(activeSection);
-  const areas = visibleAreas({ supportReportsAvailable }).map((area) => {
+  const areas = visibleAreas({
+    supportReportsAvailable,
+    proAreaAvailable,
+  }).map((area) => {
     const unread = area === 'help' && supportReportsNew > 0;
     return {
       area,

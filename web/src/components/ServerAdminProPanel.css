@@ -1,0 +1,304 @@
+/* ServerAdmin › Pro (redesign part 5, #2328): board 04 without the Google
+   Play codes card. Compact stacks the two columns; from the ServerAdmin grid's
+   52rem breakpoint they sit side by side. */
+.server-admin-pro-heading,
+.server-admin-pro-column,
+.server-admin-pro-card,
+.server-admin-pro-batch-meta,
+.server-admin-pro-codes-list {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+.server-admin-pro-heading h2,
+.server-admin-pro-heading .eyebrow {
+  margin: 0;
+}
+
+.server-admin-pro-column {
+  display: grid;
+  gap: var(--space-5);
+  align-content: start;
+}
+
+/* Figures: three borderless tiles in one row, even at 360 px. */
+.server-admin-pro-figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(6rem, 100%), 1fr));
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.server-admin-pro-figure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-inline-size: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.server-admin-pro-figure dt {
+  order: 1;
+  color: var(--color-text-secondary);
+}
+
+.server-admin-pro-figure dd {
+  order: 0;
+  margin: 0;
+  font-size: var(--type-title-size);
+  font-weight: var(--type-title-weight);
+}
+
+.server-admin-pro-figure.is-premium dd {
+  color: var(--color-shared);
+}
+
+.server-admin-pro-figure dd.server-admin-pro-figure-detail {
+  order: 2;
+  color: var(--color-text-secondary);
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.server-admin-panel.server-admin-pro-card {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.server-admin-panel.server-admin-pro-card :is(h3, h4, p) {
+  margin: 0;
+}
+
+/* Google Play states: tinted chips, never outlined. */
+.server-admin-pro-chips {
+  --server-admin-pro-warning-surface: color-mix(
+    in srgb,
+    var(--color-warning) 14%,
+    var(--color-surface)
+  );
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.server-admin-pro-chips li {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-subtle);
+  color: var(--color-text-secondary);
+}
+
+.server-admin-pro-chips li.is-positive {
+  background: var(--color-success-surface);
+  color: var(--color-success);
+}
+
+.server-admin-pro-chips li.is-warning {
+  background: var(--server-admin-pro-warning-surface);
+  color: var(--color-warning);
+}
+
+.server-admin-pro-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.server-admin-pro-card-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  inline-size: var(--touch-target-comfortable);
+  block-size: var(--touch-target-comfortable);
+  border-radius: var(--radius-medium);
+  background: var(--color-private-surface-soft);
+  color: var(--color-private);
+}
+
+.server-admin-pro-form {
+  display: grid;
+  gap: var(--space-3);
+}
+
+/* Duration and count side by side while both fit (board 04), else stacked. */
+.server-admin-pro-form-pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(8rem, 100%), 1fr));
+  gap: var(--space-3);
+}
+
+.server-admin-pro-field {
+  display: grid;
+  gap: var(--space-1);
+  min-inline-size: 0;
+}
+
+.server-admin-pro-form button.add-action.server-admin-pro-create {
+  inline-size: 100%;
+}
+
+/* Batch and gift rows: one tinted, borderless surface per entry. */
+.server-admin-pro-rows {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+button.server-admin-pro-row,
+a.server-admin-pro-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  inline-size: 100%;
+  min-block-size: var(--touch-target-comfortable);
+  padding: var(--space-3);
+  border: 0;
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+  color: var(--color-text);
+  font-weight: inherit;
+  text-align: start;
+  text-decoration: none;
+}
+
+.server-admin-pro-row-text {
+  flex: 1;
+  display: grid;
+  gap: var(--space-1);
+  min-inline-size: 0;
+}
+
+.server-admin-pro-row-end {
+  flex: 0 1 auto;
+  color: var(--color-text-secondary);
+  text-align: end;
+}
+
+.server-admin-pro-row .eimir-icon {
+  flex: none;
+  color: var(--color-text-secondary);
+}
+
+.server-admin-pro-state {
+  flex: none;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+}
+
+/* Batch sheet. */
+.server-admin-pro-batch-meta {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.server-admin-pro-batch-meta p {
+  margin: 0;
+}
+
+.server-admin-pro-codes-list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.server-admin-pro-code {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+}
+
+.server-admin-pro-code code {
+  padding: 0;
+  background: none;
+  font-weight: 600;
+}
+
+.server-admin-pro-code:is(.is-revoked, .is-expired) code {
+  color: var(--color-text-secondary);
+  text-decoration: line-through;
+}
+
+.server-admin-pro-code-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.server-admin-pro-code-state {
+  color: var(--color-text-secondary);
+}
+
+button.server-admin-pro-quiet,
+button.server-admin-pro-toggle,
+button.server-admin-pro-danger,
+button.server-admin-pro-quiet-danger {
+  min-block-size: var(--touch-target-comfortable);
+  padding: var(--space-2) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-pill);
+}
+
+button.server-admin-pro-quiet {
+  background: var(--color-shared-surface);
+  color: var(--color-link-text);
+}
+
+button.server-admin-pro-wide {
+  inline-size: 100%;
+}
+
+button.server-admin-pro-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+}
+
+button.server-admin-pro-toggle[aria-pressed="true"] {
+  background: var(--color-success-surface);
+  color: var(--color-success);
+}
+
+/* Destructive but quiet: text only until confirmed (colour is not the only
+   cue; the confirmation names the consequence). */
+button.server-admin-pro-quiet-danger {
+  justify-self: start;
+  background: transparent;
+  color: var(--color-error);
+}
+
+button.server-admin-pro-danger {
+  background: var(--color-error-surface);
+  color: var(--color-error);
+}
+
+.server-admin-pro-revoke-confirm {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+}
+
+.server-admin-pro-revoke-confirm p {
+  margin: 0;
+}

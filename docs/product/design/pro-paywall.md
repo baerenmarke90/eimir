@@ -187,8 +187,12 @@ scenes"). The accepted v2 replaces the scene list above:
   stays in the `--reading-max` column with the same behaviour.
 - *Motion.* Only the card that is mostly visible animates, and only while the
   document is visible (IntersectionObserver plus `visibilitychange`). A scene
-  loops calmly over about 15–16 s (Product Owner revision above) and starts
-  from its beginning when its card comes into view. Scenes use transforms and opacity only
+  cycle lasts about 15–16 s (Product Owner revision above). As Ambient motion
+  (Motion Contract 4.5, M4, M8), a scene runs `--motion-ambient-repeat`
+  cycles and then rests at its still frame. It pauses in place when its card
+  is not current or not seen and continues from there. A card that never
+  played shows its still frame. The mockup restarted a scene on every
+  return, which M4 does not allow. Scenes use transforms and opacity only
   (no layout animation) and pause off screen. With `prefers-reduced-motion`
   every scene shows a composed still frame that carries the same meaning,
   and indicator scrolling is instant. No haptics; the purchase success

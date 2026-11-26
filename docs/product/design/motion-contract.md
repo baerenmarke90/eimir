@@ -1,6 +1,6 @@
 # eimir. Motion Contract
 
-**Version:** 1.19 (2026-11-25)<br>
+**Version:** 1.20 (2026-11-26)<br>
 **Status:** Normative lower-level design-system contract under Product Reference v1 once merged. Library decision **approved by the Product Owner on 2026-11-19**: an in-house motion layer on WAAPI and CSS for all primitives, Gesture follow included; Motion is not adopted ([6.6](#66-product-owner-decisions)). Haptics are approved ([4.10](#410-haptics)).<br>
 **Scope:** Canonical Web/Mobile Web UI, including the Capacitor-delivered Android app<br>
 **Issue:** [#2067](https://github.com/baerenmarke90/eimir/issues/2067)<br>
@@ -347,6 +347,15 @@ Quiet life on a surface that is otherwise still: the slow ring breath on Wir, ga
 | Pause | page hidden, kept view hidden, off screen; continues where it paused (M4) |
 | Targets | never a tap target, portrait, readable text, or a Flight source or target |
 | Reduced motion | absent |
+
+**Pro showcase (#2310).** The four decorative scenes of the Pro paywall gallery (`components/proShowcase/ProScene.tsx`) are Ambient. Their cycle is the long role the Product Owner accepted with mockup v2 (`--pro-scene-cycle-duration` 16 s, the recap film 15 s). Their keyframes and roles are in `motion/pro-showcase.css`:
+
+- A scene runs `--motion-ambient-repeat` cycles and then rests at its composed still frame.
+- It plays only while it is the current gallery card and is seen (`data-ambient`). Otherwise it pauses in place and continues from there.
+- A card that never played shows the still frame (`data-started`).
+- With reduced motion it is absent.
+- The captions inside a scene are part of an `aria-hidden` illustration. The card's readable heading and copy never move.
+- The map glow follows the arc by `transform` through points of its curve. It does not use `offset-distance`, which is reserved for the Map domain.
 
 ### 4.6 Gesture follow (direct manipulation)
 
@@ -1169,6 +1178,7 @@ In addition to Motion Guideline section 10, a pull request with new or changed m
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 1.20 | 2026-11-26 | Pro showcase (#2310): four decorative Ambient scenes on the Pro paywall (4.5). Their keyframes and roles are in `motion/pro-showcase.css`; they run finite cycles, pause in place while they are not current or not seen, and are absent with reduced motion (M8). |
 | 1.19 | 2026-11-25 | Glas (#2283):<br>• `MemoryJarWorld.tsx` registered as a `gesture` owner not yet on the building block (3 uses; 4.6, 5.4);<br>• its frame-driven jar physics and fold in `motion/memoryJar.ts`, and its keyframes, roles and finite, paused candle in `motion/memory-worlds.css` (M8). |
 | 1.18 | 2026-11-25 | Post (#2283):<br>• `PostWorld.tsx` registered as a `gesture` owner not yet on the building block (3 uses; 4.6, 5.4);<br>• its keyframes, roles and finite, paused flag and door loops in `motion/memory-worlds.css` (M8). |
 | 1.17 | 2026-11-25 | Sternbild (#2283):<br>• `ConstellationWorld.tsx` registered as a `gesture` owner not yet on the building block (1 use; 4.6, 5.4);<br>• its frame-driven flights and telescope spring in `motion/constellation.ts`, and its keyframes, roles and finite, paused ambient loops in `motion/memory-worlds.css` (M8). |

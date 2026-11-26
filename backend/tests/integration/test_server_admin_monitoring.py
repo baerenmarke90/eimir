@@ -72,6 +72,7 @@ def test_empty_history_is_calm(client, session, admin_token, monkeypatch) -> Non
     assert payload["points"] == []
     assert payload["storage"] == {"usedBytes": 0, "totalBytes": None, "fullInDays": None}
     assert payload["alertsEnabled"] is True
+    assert payload["pushEnabled"] is True
     assert {service["key"] for service in payload["services"]} == {
         "worker",
         "video_worker",
@@ -179,3 +180,32 @@ def test_alert_switch_is_audited(client, session, admin_token) -> None:  # type:
         )
     ).scalar_one()
     assert (event.previous_value, event.new_value) == (True, False)
+
+
+def test_push_switch_is_audited_and_independent_of_mail(client, session, admin_token) -> None:  # type: ignore[no-untyped-def]
+    response = client.put(
+        "/api/v1/server-admin/settings/monitoring-push",
+        headers=auth(admin_token),
+        json={"enabled": False},
+    )
+    assert response.status_code == 200
+    assert response.json()["monitoringPushEnabled"] is False
+    assert response.json()["monitoringAlertsEnabled"] is True
+    event = session.execute(
+        select(InstanceAdministrationEvent).where(
+            InstanceAdministrationEvent.setting == "monitoring_push_enabled"
+        )
+    ).scalar_one()
+    assert (event.previous_value, event.new_value) == (True, False)
+    monitoring = client.get("/api/v1/server-admin/monitoring", headers=auth(admin_token)).json()
+    assert (monitoring["alertsEnabled"], monitoring["pushEnabled"]) == (True, False)
+
+
+def test_push_switch_requires_server_admin(client, session) -> None:  # type: ignore[no-untyped-def]
+    token = sign_in(session, make_account(session, "Someone"))
+    response = client.put(
+        "/api/v1/server-admin/settings/monitoring-push",
+        headers=auth(token),
+        json={"enabled": False},
+    )
+    assert response.status_code == 403

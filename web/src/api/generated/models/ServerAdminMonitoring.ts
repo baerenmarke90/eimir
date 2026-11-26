@@ -55,6 +55,12 @@ export interface ServerAdminMonitoring {
     points: Array<ServerAdminMonitoringPoint>;
     /**
      * 
+     * @type {boolean}
+     * @memberof ServerAdminMonitoring
+     */
+    pushEnabled: boolean;
+    /**
+     * 
      * @type {ServerAdminMonitoringRangeEnum}
      * @memberof ServerAdminMonitoring
      */
@@ -91,6 +97,7 @@ export type ServerAdminMonitoringRangeEnum = typeof ServerAdminMonitoringRangeEn
 export function instanceOfServerAdminMonitoring(value: object): value is ServerAdminMonitoring {
     if (!('alertsEnabled' in value) || value['alertsEnabled'] === undefined) return false;
     if (!('points' in value) || value['points'] === undefined) return false;
+    if (!('pushEnabled' in value) || value['pushEnabled'] === undefined) return false;
     if (!('range' in value) || value['range'] === undefined) return false;
     if (!('services' in value) || value['services'] === undefined) return false;
     if (!('storage' in value) || value['storage'] === undefined) return false;
@@ -109,6 +116,7 @@ export function ServerAdminMonitoringFromJSONTyped(json: any, ignoreDiscriminato
         
         'alertsEnabled': json['alertsEnabled'],
         'points': ((json['points'] as Array<any>).map(ServerAdminMonitoringPointFromJSON)),
+        'pushEnabled': json['pushEnabled'],
         'range': json['range'],
         'services': ((json['services'] as Array<any>).map(ServerAdminServiceStateFromJSON)),
         'storage': ServerAdminMonitoringStorageFromJSON(json['storage']),
@@ -128,6 +136,7 @@ export function ServerAdminMonitoringToJSONTyped(value?: ServerAdminMonitoring |
         
         'alertsEnabled': value['alertsEnabled'],
         'points': ((value['points'] as Array<any>).map(ServerAdminMonitoringPointToJSON)),
+        'pushEnabled': value['pushEnabled'],
         'range': value['range'],
         'services': ((value['services'] as Array<any>).map(ServerAdminServiceStateToJSON)),
         'storage': ServerAdminMonitoringStorageToJSON(value['storage']),

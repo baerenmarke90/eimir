@@ -56,7 +56,8 @@ export const NotificationKind = {
     GARDEN_SEED_ARRIVED: 'GARDEN_SEED_ARRIVED',
     RECAP_READY: 'RECAP_READY',
     RECAP_GREW: 'RECAP_GREW',
-    SUPPORT_REPLY: 'SUPPORT_REPLY'
+    SUPPORT_REPLY: 'SUPPORT_REPLY',
+    OPERATOR_ALERT: 'OPERATOR_ALERT'
 } as const;
 export type NotificationKind = typeof NotificationKind[keyof typeof NotificationKind];
 

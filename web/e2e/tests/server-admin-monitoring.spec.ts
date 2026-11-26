@@ -9,7 +9,7 @@ import { installMocks } from '../support/storyTimelineFixture';
 /*
  * ServerAdmin › System › Monitoring (redesign part 2, #2317). The monitoring
  * and overview routes are mocked with their live contract; history, liveness
- * and alerts are covered by the backend tests.
+ * and alerts (mail and push, #2314 part 2b) are covered by the backend tests.
  */
 
 const monitoring = serverAdmin.monitoring;
@@ -96,6 +96,7 @@ function monitoringData(
   range: string,
   filled: boolean,
   alertsEnabled = true,
+  pushEnabled = true,
 ): Monitoring {
   const points = filled
     ? Array.from({ length: 12 }, (_, index) => point(23 - index * 2))
@@ -117,6 +118,7 @@ function monitoringData(
       { key: 'push', status: 'ok', lastSeenAt: null },
     ],
     alertsEnabled,
+    pushEnabled,
   };
 }
 
@@ -131,6 +133,8 @@ async function install(
     ranges: [] as string[],
     alertWrites: [] as unknown[],
     alertsEnabled: true,
+    pushWrites: [] as unknown[],
+    pushEnabled: true,
   };
   await installMocks(page);
   await page.route('**/api/v1/**', async (route) => {
@@ -151,7 +155,12 @@ async function install(
       const range = url.searchParams.get('range') ?? '24h';
       recorded.ranges.push(range);
       return route.fulfill({
-        json: monitoringData(range, filled, recorded.alertsEnabled),
+        json: monitoringData(
+          range,
+          filled,
+          recorded.alertsEnabled,
+          recorded.pushEnabled,
+        ),
       });
     }
     if (
@@ -167,7 +176,26 @@ async function install(
           maintenanceMode: false,
           effectiveRegistrationEnabled: true,
           monitoringAlertsEnabled: recorded.alertsEnabled,
+          monitoringPushEnabled: recorded.pushEnabled,
           version: 2,
+        },
+      });
+    }
+    if (
+      request.method() === 'PUT' &&
+      pathname === '/api/v1/server-admin/settings/monitoring-push'
+    ) {
+      const body = request.postDataJSON() as { enabled: boolean };
+      recorded.pushWrites.push(body);
+      recorded.pushEnabled = body.enabled;
+      return route.fulfill({
+        json: {
+          registrationEnabled: true,
+          maintenanceMode: false,
+          effectiveRegistrationEnabled: true,
+          monitoringAlertsEnabled: recorded.alertsEnabled,
+          monitoringPushEnabled: recorded.pushEnabled,
+          version: 3,
         },
       });
     }
@@ -246,7 +274,7 @@ async function capture(page: Page, info: TestInfo, name: string) {
   fs.copyFileSync(output, path.join(directory, name));
 }
 
-test('the operator reads monitoring, switches the range and turns alerts off', async ({
+test('the operator reads monitoring, switches the range and turns alert mails and push off', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -271,6 +299,24 @@ test('the operator reads monitoring, switches the range and turns alerts off', a
   await alerts.uncheck();
   await expect(alerts).not.toBeChecked();
   await expect.poll(() => recorded.alertWrites).toEqual([{ enabled: false }]);
+
+  // Save: the separate push switch writes once and leaves the mails alone.
+  const push = page.getByRole('checkbox', { name: monitoring.pushLabel });
+  await expect(push).toBeChecked();
+  await push.uncheck();
+  await expect(push).not.toBeChecked();
+  await expect.poll(() => recorded.pushWrites).toEqual([{ enabled: false }]);
+  expect(recorded.alertWrites).toEqual([{ enabled: false }]);
+
+  // Return: another range is read fresh and both switches show what was saved.
+  await page.getByRole('button', { name: monitoring.ranges['90d'] }).click();
+  await expect.poll(() => recorded.ranges).toContain('90d');
+  await expect(
+    page.getByRole('checkbox', { name: monitoring.pushLabel }),
+  ).not.toBeChecked();
+  await expect(
+    page.getByRole('checkbox', { name: monitoring.alertsLabel }),
+  ).not.toBeChecked();
 });
 
 test('a missing backup on the Situation leads to Monitoring', async ({

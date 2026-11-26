@@ -695,7 +695,7 @@
     "server-admin-monitoring.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 3,
-      "reason": "ServerAdmin monitoring (#2317): System > Monitoring opens with a calm empty history on a fresh installation, the range switch asks the server for 30 days and marks itself pressed, the alert switch writes exactly one settings change; the Situation's no-backup item on Cloud leads to Monitoring; with history the error-rate, response-time and storage lines render in Compact 360/390/430 and Expanded 1280, Light/Dark with axe, reduced motion and 200 % text without horizontal overflow."
+      "reason": "ServerAdmin monitoring (#2317): System > Monitoring opens with a calm empty history on a fresh installation, the range switch asks the server for 30 days and marks itself pressed, the alert mail switch and the separate alert push switch (#2314) each write exactly one settings change and keep it when another range is read; the Situation's no-backup item on Cloud leads to Monitoring; with history the error-rate, response-time and storage lines render in Compact 360/390/430 and Expanded 1280, Light/Dark with axe, reduced motion and 200 % text without horizontal overflow."
     },
     "server-admin-situation.spec.ts": {
       "disposition": "PR_CRITICAL",

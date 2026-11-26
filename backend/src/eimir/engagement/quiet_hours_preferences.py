@@ -23,6 +23,8 @@ DEFERABLE_KINDS = frozenset(
         NotificationKind.TRANSFER_COMPLETED,
         NotificationKind.TRANSFER_FAILED,
         NotificationKind.SUPPORT_REPLY,
+        # ServerAdmin alerts (#2314) respect the admin's own Quiet Hours too.
+        NotificationKind.OPERATOR_ALERT,
         NotificationKind.PLAN_CHANGED,
         NotificationKind.PLAN_CREATED,
         NotificationKind.PLAN_CANCELLED,

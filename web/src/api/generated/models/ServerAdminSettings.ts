@@ -42,6 +42,12 @@ export interface ServerAdminSettings {
      * @type {boolean}
      * @memberof ServerAdminSettings
      */
+    monitoringPushEnabled: boolean;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof ServerAdminSettings
+     */
     registrationEnabled: boolean;
     /**
      * 
@@ -58,6 +64,7 @@ export function instanceOfServerAdminSettings(value: object): value is ServerAdm
     if (!('effectiveRegistrationEnabled' in value) || value['effectiveRegistrationEnabled'] === undefined) return false;
     if (!('maintenanceMode' in value) || value['maintenanceMode'] === undefined) return false;
     if (!('monitoringAlertsEnabled' in value) || value['monitoringAlertsEnabled'] === undefined) return false;
+    if (!('monitoringPushEnabled' in value) || value['monitoringPushEnabled'] === undefined) return false;
     if (!('registrationEnabled' in value) || value['registrationEnabled'] === undefined) return false;
     if (!('version' in value) || value['version'] === undefined) return false;
     return true;
@@ -76,6 +83,7 @@ export function ServerAdminSettingsFromJSONTyped(json: any, ignoreDiscriminator:
         'effectiveRegistrationEnabled': json['effectiveRegistrationEnabled'],
         'maintenanceMode': json['maintenanceMode'],
         'monitoringAlertsEnabled': json['monitoringAlertsEnabled'],
+        'monitoringPushEnabled': json['monitoringPushEnabled'],
         'registrationEnabled': json['registrationEnabled'],
         'version': json['version'],
     };
@@ -95,6 +103,7 @@ export function ServerAdminSettingsToJSONTyped(value?: ServerAdminSettings | nul
         'effectiveRegistrationEnabled': value['effectiveRegistrationEnabled'],
         'maintenanceMode': value['maintenanceMode'],
         'monitoringAlertsEnabled': value['monitoringAlertsEnabled'],
+        'monitoringPushEnabled': value['monitoringPushEnabled'],
         'registrationEnabled': value['registrationEnabled'],
         'version': value['version'],
     };

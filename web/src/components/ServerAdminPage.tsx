@@ -1,13 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigationType, useSearchParams } from 'react-router-dom';
+import { useNavigationType, useSearchParams } from 'react-router-dom';
 import type { ServerAdminApi } from '../api/generated/apis/ServerAdminApi';
 import type { ServerAdminOverview } from '../api/generated/models/ServerAdminOverview';
 import type { ServerAdminPrivilegedAuditItem } from '../api/generated/models/ServerAdminPrivilegedAuditItem';
 import type { ServerAdminSettings } from '../api/generated/models/ServerAdminSettings';
 import { formatBytes } from '../client/formatBytes';
 import { PUBLIC_START_ROUTE } from '../client/publicStart';
-import { DEFAULT_APP_ROUTE, SERVER_ADMIN_ROUTE } from '../client/routes';
+import { DEFAULT_APP_ROUTE } from '../client/routes';
 import { createServerAdminApis } from '../client/serverAdmin';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { Brand } from './Brand';
@@ -17,6 +17,7 @@ import {
   ServerAdminSubNavigation,
 } from './ServerAdminAreaNavigation';
 import { ServerAdminJobsPanel } from './ServerAdminJobsPanel';
+import { ServerAdminSituation } from './ServerAdminSituation';
 import { ServerAdminSpacesPanel } from './ServerAdminSpacesPanel';
 import { ServerAdminStoragePanel } from './ServerAdminStoragePanel';
 import {
@@ -105,55 +106,6 @@ function formatDate(value: Date | null): string | null {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(value);
-}
-
-function healthLabel(status: string, t: (key: string) => string): string {
-  switch (status) {
-    case 'ok':
-      return t('serverAdmin.health.ok');
-    case 'unavailable':
-      return t('serverAdmin.health.unavailable');
-    case 'no_heartbeat_signal':
-      return t('serverAdmin.health.noHeartbeat');
-    case 'not_probed':
-      return t('serverAdmin.health.notProbed');
-    default:
-      return t('serverAdmin.health.unknown');
-  }
-}
-
-function warningLabel(code: string, t: (key: string) => string): string {
-  switch (code) {
-    case 'maintenance_mode_enabled':
-      return t('serverAdmin.warnings.maintenance');
-    case 'registration_disabled':
-      return t('serverAdmin.warnings.registration');
-    case 'server_admin_allowlist_empty':
-      return t('serverAdmin.warnings.adminAllowlistEmpty');
-    case 'server_admin_allowlist_unmatched':
-      return t('serverAdmin.warnings.adminAllowlistUnmatched');
-    case 'mail_disabled_with_unverified_accounts':
-      return t('serverAdmin.warnings.mailVerification');
-    case 'failed_jobs_present':
-      return t('serverAdmin.warnings.failedJobs');
-    case 'support_reports_unread':
-      return t('serverAdmin.warnings.supportReportsUnread');
-    default:
-      return code;
-  }
-}
-
-function StatusRow({ label, status }: { label: string; status: string }) {
-  const { t } = useTranslation();
-  const statusClass = status === 'ok' ? 'is-ok' : 'is-neutral';
-  return (
-    <div className="server-admin-status-row">
-      <span>{label}</span>
-      <span className={`server-admin-status ${statusClass}`}>
-        {healthLabel(status, t)}
-      </span>
-    </div>
-  );
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
@@ -569,58 +521,8 @@ function OverviewContent({
 
   return (
     <>
-      {section === 'overview' && overview.warningCodes.length > 0 ? (
-        <section
-          className="server-admin-panel server-admin-panel-wide server-admin-warning-panel"
-          aria-labelledby="server-warnings-title"
-        >
-          <h2 id="server-warnings-title">{t('serverAdmin.warnings.title')}</h2>
-          <ul>
-            {overview.warningCodes.map((code) => (
-              <li key={code}>
-                {warningLabel(code, t)}
-                {code === 'support_reports_unread' &&
-                overview.supportReportsOperatorAvailable ? (
-                  <>
-                    {' '}
-                    <Link
-                      to={`${SERVER_ADMIN_ROUTE}?section=reports&state=NEW`}
-                    >
-                      {t('serverAdmin.warnings.openReports')}
-                    </Link>
-                  </>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
       {section === 'overview' ? (
-        <section
-          className="server-admin-panel"
-          aria-labelledby="server-health-title"
-        >
-          <h2 id="server-health-title">{t('serverAdmin.health.title')}</h2>
-          <div className="server-admin-status-list">
-            <StatusRow
-              label={t('serverAdmin.health.application')}
-              status={overview.applicationStatus}
-            />
-            <StatusRow
-              label={t('serverAdmin.health.database')}
-              status={overview.databaseStatus}
-            />
-            <StatusRow
-              label={t('serverAdmin.health.worker')}
-              status={overview.workerStatus}
-            />
-            <StatusRow
-              label={t('serverAdmin.health.media')}
-              status={overview.mediaStatus}
-            />
-          </div>
-        </section>
+        <ServerAdminSituation overview={overview} />
       ) : null}
 
       {section === 'overview' ? (

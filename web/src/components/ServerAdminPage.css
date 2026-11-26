@@ -207,6 +207,159 @@
   box-shadow: var(--shadow-soft);
 }
 
+/* Situation (ServerAdmin redesign part 1). */
+.server-admin-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-block: var(--space-4);
+  box-shadow: none;
+  border: 0;
+}
+
+.server-admin-summary h2 {
+  margin: 0;
+}
+
+.server-admin-summary.is-ok {
+  background: var(--color-success-surface);
+  color: var(--color-success);
+}
+
+.server-admin-summary.is-attention {
+  background: color-mix(
+    in srgb,
+    var(--color-warning) 14%,
+    var(--color-surface)
+  );
+  color: var(--color-warning);
+}
+
+.server-admin-summary h2,
+.server-admin-summary .eimir-icon {
+  color: inherit;
+}
+
+.server-admin-needs-you {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.server-admin-needs-you li + li {
+  border-top: var(--border-surface-width) solid var(--color-border-subtle);
+}
+
+.server-admin-needs-you-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 3.5rem;
+  padding: var(--space-2) 0;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.server-admin-needs-you-icon {
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-medium);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-subtle);
+  color: var(--color-shared);
+}
+
+.is-danger .server-admin-needs-you-icon {
+  background: var(--color-error-surface);
+  color: var(--color-error);
+}
+
+.is-warning .server-admin-needs-you-icon {
+  background: color-mix(
+    in srgb,
+    var(--color-warning) 14%,
+    var(--color-surface)
+  );
+  color: var(--color-warning);
+}
+
+.server-admin-needs-you-text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: var(--space-1);
+  overflow-wrap: anywhere;
+}
+
+.server-admin-needs-you-text span {
+  color: var(--color-text-secondary);
+}
+
+.server-admin-services {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--space-2);
+}
+
+.server-admin-service {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+}
+
+.server-admin-service-dot {
+  flex: none;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-text-tertiary);
+}
+
+.server-admin-service.is-ok .server-admin-service-dot {
+  background: var(--color-success);
+}
+
+.server-admin-service.is-problem {
+  background: var(--color-error-surface);
+}
+
+.server-admin-service.is-problem .server-admin-service-dot {
+  background: var(--color-error);
+}
+
+.server-admin-service-text {
+  display: grid;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.server-admin-service-text span {
+  color: var(--color-text-secondary);
+}
+
+.server-admin-registrations {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.server-admin-registrations dt {
+  color: var(--color-text-secondary);
+}
+
+.server-admin-registrations dd {
+  margin: var(--space-1) 0 0;
+  font-size: var(--type-title-size);
+  font-weight: 700;
+}
+
 .server-admin-panel h2 {
   margin: 0 0 var(--space-4);
 }

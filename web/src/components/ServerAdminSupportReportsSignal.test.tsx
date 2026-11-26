@@ -115,14 +115,21 @@ describe('ServerAdmin support report signal', () => {
     api.getOverview.mockResolvedValue(
       overview({
         supportReportsNew: 3,
+        supportReportsOperatorAvailable: true,
         warningCodes: ['support_reports_unread'],
       }),
     );
 
     renderOverview();
 
+    // The Situation's queue names the reports and keeps the 14-day hint.
     expect(
       await screen.findByText(serverAdmin.warnings.supportReportsUnread),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        serverAdmin.situation.reports_other.replace('{{count, number}}', '3'),
+      ),
     ).toBeTruthy();
     const label = screen.getByText(serverAdmin.usage.supportReportsNew);
     expect(label.closest('div')?.textContent).toContain('3');
@@ -170,10 +177,10 @@ describe('ServerAdmin support report signal', () => {
 
     renderOverview();
 
-    const link = await screen.findByRole('link', {
-      name: serverAdmin.warnings.openReports,
-    });
-    expect(link.getAttribute('href')).toBe(
+    const title = await screen.findByText(
+      serverAdmin.situation.reports_other.replace('{{count, number}}', '2'),
+    );
+    expect(title.closest('a')?.getAttribute('href')).toBe(
       '/server-admin?section=reports&state=NEW',
     );
     // Both area navigations (Compact bar, Expanded list) offer Help with

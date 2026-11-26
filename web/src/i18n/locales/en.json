@@ -4943,6 +4943,28 @@
       "helpUnread_one": "Help, {{count, number}} new report",
       "helpUnread_other": "Help, {{count, number}} new reports"
     },
+    "situation": {
+      "allGood": "Everything is running",
+      "attention_one": "{{count, number}} thing needs you",
+      "attention_other": "{{count, number}} things need you",
+      "serviceProblem": "A service is not answering",
+      "needsYouTitle": "Needs you",
+      "nothingNeedsYou": "Nothing needs you right now.",
+      "servicesTitle": "Services",
+      "noSignalYet": "no signal yet",
+      "mail": "Mail",
+      "mailOn": "set up",
+      "mailOff": "off",
+      "reports_one": "{{count, number}} new report",
+      "reports_other": "{{count, number}} new reports",
+      "failedJobs_one": "{{count, number}} failed job",
+      "failedJobs_other": "{{count, number}} failed jobs",
+      "storage": "A Space is at {{percent, number}} %",
+      "storageDetail": "{{used}} of {{quota}}",
+      "expiringGrant_one": "A Premium gift ends in {{count, number}} day",
+      "expiringGrant_other": "A Premium gift ends in {{count, number}} days",
+      "registrationsTitle": "New accounts"
+    },
     "subNavigation": {
       "aria": "Pages"
     },

@@ -181,6 +181,9 @@ def capture(revisions, context):
             table('gardens'), 'gardens', 'table', True, table('gardens')
         ),
         'absent_core_table': include(table('accounts'), 'accounts', 'table', True, None),
+        'plugin_version_table': include(
+            table('alembic_version_pro'), 'alembic_version_pro', 'table', True, None
+        ),
     }))
     return []
 with EnvironmentContext(cfg, script, as_sql=True, fn=capture, destination_rev='head'):
@@ -215,6 +218,8 @@ def test_autogenerate_keeps_plugin_tables_whose_plugin_is_not_loaded() -> None:
         "absent_plugin_table": False,
         "present_plugin_table": True,
         "absent_core_table": True,
+        # A plugin chain's version table is migration state, never a Core table to drop.
+        "plugin_version_table": False,
     }
 
 

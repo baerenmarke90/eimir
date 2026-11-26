@@ -83,6 +83,8 @@ class PluginTable:
     """Short-lived state that is deleted entirely while its plugin is absent."""
     notification_targets: tuple[EngagementTarget, ...] = ()
     """Notification targets that point at this table's ``id``; deleted with the row."""
+    chain: bool = False
+    """Created by its plugin's own migration chain, never by the Core chain."""
 
 
 _GAMES = Capability.GAMES_COUPLE
@@ -293,13 +295,20 @@ PLUGIN_TABLES: tuple[PluginTable, ...] = (
     # Operator plugin: the tracker ticket of a support report. It holds no scope
     # column; the row cascades with its report (``ON DELETE CASCADE``), so the
     # retention of reports and the deletion of the reporter's Account remove it.
-    PluginTable("support_report_tickets", _OPERATOR, None, ()),
+    PluginTable("support_report_tickets", _OPERATOR, None, (), chain=True),
     # Pro plugin, its own migration chain (``alembic_version_pro``): operator-made
     # gift codes (ServerAdmin part 5). Operator data without a Space scope: a
     # deleted Space, grant or Account only clears its reference (``ON DELETE SET
     # NULL``), so the batch counts stay right; the codes cascade with their batch.
-    PluginTable("gift_code_batches", _GIFT_CODES, None, ("created_by", "revoked_by")),
-    PluginTable("gift_codes", _GIFT_CODES, None, (), protected_payload_context="GiftCodePayload"),
+    PluginTable("gift_code_batches", _GIFT_CODES, None, ("created_by", "revoked_by"), chain=True),
+    PluginTable(
+        "gift_codes",
+        _GIFT_CODES,
+        None,
+        (),
+        protected_payload_context="GiftCodePayload",
+        chain=True,
+    ),
 )
 
 PLUGIN_TABLE_NAMES = frozenset(row.table for row in PLUGIN_TABLES)

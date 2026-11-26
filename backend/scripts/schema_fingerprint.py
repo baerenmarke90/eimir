@@ -8,7 +8,11 @@ The fingerprint is read from the PostgreSQL catalog of the ``public`` schema:
 every table with its columns (type, nullability, default), every constraint
 in its ``pg_get_constraintdef`` form, every index in its ``pg_get_indexdef``
 form and every enum type with its labels. Alembic version tables are left
-out: they describe the migration state, not the schema.
+out: they describe the migration state, not the schema. The tables of plugin
+migration chains (manifest rows with ``chain``) are left out too, with their
+columns, constraints and indexes: the fingerprint guards the Core chain, which
+reaches the same schema with and without a plugin, while a plugin chain runs
+only where its plugin is loaded and has its own migration tests.
 
 Usage, with ``EIMIR_DATABASE_URL`` pointing at a migrated database::
 
@@ -27,10 +31,14 @@ from typing import Any
 from sqlalchemy import Connection, create_engine, text
 
 from eimir.config import DatabaseSettings
+from eimir.plugins.manifest import PLUGIN_TABLES
 
 FINGERPRINT = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "schema_fingerprint.json"
 
 _VERSION_TABLES = "alembic_version%"
+
+EXCLUDED_TABLES = tuple(sorted(row.table for row in PLUGIN_TABLES if row.chain))
+"""Tables created by a plugin's own migration chain, never by the Core chain."""
 
 _COLUMNS = text(
     """
@@ -42,6 +50,7 @@ _COLUMNS = text(
     LEFT JOIN pg_attrdef d ON d.adrelid = a.attrelid AND d.adnum = a.attnum
     WHERE n.nspname = 'public' AND c.relkind IN ('r', 'p') AND a.attnum > 0
       AND NOT a.attisdropped AND c.relname NOT LIKE :version_tables
+      AND c.relname::text <> ALL(CAST(:excluded_tables AS text[]))
     ORDER BY c.relname, a.attname
     """
 )
@@ -53,6 +62,7 @@ _CONSTRAINTS = text(
     JOIN pg_class c ON c.oid = con.conrelid
     JOIN pg_namespace n ON n.oid = c.relnamespace
     WHERE n.nspname = 'public' AND c.relname NOT LIKE :version_tables
+      AND c.relname::text <> ALL(CAST(:excluded_tables AS text[]))
     ORDER BY c.relname, con.conname
     """
 )
@@ -62,6 +72,7 @@ _INDEXES = text(
     SELECT tablename, indexname, indexdef
     FROM pg_indexes
     WHERE schemaname = 'public' AND tablename NOT LIKE :version_tables
+      AND tablename::text <> ALL(CAST(:excluded_tables AS text[]))
     ORDER BY tablename, indexname
     """
 )
@@ -80,7 +91,7 @@ _ENUMS = text(
 
 def fingerprint(connection: Connection) -> dict[str, Any]:
     """Return the schema of ``public`` as a deterministic, JSON-ready mapping."""
-    parameters = {"version_tables": _VERSION_TABLES}
+    parameters = {"version_tables": _VERSION_TABLES, "excluded_tables": list(EXCLUDED_TABLES)}
     tables: dict[str, dict[str, Any]] = {}
 
     def table(name: str) -> dict[str, Any]:

@@ -22,6 +22,7 @@ from __future__ import annotations
 import logging
 import shutil
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -36,7 +37,7 @@ from eimir.entitlements.models import Capability
 from eimir.jobs import queue
 from eimir.jobs.models import Job, JobStatus
 from eimir.jobs.worker import JobRegistry, registry
-from eimir.mail import MailMessage
+from eimir.mail import MailMessage, MailUnavailableError
 from eimir.mail import sender as mail_sender
 from eimir.mail.service_mail import service_mail
 from eimir.monitoring import operator_push
@@ -122,14 +123,24 @@ def _due(code: str, state: MonitoringAlertState, at: datetime) -> bool:
     return at - state.last_sent_at >= REMINDER
 
 
-def run(
-    session: Session,
-    at: datetime,
-    settings: Settings,
-    *,
-    send: Callable[[MailMessage], None],
-) -> list[str]:
-    """Evaluate every condition; mail and push what is due. Return the codes handled."""
+@dataclass(frozen=True)
+class PlannedMail:
+    """One alert mail decided by :func:`evaluate`, sent only after its commit."""
+
+    code: str
+    to: str
+    locale: str
+    url: str
+
+
+def evaluate(
+    session: Session, at: datetime, settings: Settings
+) -> tuple[list[str], list[PlannedMail]]:
+    """Mark what is due as sent, queue its push and return the mails to send.
+
+    The caller commits before sending: a failure after the mails went out must
+    never roll back the "sent" mark, or every retry would send them again.
+    """
     switches = administration.get_settings(session)
     mail_enabled = bool(switches.monitoring_alerts_enabled)
     push_enabled = bool(switches.monitoring_push_enabled)
@@ -162,6 +173,7 @@ def run(
     recipients = operator_push.recipients(session, settings) if enabled else []
     base = settings.public_base_url.rstrip("/")
     handled: list[str] = []
+    mails: list[PlannedMail] = []
     for code in CODES:
         state = _state(session, code)
         if not active[code]:
@@ -183,18 +195,10 @@ def run(
                 if code == "support_reports"
                 else "/server-admin?section=monitoring"
             )
-            for recipient in recipients:
-                try:
-                    send(
-                        service_mail(
-                            f"monitoring.{code}",
-                            to=recipient.email,
-                            locale=recipient.locale,
-                            url=link,
-                        )
-                    )
-                except Exception:
-                    log.warning("monitoring alert could not be sent", extra={"alert": code})
+            mails.extend(
+                PlannedMail(code=code, to=recipient.email, locale=recipient.locale, url=link)
+                for recipient in recipients
+            )
         if push_enabled:
             operator_push.notify(
                 session,
@@ -204,6 +208,36 @@ def run(
             )
     operator_push.prune(session, at=at)
     session.flush()
+    return handled, mails
+
+
+def send_mails(mails: list[PlannedMail], send: Callable[[MailMessage], None]) -> None:
+    """Send planned alert mails; one failed mail never stops the others."""
+    for mail in mails:
+        try:
+            send(
+                service_mail(
+                    f"monitoring.{mail.code}", to=mail.to, locale=mail.locale, url=mail.url
+                )
+            )
+        except Exception:
+            log.warning("monitoring alert could not be sent", extra={"alert": mail.code})
+
+
+def run(
+    session: Session,
+    at: datetime,
+    settings: Settings,
+    *,
+    send: Callable[[MailMessage], None],
+) -> list[str]:
+    """Evaluate every condition and send its mails at once. Return the codes handled.
+
+    The job itself never uses this: it commits the evaluation first (see
+    :func:`prepare`), then sends.
+    """
+    handled, mails = evaluate(session, at, settings)
+    send_mails(mails, send)
     return handled
 
 
@@ -235,14 +269,32 @@ def schedule_next(session: Session, *, delay: timedelta | None = None) -> Job | 
     return queue.enqueue(session, JOB_KIND, delay=delay or INTERVAL)
 
 
-def handle(session: Session, payload: dict[str, Any]) -> None:
+def prepare(session: Session, payload: dict[str, Any]) -> dict[str, Any]:
+    """Commit the evaluation before any mail leaves (the worker's preparation step).
+
+    The planned mails travel to :func:`handle` in memory only; they are never
+    stored in the job. A retry evaluates again and finds them already sent.
+    """
     del payload
-    sender = mail_sender()
-    handled = run(session, now(), get_settings(), send=sender.send)
+    handled, mails = evaluate(session, now(), get_settings())
+    return {"handled": handled, "mails": mails}
+
+
+def handle(session: Session, payload: dict[str, Any]) -> None:
+    mails: list[PlannedMail] = payload.get("mails", [])
+    if mails:
+        try:
+            sender = mail_sender()
+        except MailUnavailableError:
+            # An instance without mail still pushes and keeps evaluating.
+            log.warning("monitoring alert mails need a mail transport")
+        else:
+            send_mails(mails, sender.send)
+    handled = payload.get("handled", [])
     if handled:
         log.info("monitoring alerts sent", extra={"alerts": handled})
     schedule_next(session)
 
 
 def register_handlers(target: JobRegistry | None = None) -> None:
-    (target or registry).register(JOB_KIND, handle)
+    (target or registry).register(JOB_KIND, handle, prepare=prepare)

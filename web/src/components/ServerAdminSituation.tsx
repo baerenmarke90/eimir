@@ -133,7 +133,11 @@ export function ServerAdminSituation({
                     <EimirIcon name={ITEM_ICONS[item.kind]} />
                   </span>
                   <span className="server-admin-needs-you-text">
-                    <strong>{t(item.titleKey, item.titleValues)}</strong>
+                    <strong>
+                      {item.titleValues
+                        ? t(item.titleKey, item.titleValues)
+                        : t(item.titleKey)}
+                    </strong>
                     {item.detailKey ? <span>{t(item.detailKey)}</span> : null}
                     {item.storage ? (
                       <span>

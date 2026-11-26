@@ -133,16 +133,32 @@ are served only through the Pro-gated API.
 
 ## Daily Saying catalog
 
-`backend/pro/src/eimir_pro/quotes/daily_sayings.json` contains 1,000 sayings in ten
-categories (100 each), in German and English. All of them are AI-generated
-text without an individual author. The Product Owner supplied and selected the
-German originals for eimir. on 2026-11-18, and they are used under the
-repository license. The English versions are AI-assisted translations of the
-German originals, contributed under
+`backend/pro/src/eimir_pro/quotes/daily_sayings.json` contains 519 entries in ten
+categories, each in German and English: 474 sayings and 45 "Klassiker".
+
+The 474 sayings are text without an individual author. They are AI-generated
+drafts (the Product Owner's editorial AI and the earlier AI catalog of
+2026-11-18), edited and approved one by one by the Product Owner on 2026-11-26,
+and they are used under the repository license. They were also checked for
+repetition of an idea already in the catalog and, where practical, by web
+search for well-known quotations; looser echoes of familiar thoughts remain
+and were reported to the Product Owner. The English versions are AI-assisted
+translations of the German originals, contributed under
 [CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/). The
 card shows the sayings without author credit or citation. They carry the rights
 classification `EDITORIAL_CURATED`, and each entry records its collection, work
 and rights basis in the same file.
+
+The 45 Klassiker are public-domain quotations from works published in 1930 or
+earlier by authors who died in 1955 or earlier: 29 German originals (Goethe,
+Marie von Ebner-Eschenbach, Novalis, Hebbel, Nietzsche, Schiller, Heine,
+Lichtenberg) and 16 English originals (Emerson, Tagore, Chesterton, Wilde,
+Austen, Brontë, Alcott, Eliot, Gibran, Montgomery, Cather). The card shows
+author and work. Spelling of the German originals is modernised. The translation
+into the other language is our own, contributed under CC0 1.0 Universal, and
+the card labels it as a translation. Their rights classification is
+`PUBLIC_DOMAIN` for the original wording and `EDITORIAL_CURATED` for the
+translation.
 
 The previous catalog is archived, not served. It held German and English
 public-domain quotations, traditional sayings, public remarks and the earlier

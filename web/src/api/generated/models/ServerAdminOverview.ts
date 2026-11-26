@@ -235,6 +235,12 @@ export interface ServerAdminOverview {
     passkeyAccountCount: number;
     /**
      * 
+     * @type {boolean}
+     * @memberof ServerAdminOverview
+     */
+    proAreaAvailable: boolean;
+    /**
+     * 
      * @type {Date}
      * @memberof ServerAdminOverview
      */
@@ -385,6 +391,7 @@ export function instanceOfServerAdminOverview(value: object): value is ServerAdm
     if (!('oidcConnectionCount' in value) || value['oidcConnectionCount'] === undefined) return false;
     if (!('oldestPendingJobAt' in value) || value['oldestPendingJobAt'] === undefined) return false;
     if (!('passkeyAccountCount' in value) || value['passkeyAccountCount'] === undefined) return false;
+    if (!('proAreaAvailable' in value) || value['proAreaAvailable'] === undefined) return false;
     if (!('processStartedAt' in value) || value['processStartedAt'] === undefined) return false;
     if (!('publicBaseUrl' in value) || value['publicBaseUrl'] === undefined) return false;
     if (!('pushFailuresLastHour' in value) || value['pushFailuresLastHour'] === undefined) return false;
@@ -447,6 +454,7 @@ export function ServerAdminOverviewFromJSONTyped(json: any, ignoreDiscriminator:
         'oidcConnectionCount': json['oidcConnectionCount'],
         'oldestPendingJobAt': (json['oldestPendingJobAt'] == null ? null : new Date(json['oldestPendingJobAt'])),
         'passkeyAccountCount': json['passkeyAccountCount'],
+        'proAreaAvailable': json['proAreaAvailable'],
         'processStartedAt': (new Date(json['processStartedAt'])),
         'publicBaseUrl': json['publicBaseUrl'],
         'pushFailuresLastHour': json['pushFailuresLastHour'],
@@ -510,6 +518,7 @@ export function ServerAdminOverviewToJSONTyped(value?: ServerAdminOverview | nul
         'oidcConnectionCount': value['oidcConnectionCount'],
         'oldestPendingJobAt': value['oldestPendingJobAt'] == null ? value['oldestPendingJobAt'] : value['oldestPendingJobAt'].toISOString(),
         'passkeyAccountCount': value['passkeyAccountCount'],
+        'proAreaAvailable': value['proAreaAvailable'],
         'processStartedAt': value['processStartedAt'].toISOString(),
         'publicBaseUrl': value['publicBaseUrl'],
         'pushFailuresLastHour': value['pushFailuresLastHour'],

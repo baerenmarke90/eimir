@@ -39,6 +39,7 @@ Name | Type
 `oidcConnectionCount` | number
 `oldestPendingJobAt` | Date
 `passkeyAccountCount` | number
+`proAreaAvailable` | boolean
 `processStartedAt` | Date
 `publicBaseUrl` | string
 `pushFailuresLastHour` | number
@@ -96,6 +97,7 @@ const example = {
   "oidcConnectionCount": null,
   "oldestPendingJobAt": null,
   "passkeyAccountCount": null,
+  "proAreaAvailable": null,
   "processStartedAt": null,
   "publicBaseUrl": null,
   "pushFailuresLastHour": null,

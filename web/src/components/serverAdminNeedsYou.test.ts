@@ -53,6 +53,7 @@ function overview(
     storagePressure: [],
     storagePressureCount: 0,
     supportReportsNew: 0,
+    proAreaAvailable: false,
     supportReportsOperatorAvailable: false,
     suspendedAccountCount: 0,
     unverifiedPrimaryEmailCount: 0,

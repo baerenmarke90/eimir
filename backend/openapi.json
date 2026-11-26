@@ -15083,6 +15083,33 @@
         "title": "ServerAdminEntitlementRevokeRequest",
         "type": "object"
       },
+      "ServerAdminExpiringGrantItem": {
+        "description": "An operator grant that ends within seven days: ids and end only.",
+        "properties": {
+          "effectiveUntil": {
+            "format": "date-time",
+            "title": "Effectiveuntil",
+            "type": "string"
+          },
+          "grantId": {
+            "format": "uuid",
+            "title": "Grantid",
+            "type": "string"
+          },
+          "spaceId": {
+            "format": "uuid",
+            "title": "Spaceid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "spaceId",
+          "grantId",
+          "effectiveUntil"
+        ],
+        "title": "ServerAdminExpiringGrantItem",
+        "type": "object"
+      },
       "ServerAdminFailedJob": {
         "description": "Safe queue metadata without payload or raw exception text.",
         "properties": {
@@ -15297,6 +15324,17 @@
             "title": "Environment",
             "type": "string"
           },
+          "expiringAdminGrantCount": {
+            "title": "Expiringadmingrantcount",
+            "type": "integer"
+          },
+          "expiringAdminGrants": {
+            "items": {
+              "$ref": "#/components/schemas/ServerAdminExpiringGrantItem"
+            },
+            "title": "Expiringadmingrants",
+            "type": "array"
+          },
           "jobsFailed": {
             "title": "Jobsfailed",
             "type": "integer"
@@ -15393,6 +15431,17 @@
             "title": "Serveradminverifiedmatchcount",
             "type": "integer"
           },
+          "storagePressure": {
+            "items": {
+              "$ref": "#/components/schemas/ServerAdminStoragePressureItem"
+            },
+            "title": "Storagepressure",
+            "type": "array"
+          },
+          "storagePressureCount": {
+            "title": "Storagepressurecount",
+            "type": "integer"
+          },
           "supportReportsNew": {
             "title": "Supportreportsnew",
             "type": "integer"
@@ -15465,6 +15514,10 @@
           "recentFailedJobs",
           "supportReportsNew",
           "supportReportsOperatorAvailable",
+          "storagePressureCount",
+          "storagePressure",
+          "expiringAdminGrantCount",
+          "expiringAdminGrants",
           "warningCodes"
         ],
         "title": "ServerAdminOverview",
@@ -16131,6 +16184,31 @@
           "growth"
         ],
         "title": "ServerAdminStorageOverview",
+        "type": "object"
+      },
+      "ServerAdminStoragePressureItem": {
+        "description": "A Space at or above 85 % of its Cloud quota: id and bytes only.",
+        "properties": {
+          "quotaBytes": {
+            "title": "Quotabytes",
+            "type": "integer"
+          },
+          "spaceId": {
+            "format": "uuid",
+            "title": "Spaceid",
+            "type": "string"
+          },
+          "usedBytes": {
+            "title": "Usedbytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "spaceId",
+          "usedBytes",
+          "quotaBytes"
+        ],
+        "title": "ServerAdminStoragePressureItem",
         "type": "object"
       },
       "ServerAdminStorageStatusCount": {

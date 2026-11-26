@@ -1501,9 +1501,28 @@
         "web/src/client/supportReportsAvailability.ts"
       ]
     },
+    "server-admin-situation.spec.ts": {
+      "roots": [
+        "web/src/components/ServerAdminPage.tsx",
+        "web/src/components/ServerAdminPage.css",
+        "web/src/components/ServerAdminAreaNavigation.tsx",
+        "web/src/components/ServerAdminSituation.tsx",
+        "web/src/components/serverAdminNeedsYou.ts",
+        "web/src/components/serverAdminAreas.ts",
+        "web/src/components/ServerAdminSpacesPanel.tsx",
+        "web/src/components/ServerAdminJobsPanel.tsx",
+        "web/src/components/UiState.tsx",
+        "web/src/client/serverAdmin.ts",
+        "web/src/api/generated/apis/ServerAdminApi.ts",
+        "web/src/api/generated/models/ServerAdminOverview.ts",
+        "web/src/i18n/locales/serverAdmin.ts"
+      ]
+    },
     "server-admin-support-reports.spec.ts": {
       "roots": [
         "web/src/components/ServerAdminPage.tsx",
+        "web/src/components/ServerAdminAreaNavigation.tsx",
+        "web/src/components/serverAdminAreas.ts",
         "web/src/components/ServerAdminSupportReportsPanel.tsx",
         "web/src/components/ServerAdminSupportReportsPanel.css",
         "web/src/components/ServerAdminSupportReportDetail.tsx",

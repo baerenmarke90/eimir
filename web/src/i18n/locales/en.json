@@ -4934,6 +4934,18 @@
       "activity": "Activity log",
       "reports": "Reports"
     },
+    "areas": {
+      "aria": "Areas",
+      "situation": "Situation",
+      "people": "People",
+      "help": "Help",
+      "system": "System",
+      "helpUnread_one": "Help, {{count, number}} new report",
+      "helpUnread_other": "Help, {{count, number}} new reports"
+    },
+    "subNavigation": {
+      "aria": "Pages"
+    },
     "access": {
       "loading": "Checking permission …",
       "deniedTitle": "No access to server administration",

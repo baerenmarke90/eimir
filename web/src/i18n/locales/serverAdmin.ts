@@ -18,6 +18,18 @@ const serverAdmin = {
     activity: 'Aktivitätsprotokoll',
     reports: 'Meldungen',
   },
+  areas: {
+    aria: 'Bereiche',
+    situation: 'Lage',
+    people: 'Menschen',
+    help: 'Hilfe',
+    system: 'System',
+    helpUnread_one: 'Hilfe, {{count, number}} neue Meldung',
+    helpUnread_other: 'Hilfe, {{count, number}} neue Meldungen',
+  },
+  subNavigation: {
+    aria: 'Unterseiten',
+  },
   access: {
     loading: 'Berechtigung wird geprüft …',
     deniedTitle: 'Kein Zugriff auf die Serververwaltung',

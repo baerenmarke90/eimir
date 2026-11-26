@@ -12,13 +12,16 @@ import { createServerAdminApis } from '../client/serverAdmin';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { Brand } from './Brand';
 import { ServerAdminAccountsPanel } from './ServerAdminAccountsPanel';
+import {
+  ServerAdminAreaNavigation,
+  ServerAdminSubNavigation,
+} from './ServerAdminAreaNavigation';
 import { ServerAdminJobsPanel } from './ServerAdminJobsPanel';
 import { ServerAdminSpacesPanel } from './ServerAdminSpacesPanel';
 import { ServerAdminStoragePanel } from './ServerAdminStoragePanel';
 import {
   resolveServerAdminSection,
   type ServerAdminSection,
-  sectionHref,
 } from './serverAdminAreas';
 import { TaskBackLink } from './TaskBackButton';
 import { ThemeControl } from './ThemeControl';
@@ -39,65 +42,6 @@ export {
   resolveServerAdminSection,
   type ServerAdminSection,
 } from './serverAdminAreas';
-
-export function ServerAdminSectionNavigation({
-  activeSection,
-  supportReportsAvailable = false,
-  confirmLeave,
-}: {
-  activeSection: ServerAdminSection;
-  /** The overview's `supportReportsOperatorAvailable`: the operator plugin. */
-  supportReportsAvailable?: boolean;
-  /** Asked before another section opens; false keeps the current one. */
-  confirmLeave?: () => boolean;
-}) {
-  const { t } = useTranslation();
-  const sections: Array<{ id: ServerAdminSection; label: string }> = [
-    { id: 'overview', label: t('serverAdmin.navigation.overview') },
-    ...(supportReportsAvailable
-      ? [
-          {
-            id: 'reports' as const,
-            label: t('serverAdmin.navigation.reports'),
-          },
-        ]
-      : []),
-    { id: 'accounts', label: t('serverAdmin.navigation.accounts') },
-    { id: 'spaces', label: t('serverAdmin.navigation.spaces') },
-    { id: 'jobs', label: t('serverAdmin.navigation.jobs') },
-    { id: 'storage', label: t('serverAdmin.navigation.storage') },
-    { id: 'security', label: t('serverAdmin.navigation.security') },
-    { id: 'settings', label: t('serverAdmin.navigation.settings') },
-    { id: 'activity', label: t('serverAdmin.navigation.activity') },
-  ];
-
-  return (
-    <nav
-      className="server-admin-section-nav"
-      aria-label={t('serverAdmin.navigation.aria')}
-    >
-      {sections.map((section) => (
-        <Link
-          key={section.id}
-          className="server-admin-section-link"
-          to={sectionHref(section.id)}
-          aria-current={section.id === activeSection ? 'page' : undefined}
-          onClick={(event) => {
-            if (
-              section.id !== activeSection &&
-              confirmLeave &&
-              !confirmLeave()
-            ) {
-              event.preventDefault();
-            }
-          }}
-        >
-          {section.label}
-        </Link>
-      ))}
-    </nav>
-  );
-}
 
 export function ServerAdminAccessGate({
   loading,
@@ -1092,15 +1036,17 @@ export function ServerAdminPage({
         </div>
 
         <div className="server-admin-workspace">
-          <ServerAdminSectionNavigation
+          <ServerAdminAreaNavigation
             activeSection={section}
             supportReportsAvailable={supportReportsAvailable}
+            supportReportsNew={overviewQuery.data?.supportReportsNew ?? 0}
             confirmLeave={
               section === 'reports' ? confirmLeaveReports : undefined
             }
           />
 
           <div className="server-admin-grid">
+            <ServerAdminSubNavigation activeSection={section} />
             {section === 'reports' ? (
               supportReportsAvailable ? (
                 <Suspense

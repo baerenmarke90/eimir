@@ -76,35 +76,115 @@
   align-items: start;
 }
 
-.server-admin-section-nav {
+/* Areas (ServerAdmin redesign part 1): a side list from the shell's 840 px
+   breakpoint, the app shell's bottom bar below it. */
+.server-admin-area-nav-side {
   position: sticky;
   top: var(--space-4);
   display: grid;
   gap: var(--space-1);
-  padding: var(--space-3);
-  border: var(--border-surface-width) solid var(--color-border-subtle);
-  border-radius: var(--radius-large);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-soft);
 }
 
-.server-admin-section-link {
-  display: block;
-  padding: var(--space-3);
-  border-radius: var(--radius-medium);
+.server-admin-area-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 3rem;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-pill);
   color: var(--color-text-secondary);
+  font-weight: 600;
   text-decoration: none;
 }
 
-.server-admin-section-link:hover {
+.server-admin-area-link:hover {
   background: var(--color-surface-subtle);
   color: var(--color-text);
 }
 
-.server-admin-section-link[aria-current="page"] {
+.server-admin-area-link[aria-current="page"] {
+  background: var(--color-surface-raised);
+  color: var(--color-shared);
+  box-shadow: var(--shadow-soft);
+}
+
+.server-admin-area-label {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.server-admin-area-count {
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--color-private);
+  color: var(--color-on-accent);
+  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.server-admin-area-bar {
+  display: none;
+}
+
+.server-admin-subnav {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.server-admin-subnav-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-pill);
   background: var(--color-surface-subtle);
   color: var(--color-text);
-  font-weight: 700;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.server-admin-subnav-link[aria-current="page"] {
+  background: var(--color-brand-strong);
+  color: var(--color-on-accent);
+}
+
+@media (max-width: 52.4375rem) {
+  .server-admin-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .server-admin-area-nav-side {
+    display: none;
+  }
+
+  .server-admin-area-bar {
+    display: grid;
+  }
+
+  .server-admin-main {
+    padding-bottom: calc(
+      var(--shell-floating-nav-height) +
+      var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) +
+      var(--space-6)
+    );
+  }
+
+  .server-admin-subnav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
+  .server-admin-subnav-link {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
 }
 
 .server-admin-grid {
@@ -451,22 +531,6 @@
 }
 
 @media (max-width: 64rem) {
-  .server-admin-workspace {
-    /* minmax(0, …): the scrolling navigation must not widen the page. */
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .server-admin-section-nav {
-    position: static;
-    display: flex;
-    overflow-x: auto;
-  }
-
-  .server-admin-section-link {
-    flex: 0 0 auto;
-    white-space: nowrap;
-  }
-
   .server-admin-account-detail-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

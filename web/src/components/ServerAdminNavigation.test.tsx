@@ -3,60 +3,95 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, vi } from 'vitest';
+import serverAdmin from '../i18n/locales/serverAdmin';
 import {
-  resolveServerAdminSection,
-  ServerAdminSectionNavigation,
-} from './ServerAdminPage';
+  ServerAdminAreaNavigation,
+  ServerAdminSubNavigation,
+} from './ServerAdminAreaNavigation';
+import { resolveServerAdminSection } from './ServerAdminPage';
 
 /** Shows the current query string so a test can see whether navigation happened. */
 function Location() {
   return <output data-testid="location">{useLocation().search}</output>;
 }
 
-describe('ServerAdmin section navigation', () => {
-  it('falls back to the overview for missing or unknown sections', () => {
+function markup(node: React.ReactNode): string {
+  return renderToStaticMarkup(<MemoryRouter>{node}</MemoryRouter>);
+}
+
+function currentLinks(html: string): string[] {
+  return [...html.matchAll(/<a[^>]*aria-current="page"[^>]*>/g)].map(
+    ([tag]) => tag,
+  );
+}
+
+describe('ServerAdmin area navigation', () => {
+  it('keeps resolving old section ids', () => {
     expect(resolveServerAdminSection(null)).toBe('overview');
     expect(resolveServerAdminSection('unknown')).toBe('overview');
-    expect(resolveServerAdminSection('accounts')).toBe('accounts');
-    expect(resolveServerAdminSection('spaces')).toBe('spaces');
-    expect(resolveServerAdminSection('jobs')).toBe('jobs');
-    expect(resolveServerAdminSection('storage')).toBe('storage');
-    expect(resolveServerAdminSection('security')).toBe('security');
-    expect(resolveServerAdminSection('settings')).toBe('settings');
     expect(resolveServerAdminSection('activity')).toBe('activity');
   });
 
-  it('renders stable deep links and marks the active section', () => {
-    const html = renderToStaticMarkup(
-      <MemoryRouter>
-        <ServerAdminSectionNavigation activeSection="accounts" />
-      </MemoryRouter>,
+  it('renders four areas without the plugin and marks People for spaces', () => {
+    const html = markup(
+      <ServerAdminAreaNavigation
+        activeSection="spaces"
+        supportReportsAvailable={false}
+        supportReportsNew={0}
+      />,
     );
 
-    expect(html.match(/server-admin-section-link/g)).toHaveLength(8);
     expect(html).toContain('href="/server-admin"');
     expect(html).toContain('href="/server-admin?section=accounts"');
-    expect(html).toContain('href="/server-admin?section=spaces"');
     expect(html).toContain('href="/server-admin?section=jobs"');
-    expect(html).toContain('href="/server-admin?section=storage"');
-    expect(html).toContain('aria-current="page"');
     expect(html).not.toContain('section=reports');
+    // The Compact bar and the Expanded list each mark People as current.
+    const current = currentLinks(html);
+    expect(current).toHaveLength(2);
+    for (const tag of current) expect(tag).toContain('section=accounts');
   });
 
-  it('offers the reports section only when the operator plugin is advertised', () => {
-    expect(resolveServerAdminSection('reports')).toBe('reports');
-    const html = renderToStaticMarkup(
+  it('adds Help with the unread badge when the plugin is available', () => {
+    render(
       <MemoryRouter>
-        <ServerAdminSectionNavigation
-          activeSection="reports"
+        <ServerAdminAreaNavigation
+          activeSection="overview"
           supportReportsAvailable
+          supportReportsNew={3}
         />
       </MemoryRouter>,
     );
+    const name = serverAdmin.areas.helpUnread_other.replace(
+      '{{count, number}}',
+      '3',
+    );
+    expect(screen.getAllByRole('link', { name })).toHaveLength(2);
+    cleanup();
+  });
 
-    expect(html.match(/server-admin-section-link/g)).toHaveLength(9);
-    const reportsLink = html.match(/<a[^>]*section=reports[^>]*>/)?.[0];
-    expect(reportsLink).toContain('aria-current="page"');
+  it('keeps deep links: activity opens inside System', () => {
+    const areas = markup(
+      <ServerAdminAreaNavigation
+        activeSection="activity"
+        supportReportsAvailable={false}
+        supportReportsNew={0}
+      />,
+    );
+    for (const tag of currentLinks(areas)) {
+      expect(tag).toContain('section=jobs');
+    }
+    const pages = markup(<ServerAdminSubNavigation activeSection="activity" />);
+    const [current] = currentLinks(pages);
+    expect(current).toContain('section=activity');
+  });
+
+  it('shows no sub-navigation for single-page areas', () => {
+    expect(markup(<ServerAdminSubNavigation activeSection="overview" />)).toBe(
+      '',
+    );
+    expect(markup(<ServerAdminSubNavigation activeSection="reports" />)).toBe(
+      '',
+    );
   });
 
   describe('leaving the reports section with an unsent draft', () => {
@@ -65,9 +100,10 @@ describe('ServerAdmin section navigation', () => {
     function renderNavigation(confirmLeave: () => boolean) {
       render(
         <MemoryRouter initialEntries={['/server-admin?section=reports']}>
-          <ServerAdminSectionNavigation
+          <ServerAdminAreaNavigation
             activeSection="reports"
             supportReportsAvailable
+            supportReportsNew={0}
             confirmLeave={confirmLeave}
           />
           <Location />
@@ -78,7 +114,9 @@ describe('ServerAdmin section navigation', () => {
     it('stays when the operator keeps the draft', () => {
       const confirmLeave = vi.fn(() => false);
       renderNavigation(confirmLeave);
-      fireEvent.click(screen.getByRole('link', { name: 'Benutzer' }));
+      fireEvent.click(
+        screen.getAllByRole('link', { name: serverAdmin.areas.people })[0],
+      );
       expect(confirmLeave).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId('location').textContent).toBe(
         '?section=reports',
@@ -87,7 +125,9 @@ describe('ServerAdmin section navigation', () => {
 
     it('leaves when the operator discards the draft', () => {
       renderNavigation(() => true);
-      fireEvent.click(screen.getByRole('link', { name: 'Benutzer' }));
+      fireEvent.click(
+        screen.getAllByRole('link', { name: serverAdmin.areas.people })[0],
+      );
       expect(screen.getByTestId('location').textContent).toBe(
         '?section=accounts',
       );

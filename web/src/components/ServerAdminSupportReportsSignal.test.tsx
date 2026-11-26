@@ -61,6 +61,10 @@ function overview(
     recentFailedJobs: [],
     serverAdminAllowlistCount: 1,
     serverAdminVerifiedMatchCount: 1,
+    storagePressure: [],
+    storagePressureCount: 0,
+    expiringAdminGrants: [],
+    expiringAdminGrantCount: 0,
     supportReportsNew: 0,
     supportReportsOperatorAvailable: false,
     suspendedAccountCount: 0,
@@ -150,8 +154,8 @@ describe('ServerAdmin support report signal', () => {
       await screen.findByText(serverAdmin.reportsUnavailable.title),
     ).toBeTruthy();
     expect(
-      screen.queryByRole('link', { name: serverAdmin.navigation.reports }),
-    ).toBeNull();
+      screen.queryAllByRole('link', { name: serverAdmin.areas.help }),
+    ).toHaveLength(0);
     expect(api.listSupportReports).not.toHaveBeenCalled();
   });
 
@@ -172,9 +176,16 @@ describe('ServerAdmin support report signal', () => {
     expect(link.getAttribute('href')).toBe(
       '/server-admin?section=reports&state=NEW',
     );
+    // Both area navigations (Compact bar, Expanded list) offer Help with
+    // the unread count in its name.
     expect(
-      screen.getByRole('link', { name: serverAdmin.navigation.reports }),
-    ).toBeTruthy();
+      screen.getAllByRole('link', {
+        name: serverAdmin.areas.helpUnread_other.replace(
+          '{{count, number}}',
+          '2',
+        ),
+      }),
+    ).toHaveLength(2);
   });
 
   it('loads the reports panel lazily on the reports section', async () => {

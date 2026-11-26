@@ -60,6 +60,16 @@ Self-Hosted profile with a local media volume, and this instance runs the Cloud 
 - The local media store writes each object at exactly its storage key below the media
   root (`backend/src/eimir/media/local.py`). Moving the existing volume into a bucket is
   therefore a plain copy of already encrypted files.
+- The S3 adapter spools uploads to a private temporary file and reads with bounded range
+  requests (`S3MediaStore.put` / `open`), so it does not hold whole objects in memory.
+  Uploads use the API's temporary file system (`EIMIR_API_TMPFS_SIZE`, default 1 GB);
+  check that size against the largest allowed video before go-live.
+
+This runbook replaces the earlier Hetzner staging preflight (closed PR #1596, issue #1595).
+Its acceptance items are covered here: the smoke test in section 5.1 checks path-style
+access, `verify-media` and `audit-raw` in section 5.4 check the encrypted application path
+against the real bucket, and the pre-go-live drill in section 10 checks restore and
+switching.
 
 ### Failure cases and what switches
 
@@ -158,10 +168,24 @@ Paste the output of steps 1 to 6 back; the placeholders are filled from it.
 
 ### 5.1 Primary bucket
 
-At Hetzner (Cloud Console, Object Storage): create a **private** bucket
-`eimir-production-media` in NBG1 or HEL1, with versioning and public access off. Create an access key limited to this
-bucket (read, write, delete, list). Store endpoint, region, bucket name and both key parts
-in the password manager.
+At Hetzner (Cloud Console): create a **separate Hetzner project** `eimir-production-storage`
+that holds nothing but this bucket. Hetzner S3 keys can by default access **every bucket in
+their project**, so the project boundary is what keeps the key away from any other bucket.
+In it, create a **private** bucket `eimir-production-media` in NBG1 or HEL1 with public
+access off and **versioning off** (old versions would outlive deletions and conflict with
+the deletion contract). Bucket names are unique across all Hetzner customers.
+
+| Location | `EIMIR_S3_REGION` | `EIMIR_S3_ENDPOINT` |
+|---|---|---|
+| Nuremberg | `nbg1` | `https://nbg1.your-objectstorage.com` |
+| Helsinki | `hel1` | `https://hel1.your-objectstorage.com` |
+| Falkenstein | `fsn1` | `https://fsn1.your-objectstorage.com` |
+
+Create one S3 key pair in that project for the application. Store endpoint, region, bucket
+name and both key parts in the password manager. Hetzner documents that some bucket
+settings take up to 15 minutes to apply; wait before the smoke test. Hetzner bills every
+object as at least 64 KB, which makes many small thumbnails slightly more expensive than
+their size suggests.
 
 ### 5.2 rclone configuration on the app host
 
@@ -271,8 +295,13 @@ providers; if a name is taken, add a short suffix and use it everywhere below. C
 
 - a key for the mirror job: read, write, delete, list on `eimir-production-media-mirror`;
 - a key for the history job: read, write, delete, list on `eimir-production-history`;
-- a **read-only** key for the primary bucket at the primary provider, used by the mirror
-  job (so the job can never damage the primary).
+- at Hetzner, a **second** key pair in `eimir-production-storage` for the mirror job's
+  source side. A Hetzner key is not read-only by itself; restrict it with a bucket policy
+  that allows this key only `s3:GetObject` and `s3:ListBucket` on `eimir-production-media`
+  (Hetzner documentation: buckets and objects, bucket policies). Until that policy is in
+  place and tested (a delete with this key must fail), the mirror job can in principle
+  delete in the primary bucket. rclone `sync` only ever writes to its destination, so the
+  policy is a second barrier, not the only one.
 
 Store all of them in the password manager. Add to `/opt/eimir-ops/rclone.conf` with
 `sudo nano /opt/eimir-ops/rclone.conf`:

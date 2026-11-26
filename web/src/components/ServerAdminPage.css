@@ -308,7 +308,7 @@
 
 .server-admin-services {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(9rem, 100%), 1fr));
   gap: var(--space-2);
 }
 
@@ -360,6 +360,8 @@
 
 .server-admin-registrations dt {
   color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+  hyphens: auto;
 }
 
 .server-admin-registrations dd {

@@ -30,6 +30,18 @@ public final class NativePushNotifications {
         }
     }
 
+    /**
+     * Removes the notice a person just opened. The body tap already cancels it
+     * (setAutoCancel), but an action button does not, so the open itself clears
+     * the notice no matter which control was used.
+     */
+    public static void cancelOpened(Context context, String notificationId) {
+        NotificationManager manager = context.getSystemService(NotificationManager.class);
+        if (manager == null) return;
+        if (notificationId != null) manager.cancel(notificationId, NOTIFICATION);
+        else manager.cancel(NOTIFICATION);
+    }
+
     public static Intent notificationIntent(Context context, PushActivation activation) {
         return new Intent(Intent.ACTION_VIEW, Uri.parse(URL), context, LauncherActivity.class)
             .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP)

@@ -1209,7 +1209,11 @@
   border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: 50%;
   background: var(--color-surface-raised);
-  color: var(--color-text-secondary);
+  /* The arrow reads on the raised disc in both themes: primary text while
+     pulling, the readable brand text once the pull is ready or refreshing.
+     The strong brand fill is a button background, not a glyph colour: in Dark
+     it nearly vanishes on the raised surface. */
+  color: var(--color-text);
   box-shadow: var(--shadow-soft);
   opacity: 0;
   transform: translate3d(0, -100%, 0);
@@ -1218,7 +1222,7 @@
 .app-pull-refresh-indicator.is-ready .app-pull-refresh-disc,
 .app-pull-refresh-indicator.is-refreshing .app-pull-refresh-disc {
   border-color: var(--color-brand);
-  color: var(--color-brand-strong);
+  color: var(--color-brand-text);
 }
 
 html.app-pull-refresh-enabled,

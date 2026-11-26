@@ -8,7 +8,10 @@ import type { DevicePushConfiguration } from '../api/generated/models/DevicePush
 import { ResponseError } from '../api/generated/runtime';
 import { isCapacitorNative } from '../pwa';
 import { dashboardQueryKey } from './dashboardQueries';
-import { reportNotificationWake } from './foregroundNotifications';
+import {
+  reportNotificationOpened,
+  reportNotificationWake,
+} from './foregroundNotifications';
 import { notificationPath } from './m4Product';
 import {
   notificationsListQueryKey,
@@ -464,6 +467,12 @@ export function useDevicePush({
       const requestedSpace = currentSpaceId.current;
       const requestedOwner = navigationOwner.current;
       const requestedGeneration = registrationGeneration;
+      // Opening through the system notice is the same as opening it on Wir: a
+      // receipt that shows this notification leaves, and none is shown later.
+      reportNotificationOpened({
+        scope: receiptScope(accountId, requestedSpace),
+        notificationId,
+      });
       void notificationsApi
         .openNotification({ spaceId: requestedSpace, notificationId })
         .then((item) => {
@@ -481,6 +490,11 @@ export function useDevicePush({
           });
           void queryClient.invalidateQueries({
             queryKey: notificationsListQueryKey(requestedSpace),
+          });
+          // What Wir shows for this event (waiting games, garden) is read
+          // again, as it is after opening the notification from Wir.
+          void queryClient.invalidateQueries({
+            queryKey: dashboardQueryKey(requestedSpace),
           });
           if (isDocumentLeaveBlocked()) {
             openedHints.current.delete(hintKey);

@@ -6658,14 +6658,49 @@
       }
     },
     "benefitsLabel": "What Pro offers you",
+    "showcase": {
+      "label": "What makes Pro special",
+      "indicator": "Highlight {{index}} of {{count}}",
+      "anchor": "Everything together for <strong>{{price}} a month</strong>, for both of you.",
+      "scenes": {
+        "memoryWorlds": {
+          "title": "Ten memory worlds",
+          "body": "Your Mochis cuddle and send memories floating up. Or browse the record crate, photo booth, fridge door and constellation."
+        },
+        "recapFilms": {
+          "title": "Your month as a film",
+          "body": "Every month your photos, places and words become a short film to sit back and relive."
+        },
+        "gamesGarden": {
+          "title": "Games and your garden",
+          "body": "Send each other seeds, watch your garden bloom and find out in a game how well you know each other."
+        },
+        "mapCloseness": {
+          "title": "Map and closeness",
+          "body": "See where your memories happened and how far apart you are, and send each other one-time messages."
+        }
+      },
+      "art": {
+        "recapMonth": "Your May",
+        "recapMoments": "14 shared moments",
+        "recapFact": "new places discovered",
+        "recapPlace": "Trier",
+        "recapGoodbye": "See you in June!",
+        "gameEyebrow": "GAME FOR TWO",
+        "gameQuestion": "Who plans the next date?",
+        "distance": "412 km",
+        "onceMessage": "One-time message"
+      }
+    },
     "catalogue": {
       "title": "What’s included in Pro",
+      "new": "New",
       "groups": {
         "memories": "Memories & recaps",
         "timeTogether": "Time together",
         "everyday": "Everyday connection",
         "style": "Your personal style",
-        "integrations": "Photos & calendars"
+        "integrations": "Photos, calendars & storage"
       },
       "features": {
         "memoryMap": {
@@ -6673,8 +6708,8 @@
           "body": "See where your memories happened and open them right from the map."
         },
         "recaps": {
-          "title": "Monthly and yearly recaps",
-          "body": "Turn your memories into recaps and add your own words. Saved recaps stay with you."
+          "title": "Recaps as a film",
+          "body": "Monthly and yearly recaps play like a short film. Add your own words; saved recaps stay with you."
         },
         "passport": {
           "title": "Relationship passport & shared story",
@@ -6689,8 +6724,8 @@
           "body": "Filter 200 date ideas by time, budget and setting. Save an idea as a wish or plan, or add it to a shared selection."
         },
         "games": {
-          "title": "Couple games",
-          "body": "Start a game for two, including games about your shared memories and wishes."
+          "title": "Couple games & your garden",
+          "body": "Start a game for two and send each other a seed every day for your shared garden."
         },
         "experiences": {
           "title": "Happy moments & time travel",
@@ -6725,8 +6760,8 @@
           "body": "Pick the colours you see yourself and your partner in throughout your app."
         },
         "memoryWorlds": {
-          "title": "Memory worlds",
-          "body": "Discover your memories in playful worlds – for example in the record crate, where every memory plays like a song."
+          "title": "Ten memory worlds",
+          "body": "Discover your memories in playful worlds: {{worlds}}."
         },
         "photoSources": {
           "title": "Photos from Immich & Google Photos",
@@ -6735,6 +6770,10 @@
         "calendarSync": {
           "title": "Automatic calendar sync",
           "body": "Send plans to your shared CalDAV or Google calendar automatically when the connection is available."
+        },
+        "storage": {
+          "title": "50 GB of storage in the eimir. Cloud",
+          "body": "Ten times the space for photos, videos, voice messages and PDFs."
         }
       }
     },

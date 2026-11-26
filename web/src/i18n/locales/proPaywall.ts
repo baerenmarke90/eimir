@@ -135,14 +135,50 @@ const proPaywall = {
     },
   },
   benefitsLabel: 'Was Pro euch bietet',
+  showcase: {
+    label: 'Das macht Pro besonders',
+    indicator: 'Highlight {{index}} von {{count}}',
+    anchor:
+      'Alles zusammen für <strong>{{price}} im Monat</strong>, für euch beide.',
+    scenes: {
+      memoryWorlds: {
+        title: 'Zehn Erinnerungswelten',
+        body: 'Eure Mochis kuscheln und lassen Erinnerungen aufsteigen. Oder blättert durch Plattenkiste, Fotoautomat, Kühlschranktür und Sternbild.',
+      },
+      recapFilms: {
+        title: 'Euer Monat als Film',
+        body: 'Aus euren Fotos, Orten und Worten wird jeden Monat ein kleiner Film zum Zurücklehnen und Wiedererleben.',
+      },
+      gamesGarden: {
+        title: 'Spiele und euer Garten',
+        body: 'Schickt euch Samen, lasst euren Garten aufblühen und findet im Spiel heraus, wie gut ihr euch kennt.',
+      },
+      mapCloseness: {
+        title: 'Karte und Nähe',
+        body: 'Seht, wo eure Erinnerungen entstanden sind und wie weit ihr voneinander entfernt seid, und schickt euch Einmal-Nachrichten.',
+      },
+    },
+    art: {
+      recapMonth: 'Euer Mai',
+      recapMoments: '14 gemeinsame Momente',
+      recapFact: 'neue Orte entdeckt',
+      recapPlace: 'Trier',
+      recapGoodbye: 'Bis zum Juni!',
+      gameEyebrow: 'SPIEL ZU ZWEIT',
+      gameQuestion: 'Wer plant das nächste Date?',
+      distance: '412 km',
+      onceMessage: 'Einmal-Nachricht',
+    },
+  },
   catalogue: {
     title: 'Was in Pro steckt',
+    new: 'Neu',
     groups: {
       memories: 'Erinnerungen & Rückblicke',
       timeTogether: 'Zeit zu zweit',
       everyday: 'Nähe im Alltag',
       style: 'Euer persönlicher Stil',
-      integrations: 'Fotos & Kalender',
+      integrations: 'Fotos, Kalender & Speicher',
     },
     features: {
       memoryMap: {
@@ -150,8 +186,8 @@ const proPaywall = {
         body: 'Seht, wo eure Erinnerungen entstanden sind, und öffnet sie direkt von der Karte aus.',
       },
       recaps: {
-        title: 'Monats- und Jahresrückblicke',
-        body: 'Lasst aus euren Erinnerungen Rückblicke entstehen und ergänzt sie mit eigenen Worten. Gespeicherte Rückblicke bleiben euch erhalten.',
+        title: 'Rückblicke als Film',
+        body: 'Monats- und Jahresrückblicke laufen wie ein kleiner Film ab. Ergänzt sie mit eigenen Worten; gespeicherte Rückblicke bleiben euch erhalten.',
       },
       passport: {
         title: 'Beziehungspass & gemeinsame Geschichte',
@@ -166,8 +202,8 @@ const proPaywall = {
         body: 'Filtert 200 Date-Ideen nach Zeit, Budget und Ort. Übernehmt eine Idee als Wunsch, als Plan oder in eure gemeinsame Auswahl.',
       },
       games: {
-        title: 'Paarspiele',
-        body: 'Startet ein Spiel zu zweit, zum Beispiel rund um eure gemeinsamen Erinnerungen und Wünsche.',
+        title: 'Paarspiele & euer Garten',
+        body: 'Startet ein Spiel zu zweit und schickt euch jeden Tag einen Samen für euren gemeinsamen Garten.',
       },
       experiences: {
         title: 'Glücksmomente & Zeitreise',
@@ -202,8 +238,8 @@ const proPaywall = {
         body: 'Wählt, in welchen Farben du dich und deinen Lieblingsmenschen in deiner App siehst.',
       },
       memoryWorlds: {
-        title: 'Erinnerungswelten',
-        body: 'Entdeckt eure Erinnerungen in verspielten Welten – zum Beispiel in der Plattenkiste, in der jede Erinnerung wie ein Lied läuft.',
+        title: 'Zehn Erinnerungswelten',
+        body: 'Entdeckt eure Erinnerungen in verspielten Welten: {{worlds}}.',
       },
       photoSources: {
         title: 'Fotos aus Immich & Google Fotos',
@@ -212,6 +248,10 @@ const proPaywall = {
       calendarSync: {
         title: 'Automatischer Kalenderabgleich',
         body: 'Übertragt Pläne automatisch in euren gemeinsamen CalDAV- oder Google-Kalender, wenn die Verbindung verfügbar ist.',
+      },
+      storage: {
+        title: '50 GB Speicher in der eimir. Cloud',
+        body: 'Zehnmal so viel Platz für Fotos, Videos, Sprachnachrichten und PDFs.',
       },
     },
   },

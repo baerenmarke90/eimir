@@ -6,7 +6,9 @@
  * - the page is visible (`document.visibilityState`, `visibilitychange`);
  * - its kept view is shown: the primary tabs in `PrimaryTabPanels` hide an
  *   inactive tab with the `hidden` attribute on its `[data-primary-tab]`
- *   panel, which is observed here without changing the panel component;
+ *   panel, and mark a panel prepared before its first visit with
+ *   `data-primary-tab-prewarm`; both are observed here without changing the
+ *   panel component;
  * - it is on screen (`IntersectionObserver`; treated as on screen where the
  *   observer is unavailable).
  *
@@ -16,6 +18,8 @@
  */
 
 export const KEPT_VIEW_SELECTOR = '[data-primary-tab]';
+/** A kept view prepared (and possibly resting) before anyone has seen it. */
+const PREPARED_VIEW_ATTRIBUTE = 'data-primary-tab-prewarm';
 
 export interface VisibilityState {
   page: boolean;
@@ -30,9 +34,21 @@ function pageVisible(): boolean {
   );
 }
 
+/**
+ * Whether the element's kept view is parked (`hidden`). A view prepared
+ * before its first visit is unseen but not parked: an opening deferred until
+ * its view is shown waits only for a parked view, and a prepared view is
+ * shown complete instead (M12).
+ */
+export function keptViewParked(element: Element): boolean {
+  return Boolean(element.closest(KEPT_VIEW_SELECTOR)?.closest('[hidden]'));
+}
+
 function keptViewShown(element: Element): boolean {
   const panel = element.closest(KEPT_VIEW_SELECTOR);
-  return !panel?.closest('[hidden]');
+  return (
+    !panel?.closest('[hidden]') && !panel?.hasAttribute(PREPARED_VIEW_ATTRIBUTE)
+  );
 }
 
 function intersectsViewport(element: Element): boolean {
@@ -97,8 +113,13 @@ export function observeVisibility(
     const observer = new MutationObserver(() =>
       emit({ keptView: keptViewShown(element) }),
     );
-    // A hidden ancestor of the panel also hides the view.
-    let node: Element | null = panel;
+    // A hidden ancestor of the panel also hides the view; the first visit
+    // of a prepared panel shows it.
+    observer.observe(panel, {
+      attributes: true,
+      attributeFilter: ['hidden', PREPARED_VIEW_ATTRIBUTE],
+    });
+    let node: Element | null = panel.parentElement;
     while (node) {
       observer.observe(node, { attributes: true, attributeFilter: ['hidden'] });
       node = node.parentElement;

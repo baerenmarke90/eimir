@@ -285,6 +285,21 @@ test('Situation layout in Compact and Expanded, Light and Dark', async ({
     await expect(
       areaNavigation(page).locator('.notification-dot'),
     ).toBeVisible();
+    // Every icon keeps an icon size and each Needs-you title stays readable
+    // (bare icons used to grow until titles wrapped letter by letter).
+    const iconWidths = await page
+      .locator('#server-admin-main .eimir-icon')
+      .evaluateAll((icons) =>
+        icons.map((icon) => icon.getBoundingClientRect().width),
+      );
+    expect(iconWidths.length).toBeGreaterThan(0);
+    expect(Math.max(...iconWidths)).toBeLessThanOrEqual(32);
+    const titleWidths = await page
+      .locator('.server-admin-needs-you-text strong')
+      .evaluateAll((titles) =>
+        titles.map((title) => title.getBoundingClientRect().width),
+      );
+    expect(Math.min(...titleWidths)).toBeGreaterThan(80);
     await expectReflow(page);
     for (const theme of ['light', 'dark'] as const) {
       await setTheme(page, theme);
@@ -298,6 +313,16 @@ test('Situation layout in Compact and Expanded, Light and Dark', async ({
   await page.setViewportSize({ width: 1280, height: 820 });
   await expect(page.locator('.server-admin-area-nav-side')).toBeVisible();
   await expect(page.locator('.server-admin-area-bar')).toBeHidden();
+  // Icons keep their size and labels stay on one line (a bare icon used to
+  // grow until each label wrapped letter by letter).
+  const sideLinks = page.locator('.server-admin-area-link');
+  for (let index = 0; index < (await sideLinks.count()); index += 1) {
+    const link = sideLinks.nth(index);
+    const icon = await link.locator('.eimir-icon').boundingBox();
+    const label = await link.locator('.server-admin-area-label').boundingBox();
+    expect(icon?.width ?? 0).toBeLessThanOrEqual(32);
+    expect(label?.height ?? 0).toBeLessThan(40);
+  }
   await expectReflow(page);
   for (const theme of ['light', 'dark'] as const) {
     await setTheme(page, theme);

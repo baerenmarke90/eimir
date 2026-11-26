@@ -4,6 +4,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import type { MemoryMapEntry } from '../api/generated/models/MemoryMapEntry';
+import { PrimaryTabPreparedContext } from '../client/primaryTabPrepared';
 import { ClientProblemError } from '../client/problemDetails';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import copy from '../i18n/locales/memoryMap';
@@ -18,12 +19,14 @@ vi.mock('./PlaceMapCanvas', () => ({
     focus,
     initialViewport,
     onViewportChange,
+    onComplete,
   }: {
     onLocationSelect: (id: string) => void;
     locations: { id: string }[];
     focus?: { latitude: number; longitude: number };
     initialViewport?: MapViewport;
     onViewportChange: (viewport: MapViewport) => void;
+    onComplete?: () => void;
   }) => (
     <div
       data-testid="external-map"
@@ -41,6 +44,9 @@ vi.mock('./PlaceMapCanvas', () => ({
         }
       >
         Pan map
+      </button>
+      <button type="button" onClick={() => onComplete?.()}>
+        Complete map
       </button>
     </div>
   ),
@@ -70,24 +76,29 @@ function setup(
     signal?: AbortSignal,
   ) => Promise<string>,
   options?: {
-    sessionViewport: { current?: MapViewport };
+    sessionViewport?: { current?: MapViewport };
     entry?: string;
+    prepared?: () => void;
   },
 ) {
   return render(
-    <QueryClientProvider client={new QueryClient()}>
-      <MemoryRouter
-        initialEntries={options?.entry ? [options.entry] : undefined}
-      >
-        <MemoryMapPage
-          apis={{ places: { listMemoryMap } } as unknown as SharedPlanningApis}
-          spaceId="s1"
-          accountId="a1"
-          loadMemoryImage={loadMemoryImage}
-          sessionViewport={options?.sessionViewport}
-        />
-      </MemoryRouter>
-    </QueryClientProvider>,
+    <PrimaryTabPreparedContext.Provider value={options?.prepared ?? null}>
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter
+          initialEntries={options?.entry ? [options.entry] : undefined}
+        >
+          <MemoryMapPage
+            apis={
+              { places: { listMemoryMap } } as unknown as SharedPlanningApis
+            }
+            spaceId="s1"
+            accountId="a1"
+            loadMemoryImage={loadMemoryImage}
+            sessionViewport={options?.sessionViewport}
+          />
+        </MemoryRouter>
+      </QueryClientProvider>
+    </PrimaryTabPreparedContext.Provider>,
   );
 }
 describe('Pro memory map', () => {
@@ -385,6 +396,34 @@ describe('Pro memory map', () => {
     await screen.findByRole('button', { name: 'Lake · 1 Erinnerung' });
     expect(load).toHaveBeenCalledTimes(2);
     expect(load.mock.calls[1][0].cursor).toBe('next');
+  });
+  it('tells a preparation it is done once the map is complete', async () => {
+    const prepared = vi.fn();
+    setup(
+      vi.fn().mockResolvedValue({ items: [item], nextCursor: null }),
+      undefined,
+      {
+        prepared,
+      },
+    );
+    const complete = await screen.findByRole('button', {
+      name: 'Complete map',
+    });
+    expect(prepared).not.toHaveBeenCalled();
+    fireEvent.click(complete);
+    expect(prepared).toHaveBeenCalledOnce();
+  });
+  it('tells a preparation it is done when there is no map to draw', async () => {
+    const prepared = vi.fn();
+    setup(
+      vi.fn().mockResolvedValue({ items: [], nextCursor: null }),
+      undefined,
+      {
+        prepared,
+      },
+    );
+    await screen.findByText(copy.emptyTitle);
+    expect(prepared).toHaveBeenCalled();
   });
   it('keeps an empty map provider-free', async () => {
     setup(vi.fn().mockResolvedValue({ items: [], nextCursor: null }));

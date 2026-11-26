@@ -52,7 +52,7 @@ def test_public_domain_entries_stay_inside_the_rights_window() -> None:
         collection = data["collections"][entry["collection"]]
         assert collection["author_death_year"] <= script.LAST_ALLOWED_DEATH_YEAR, entry["id"]
         assert entry["publication_year"] <= script.LAST_ALLOWED_PUBLICATION_YEAR, entry["id"]
-        assert entry["source_url"].startswith("https://"), entry["id"]
+        assert script.is_citable_url(entry["source_url"]), entry["id"]
         assert entry["source_edition"].strip(), entry["id"]
         assert str(collection["author_death_year"]) in collection["rights_basis"]
 
@@ -135,6 +135,25 @@ def test_authors_are_spelled_consistently() -> None:
         assert name == " ".join(name.split())
 
 
+def test_knja_review_ledger_matches_the_catalog() -> None:
+    """Every adopted KNJA hint is in the catalog and every catalog hint is recorded as adopted."""
+    ledger_path = (
+        script.CATALOG_PATH.parents[3] / "docs" / "public-domain-quotes" / "knja-review.json"
+    )
+    ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+    assert ledger["entryCount"] == len(ledger["entries"]) == 478
+    assert len({row["knjaId"] for row in ledger["entries"]}) == 478
+    decisions = {row["decision"] for row in ledger["entries"]}
+    assert decisions == {"adopted", "held_back_rights", "shortlisted_not_adopted", "not_suitable"}
+    adopted = {row["knjaId"] for row in ledger["entries"] if row["decision"] == "adopted"}
+    hinted = {
+        entry["research_hint"]["knja_id"]
+        for entry in _served()["entries"]
+        if "research_hint" in entry
+    }
+    assert adopted == hinted
+
+
 # --- the maintenance script -----------------------------------------------------------------
 
 
@@ -151,7 +170,19 @@ def test_merge_is_idempotent() -> None:
 
 def test_merge_builds_original_and_translation_texts() -> None:
     target = script.empty_catalog()
-    script.merge_candidates(target, [_candidate(), _candidate("other-01", lang="en", text="Hello there, friend.", translation="Hallo, Freund.", author="Other")])
+    script.merge_candidates(
+        target,
+        [
+            _candidate(),
+            _candidate(
+                "other-01",
+                lang="en",
+                text="Hello there, friend.",
+                translation="Hallo, Freund.",
+                author="Other",
+            ),
+        ],
+    )
     german, english = target["entries"]
     assert german["texts"] == {
         "de": "Schläft ein Lied in allen Dingen,",
@@ -180,11 +211,14 @@ def test_merge_refuses_changed_content_unless_updating() -> None:
         ({"category": "politics"}, "unknown category"),
         ({"lang": "fr"}, "unsupported original language"),
         ({"source_url": "http://example.org/work"}, "https URL"),
+        ({"source_url": "ftp://www.zeno.org/work"}, "https URL"),
         ({"translation": "Schläft ein Lied in allen Dingen,"}, "translation equals"),
         ({"text": ""}, "missing"),
     ],
 )
-def test_merge_refuses_candidates_that_break_the_rules(overrides: dict[str, Any], message: str) -> None:
+def test_merge_refuses_candidates_that_break_the_rules(
+    overrides: dict[str, Any], message: str
+) -> None:
     with pytest.raises(script.CatalogError, match=message):
         script.merge_candidates(script.empty_catalog(), [_candidate(**overrides)])
 
@@ -192,13 +226,21 @@ def test_merge_refuses_candidates_that_break_the_rules(overrides: dict[str, Any]
 def test_merge_refuses_exact_and_near_duplicates() -> None:
     target = script.empty_catalog()
     script.merge_candidates(target, [_candidate()])
-    exact = _candidate("tester-02", text="SCHLÄFT ein Lied in allen Dingen", translation="Different words entirely.")
+    exact = _candidate(
+        "tester-02",
+        text="SCHLÄFT ein Lied in allen Dingen",
+        translation="Different words entirely.",
+    )
     with pytest.raises(script.CatalogError, match="near duplicate"):
         script.merge_candidates(target, [exact])
     near = _candidate("tester-03", text="Schläft ein Lied in allen Dingen.", translation="Other.")
     with pytest.raises(script.CatalogError, match="near duplicate"):
         script.merge_candidates(target, [near])
-    clear = _candidate("tester-04", text="Die Welt wird schöner mit jedem Tag,", translation="The world grows lovelier every day,")
+    clear = _candidate(
+        "tester-04",
+        text="Die Welt wird schöner mit jedem Tag,",
+        translation="The world grows lovelier every day,",
+    )
     assert script.merge_candidates(target, [clear])["added"] == 1
 
 
@@ -212,15 +254,28 @@ def test_merge_refuses_a_collection_that_changes_its_rights_data() -> None:
     target = script.empty_catalog()
     script.merge_candidates(target, [_candidate()])
     with pytest.raises(script.CatalogError, match="collection"):
-        script.merge_candidates(target, [_candidate("tester-02", author_death_year=1858, text="Anderer Text, ganz anders.", translation="Other text entirely.")])
+        script.merge_candidates(
+            target,
+            [
+                _candidate(
+                    "tester-02",
+                    author_death_year=1858,
+                    text="Anderer Text, ganz anders.",
+                    translation="Other text entirely.",
+                )
+            ],
+        )
 
 
 def test_source_check_ignores_layout_and_final_punctuation_only() -> None:
     source = "Schläft ein Lied in allen\nDingen,\n  Die da träumen fort und fort,\n"
     assert script.text_in_source("Schläft ein Lied in allen Dingen.", source)
-    assert script.text_in_source("schläft ein lied in allen dingen,\nDie da träumen fort und fort.", source)
+    assert script.text_in_source(
+        "schläft ein lied in allen dingen,\nDie da träumen fort und fort.", source
+    )
     assert not script.text_in_source("Schläft ein Lied in allen Dingen und Sachen.", source)
-    assert script.text_in_source("It’s “quoted” – and dashed", "It's \"quoted\" - and dashed")
+    typographic = "It\u2019s \u201cquoted\u201d \u2013 and dashed"
+    assert script.text_in_source(typographic, 'It\'s "quoted" - and dashed')
 
 
 def test_gutenberg_urls_map_to_the_plain_text_mirror() -> None:

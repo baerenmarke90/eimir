@@ -144,6 +144,23 @@ card shows the sayings without author credit or citation. They carry the rights
 classification `EDITORIAL_CURATED`, and each entry records its collection, work
 and rights basis in the same file.
 
+`backend/pro/src/eimir_pro/quotes/daily_sayings_public_domain.json` adds 445 attributed
+quotations from public-domain works, each in German and English (served next to the AI sayings by
+the same catalog). All 90 authors died in 1955 or earlier (Germany: life + 70 years) and every text was
+first published in 1930 or earlier (United States). The original wording of each entry was read in a
+transcription of the work cited in the entry (Project Gutenberg, Projekt Gutenberg-DE, Wikisource,
+Zeno.org, Internet Archive); the file records author, work, first-publication year, cited edition and
+URL per entry and the rights basis per author. The version in the language other than the original
+is an eimir. catalog translation made for this catalog, contributed under
+[CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/), labelled "English
+translation" or "Deutsche Übersetzung" on the card; no published modern translation was used.
+The secondary list KNJA (`knja.net/catalog.json`, derived from Wikiquote, no stated licence) and
+Wikiquote served only as research pointers; none of their wording, selection or metadata is taken
+over (30 of the 445 entries were found through KNJA and use the wording of the original text). The
+review of all 478 KNJA entries is recorded in
+`backend/pro/docs/public-domain-quotes/knja-review.json`, the method, limits and the maintenance
+script in `backend/pro/docs/public-domain-quotes/README.md`.
+
 The previous catalog is archived, not served. It held German and English
 public-domain quotations, traditional sayings, public remarks and the earlier
 `eimir.` editorial sayings. The archived file is

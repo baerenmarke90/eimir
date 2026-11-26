@@ -13,12 +13,13 @@ idempotent. The script has three jobs:
 
 Candidate line (one JSON object per line)::
 
-    {"key": "eichendorff-03", "lang": "de", "author": "Joseph von Eichendorff",
-     "author_death_year": 1857, "work": "Wünschelrute", "work_year": 1835,
-     "source_url": "https://de.wikisource.org/wiki/Wünschelrute",
-     "source_edition": "Wikisource transcription of ...",
-     "text": "Schläft ein Lied in allen Dingen,\\nDie da träumen fort und fort,",
-     "translation": "A song sleeps in all things ...", "category": "nature", "knja_id": 3250}
+    {"key": "wordsworth-03", "lang": "en", "author": "William Wordsworth",
+     "author_death_year": 1850, "work": "My Heart Leaps Up", "work_year": 1807,
+     "source_url": "https://en.wikisource.org/wiki/My_Heart_Leaps_Up",
+     "source_edition": "Wikisource transcription of the 1807 edition",
+     "text": "My heart leaps up when I behold\\nA rainbow in the sky:",
+     "translation": "<German translation, verse lines separated by \\n>",
+     "category": "nature", "knja_id": 3489}
 
 ``lang`` is the language of the original text; ``translation`` is the catalog translation into the
 other app language. Run with ``python backend/pro/pro_scripts/public_domain_quotes.py --help``.
@@ -79,16 +80,14 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "translator": "eimir. catalog translation from the German original",
         "source_display": "English translation",
         "rights_basis": (
-            "The English text is an eimir. catalog translation contributed under "
-            "CC0 1.0 Universal."
+            "The English text is an eimir. catalog translation contributed under CC0 1.0 Universal."
         ),
     },
     "de": {
         "translator": "eimir. catalog translation from the English original",
         "source_display": "Deutsche Übersetzung",
         "rights_basis": (
-            "The German text is an eimir. catalog translation contributed under "
-            "CC0 1.0 Universal."
+            "The German text is an eimir. catalog translation contributed under CC0 1.0 Universal."
         ),
     },
 }
@@ -106,6 +105,15 @@ LICENSE_NOTICE = (
 )
 
 
+#: Zeno.org serves its public-domain library over plain HTTP only (TLS handshakes are reset), so
+#: its pages are cited with their real address. Nothing is fetched from it at runtime.
+HTTP_ONLY_SOURCE_PREFIXES = ("http://www.zeno.org/",)
+
+
+def is_citable_url(url: str) -> bool:
+    return url.startswith("https://") or url.startswith(HTTP_ONLY_SOURCE_PREFIXES)
+
+
 class CatalogError(ValueError):
     """A candidate or catalog entry violates the catalog rules."""
 
@@ -118,10 +126,10 @@ class CatalogError(ValueError):
 def normalise_for_match(text: str, *, lower: bool = True) -> str:
     """Normalise whitespace, quotation marks, dashes and soft hyphens for comparisons."""
     text = unicodedata.normalize("NFC", html.unescape(text))
-    text = text.replace("­", "").replace("​", "").replace("ſ", "s")
-    text = re.sub(r"[‘’‚′`´]", "'", text)
-    text = re.sub(r"[“”„«»‟]", '"', text)
-    text = re.sub(r"[–—−]", "-", text)
+    text = text.replace("\u00ad", "").replace("\u200b", "").replace("\u017f", "s")
+    text = re.sub("[\u2018\u2019\u201a\u2032`\u00b4]", "'", text)
+    text = re.sub("[\u201c\u201d\u201e\u00ab\u00bb\u201f]", '"', text)
+    text = re.sub("[\u2013\u2014\u2212]", "-", text)
     text = re.sub(r"\[\d+\]", " ", text)
     text = re.sub(r"(?m)^\s*\d{1,3}\s+", "", text)
     text = re.sub(r"\s+", " ", text).strip()
@@ -215,7 +223,7 @@ def entry_from_candidate(candidate: dict[str, Any]) -> tuple[str, dict[str, Any]
         raise CatalogError(f"{key}: author died after {LAST_ALLOWED_DEATH_YEAR}")
     if int(candidate["work_year"]) > LAST_ALLOWED_PUBLICATION_YEAR:
         raise CatalogError(f"{key}: first published after {LAST_ALLOWED_PUBLICATION_YEAR}")
-    if not candidate["source_url"].startswith("https://"):
+    if not is_citable_url(candidate["source_url"]):
         raise CatalogError(f"{key}: source_url must be an https URL")
     other = "en" if lang == "de" else "de"
     original = candidate["text"].strip()
@@ -411,9 +419,15 @@ def report(catalog: dict[str, Any]) -> str:
     lines = [f"entries: {len(entries)} (x2 languages)"]
     categories = Counter(c for entry in entries for c in entry["category_ids"])
     lines.append("categories: " + ", ".join(f"{k}={v}" for k, v in sorted(categories.items())))
-    originals = Counter(catalog["collections"][entry["collection"]]["original_locale"] for entry in entries)
-    lines.append("original language: " + ", ".join(f"{k}={v}" for k, v in sorted(originals.items())))
-    authors = Counter(catalog["collections"][entry["collection"]]["author_display"] for entry in entries)
+    originals = Counter(
+        catalog["collections"][entry["collection"]]["original_locale"] for entry in entries
+    )
+    lines.append(
+        "original language: " + ", ".join(f"{k}={v}" for k, v in sorted(originals.items()))
+    )
+    authors = Counter(
+        catalog["collections"][entry["collection"]]["author_display"] for entry in entries
+    )
     lines.append(f"authors: {len(authors)}")
     return "\n".join(lines)
 
@@ -424,7 +438,9 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
     merge = sub.add_parser("merge", help="merge reviewed candidates into the catalog")
     merge.add_argument("candidates", nargs="+", type=Path)
-    merge.add_argument("--update", action="store_true", help="replace entries whose content changed")
+    merge.add_argument(
+        "--update", action="store_true", help="replace entries whose content changed"
+    )
     merge.add_argument("--dry-run", action="store_true")
     verify = sub.add_parser("verify", help="re-check original texts against their cited sources")
     verify.add_argument("--pause", type=float, default=3.0)
@@ -445,7 +461,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "verify":
         problems = verify_catalog(catalog, pause=args.pause)
-        print("\n".join(problems) if problems else f"all {len(catalog['entries'])} entries verified")
+        print(
+            "\n".join(problems) if problems else f"all {len(catalog['entries'])} entries verified"
+        )
         return 1 if problems else 0
     print(report(catalog))
     return 0

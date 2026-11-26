@@ -1276,11 +1276,45 @@ def mark_notification_read(
         .with_for_update()
     )
     notification = session.execute(statement).scalar_one_or_none()
+    if notification is None and include_external:
+        notification = _operator_notification_for_update(session, context, identifier)
     if notification is None:
         raise NotFoundError("Notification not found.", ErrorCode.NOTIFICATION_NOT_FOUND)
     if notification.read_at is None:
         notification.read_at = clock.now()
         session.flush()
+    return notification
+
+
+def _operator_notification_for_update(
+    session: Session, context: AuthorizationContext, identifier: UUID
+) -> Notification | None:
+    """A tapped operator notice (#2314) of the caller, opened through any Space path.
+
+    Operator notices belong to no Space; the tap carries only the notice id. It
+    resolves for its own recipient while that Account is still a ServerAdmin.
+    """
+    from eimir.authorization.server_admin import is_server_admin
+    from eimir.identity.models import Account
+
+    notification = session.execute(
+        select(Notification)
+        .where(
+            Notification.id == identifier,
+            Notification.space_id.is_(None),
+            Notification.kind == NotificationKind.OPERATOR_ALERT.value,
+            Notification.recipient_account_id == context.account_id,
+        )
+        .with_for_update()
+    ).scalar_one_or_none()
+    account = session.get(Account, context.account_id)
+    if (
+        notification is None
+        or account is None
+        or account.disabled_at is not None
+        or not is_server_admin(session, account)
+    ):
+        return None
     return notification
 
 

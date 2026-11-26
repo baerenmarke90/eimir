@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql.elements import ColumnElement
 
 from eimir.authorization import AuthorizationContext
+from eimir.authorization.server_admin import is_server_admin
 from eimir.core import clock
 from eimir.core.errors import ConflictError, ErrorCode, UnauthenticatedError
 from eimir.db.locks import lock_subject
@@ -369,6 +370,8 @@ def revoke_endpoint(session: Session, *, account_id: UUID, endpoint_id: UUID) ->
 def _target_available(session: Session, notification: Notification) -> bool:
     if notification.target_type is None:
         return True
+    if notification.space_id is None:
+        return False
     from eimir.engagement import service
 
     return service.notification_target_available(
@@ -647,7 +650,15 @@ def _handle_delivery(session: Session, payload: dict[str, Any]) -> None:
     if not enabled:
         _finish_unavailable(delivery, "PUSH_PREFERENCE_DISABLED")
         return
-    if any(
+    if notification.kind in notification_policy.OPERATOR_KINDS:
+        # An operator notice (#2314) belongs to no Space: instead of a
+        # membership, the recipient must still be a ServerAdmin right now.
+        if notification.space_id is not None or not is_server_admin(
+            session, accounts[notification.recipient_account_id]
+        ):
+            _finish_unavailable(delivery, ACCOUNT_UNAVAILABLE_CODE)
+            return
+    elif notification.space_id is None or any(
         not account_effects.has_active_membership(
             session,
             account_id=account_id,
@@ -659,11 +670,14 @@ def _handle_delivery(session: Session, payload: dict[str, Any]) -> None:
         return
 
     module = _NOTIFICATION_SPACE_MODULES.get(notification.kind)
-    if module is not None and not space_configuration.is_module_enabled(
-        session,
-        notification.space_id,
-        module,
-        lock_space=True,
+    if module is not None and (
+        notification.space_id is None
+        or not space_configuration.is_module_enabled(
+            session,
+            notification.space_id,
+            module,
+            lock_space=True,
+        )
     ):
         # Projection and provider delivery are separate asynchronous boundaries.
         # Re-check the authoritative module immediately before the external side

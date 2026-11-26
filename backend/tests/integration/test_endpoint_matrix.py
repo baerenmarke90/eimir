@@ -1649,6 +1649,7 @@ SERVER_ADMIN_ONLY: tuple[tuple[str, str], ...] = (
     ("PUT", "/api/v1/server-admin/settings/registration"),
     ("PUT", "/api/v1/server-admin/settings/maintenance"),
     ("PUT", "/api/v1/server-admin/settings/monitoring-alerts"),
+    ("PUT", "/api/v1/server-admin/settings/monitoring-push"),
     ("GET", "/api/v1/server-admin/monitoring"),
     ("GET", "/api/v1/server-admin/activity"),
     ("GET", "/api/v1/server-admin/activity/actions"),

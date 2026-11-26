@@ -65,6 +65,7 @@ class ServerAdminMonitoring(ApiModel):
     storage: ServerAdminMonitoringStorage
     services: list[ServerAdminServiceState]
     alerts_enabled: bool
+    push_enabled: bool
 
 
 def _point(row: OperationalMetricHour, at: datetime) -> ServerAdminMonitoringPoint:
@@ -163,6 +164,7 @@ def get_server_admin_monitoring(
     worker_status, worker_seen = heartbeat.worker_state(session, "worker", at)
     video_status, video_seen = heartbeat.worker_state(session, "video-worker", at)
     emails, pushes = failed_deliveries_since(session, at - timedelta(hours=1))
+    switches = administration.get_settings(session)
     return ServerAdminMonitoring(
         range=range_,
         points=points,
@@ -175,5 +177,6 @@ def get_server_admin_monitoring(
             ServerAdminServiceState(key="email", status=delivery_status(emails), last_seen_at=None),
             ServerAdminServiceState(key="push", status=delivery_status(pushes), last_seen_at=None),
         ],
-        alerts_enabled=bool(administration.get_settings(session).monitoring_alerts_enabled),
+        alerts_enabled=bool(switches.monitoring_alerts_enabled),
+        push_enabled=bool(switches.monitoring_push_enabled),
     )

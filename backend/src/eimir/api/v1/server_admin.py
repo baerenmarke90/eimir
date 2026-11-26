@@ -176,6 +176,7 @@ class ServerAdminSettings(ApiModel):
     maintenance_mode: bool
     effective_registration_enabled: bool
     monitoring_alerts_enabled: bool
+    monitoring_push_enabled: bool
     version: int
 
 
@@ -376,6 +377,7 @@ def _settings_view(settings: InstanceAdministrationSettings) -> ServerAdminSetti
         maintenance_mode=maintenance_mode,
         effective_registration_enabled=(registration_enabled and not maintenance_mode),
         monitoring_alerts_enabled=bool(settings.monitoring_alerts_enabled),
+        monitoring_push_enabled=bool(settings.monitoring_push_enabled),
         version=int(settings.version),
     )
 
@@ -1521,6 +1523,26 @@ def update_monitoring_alerts_setting(
         session,
         actor_id=admin.id,
         setting=AdministrationSetting.MONITORING_ALERTS_ENABLED,
+        enabled=body.enabled,
+    )
+    return _settings_view(settings)
+
+
+@router.put(
+    "/settings/monitoring-push",
+    response_model=ServerAdminSettings,
+    responses=problem_responses(401, 403, 422),
+)
+def update_monitoring_push_setting(
+    body: ServerAdminSettingUpdate,
+    admin: CurrentServerAdmin,
+    session: DbSession,
+) -> ServerAdminSettings:
+    """Turn the monitoring alerts as app push to ServerAdmins on or off (#2314)."""
+    settings = administration.update_setting(
+        session,
+        actor_id=admin.id,
+        setting=AdministrationSetting.MONITORING_PUSH_ENABLED,
         enabled=body.enabled,
     )
     return _settings_view(settings)

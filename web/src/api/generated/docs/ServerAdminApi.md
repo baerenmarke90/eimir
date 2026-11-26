@@ -31,6 +31,7 @@ All URIs are relative to *http://localhost*
 | [**setServerAdminSpaceStorageQuota**](ServerAdminApi.md#setserveradminspacestoragequota) | **PUT** /api/v1/server-admin/spaces/{space_id}/storage-quota | Set Server Admin Space Storage Quota |
 | [**updateMaintenanceSettingApiV1ServerAdminSettingsMaintenancePut**](ServerAdminApi.md#updatemaintenancesettingapiv1serveradminsettingsmaintenanceput) | **PUT** /api/v1/server-admin/settings/maintenance | Update Maintenance Setting |
 | [**updateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPut**](ServerAdminApi.md#updatemonitoringalertssettingapiv1serveradminsettingsmonitoringalertsput) | **PUT** /api/v1/server-admin/settings/monitoring-alerts | Update Monitoring Alerts Setting |
+| [**updateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPut**](ServerAdminApi.md#updatemonitoringpushsettingapiv1serveradminsettingsmonitoringpushput) | **PUT** /api/v1/server-admin/settings/monitoring-push | Update Monitoring Push Setting |
 | [**updateRegistrationSettingApiV1ServerAdminSettingsRegistrationPut**](ServerAdminApi.md#updateregistrationsettingapiv1serveradminsettingsregistrationput) | **PUT** /api/v1/server-admin/settings/registration | Update Registration Setting |
 | [**updateServerAdminAccountSuspensionApiV1ServerAdminAccountsAccountIdSuspensionPut**](ServerAdminApi.md#updateserveradminaccountsuspensionapiv1serveradminaccountsaccountidsuspensionput) | **PUT** /api/v1/server-admin/accounts/{accountId}/suspension | Update Server Admin Account Suspension |
 | [**verifyServerAdminAccountEmailApiV1ServerAdminAccountsAccountIdEmailsAccountEmailIdVerifyPost**](ServerAdminApi.md#verifyserveradminaccountemailapiv1serveradminaccountsaccountidemailsaccountemailidverifypost) | **POST** /api/v1/server-admin/accounts/{accountId}/emails/{accountEmailId}/verify | Verify Server Admin Account Email |
@@ -1905,6 +1906,76 @@ async function example() {
 
   try {
     const data = await api.updateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPut(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **serverAdminSettingUpdate** | [ServerAdminSettingUpdate](ServerAdminSettingUpdate.md) |  | |
+
+### Return type
+
+[**ServerAdminSettings**](ServerAdminSettings.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## updateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPut
+
+> ServerAdminSettings updateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPut(serverAdminSettingUpdate)
+
+Update Monitoring Push Setting
+
+Turn the monitoring alerts as app push to ServerAdmins on or off (#2314).
+
+### Example
+
+```ts
+import {
+  Configuration,
+  ServerAdminApi,
+} from '';
+import type { UpdateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPutRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new ServerAdminApi();
+
+  const body = {
+    // ServerAdminSettingUpdate
+    serverAdminSettingUpdate: ...,
+  } satisfies UpdateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPutRequest;
+
+  try {
+    const data = await api.updateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPut(body);
     console.log(data);
   } catch (error) {
     console.error(error);

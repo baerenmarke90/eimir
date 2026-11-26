@@ -26,7 +26,8 @@ function lastValue(values: Array<number | null>): number | null {
 
 /**
  * System › Monitoring (ServerAdmin redesign part 2, #2317): history of the
- * chosen range, storage, which services still report, and the alert switch.
+ * chosen range, storage, which services still report, and the two alert
+ * switches: mails and app push (#2314 part 2b).
  */
 export function ServerAdminMonitoringPanel({ api }: { api: ServerAdminApi }) {
   const { t } = useTranslation();
@@ -57,6 +58,24 @@ export function ServerAdminMonitoringPanel({ api }: { api: ServerAdminApi }) {
       });
     },
     onSettled: () => setAlertsDraft(null),
+  });
+  const [pushDraft, setPushDraft] = useState<boolean | null>(null);
+  const push = useMutation({
+    mutationFn: (enabled: boolean) =>
+      api.updateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPut({
+        serverAdminSettingUpdate: { enabled },
+      }),
+    onMutate: (enabled) => setPushDraft(enabled),
+    onSuccess: (_settings, enabled) => {
+      queryClient.setQueriesData<ServerAdminMonitoring>(
+        { queryKey: ['server-admin', 'monitoring'] },
+        (current) => (current ? { ...current, pushEnabled: enabled } : current),
+      );
+      void queryClient.invalidateQueries({
+        queryKey: ['server-admin', 'settings'],
+      });
+    },
+    onSettled: () => setPushDraft(null),
   });
   const percent = new Intl.NumberFormat(resolvedLocale(), {
     style: 'percent',
@@ -245,6 +264,33 @@ export function ServerAdminMonitoringPanel({ api }: { api: ServerAdminApi }) {
           {alerts.isError ? (
             <p className="server-admin-muted" role="alert">
               {t('serverAdmin.monitoring.alertsSaveFailed')}
+            </p>
+          ) : null}
+
+          <div className="server-admin-monitoring-alerts">
+            <span>
+              <label htmlFor="server-monitoring-push">
+                <strong>{t('serverAdmin.monitoring.pushLabel')}</strong>
+              </label>
+              <span
+                id="server-monitoring-push-help"
+                className="server-admin-muted"
+              >
+                {t('serverAdmin.monitoring.pushBody')}
+              </span>
+            </span>
+            <input
+              id="server-monitoring-push"
+              type="checkbox"
+              aria-describedby="server-monitoring-push-help"
+              checked={pushDraft ?? data.pushEnabled}
+              disabled={push.isPending}
+              onChange={(event) => push.mutate(event.target.checked)}
+            />
+          </div>
+          {push.isError ? (
+            <p className="server-admin-muted" role="alert">
+              {t('serverAdmin.monitoring.pushSaveFailed')}
             </p>
           ) : null}
         </>

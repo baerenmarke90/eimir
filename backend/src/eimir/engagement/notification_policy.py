@@ -15,7 +15,7 @@ from uuid import UUID
 
 from eimir.engagement.models import WISH_DATE_NOTICE_KINDS, NotificationKind
 
-POLICY_VERSION = 17
+POLICY_VERSION = 18
 GENERIC_PRESENTATION_KEY = "notification.generic"
 WISH_DATE_PRESENTATION_KEY = "notification.wish_date"
 DIGEST_WINDOW = timedelta(hours=1)
@@ -194,12 +194,26 @@ POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
         NotificationKind.SUPPORT_REPLY: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
+        # A ServerAdmin alert (#2314 part 2b): push only, neutral on every device;
+        # the topic appears after the tap and in the alert mail.
+        NotificationKind.OPERATOR_ALERT: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
         **{
             kind: NotificationPolicy(DeliveryClass.IMMEDIATE, WISH_DATE_PREVIEW)
             for kind in WISH_DATE_NOTICE_KINDS
         },
     }
 )
+
+
+# Operator notices belong to no Space and to no couple's notification choices.
+OPERATOR_KINDS = frozenset({NotificationKind.OPERATOR_ALERT.value})
+
+
+def couple_facing(kind: str) -> bool:
+    """Whether a kind belongs to a couple's Notification Center and Settings."""
+    return kind not in OPERATOR_KINDS
 
 
 def for_kind(kind: str) -> NotificationPolicy | None:
@@ -257,7 +271,7 @@ def digest_kind_allowed(kind: str) -> bool:
 
 def push_choice_allowed(kind: str) -> bool:
     """Expose only reviewed immediate or digest Push kinds as a choice."""
-    return _external_choice_allowed(kind)
+    return couple_facing(kind) and _external_choice_allowed(kind)
 
 
 def _external_choice_allowed(kind: str) -> bool:
@@ -284,6 +298,8 @@ def email_choice_allowed(kind: str) -> bool:
         NotificationKind.RECAP_GREW.value,
         # A support reply stays in the app and its push; never an email (#2189).
         NotificationKind.SUPPORT_REPLY.value,
+        # A ServerAdmin alert has its own alert mail (#2314); never a notice email.
+        *OPERATOR_KINDS,
         *WISH_DATE_NOTICE_KINDS,
     } and _external_choice_allowed(kind)
 

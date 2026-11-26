@@ -48,6 +48,7 @@ function settings(
     maintenanceMode,
     effectiveRegistrationEnabled: registrationEnabled && !maintenanceMode,
     monitoringAlertsEnabled: true,
+    monitoringPushEnabled: true,
     version,
   };
 }

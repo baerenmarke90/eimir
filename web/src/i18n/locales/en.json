@@ -5012,7 +5012,10 @@
       "lastSeen": "last {{time}}",
       "alertsLabel": "Send alert mails",
       "alertsSaveFailed": "The change was not saved. Please try again.",
-      "alertsBody": "To the ServerAdmins on new failures, full storage, failed deliveries and a missing backup."
+      "alertsBody": "To the ServerAdmins on new failures, full storage, failed deliveries, a missing backup and new reports.",
+      "pushLabel": "Send alerts as push",
+      "pushSaveFailed": "The change was not saved. Please try again.",
+      "pushBody": "The same alerts as push messages on the ServerAdmins' devices. The lock screen shows only a neutral notice."
     },
     "sheet": {
       "close": "Close"

@@ -8,6 +8,7 @@ Name | Type
 ------------ | -------------
 `alertsEnabled` | boolean
 `points` | [Array&lt;ServerAdminMonitoringPoint&gt;](ServerAdminMonitoringPoint.md)
+`pushEnabled` | boolean
 `range` | string
 `services` | [Array&lt;ServerAdminServiceState&gt;](ServerAdminServiceState.md)
 `storage` | [ServerAdminMonitoringStorage](ServerAdminMonitoringStorage.md)
@@ -21,6 +22,7 @@ import type { ServerAdminMonitoring } from ''
 const example = {
   "alertsEnabled": null,
   "points": null,
+  "pushEnabled": null,
   "range": null,
   "services": null,
   "storage": null,

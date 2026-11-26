@@ -33,6 +33,7 @@ function data(
       { key: 'push', status: 'problem', lastSeenAt: null },
     ],
     alertsEnabled: true,
+    pushEnabled: true,
     ...overrides,
   } as ServerAdminMonitoring;
 }
@@ -55,11 +56,13 @@ function point(at: string, extra: Record<string, unknown> = {}) {
   };
 }
 
-function renderPanel(get = vi.fn(), put = vi.fn()) {
+function renderPanel(get = vi.fn(), put = vi.fn(), putPush = vi.fn()) {
   const api = {
     getServerAdminMonitoringApiV1ServerAdminMonitoringGet: get,
     updateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPut:
       put,
+    updateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPut:
+      putPush,
   } as unknown as ServerAdminApi;
   render(
     <QueryClientProvider
@@ -141,5 +144,38 @@ describe('ServerAdminMonitoringPanel', () => {
         serverAdminSettingUpdate: { enabled: false },
       }),
     );
+  });
+
+  it('turns alert push off through its own route, leaving mails on', async () => {
+    const put = vi.fn().mockResolvedValue({});
+    const putPush = vi.fn().mockResolvedValue({});
+    renderPanel(vi.fn().mockResolvedValue(data()), put, putPush);
+    const mails = (await screen.findByRole('checkbox', {
+      name: monitoring.alertsLabel,
+    })) as HTMLInputElement;
+    const push = (await screen.findByRole('checkbox', {
+      name: monitoring.pushLabel,
+    })) as HTMLInputElement;
+    expect(push.checked).toBe(true);
+    fireEvent.click(push);
+    expect(push.checked).toBe(false);
+    await waitFor(() =>
+      expect(putPush).toHaveBeenCalledExactlyOnceWith({
+        serverAdminSettingUpdate: { enabled: false },
+      }),
+    );
+    expect(put).not.toHaveBeenCalled();
+    expect(mails.checked).toBe(true);
+  });
+
+  it('puts the push switch back with a message when saving fails', async () => {
+    const putPush = vi.fn().mockRejectedValue(new Error('offline'));
+    renderPanel(vi.fn().mockResolvedValue(data()), vi.fn(), putPush);
+    const push = (await screen.findByRole('checkbox', {
+      name: monitoring.pushLabel,
+    })) as HTMLInputElement;
+    fireEvent.click(push);
+    expect(await screen.findByText(monitoring.pushSaveFailed)).toBeTruthy();
+    expect(push.checked).toBe(true);
   });
 });

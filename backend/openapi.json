@@ -7911,6 +7911,18 @@
           "kind": {
             "$ref": "#/components/schemas/NotificationKind"
           },
+          "operatorRoute": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The ServerAdmin page a tapped operator notice opens (#2314); set only for OPERATOR_ALERT, without any identifier.",
+            "title": "Operatorroute"
+          },
           "readAt": {
             "anyOf": [
               {
@@ -8026,7 +8038,8 @@
           "GARDEN_SEED_ARRIVED",
           "RECAP_READY",
           "RECAP_GREW",
-          "SUPPORT_REPLY"
+          "SUPPORT_REPLY",
+          "OPERATOR_ALERT"
         ],
         "title": "NotificationKind",
         "type": "string"
@@ -15329,6 +15342,10 @@
             "title": "Points",
             "type": "array"
           },
+          "pushEnabled": {
+            "title": "Pushenabled",
+            "type": "boolean"
+          },
           "range": {
             "enum": [
               "24h",
@@ -15354,7 +15371,8 @@
           "points",
           "storage",
           "services",
-          "alertsEnabled"
+          "alertsEnabled",
+          "pushEnabled"
         ],
         "title": "ServerAdminMonitoring",
         "type": "object"
@@ -16047,6 +16065,10 @@
             "title": "Monitoringalertsenabled",
             "type": "boolean"
           },
+          "monitoringPushEnabled": {
+            "title": "Monitoringpushenabled",
+            "type": "boolean"
+          },
           "registrationEnabled": {
             "title": "Registrationenabled",
             "type": "boolean"
@@ -16061,6 +16083,7 @@
           "maintenanceMode",
           "effectiveRegistrationEnabled",
           "monitoringAlertsEnabled",
+          "monitoringPushEnabled",
           "version"
         ],
         "title": "ServerAdminSettings",
@@ -25345,6 +25368,68 @@
           }
         },
         "summary": "Update Monitoring Alerts Setting",
+        "tags": [
+          "server-admin"
+        ]
+      }
+    },
+    "/api/v1/server-admin/settings/monitoring-push": {
+      "put": {
+        "description": "Turn the monitoring alerts as app push to ServerAdmins on or off (#2314).",
+        "operationId": "update_monitoring_push_setting_api_v1_server_admin_settings_monitoring_push_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServerAdminSettingUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerAdminSettings"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Update Monitoring Push Setting",
         "tags": [
           "server-admin"
         ]

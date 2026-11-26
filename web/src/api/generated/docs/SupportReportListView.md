@@ -10,6 +10,7 @@ Name | Type
 `items` | [Array&lt;SupportReportListItem&gt;](SupportReportListItem.md)
 `newCount` | number
 `nextCursor` | string
+`stateCounts` | [SupportReportStateCounts](SupportReportStateCounts.md)
 
 ## Example
 
@@ -22,6 +23,7 @@ const example = {
   "items": null,
   "newCount": null,
   "nextCursor": null,
+  "stateCounts": null,
 } satisfies SupportReportListView
 
 console.log(example)

@@ -203,16 +203,33 @@ function useMemoryWorldState({
 type MemoryWorldState = ReturnType<typeof useMemoryWorldState>;
 
 const Context = createContext<MemoryWorldState | null>(null);
+/**
+ * The chosen world alone. The full state is a new object on every render of
+ * the provider, which renders with the app on each navigation; the kept
+ * Momente tab reads only this, which changes with the world.
+ */
+const WorldIdContext = createContext<MemoryWorld | null>(null);
 
 export function MemoryWorldProvider({
   children,
   ...props
 }: Parameters<typeof useMemoryWorldState>[0] & { children: ReactNode }) {
   const state = useMemoryWorldState(props);
-  return <Context.Provider value={state}>{children}</Context.Provider>;
+  return (
+    <Context.Provider value={state}>
+      <WorldIdContext.Provider value={state.world}>
+        {children}
+      </WorldIdContext.Provider>
+    </Context.Provider>
+  );
+}
+
+/** The full world state with its reads and saving, for the settings. */
+export function useMemoryWorld(): MemoryWorldState | null {
+  return useContext(Context);
 }
 
 /** `null` outside a signed-in Space: Erinnerungen then shows the default Story. */
-export function useMemoryWorld(): MemoryWorldState | null {
-  return useContext(Context);
+export function useMemoryWorldId(): MemoryWorld | null {
+  return useContext(WorldIdContext);
 }

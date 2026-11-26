@@ -18534,6 +18534,82 @@
         "title": "SupportGestureKind",
         "type": "string"
       },
+      "SupportReplyTemplateListView": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SupportReplyTemplateView"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "SupportReplyTemplateListView",
+        "type": "object"
+      },
+      "SupportReplyTemplateView": {
+        "description": "One reply template: a short name for the chip and the text it inserts.",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "text",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "SupportReplyTemplateView",
+        "type": "object"
+      },
+      "SupportReplyTemplateWrite": {
+        "description": "Name and text, trimmed; at most 40 and 500 characters.",
+        "properties": {
+          "name": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "text"
+        ],
+        "title": "SupportReplyTemplateWrite",
+        "type": "object"
+      },
       "SupportReportArchiveUpdate": {
         "additionalProperties": false,
         "description": "Strict request: archive (true) or unarchive (false) one report.",
@@ -18689,6 +18765,14 @@
             ],
             "title": "Note"
           },
+          "os": {
+            "title": "Os",
+            "type": "string"
+          },
+          "platform": {
+            "title": "Platform",
+            "type": "string"
+          },
           "reply": {
             "anyOf": [
               {
@@ -18737,6 +18821,8 @@
           "failureReference",
           "appVersion",
           "build",
+          "platform",
+          "os",
           "hasReply",
           "ticket",
           "note",
@@ -18758,7 +18844,7 @@
         "type": "string"
       },
       "SupportReportListItem": {
-        "description": "One report in the list: triage facts only, no note text.",
+        "description": "One report in the list: triage facts and a short note preview, never the full note.",
         "properties": {
           "appVersion": {
             "title": "Appversion",
@@ -18808,6 +18894,25 @@
           "kind": {
             "$ref": "#/components/schemas/SupportReportKind"
           },
+          "notePreview": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notepreview"
+          },
+          "os": {
+            "title": "Os",
+            "type": "string"
+          },
+          "platform": {
+            "title": "Platform",
+            "type": "string"
+          },
           "state": {
             "$ref": "#/components/schemas/SupportReportState"
           },
@@ -18831,8 +18936,11 @@
           "failureReference",
           "appVersion",
           "build",
+          "platform",
+          "os",
           "hasReply",
-          "ticket"
+          "ticket",
+          "notePreview"
         ],
         "title": "SupportReportListItem",
         "type": "object"
@@ -18864,13 +18972,17 @@
               }
             ],
             "title": "Nextcursor"
+          },
+          "stateCounts": {
+            "$ref": "#/components/schemas/SupportReportStateCounts"
           }
         },
         "required": [
           "items",
           "nextCursor",
           "hasMore",
-          "newCount"
+          "newCount",
+          "stateCounts"
         ],
         "title": "SupportReportListView",
         "type": "object"
@@ -18947,6 +19059,30 @@
         ],
         "title": "SupportReportState",
         "type": "string"
+      },
+      "SupportReportStateCounts": {
+        "description": "Unarchived reports per triage state, whatever the list filter.",
+        "properties": {
+          "closed": {
+            "title": "Closed",
+            "type": "integer"
+          },
+          "inProgress": {
+            "title": "Inprogress",
+            "type": "integer"
+          },
+          "new": {
+            "title": "New",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "new",
+          "inProgress",
+          "closed"
+        ],
+        "title": "SupportReportStateCounts",
+        "type": "object"
       },
       "SupportReportStateUpdate": {
         "additionalProperties": false,
@@ -26260,7 +26396,7 @@
     },
     "/api/v1/server-admin/support-reports": {
       "get": {
-        "description": "List reports newest first without note text.\n\nUnarchived reports by default, the archived ones with ``archived=true``. The\ncursor is bound to the state filter and the archive view.",
+        "description": "List reports newest first with a note preview, never the full note.\n\nUnarchived reports by default, the archived ones with ``archived=true``. The\ncursor is bound to the state filter and the archive view.",
         "operationId": "listSupportReports",
         "parameters": [
           {
@@ -26382,6 +26518,287 @@
           }
         },
         "summary": "List Support Reports",
+        "tags": [
+          "server-admin-support-reports"
+        ]
+      }
+    },
+    "/api/v1/server-admin/support-reports/templates": {
+      "get": {
+        "description": "List the reply templates shared by all ServerAdmins.",
+        "operationId": "listSupportReplyTemplates",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportReplyTemplateListView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "List Support Reply Templates",
+        "tags": [
+          "server-admin-support-reports"
+        ]
+      },
+      "post": {
+        "description": "Create a template; at most 30 exist and names are unique regardless of case.",
+        "operationId": "createSupportReplyTemplate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportReplyTemplateWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportReplyTemplateView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Create Support Reply Template",
+        "tags": [
+          "server-admin-support-reports"
+        ]
+      }
+    },
+    "/api/v1/server-admin/support-reports/templates/{templateId}": {
+      "delete": {
+        "description": "Delete a template for good.",
+        "operationId": "deleteSupportReplyTemplate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "templateId",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "Templateid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Delete Support Reply Template",
+        "tags": [
+          "server-admin-support-reports"
+        ]
+      },
+      "put": {
+        "description": "Replace a template's name and text.",
+        "operationId": "updateSupportReplyTemplate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "templateId",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "Templateid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportReplyTemplateWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportReplyTemplateView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Update Support Reply Template",
         "tags": [
           "server-admin-support-reports"
         ]

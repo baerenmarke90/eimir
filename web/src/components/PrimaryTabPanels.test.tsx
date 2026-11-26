@@ -25,10 +25,19 @@ let openTab: ReturnType<typeof usePrimaryNavigation>['navigatePrimary'];
 const mounts: string[] = [];
 const renders: string[] = [];
 const captures = new Map<string, () => string | null>();
+/** Renders of a page's own content, which reads no route or task origin. */
+const contentRenders: string[] = [];
+const seenLocations = new Map<string, Set<unknown>>();
+
+function PageContent({ name }: { name: string }) {
+  contentRenders.push(name);
+  return null;
+}
 
 function Page({ name }: { name: string }) {
   renders.push(name);
   const location = useLocation();
+  seenLocations.set(name, (seenLocations.get(name) ?? new Set()).add(location));
   const { captureOrigin } = useTaskOrigin();
   captures.set(name, () => captureOrigin());
   useEffect(() => {
@@ -38,6 +47,7 @@ function Page({ name }: { name: string }) {
     <section className="page">
       <h1>{name}</h1>
       <output data-testid={`${name}-search`}>{location.search}</output>
+      <PageContent name={name} />
     </section>
   );
 }
@@ -86,6 +96,8 @@ function Harness({
 beforeEach(() => {
   mounts.length = 0;
   renders.length = 0;
+  contentRenders.length = 0;
+  seenLocations.clear();
   captures.clear();
   vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
 });
@@ -153,6 +165,26 @@ it('keeps mounted route consumers at rest while a visited tab is previewed and d
     previewRenders: [],
     cancelRenders: [],
   });
+});
+
+it('renders only the tab that is opened when another tab is selected or a task opens', async () => {
+  render(<Harness />);
+  await act(() => navigate('/story'));
+  contentRenders.length = 0;
+
+  // The pages read the route (`useLocation`) and the task origin, like the
+  // real ones. Leaving a tab, or a change between two other destinations,
+  // must not render a parked page: it keeps the location object and the
+  // task origin contract it had.
+  await act(() => navigate('/plan'));
+  expect(contentRenders).toEqual(['plan']);
+  contentRenders.length = 0;
+  await act(() => navigate('/story/memories/m1'));
+  expect(contentRenders).toEqual([]);
+  expect(seenLocations.get('today')?.size).toBe(1);
+  expect(seenLocations.get('plan')?.size).toBe(1);
+  await act(() => navigate('/today'));
+  expect(contentRenders).toEqual(['today']);
 });
 
 it('freezes the location a hidden tab sees', async () => {

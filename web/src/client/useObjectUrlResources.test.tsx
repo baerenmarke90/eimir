@@ -343,3 +343,63 @@ describe('shared object URL revocation', () => {
     unrelated.unmount();
   });
 });
+
+describe('Object URL resource rendering', () => {
+  const originalCreateObjectURL = URL.createObjectURL;
+  const originalRevokeObjectURL = URL.revokeObjectURL;
+  const frames: FrameRequestCallback[] = [];
+
+  beforeEach(() => {
+    let next = 0;
+    URL.createObjectURL = vi.fn(() => `blob:batched-${++next}`);
+    URL.revokeObjectURL = vi.fn();
+    frames.length = 0;
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    URL.createObjectURL = originalCreateObjectURL;
+    URL.revokeObjectURL = originalRevokeObjectURL;
+  });
+
+  it('shows photos that arrive within one frame in one render of every view', async () => {
+    const loads = new Map<string, ReturnType<typeof deferred<string>>>();
+    const load = (resourceId: string) => {
+      const pending = deferred<string>();
+      loads.set(resourceId, pending);
+      return pending.promise;
+    };
+    let renders = 0;
+    const first = renderHook(() => {
+      renders += 1;
+      return useObjectUrlResources('map:1', ['a', 'b'], load);
+    });
+    const second = renderHook(() => {
+      renders += 1;
+      return useObjectUrlResource('map:1', 'c', load);
+    });
+    const before = renders;
+
+    // Each photo arrives in its own task, as network results do.
+    for (const id of ['a', 'b', 'c']) {
+      await act(async () => {
+        loads.get(id)?.resolve(`blob:${id}`);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+    }
+    expect(renders).toBe(before);
+
+    act(() => {
+      for (const frame of frames.splice(0)) frame(performance.now());
+    });
+    expect(renders).toBe(before + 2);
+    expect(first.result.current.urls).toEqual({ a: 'blob:a', b: 'blob:b' });
+    expect(second.result.current.url).toBe('blob:c');
+    first.unmount();
+    second.unmount();
+  });
+});

@@ -117,9 +117,14 @@
 }
 
 /* ---------- Style switch (Klassisch / Modern) ---------- */
-/* It may live in the "Welt wechseln" row, outside the world: tokens only. */
+/* Right below the booth's heading, before the booth itself. */
+:is(.memory-booth-modern, .memory-booth-classic)
+  > .memory-world-head:has(+ .memory-booth-style) {
+  margin-block-end: var(--space-3);
+}
 .memory-booth-style {
   justify-self: start;
+  margin-block-end: var(--space-4);
   display: inline-flex;
   padding: 2px;
   border-radius: var(--radius-pill);

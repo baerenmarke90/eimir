@@ -30,7 +30,7 @@ strip) and Modern (a booth with camera, countdown and printer). Earlier stages:
 
 ## Behaviour exercised
 
-- The style switch in the world switch row toggles and survives a reload
+- The style switch toggles and survives a reload (since #2283's world switch follow-up it sits right below the booth heading)
   (asserted in the spec); runs of both styles, the viewer dialog with focus
   return, hanging a strip on the line and putting it in the tin are covered by
   `PhotoBoothWorld.test.tsx`.

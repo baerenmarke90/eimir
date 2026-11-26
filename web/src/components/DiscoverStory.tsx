@@ -45,6 +45,7 @@ import './DiscoverStory.css';
 import '../motion/story-playback.css';
 import { useReducedMotion } from '../motion/reducedMotion';
 import { usePageVisible } from '../motion/scene';
+import { WorldSwitchEntry } from './memoryWorlds/WorldHead';
 
 /** A press longer than this pauses the story and does not count as a tap. */
 const HOLD_THRESHOLD_MS = 350;
@@ -569,50 +570,58 @@ export function DiscoverStory({
       data-autoplay={autoplay ? 'true' : 'false'}
       data-playing={playing ? 'true' : 'false'}
     >
-      <ul
-        className="momente-story-themes"
-        aria-label={t('discoverStory.themesLabel')}
-      >
-        {themes.map((entry, index) => {
-          const active = index === themeIndex;
-          const wasSeen = !active && seen.has(entry.key);
-          return (
-            <li key={entry.key}>
-              <button
-                type="button"
-                className="momente-story-bubble"
-                data-story-theme={entry.key}
-                data-seen={wasSeen ? 'true' : undefined}
-                aria-current={active ? 'true' : undefined}
-                onClick={() => {
-                  setFinished(false);
-                  setPosition({ theme: index, slide: 0 });
-                }}
-              >
-                <span className="momente-story-bubble-ring" aria-hidden="true">
+      {/* The theme circles and, at the end of the row, the round "Welt
+        wechseln" entry when the Story is the memory world (#2283). */}
+      <div className="momente-story-top">
+        <ul
+          className="momente-story-themes"
+          aria-label={t('discoverStory.themesLabel')}
+        >
+          {themes.map((entry, index) => {
+            const active = index === themeIndex;
+            const wasSeen = !active && seen.has(entry.key);
+            return (
+              <li key={entry.key}>
+                <button
+                  type="button"
+                  className="momente-story-bubble"
+                  data-story-theme={entry.key}
+                  data-seen={wasSeen ? 'true' : undefined}
+                  aria-current={active ? 'true' : undefined}
+                  onClick={() => {
+                    setFinished(false);
+                    setPosition({ theme: index, slide: 0 });
+                  }}
+                >
                   <span
-                    className="momente-story-bubble-face"
-                    data-heart-emotion={entry.items[0].emotion}
+                    className="momente-story-bubble-ring"
+                    aria-hidden="true"
                   >
-                    <ThemeFace
-                      kind={THEME_SLIDE_KIND[entry.key]}
-                      slide={entry.items[0]}
-                      loadMemoryImage={loadMemoryImage}
-                    />
+                    <span
+                      className="momente-story-bubble-face"
+                      data-heart-emotion={entry.items[0].emotion}
+                    >
+                      <ThemeFace
+                        kind={THEME_SLIDE_KIND[entry.key]}
+                        slide={entry.items[0]}
+                        loadMemoryImage={loadMemoryImage}
+                      />
+                    </span>
                   </span>
-                </span>
-                <span className="momente-story-bubble-label">
-                  {t(`discoverStory.theme.${entry.key}`)}
-                  <span className="sr-only">
-                    {`, ${t('discoverStory.themeCount', { count: entry.items.length })}`}
-                    {wasSeen ? `, ${t('discoverStory.themeSeen')}` : ''}
+                  <span className="momente-story-bubble-label">
+                    {t(`discoverStory.theme.${entry.key}`)}
+                    <span className="sr-only">
+                      {`, ${t('discoverStory.themeCount', { count: entry.items.length })}`}
+                      {wasSeen ? `, ${t('discoverStory.themeSeen')}` : ''}
+                    </span>
                   </span>
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+        <WorldSwitchEntry />
+      </div>
       {/* biome-ignore lint/a11y/useSemanticElements: the viewer is the slide group of the APG carousel pattern, not a form fieldset. */}
       <div
         ref={viewerRef}

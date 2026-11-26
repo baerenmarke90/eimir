@@ -80,6 +80,7 @@ import {
 import '../../motion/memory-worlds.css';
 import './MemoryWorld.css';
 import './ScratchCardWorld.css';
+import { WorldHead } from './WorldHead';
 
 type Entry = MemoryWorldEntry;
 
@@ -1201,9 +1202,7 @@ export function ScratchCardWorld({
 
   return (
     <div ref={rootRef} className="memory-scratch-world">
-      <div className="memory-world-head">
-        <h2>{t('memoryWorlds.scratch.heading')}</h2>
-      </div>
+      <WorldHead heading={t('memoryWorlds.scratch.heading')} />
       <div className="memory-scratch-scene" data-primary-tab-swipe-block>
         <Dispenser
           feedRun={feedRun}

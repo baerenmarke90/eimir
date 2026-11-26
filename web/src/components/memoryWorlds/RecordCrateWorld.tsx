@@ -28,10 +28,10 @@
  */
 import type { TFunction } from 'i18next';
 import {
+  memo,
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
-  memo,
   useEffect,
   useId,
   useLayoutEffect,
@@ -44,7 +44,6 @@ import { useContainerUnits } from '../../client/containerUnits';
 import { useFitText } from '../../client/fitText';
 import { resolvedLocale, useTranslation } from '../../i18n';
 import { haptic } from '../../motion/haptics';
-import { subscribeReducedMotion } from '../../motion/reducedMotion';
 import {
   type Box,
   centreDelta,
@@ -61,6 +60,7 @@ import {
   tipJacketAway,
   tipJacketIn,
 } from '../../motion/recordCrate';
+import { subscribeReducedMotion } from '../../motion/reducedMotion';
 import { KeepsakeStampMark } from '../DiscoverKeepsakes';
 import { MemoryPhoto } from './MemoryPhoto';
 import {
@@ -74,6 +74,7 @@ import {
 import '../../motion/memory-worlds.css';
 import './MemoryWorld.css';
 import './RecordCrateWorld.css';
+import { WorldHead } from './WorldHead';
 
 type Entry = MemoryWorldEntry;
 
@@ -2890,9 +2891,7 @@ export function RecordCrateWorld({
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: Escape anywhere in the world puts the liner notes or the record back; the controls inside are real buttons.
     <div ref={rootRef} className="memory-crate-world" onKeyDown={onRootKeyDown}>
-      <div className="memory-world-head">
-        <h2>{t('memoryWorlds.crate.heading')}</h2>
-      </div>
+      <WorldHead heading={t('memoryWorlds.crate.heading')} />
 
       {/* biome-ignore lint/a11y/useSemanticElements: the crate is one focusable widget (arrow keys flip, Enter plays), not a form fieldset. */}
       <div

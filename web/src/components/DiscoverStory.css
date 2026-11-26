@@ -16,28 +16,24 @@
   margin-inline: auto;
 }
 
-/* ---------- Expanded renew (Compact keeps pull-to-refresh only) ---------- */
-.momente-discover-renew {
-  display: none;
-}
-
-@media (min-width: 840px) {
-  .momente-discover-renew {
-    display: flex;
-    justify-content: flex-end;
-  }
-}
-
-.momente-discover-renew > button {
-  min-block-size: var(--touch-target-web);
-}
-
 /* ---------- theme bubbles ---------- */
 /* With the rediscovery lead there are up to five circles. A label never
  * breaks inside a word: it hyphenates where the language allows, and a
  * circle that no longer fits moves to a second row. The row is not a
  * horizontal scroller, so a swipe across it still changes the primary tab. */
+.momente-story-top {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+/* Centred on the theme circles above their labels. */
+.momente-story-top > .memory-world-switch {
+  margin-block-start: var(--space-3);
+}
+
 .momente-story-themes {
+  flex: 1 1 auto;
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2) var(--space-1);

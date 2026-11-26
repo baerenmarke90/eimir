@@ -15,7 +15,6 @@ import { haptic } from '../../motion/haptics';
 import { entry } from './__fixtures__/stories';
 import { BOOTH_STYLE_KEY } from './boothStylePreference';
 import { boothStrips, PhotoBoothWorld } from './PhotoBoothWorld';
-import { MEMORY_WORLD_TOOLBAR_SLOT_ID } from './toolbarSlot';
 
 vi.mock('../../motion/haptics', () => ({ haptic: vi.fn() }));
 
@@ -81,7 +80,6 @@ afterEach(() => {
   vi.unstubAllGlobals();
   vi.useRealTimers();
   vi.mocked(haptic).mockClear();
-  document.getElementById(MEMORY_WORLD_TOOLBAR_SLOT_ID)?.remove();
 });
 
 describe('boothStrips', () => {
@@ -154,13 +152,13 @@ describe('PhotoBoothWorld style switch', () => {
     ).toBeTruthy();
   });
 
-  it('places the switch in the toolbar slot when the slot is there', () => {
-    const slot = document.createElement('div');
-    slot.id = MEMORY_WORLD_TOOLBAR_SLOT_ID;
-    document.body.append(slot);
+  it('shows the style switch right below the booth heading', () => {
     renderBooth();
     const group = screen.getByRole('group', { name: booth.styleLabel });
-    expect(slot.contains(group)).toBe(true);
+    const heading = screen.getByRole('heading', {
+      name: booth.classic.heading,
+    });
+    expect(heading.parentElement?.nextElementSibling).toBe(group);
   });
 });
 

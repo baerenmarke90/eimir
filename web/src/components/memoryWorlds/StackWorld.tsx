@@ -26,6 +26,7 @@ import '../../motion/memory-worlds.css';
 import './MemoryWorld.css';
 import './StackWorld.css';
 import { useWorldEntered } from './WorldEnter';
+import { WorldHead } from './WorldHead';
 
 /** The top print travelling to the back (or from the back), in ms. */
 const TUCK_MS = 760;
@@ -260,15 +261,14 @@ export function StackWorld({
 
   return (
     <div className="memory-stack-world">
-      <div className="memory-world-head">
-        <h2>{t('memoryWorlds.stack.heading')}</h2>
+      <WorldHead heading={t('memoryWorlds.stack.heading')}>
         <span className="memory-world-muted" aria-live="polite">
           {t('memoryWorlds.stack.position', {
             position: wrap(index, count) + 1,
             count,
           })}
         </span>
-      </div>
+      </WorldHead>
       {/* biome-ignore lint/a11y/useSemanticElements: the pile is a named group of prints, not a form fieldset. */}
       <div
         className="memory-stack"

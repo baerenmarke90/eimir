@@ -4,8 +4,8 @@ A ServerAdmin may replace a Space's tier quota with an individual value,
 optionally until a date. Setting and clearing it, and every view of a Space
 file, join the content-free administration action audit.
 
-Revision ID: 0181
-Revises: 0180
+Revision ID: 0182
+Revises: 0181
 """
 
 from __future__ import annotations
@@ -14,8 +14,8 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision = "0181"
-down_revision = "0180"
+revision = "0182"
+down_revision = "0181"
 branch_labels = None
 depends_on = None
 

@@ -1,6 +1,6 @@
 # eimir. Motion Contract
 
-**Version:** 1.20 (2026-11-26)<br>
+**Version:** 1.21 (2026-11-26)<br>
 **Status:** Normative lower-level design-system contract under Product Reference v1 once merged. Library decision **approved by the Product Owner on 2026-11-19**: an in-house motion layer on WAAPI and CSS for all primitives, Gesture follow included; Motion is not adopted ([6.6](#66-product-owner-decisions)). Haptics are approved ([4.10](#410-haptics)).<br>
 **Scope:** Canonical Web/Mobile Web UI, including the Capacitor-delivered Android app<br>
 **Issue:** [#2067](https://github.com/baerenmarke90/eimir/issues/2067)<br>
@@ -60,7 +60,7 @@ Motion state never decides whether content exists or is visible after the motion
 
 ### M4. Kept views never replay
 
-Showing a kept view again does not replay any one-shot motion in it (default). In CSS, an animation restarts when its element returns from `display: none`. So a one-shot CSS animation in a kept view must stop being applied once it has finished: the motion layer removes the attribute or class that applies it as soon as the animation ends (state `played`). Otherwise the motion runs as a Web Animation owned by the layer, which `display: none` does not restart.
+Showing a kept view again does not replay any one-shot motion in it (default). The kept primary tabs (`PrimaryTabPanels`) are not hidden with `display: none` since 1.21. A hidden tab keeps its rendering state and skips it (`content-visibility: hidden`), so showing it again restarts none of its CSS animations and needs no new layout pass. In CSS, an animation restarts when its element returns from `display: none`. So a one-shot CSS animation in a kept view must stop being applied once it has finished: the motion layer removes the attribute or class that applies it as soon as the animation ends (state `played`). Otherwise the motion runs as a Web Animation owned by the layer, which `display: none` does not restart.
 
 Ambient motion in a kept view pauses while the view is hidden and continues when it is shown. It does not start from its first frame again, and it never replays the entrance it followed.
 
@@ -1178,6 +1178,7 @@ In addition to Motion Guideline section 10, a pull request with new or changed m
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 1.21 | 2026-11-26 | Fluid tab switching: hidden kept tabs skip rendering with `content-visibility: hidden` instead of `display: none`, so their CSS animations never restart and the per-reveal `getAnimations()` settle is gone (M4). While the pages slide sideways, the bar and the Wir marks pause their backdrop blur (Product Owner, 2026-11-26). |
 | 1.20 | 2026-11-26 | Pro showcase (#2310): four decorative Ambient scenes on the Pro paywall (4.5). Their keyframes and roles are in `motion/pro-showcase.css`; they run finite cycles, pause in place while they are not current or not seen, and are absent with reduced motion (M8). |
 | 1.19 | 2026-11-25 | Glas (#2283):<br>• `MemoryJarWorld.tsx` registered as a `gesture` owner not yet on the building block (3 uses; 4.6, 5.4);<br>• its frame-driven jar physics and fold in `motion/memoryJar.ts`, and its keyframes, roles and finite, paused candle in `motion/memory-worlds.css` (M8). |
 | 1.18 | 2026-11-25 | Post (#2283):<br>• `PostWorld.tsx` registered as a `gesture` owner not yet on the building block (3 uses; 4.6, 5.4);<br>• its keyframes, roles and finite, paused flag and door loops in `motion/memory-worlds.css` (M8). |

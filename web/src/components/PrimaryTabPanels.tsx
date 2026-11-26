@@ -373,8 +373,10 @@ export function PrimaryTabPanels({
         data-primary-tab={path}
         data-primary-tab-peek={peeking ? 'true' : undefined}
         data-primary-tab-prewarm={preparing ? 'true' : undefined}
-        aria-hidden={peeking || preparing ? true : undefined}
-        inert={peeking || preparing}
+        // A hidden tab stays rendered (skipped), so it is also taken out of
+        // the accessibility tree and focus order explicitly.
+        aria-hidden={visible ? undefined : true}
+        inert={!visible}
         hidden={!visible && !peeking && !preparing}
       >
         <TabRouteContent

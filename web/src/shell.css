@@ -828,6 +828,20 @@
   }
 }
 
+/* While the pages slide sideways between tabs (a swipe or a tab chosen in
+   the bar), the glass pauses and the bar takes its opaque surface, as with
+   reduced transparency: the blur would otherwise be computed again for every
+   frame of the slide. Resting and scrolling keep the glass (Product Owner,
+   2026-11-26). */
+.product-shell:has(
+    .product-main:is([data-primary-tab-dragging], [data-navigation-slide])
+  )
+  .mobile-bottom-shell {
+  background: var(--color-surface-overlay);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
 .mobile-bottom-shell .mobile-bottom-nav {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));

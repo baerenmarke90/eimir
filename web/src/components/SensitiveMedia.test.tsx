@@ -11,7 +11,10 @@ import {
 import userEvent from '@testing-library/user-event';
 import { MediaGallery } from './MediaGallery';
 import { MemoryPreview } from './MemoryPreview';
-import { SensitiveMediaCheckbox } from './SensitiveMedia';
+import {
+  SensitiveMediaCheckbox,
+  useSensitiveMediaReveals,
+} from './SensitiveMedia';
 
 const items = [
   { id: 'sensitive', mediaType: 'IMAGE' as const, isSensitive: true },
@@ -172,4 +175,35 @@ it('keeps checkbox changes as draft input until the containing form is submitted
   expect((screen.getByRole('checkbox') as HTMLInputElement).checked).toBe(true);
   await userEvent.click(screen.getByRole('button', { name: 'Save' }));
   expect(save).toHaveBeenCalledTimes(1);
+});
+
+describe('useSensitiveMediaReveals without a revealed item', () => {
+  function Probe({ onRender }: { onRender: () => void }) {
+    onRender();
+    useSensitiveMediaReveals('memory-1');
+    return null;
+  }
+
+  it('renders once on mount and not again when the app is left', () => {
+    // Every preview with protected media uses the hook: an extra render per
+    // preview on mount and a synchronous one on leaving the app added up to
+    // a long main-thread task on Momente and Wir.
+    const onRender = vi.fn();
+    render(<Probe onRender={onRender} />);
+    expect(onRender).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      Object.defineProperty(document, 'visibilityState', {
+        configurable: true,
+        value: 'hidden',
+      });
+      document.dispatchEvent(new Event('visibilitychange'));
+      window.dispatchEvent(new Event('pagehide'));
+    });
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      value: 'visible',
+    });
+    expect(onRender).toHaveBeenCalledTimes(1);
+  });
 });

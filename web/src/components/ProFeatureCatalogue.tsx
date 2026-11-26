@@ -67,7 +67,9 @@ export function ProFeatureCatalogue() {
   const worlds = new Intl.ListFormat(resolvedLocale(), {
     type: 'conjunction',
   }).format(
-    PRO_MEMORY_WORLD_IDS.map((id) => t(`memoryWorldSettings.worlds.${id}.name`)),
+    PRO_MEMORY_WORLD_IDS.map((id) =>
+      t(`memoryWorldSettings.worlds.${id}.name`),
+    ),
   );
 
   return (

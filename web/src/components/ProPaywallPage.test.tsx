@@ -10,6 +10,7 @@ import {
 } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { MemoryWorldId } from '../api/generated/models/MemoryWorldId';
 import {
   type BillingChannel,
   currentBillingChannel,
@@ -18,7 +19,6 @@ import {
   unlocksFeature,
   yearlySavingPercent,
 } from '../client/proBilling';
-import { MemoryWorldId } from '../api/generated/models/MemoryWorldId';
 import memoryWorldSettings from '../i18n/locales/memoryWorldSettings';
 import proPaywall from '../i18n/locales/proPaywall';
 import { PRO_MEMORY_WORLD_IDS } from './ProFeatureCatalogue';
@@ -376,13 +376,15 @@ describe('Pro showcase', () => {
     try {
       renderPaywall('/more/pro');
       const indicators = within(showcase()).getAllByRole('button');
-      expect(indicators.map((button) => button.getAttribute('aria-label')))
-        .toEqual([
-          'Highlight 1 von 4',
-          'Highlight 2 von 4',
-          'Highlight 3 von 4',
-          'Highlight 4 von 4',
-        ]);
+      expect(
+        indicators.map((button) => button.getAttribute('aria-label')),
+      ).toEqual(
+        [1, 2, 3, 4].map((index) =>
+          proPaywall.showcase.indicator
+            .replace('{{index}}', String(index))
+            .replace('{{count}}', '4'),
+        ),
+      );
       expect(indicators[0].getAttribute('aria-current')).toBe('true');
       act(() => {
         vi.advanceTimersByTime(60_000);
@@ -404,8 +406,11 @@ describe('Pro showcase', () => {
 
   it('names the yearly price per month for both partners', () => {
     renderPaywall('/more/pro');
-    expect(showcase().textContent).toMatch(
-      /Alles zusammen für 5,00\s€ im Monat, für euch beide\./,
+    const [before, after] = proPaywall.showcase.anchor
+      .replace(/<\/?strong>/g, '')
+      .split('{{price}}');
+    expect(showcase().querySelector('.pro-showcase-anchor')?.textContent).toBe(
+      `${before}5,00\u00a0€${after}`,
     );
   });
 
@@ -440,7 +445,7 @@ describe('Pro showcase', () => {
     renderPaywall('/more/pro');
     expect(within(showcase()).getAllByRole('listitem')).toHaveLength(4);
     expect(screen.queryByRole('radio')).toBeNull();
-    expect(showcase().textContent).not.toContain('im Monat');
+    expect(showcase().querySelector('.pro-showcase-anchor')).toBeNull();
   });
 
   it('falls back to the general gallery for an unknown context', () => {

@@ -27,17 +27,19 @@ export function ProShowcase({ anchor }: { anchor?: ReactNode }) {
   useEffect(() => {
     const track = trackRef.current;
     if (!track || typeof IntersectionObserver !== 'function') return;
+    // In Expanded two cards can be in view: the first of them is current.
+    const shown = new Set<number>();
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
-          if (entry.intersectionRatio < CURRENT_THRESHOLD) continue;
-          const index = itemRefs.current.indexOf(
-            entry.target as HTMLLIElement,
-          );
-          if (index >= 0) setCurrent(index);
+          const index = itemRefs.current.indexOf(entry.target as HTMLLIElement);
+          if (index < 0) continue;
+          if (entry.intersectionRatio >= CURRENT_THRESHOLD) shown.add(index);
+          else shown.delete(index);
         }
+        if (shown.size > 0) setCurrent(Math.min(...shown));
       },
-      { root: track, threshold: CURRENT_THRESHOLD },
+      { root: track, threshold: [0, CURRENT_THRESHOLD] },
     );
     for (const item of itemRefs.current) if (item) observer.observe(item);
     return () => observer.disconnect();
@@ -53,7 +55,10 @@ export function ProShowcase({ anchor }: { anchor?: ReactNode }) {
   };
 
   return (
-    <section className="pro-showcase" aria-label={t('proPaywall.showcase.label')}>
+    <section
+      className="pro-showcase"
+      aria-label={t('proPaywall.showcase.label')}
+    >
       <ul className="pro-showcase-track" ref={trackRef}>
         {PRO_SCENE_IDS.map((id, index) => (
           <li

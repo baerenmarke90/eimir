@@ -96,7 +96,9 @@ describe('ProScene', () => {
     expect(root.dataset.scene).toBe(id);
     expect(root.querySelector('svg')).toBeTruthy();
     expect(
-      root.querySelectorAll('a, button, input, [tabindex]:not([tabindex="-1"])'),
+      root.querySelectorAll(
+        'a, button, input, [tabindex]:not([tabindex="-1"])',
+      ),
     ).toHaveLength(0);
   });
 

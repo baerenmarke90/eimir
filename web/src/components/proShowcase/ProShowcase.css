@@ -163,7 +163,8 @@
 }
 
 /* Gallery: Compact first. Each card is 88 % of the column so the next one
-   peeks in; it never advances on its own. */
+   peeks in; in Expanded a card stays at a phone-like width so the scenes do
+   not grow past the reading column's height. It never advances on its own. */
 .pro-showcase {
   display: grid;
   gap: var(--space-3);
@@ -173,7 +174,7 @@
 .pro-showcase-track {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: 88%;
+  grid-auto-columns: min(88%, 24rem);
   gap: var(--space-3);
   margin: 0;
   padding: 0;
@@ -208,6 +209,8 @@
 .pro-showcase-copy h2 {
   margin: 0;
   font: var(--font-content-heading);
+  /* Long German compounds break at syllables at 320 px with 200 % text. */
+  hyphens: auto;
 }
 
 .pro-showcase-copy p {

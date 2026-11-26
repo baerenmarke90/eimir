@@ -173,8 +173,9 @@ scenes"). The accepted v2 replaces the scene list above:
   also stays for an active Space (it shows what the couple has); only the
   plan controls change, as today.
 - *Context pages.* `recaps`, `memoryMap` and `games` replace the two-circle
-  hero with their matching scene (non-interactive, same size as today's
-  hero) and keep their three benefits. `dateIdeas`, `photoSources`,
+  hero with their matching scene and keep their three benefits. The scene
+  is not interactive. As in the accepted mockup v2, it spans the column at
+  the scene's 5:4 ratio, so it is taller than today's hero. `dateIdeas`, `photoSources`,
   `storage` and `calendar` keep today's hero.
 - *Gallery behaviour.* Horizontal scroll snap. Each card is about 88 % of the
   column width so the next card peeks in. The gallery **never advances on its

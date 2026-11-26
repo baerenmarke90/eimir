@@ -83,6 +83,7 @@ export function ProScene({
     >
       <svg
         viewBox="0 0 240 192"
+        aria-hidden="true"
         focusable="false"
         preserveAspectRatio="xMidYMid slice"
       >
@@ -129,6 +130,7 @@ function Mochi({
       height={height}
       viewBox="-26 -21 52 42"
       overflow="visible"
+      aria-hidden="true"
     >
       <ellipse rx="24" ry="19" fill={a ? '#ffd4df' : '#cdeedd'} />
       <g className="ps-p ps-blink">
@@ -155,7 +157,14 @@ function Mochi({
 
 function Heart({ x, y, size }: { x: number; y: number; size: number }) {
   return (
-    <svg x={x} y={y} width={size} height={size} viewBox="0 0 24 24">
+    <svg
+      x={x}
+      y={y}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
       <path d={HEART_PATH} fill="#f2668b" />
     </svg>
   );
@@ -370,13 +379,7 @@ function RecapFilmScene({ ids }: { ids: Ids }) {
               d="M93 151 c-4 -5 -6 -7 -6 -9.5 a6 6 0 0 1 12 0 c0 2.5 -2 4.5 -6 9.5z"
               fill="#d13b65"
             />
-            <text
-              x="104"
-              y="150"
-              fontSize="10"
-              fontWeight="700"
-              fill="#19233e"
-            >
+            <text x="104" y="150" fontSize="10" fontWeight="700" fill="#19233e">
               {t('proPaywall.showcase.art.recapPlace')}
             </text>
           </g>
@@ -447,7 +450,13 @@ function Flower({
   return (
     <>
       {petals.map(([dx, dy]) => (
-        <circle key={`${dx}${dy}`} cx={cx + dx} cy={cy + dy} r="7" fill={petal} />
+        <circle
+          key={`${dx}${dy}`}
+          cx={cx + dx}
+          cy={cy + dy}
+          r="7"
+          fill={petal}
+        />
       ))}
       <circle cx={cx} cy={cy} r="5" fill={centre} />
     </>
@@ -520,7 +529,13 @@ function GardenScene({ ids }: { ids: Ids }) {
       <g className="ps-p ps3-toss-b">
         <Mochi kind="b" x={184} y={136} width={48} height={38} />
       </g>
-      <circle className="ps-p ps3-seed-a" cx="44" cy="140" r="4" fill="#8a654b" />
+      <circle
+        className="ps-p ps3-seed-a"
+        cx="44"
+        cy="140"
+        r="4"
+        fill="#8a654b"
+      />
       <circle
         className="ps-p ps3-seed-b"
         cx="200"

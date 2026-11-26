@@ -127,7 +127,8 @@ The Product Owner chose **A** on 2026-11-26.
   `revoked_at`, `revoked_by`.
 - `gift_codes`: id, `batch_id` (cascade), `code_protected`, `lookup_hash` (unique),
   `handed_out_at`, `redeemed_at`, `redeemed_space_id` (`SET NULL` on Space deletion),
-  `redeemed_grant_id` (`SET NULL`), `revoked_at`.
+  `redeemed_grant_id` (`SET NULL`), `revoked_at`, `revoked_by` (Account, `SET NULL`; added in
+  the build so a revoked single code keeps its actor like a revoked batch).
 - Manifest/lifecycle: operator data, not couple content; excluded from the couple export; Space
   deletion keeps the code row (counts stay right) but drops the link; retention of fully
   redeemed or expired batches after 24 months via `prune_expired` *(agent's call)*.
@@ -157,10 +158,15 @@ Couple (authenticated member of the Space, Cloud + Pro only):
   `entitlements.record_grant` and marks the code in one transaction. The Space lock stops two
   different codes redeemed at once from both reading the same end date and losing months. A
   replay of an already redeemed code by the same Space returns the stored end date **before**
-  any `record_grant` call (idempotent after a lost response; no double extension).
-- **Abuse protection** on the existing rate-limit table: 5 failed attempts per Account per hour
-  and 20 per Space per day. Only failures are recorded (a small failure-only path next to
-  `rate_limit.check`, which counts every attempt); successes do not count. *(Agent's call.)*
+  any `record_grant` call (idempotent after a lost response; no double extension), but only
+  while that grant still runs; otherwise the code reads as used.
+- **Abuse protection** on the existing rate-limit table: 5 attempts per Account per hour and
+  20 per Space per day through `rate_limit.check`. **Every attempt counts, successes and replays
+  included, and nothing clears the counters** (ruling of the part 5 review, 2026-11-26). The
+  first wording here ("only failures count, successes do not") was exploitable: clearing the
+  counters after a success let any member replay a code the Space had already redeemed to wipe
+  the counted guesses and then guess without limit. A couple redeems a handful of codes at
+  most, so counting successes costs nothing in practice.
 
 ### 5.5 Availability flag for the client
 

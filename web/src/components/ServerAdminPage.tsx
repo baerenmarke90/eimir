@@ -1,12 +1,11 @@
-import { formatBytes } from '../client/formatBytes';
-import { TaskBackLink } from './TaskBackButton';
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigationType, useSearchParams } from 'react-router-dom';
 import type { ServerAdminApi } from '../api/generated/apis/ServerAdminApi';
-import type { ServerAdminPrivilegedAuditItem } from '../api/generated/models/ServerAdminPrivilegedAuditItem';
 import type { ServerAdminOverview } from '../api/generated/models/ServerAdminOverview';
+import type { ServerAdminPrivilegedAuditItem } from '../api/generated/models/ServerAdminPrivilegedAuditItem';
 import type { ServerAdminSettings } from '../api/generated/models/ServerAdminSettings';
+import { formatBytes } from '../client/formatBytes';
 import { PUBLIC_START_ROUTE } from '../client/publicStart';
 import { DEFAULT_APP_ROUTE, SERVER_ADMIN_ROUTE } from '../client/routes';
 import { createServerAdminApis } from '../client/serverAdmin';
@@ -16,6 +15,12 @@ import { ServerAdminAccountsPanel } from './ServerAdminAccountsPanel';
 import { ServerAdminJobsPanel } from './ServerAdminJobsPanel';
 import { ServerAdminSpacesPanel } from './ServerAdminSpacesPanel';
 import { ServerAdminStoragePanel } from './ServerAdminStoragePanel';
+import {
+  resolveServerAdminSection,
+  type ServerAdminSection,
+  sectionHref,
+} from './serverAdminAreas';
+import { TaskBackLink } from './TaskBackButton';
 import { ThemeControl } from './ThemeControl';
 import { UiState } from './UiState';
 import './ServerAdminPage.css';
@@ -30,33 +35,10 @@ const ServerAdminSupportReportsPanel = lazy(() =>
   ),
 );
 
-const SERVER_ADMIN_SECTIONS = [
-  'overview',
-  'reports',
-  'accounts',
-  'spaces',
-  'jobs',
-  'storage',
-  'security',
-  'settings',
-  'activity',
-] as const;
-
-export type ServerAdminSection = (typeof SERVER_ADMIN_SECTIONS)[number];
-
-export function resolveServerAdminSection(
-  value: string | null,
-): ServerAdminSection {
-  return SERVER_ADMIN_SECTIONS.includes(value as ServerAdminSection)
-    ? (value as ServerAdminSection)
-    : 'overview';
-}
-
-function sectionHref(section: ServerAdminSection): string {
-  return section === 'overview'
-    ? SERVER_ADMIN_ROUTE
-    : `${SERVER_ADMIN_ROUTE}?section=${section}`;
-}
+export {
+  resolveServerAdminSection,
+  type ServerAdminSection,
+} from './serverAdminAreas';
 
 export function ServerAdminSectionNavigation({
   activeSection,

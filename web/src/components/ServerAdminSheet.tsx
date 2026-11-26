@@ -47,10 +47,12 @@ export function ServerAdminSheet({
   }
 
   return (
-    <div className="server-admin-sheet-backdrop">
+    <div className="server-admin-sheet-layer">
+      {/* A sibling, so its fade never dims the sheet's own text. */}
+      <div className="server-admin-sheet-backdrop" aria-hidden="true" />
       <section
         ref={dialogRef}
-        className="surface-panel server-admin-sheet"
+        className="server-admin-sheet"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

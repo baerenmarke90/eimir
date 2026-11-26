@@ -18,6 +18,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { isVisibleNow } from '../../motion/visibility';
 import './WorldEnter.css';
 
 /** Frames count as smooth when two in a row arrive within this time. */
@@ -49,6 +50,10 @@ export function WorldEnter({
   cover?: ReactNode;
 }) {
   const [entered, setEntered] = useState(false);
+  // A world that enters while its tab is hidden is there at once when the
+  // tab is shown: a hidden tab skips its style, so a cross-fade started there
+  // would only play on the reveal and show the loading card again.
+  const [instant, setInstant] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     let frame = 0;
@@ -92,7 +97,10 @@ export function WorldEnter({
       await waitSmooth();
       await decodeImages();
       await waitSmooth();
-      if (!cancelled) setEntered(true);
+      if (cancelled) return;
+      const box = boxRef.current;
+      setInstant(Boolean(box && !isVisibleNow(box).keptView));
+      setEntered(true);
     })();
     return () => {
       cancelled = true;
@@ -103,6 +111,7 @@ export function WorldEnter({
     <div
       className="memory-world-stage"
       data-entered={entered ? 'true' : 'false'}
+      data-enter={instant ? 'instant' : undefined}
     >
       {/* The loading card stays until the world is ready, then cross-fades. */}
       {cover ? (

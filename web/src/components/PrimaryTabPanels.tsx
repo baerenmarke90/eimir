@@ -48,12 +48,12 @@ const PREWARM_QUIET_MS = 1_500;
 const NEIGHBOUR_AFTER_MS = 1_000;
 const NEIGHBOUR_QUIET_MS = 500;
 /**
- * A built neighbour is drawn once, practically invisibly, a moment after it
- * was built: its first layout, image decoding and the GPU's first use of its
- * effects then happen while nobody touches the screen, not in the first
- * frames of a swipe.
+ * A built neighbour is drawn once, practically invisibly, a while after it
+ * was built (once its data, photos and memory world settled): its first
+ * layout, image decoding and the GPU's first use of its effects then happen
+ * while nobody touches the screen, not in the first frames of a swipe.
  */
-const REHEARSE_AFTER_MS = 600;
+const REHEARSE_AFTER_MS = 2_000;
 const PREWARM_INPUT = [
   'pointerdown',
   'pointerup',

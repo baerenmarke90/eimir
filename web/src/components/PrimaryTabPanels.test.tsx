@@ -480,7 +480,7 @@ it('draws a built neighbour once, practically invisibly, before its first reveal
     // A quiet moment later it is drawn for one frame (layout, images and the
     // GPU's first use of its effects), then skipped again.
     const seen: (string | undefined)[] = [];
-    for (let step = 0; step < 120; step += 1) {
+    for (let step = 0; step < 220; step += 1) {
       await act(() => vi.advanceTimersByTimeAsync(16));
       seen.push(panel('/story')?.dataset.primaryTabRehearse);
     }

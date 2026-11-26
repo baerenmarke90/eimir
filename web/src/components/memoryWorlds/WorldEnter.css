@@ -41,3 +41,9 @@
 .memory-world-stage[data-entered="true"] > .memory-world-cover {
   opacity: 0;
 }
+/* Entered while its tab was hidden: at rest at once when the tab is shown
+   (`WorldEnter.tsx`). */
+.memory-world-stage[data-enter="instant"] > .memory-world-cover,
+.memory-world-stage[data-enter="instant"] > .memory-world-enter {
+  transition: none;
+}

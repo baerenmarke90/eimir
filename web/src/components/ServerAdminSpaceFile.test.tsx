@@ -137,7 +137,12 @@ describe('ServerAdminSpaceFile', () => {
       }),
     );
 
-    expect(await screen.findByText(/individuell: 80 GB bis/)).toBeTruthy();
+    const prefix = copy.spaceFile.overrideUntil
+      .replace('{{quota}}', '80 GB')
+      .split('{{date}}')[0];
+    expect(
+      await screen.findByText((text) => text.startsWith(prefix)),
+    ).toBeTruthy();
   });
 
   it('hides the storage button when storage is unmetered', async () => {

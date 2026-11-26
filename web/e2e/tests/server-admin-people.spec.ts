@@ -23,6 +23,21 @@ const SPACE_ID = '019b2e1a-7c3d-7f00-8a11-0123456789ab';
 const ACCOUNT_ID = '019b2e1a-7c3d-7f00-8a11-0000000000aa';
 const PARTNER_NAME = 'Lena Partnername';
 
+/** Fills a locale template the way i18next does for these plain values. */
+function fill(template: string, values: Record<string, string>): string {
+  return Object.entries(values).reduce(
+    (text, [key, value]) => text.replace(`{{${key}}}`, value),
+    template,
+  );
+}
+
+const OVERRIDE_TEXT = fill(spaceFile.override, { quota: '80 GB' });
+const PLAN_STORAGE_TEXT = fill(spaceFile.storageOf, {
+  used: '46 GB',
+  quota: '50 GB',
+  percent: '92',
+});
+
 function overview(): Record<string, unknown> {
   return {
     accountCount: 2,
@@ -348,7 +363,7 @@ test('the operator finds a Space, sets an individual quota and removes it again'
   await expect
     .poll(() => recorded.quotaWrites)
     .toEqual([{ quotaGb: 80, effectiveUntil: null }]);
-  await expect(page.getByText('individuell: 80 GB')).toBeVisible();
+  await expect(page.getByText(OVERRIDE_TEXT)).toBeVisible();
 
   // Return: removing it brings back the plan's storage.
   await page.getByRole('button', { name: spaceFile.adjustStorage }).click();
@@ -357,8 +372,8 @@ test('the operator finds a Space, sets an individual quota and removes it again'
     .getByRole('button', { name: quotaSheet.remove })
     .click();
   await expect.poll(() => recorded.quotaClears).toBe(1);
-  await expect(page.getByText('individuell: 80 GB')).toHaveCount(0);
-  await expect(page.getByText(/46 GB von 50 GB/)).toBeVisible();
+  await expect(page.getByText(OVERRIDE_TEXT)).toHaveCount(0);
+  await expect(page.getByText(PLAN_STORAGE_TEXT)).toBeVisible();
 });
 
 test('People search and Space file layout in Compact and Expanded, Light and Dark', async ({

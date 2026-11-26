@@ -14636,6 +14636,13 @@
               }
             ],
             "title": "Primaryemail"
+          },
+          "spaces": {
+            "items": {
+              "$ref": "#/components/schemas/ServerAdminAccountSpace"
+            },
+            "title": "Spaces",
+            "type": "array"
           }
         },
         "required": [
@@ -14724,6 +14731,32 @@
           "offset"
         ],
         "title": "ServerAdminAccountList",
+        "type": "object"
+      },
+      "ServerAdminAccountSpace": {
+        "description": "One Space the Account belongs or belonged to; ids and status only.",
+        "properties": {
+          "membershipStatus": {
+            "title": "Membershipstatus",
+            "type": "string"
+          },
+          "since": {
+            "format": "date-time",
+            "title": "Since",
+            "type": "string"
+          },
+          "spaceId": {
+            "format": "uuid",
+            "title": "Spaceid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "spaceId",
+          "membershipStatus",
+          "since"
+        ],
+        "title": "ServerAdminAccountSpace",
         "type": "object"
       },
       "ServerAdminAccountSummary": {
@@ -15276,6 +15309,24 @@
           "offset"
         ],
         "title": "ServerAdminJobList",
+        "type": "object"
+      },
+      "ServerAdminMediaTypeUsage": {
+        "properties": {
+          "bytes": {
+            "title": "Bytes",
+            "type": "integer"
+          },
+          "mediaType": {
+            "title": "Mediatype",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mediaType",
+          "bytes"
+        ],
+        "title": "ServerAdminMediaTypeUsage",
         "type": "object"
       },
       "ServerAdminMonitoring": {
@@ -15913,6 +15964,30 @@
         "title": "ServerAdminRecoveryProof",
         "type": "object"
       },
+      "ServerAdminSearchResult": {
+        "properties": {
+          "accounts": {
+            "items": {
+              "$ref": "#/components/schemas/ServerAdminAccountSummary"
+            },
+            "title": "Accounts",
+            "type": "array"
+          },
+          "spaces": {
+            "items": {
+              "$ref": "#/components/schemas/ServerAdminSpaceSummary"
+            },
+            "title": "Spaces",
+            "type": "array"
+          }
+        },
+        "required": [
+          "accounts",
+          "spaces"
+        ],
+        "title": "ServerAdminSearchResult",
+        "type": "object"
+      },
       "ServerAdminServiceState": {
         "properties": {
           "key": {
@@ -16206,6 +16281,42 @@
         "title": "ServerAdminSpaceEntitlementView",
         "type": "object"
       },
+      "ServerAdminSpaceFile": {
+        "properties": {
+          "entitlement": {
+            "$ref": "#/components/schemas/ServerAdminSpaceEntitlementView"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/ServerAdminSpaceMember"
+            },
+            "title": "Members",
+            "type": "array"
+          },
+          "space": {
+            "$ref": "#/components/schemas/ServerAdminSpaceDetail"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/ServerAdminSpaceStorage"
+          },
+          "timeline": {
+            "items": {
+              "$ref": "#/components/schemas/ServerAdminSpaceTimelineEntry"
+            },
+            "title": "Timeline",
+            "type": "array"
+          }
+        },
+        "required": [
+          "space",
+          "members",
+          "storage",
+          "entitlement",
+          "timeline"
+        ],
+        "title": "ServerAdminSpaceFile",
+        "type": "object"
+      },
       "ServerAdminSpaceList": {
         "properties": {
           "items": {
@@ -16235,6 +16346,126 @@
           "offset"
         ],
         "title": "ServerAdminSpaceList",
+        "type": "object"
+      },
+      "ServerAdminSpaceMember": {
+        "description": "A member Account at email level; never a display name.",
+        "properties": {
+          "accountId": {
+            "format": "uuid",
+            "title": "Accountid",
+            "type": "string"
+          },
+          "authMethods": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Authmethods",
+            "type": "array"
+          },
+          "emailVerified": {
+            "title": "Emailverified",
+            "type": "boolean"
+          },
+          "endedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Endedat"
+          },
+          "membershipStatus": {
+            "title": "Membershipstatus",
+            "type": "string"
+          },
+          "primaryEmail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primaryemail"
+          },
+          "since": {
+            "format": "date-time",
+            "title": "Since",
+            "type": "string"
+          }
+        },
+        "required": [
+          "accountId",
+          "primaryEmail",
+          "emailVerified",
+          "authMethods",
+          "membershipStatus",
+          "since",
+          "endedAt"
+        ],
+        "title": "ServerAdminSpaceMember",
+        "type": "object"
+      },
+      "ServerAdminSpaceStorage": {
+        "properties": {
+          "byMediaType": {
+            "items": {
+              "$ref": "#/components/schemas/ServerAdminMediaTypeUsage"
+            },
+            "title": "Bymediatype",
+            "type": "array"
+          },
+          "override": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ServerAdminStorageQuotaOverride"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quotaBytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quotabytes"
+          },
+          "tierQuotaBytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tierquotabytes"
+          },
+          "usedBytes": {
+            "title": "Usedbytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "usedBytes",
+          "quotaBytes",
+          "tierQuotaBytes",
+          "override",
+          "byMediaType"
+        ],
+        "title": "ServerAdminSpaceStorage",
         "type": "object"
       },
       "ServerAdminSpaceSummary": {
@@ -16324,6 +16555,59 @@
           "anomalyCodes"
         ],
         "title": "ServerAdminSpaceSummary",
+        "type": "object"
+      },
+      "ServerAdminSpaceTimelineEntry": {
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "effectiveUntil": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effectiveuntil"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "sourceType": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sourcetype"
+          },
+          "tier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tier"
+          }
+        },
+        "required": [
+          "at",
+          "kind"
+        ],
+        "title": "ServerAdminSpaceTimelineEntry",
         "type": "object"
       },
       "ServerAdminStorageGrowth": {
@@ -16478,6 +16762,65 @@
           "quotaBytes"
         ],
         "title": "ServerAdminStoragePressureItem",
+        "type": "object"
+      },
+      "ServerAdminStorageQuotaOverride": {
+        "properties": {
+          "effectiveUntil": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effectiveuntil"
+          },
+          "quotaBytes": {
+            "title": "Quotabytes",
+            "type": "integer"
+          },
+          "setAt": {
+            "format": "date-time",
+            "title": "Setat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "quotaBytes",
+          "effectiveUntil",
+          "setAt"
+        ],
+        "title": "ServerAdminStorageQuotaOverride",
+        "type": "object"
+      },
+      "ServerAdminStorageQuotaRequest": {
+        "properties": {
+          "effectiveUntil": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effectiveuntil"
+          },
+          "quotaGb": {
+            "maximum": 1024.0,
+            "minimum": 1.0,
+            "title": "Quotagb",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "quotaGb"
+        ],
+        "title": "ServerAdminStorageQuotaRequest",
         "type": "object"
       },
       "ServerAdminStorageStatusCount": {
@@ -24937,6 +25280,71 @@
         ]
       }
     },
+    "/api/v1/server-admin/search": {
+      "get": {
+        "description": "Find Accounts by email part or id, their Spaces, and a Space by id.\n\nNames are protected content and never matched. At most 20 Accounts come\nback, so the Account-Space link cannot be listed in bulk.",
+        "operationId": "searchServerAdmin",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 320,
+              "title": "Q",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerAdminSearchResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Search Server Admin",
+        "tags": [
+          "server-admin"
+        ]
+      }
+    },
     "/api/v1/server-admin/settings": {
       "get": {
         "operationId": "get_server_admin_settings_api_v1_server_admin_settings_get",
@@ -25730,6 +26138,209 @@
           }
         },
         "summary": "Revoke Server Admin Space Entitlement Grant",
+        "tags": [
+          "server-admin"
+        ]
+      }
+    },
+    "/api/v1/server-admin/spaces/{space_id}/file": {
+      "get": {
+        "description": "Everything an operator needs about one Space, without names or content.\n\nEach call is recorded as ``space_file_viewed`` in the privileged audit.",
+        "operationId": "getServerAdminSpaceFile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "Space Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerAdminSpaceFile"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Server Admin Space File",
+        "tags": [
+          "server-admin"
+        ]
+      }
+    },
+    "/api/v1/server-admin/spaces/{space_id}/storage-quota": {
+      "delete": {
+        "description": "Remove the individual quota; the tier value applies again at once.",
+        "operationId": "clearServerAdminSpaceStorageQuota",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "Space Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Clear Server Admin Space Storage Quota",
+        "tags": [
+          "server-admin"
+        ]
+      },
+      "put": {
+        "description": "Set an individual Cloud quota for the Space, optionally until a date.\n\nThe higher of it and the tier value applies while it is active, so a\nvalue below the tier has no effect. Over the quota nothing is deleted;\nonly new bytes are refused.",
+        "operationId": "setServerAdminSpaceStorageQuota",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "Space Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServerAdminStorageQuotaRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerAdminSpaceStorage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Set Server Admin Space Storage Quota",
         "tags": [
           "server-admin"
         ]

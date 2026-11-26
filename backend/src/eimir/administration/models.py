@@ -56,6 +56,9 @@ class AdministrationAction(StrEnum):
     SUPPORT_REPORT_ARCHIVED = "support_report.archived"
     SUPPORT_REPORT_UNARCHIVED = "support_report.unarchived"
     SUPPORT_REPORT_DELETED = "support_report.deleted"
+    SPACE_STORAGE_QUOTA_SET = "space_storage_quota_set"
+    SPACE_STORAGE_QUOTA_CLEARED = "space_storage_quota_cleared"
+    SPACE_FILE_VIEWED = "space_file_viewed"
 
 
 class InstanceAdministrationSettings(TimestampMixin, VersionMixin, Base):
@@ -162,7 +165,10 @@ class InstanceAdministrationActionEvent(IdMixin, Base):
             "'support_report.ticket_cleared', "
             "'support_report.archived', "
             "'support_report.unarchived', "
-            "'support_report.deleted'"
+            "'support_report.deleted', "
+            "'space_storage_quota_set', "
+            "'space_storage_quota_cleared', "
+            "'space_file_viewed'"
             ")",
             name="action_valid",
         ),

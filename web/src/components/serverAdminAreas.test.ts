@@ -17,6 +17,7 @@ describe('ServerAdmin areas', () => {
 
   it('maps sections to their area', () => {
     expect(areaForSection('overview')).toBe('situation');
+    expect(areaForSection('search')).toBe('people');
     expect(areaForSection('accounts')).toBe('people');
     expect(areaForSection('spaces')).toBe('people');
     expect(areaForSection('reports')).toBe('help');
@@ -28,6 +29,10 @@ describe('ServerAdmin areas', () => {
 
   it('opens Help at the reports, with the reply templates second', () => {
     expect(AREA_SECTIONS.help).toEqual(['reports', 'replyTemplates']);
+  });
+
+  it('opens People at the search', () => {
+    expect(AREA_SECTIONS.people[0]).toBe('search');
   });
 
   it('opens System at Monitoring', () => {

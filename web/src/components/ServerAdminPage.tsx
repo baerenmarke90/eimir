@@ -22,6 +22,7 @@ import {
 } from './ServerAdminAreaNavigation';
 import { ServerAdminJobsPanel } from './ServerAdminJobsPanel';
 import { ServerAdminMonitoringPanel } from './ServerAdminMonitoringPanel';
+import { ServerAdminPeopleSearch } from './ServerAdminPeopleSearch';
 import { ServerAdminSituation } from './ServerAdminSituation';
 import { ServerAdminSpacesPanel } from './ServerAdminSpacesPanel';
 import { ServerAdminStoragePanel } from './ServerAdminStoragePanel';
@@ -904,9 +905,18 @@ export function ServerAdminPage({
       });
       return;
     }
+    if (section === 'search') {
+      void queryClient.invalidateQueries({
+        queryKey: ['server-admin', 'search'],
+      });
+      return;
+    }
     if (section === 'spaces') {
       void queryClient.invalidateQueries({
         queryKey: ['server-admin', 'spaces'],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ['server-admin', 'space-file'],
       });
       void queryClient.invalidateQueries({
         queryKey: ['server-admin', 'space'],
@@ -1133,9 +1143,14 @@ export function ServerAdminPage({
               <ServerAdminStoragePanel api={apis.serverAdmin} />
             ) : null}
 
+            {section === 'search' ? (
+              <ServerAdminPeopleSearch api={apis.serverAdmin} />
+            ) : null}
+
             {section === 'accounts' ? (
               <ServerAdminAccountsPanel
                 api={apis.serverAdmin}
+                initialAccountId={searchParams.get('account')}
                 onOverviewChanged={() =>
                   void queryClient.invalidateQueries({
                     queryKey: ['server-admin', 'overview'],

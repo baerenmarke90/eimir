@@ -245,6 +245,8 @@ EXCLUDED_TABLES: dict[str, str] = {
     "operational_metric_hours": "Operational history of the old instance.",
     "request_metric_minutes": "Request counters of the old instance.",
     "worker_heartbeats": "Worker liveness of the old instance.",
+    # ServerAdmin part 3 (#2324): an operator decision on the old instance.
+    "space_storage_quota_overrides": "Individual quotas are set again by the target's operator.",
     "instance_bootstrap_state": "Instance administration.",
     "spaces": "The target Space exists already; the Space identity is not copied.",
     "space_configurations": "Instance-level Space configuration.",

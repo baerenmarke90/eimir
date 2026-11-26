@@ -83,6 +83,12 @@ export interface StageOptions {
   hold?: number;
   /** An ancestor that belongs to the stage too (it shares the clock). */
   scope?: (root: Element) => Element | null;
+  /**
+   * A root inside a hidden kept view (a tab built ahead) is first considered
+   * when that view is shown, not when it mounts. Without it the opening is
+   * skipped for good when it mounts hidden.
+   */
+  deferWhileHidden?: boolean;
 }
 
 interface StageRecord {
@@ -394,6 +400,28 @@ function checkHold(identity: string): void {
   });
 }
 
+/**
+ * Keeps an opening whose kept view is hidden unconsidered until the view is
+ * shown, then considers it in that same task (before the frame that shows
+ * the view), so its first frame already belongs to the opening.
+ */
+function deferUntilShown(identity: string, root: Element): void {
+  const found = record(identity);
+  if (found.detach) return;
+  const stop = observeVisibility(
+    root,
+    (state) => {
+      if (!state.keptView) return;
+      stop?.();
+      if (found.detach === stopWatching) found.detach = null;
+      if (found.root === root && found.phase === 'idle') arm(identity);
+    },
+    { onScreen: false },
+  );
+  const stopWatching = () => stop();
+  found.detach = stopWatching;
+}
+
 /** The first consideration: wait for data, or play (or skip) at once. */
 function arm(identity: string): void {
   const found = record(identity);
@@ -402,6 +430,10 @@ function arm(identity: string): void {
   if (!root || !options) return;
   if (hasPlayed(identity, 'app-start')) {
     end(identity);
+    return;
+  }
+  if (options.deferWhileHidden && !isVisibleNow(root).keptView) {
+    deferUntilShown(identity, root);
     return;
   }
   markPlayed(identity, 'app-start');

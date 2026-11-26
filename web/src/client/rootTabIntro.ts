@@ -38,7 +38,8 @@ function shownByChoice(root: Element): boolean {
  *
  * A tab that a swipe reveals, or that is prepared in the background, is shown
  * complete: content never rises while the finger drags the page, and the
- * entrance never plays unseen (M12).
+ * entrance never plays unseen (M12). A tab built hidden ahead (a neighbour)
+ * enters when it is first chosen, like a tab built on its first visit.
  */
 export function useRootTabIntro<T extends HTMLElement>(
   tab: string,
@@ -47,5 +48,6 @@ export function useRootTabIntro<T extends HTMLElement>(
     duration: rootTabIntroDuration(),
     animationPrefix: ROOT_TAB_INTRO_PREFIX,
     canStart: shownByChoice,
+    deferWhileHidden: true,
   });
 }

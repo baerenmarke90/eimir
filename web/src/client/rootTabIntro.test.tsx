@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render } from '@testing-library/react';
+import { act, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   DEFAULT_ROLES,
@@ -17,12 +17,21 @@ function Page() {
   return <div className="page" data-testid="page" ref={ref} />;
 }
 
-function Panel({ peek, prewarm }: { peek?: boolean; prewarm?: boolean }) {
+function Panel({
+  peek,
+  prewarm,
+  hidden,
+}: {
+  peek?: boolean;
+  prewarm?: boolean;
+  hidden?: boolean;
+}) {
   return (
     <div
       data-primary-tab="/plan"
       data-primary-tab-peek={peek ? 'true' : undefined}
       data-primary-tab-prewarm={prewarm ? 'true' : undefined}
+      hidden={hidden}
     >
       <Page />
     </div>
@@ -69,6 +78,25 @@ describe('useRootTabIntro', () => {
     const view = render(<Panel prewarm />);
     expect(page()?.hasAttribute(STAGE_ATTRIBUTE)).toBe(false);
     view.rerender(<Panel />);
+    expect(page()?.hasAttribute(STAGE_ATTRIBUTE)).toBe(false);
+  });
+
+  it('opens a tab built hidden ahead when it is first chosen', async () => {
+    // A neighbour built in the background enters like any tab when it is
+    // tapped, so every tab opens the same way.
+    const view = render(<Panel hidden />);
+    expect(page()?.hasAttribute(STAGE_ATTRIBUTE)).toBe(false);
+    view.rerender(<Panel />);
+    await act(async () => {});
+    expect(page()?.getAttribute(STAGE_ATTRIBUTE)).toBe('playing');
+  });
+
+  it('never opens a tab built hidden ahead that a swipe reveals', async () => {
+    const view = render(<Panel hidden />);
+    view.rerender(<Panel peek />);
+    await act(async () => {});
+    view.rerender(<Panel />);
+    await act(async () => {});
     expect(page()?.hasAttribute(STAGE_ATTRIBUTE)).toBe(false);
   });
 });

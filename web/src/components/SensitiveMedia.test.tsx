@@ -22,6 +22,12 @@ const items = [
   { id: 'neighbor', mediaType: 'IMAGE' as const, isSensitive: true },
 ];
 const loadMedia = async (id: string) => `blob:${id}`;
+
+function RevealProbe({ onRender }: { onRender: () => void }) {
+  onRender();
+  useSensitiveMediaReveals('memory-1');
+  return null;
+}
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
@@ -178,18 +184,12 @@ it('keeps checkbox changes as draft input until the containing form is submitted
 });
 
 describe('useSensitiveMediaReveals without a revealed item', () => {
-  function Probe({ onRender }: { onRender: () => void }) {
-    onRender();
-    useSensitiveMediaReveals('memory-1');
-    return null;
-  }
-
   it('renders once on mount and not again when the app is left', () => {
     // Every preview with protected media uses the hook: an extra render per
     // preview on mount and a synchronous one on leaving the app added up to
     // a long main-thread task on Momente and Wir.
     const onRender = vi.fn();
-    render(<Probe onRender={onRender} />);
+    render(<RevealProbe onRender={onRender} />);
     expect(onRender).toHaveBeenCalledTimes(1);
 
     act(() => {

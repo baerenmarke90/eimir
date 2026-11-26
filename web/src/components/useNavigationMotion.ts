@@ -309,6 +309,22 @@ function trackMotion(
  * never the main shell, so fixed actions stay fixed and scroll restoration
  * keeps its own coordinates.
  */
+/**
+ * Mirrors "pages move sideways" (a swipe or a slide) onto the shell, so the
+ * bar and the content column style themselves from one attribute on an
+ * ancestor. A `:has()` on the surface's attributes would make every swipe
+ * re-check the ancestors' `:has()` rules and restyle the whole document.
+ */
+function syncPagesMoving(surface: HTMLElement): void {
+  surface
+    .closest('.product-shell')
+    ?.toggleAttribute(
+      'data-pages-moving',
+      surface.hasAttribute('data-primary-tab-dragging') ||
+        surface.hasAttribute('data-navigation-slide'),
+    );
+}
+
 function animatePageSlide(
   surface: HTMLElement,
   owner: RefObject<(() => void) | null>,
@@ -319,18 +335,21 @@ function animatePageSlide(
   // The page is positioned while `data-navigation-slide` is set (shell.css),
   // so set it before the first frame of the offset.
   surface.dataset.navigationSlide = 'true';
+  syncPagesMoving(surface);
   const animation = navigateMotion(page, direction, {
     offset:
       direction === 'next' || direction === 'previous' ? 'slide' : 'inset',
   });
   if (!animation) {
     delete surface.dataset.navigationSlide;
+    syncPagesMoving(surface);
     return false;
   }
   // Clip the page's visual bounds for the complete animation, including after
   // touchend has released the drag state.
   trackMotion(animation, owner, () => {
     delete surface.dataset.navigationSlide;
+    syncPagesMoving(surface);
   });
   return true;
 }
@@ -503,8 +522,10 @@ export function useNavigationMotion({
     let reducedMotion = prefersReducedMotion();
     const applyDrag = (drag: Gesture) => {
       if (reducedMotion) return;
-      if (!surface.hasAttribute('data-primary-tab-dragging'))
+      if (!surface.hasAttribute('data-primary-tab-dragging')) {
         surface.dataset.primaryTabDragging = 'true';
+        syncPagesMoving(surface);
+      }
       surface.style.setProperty('--primary-tab-offset', `${drag.offset}px`);
       surface.style.setProperty(
         '--primary-tab-peek-offset',
@@ -515,6 +536,7 @@ export function useNavigationMotion({
       if (frame) window.cancelAnimationFrame(frame);
       frame = 0;
       delete surface.dataset.primaryTabDragging;
+      syncPagesMoving(surface);
       surface.style.removeProperty('--primary-tab-offset');
       surface.style.removeProperty('--primary-tab-peek-offset');
       setPrimaryTabPeek(null);

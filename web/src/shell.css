@@ -617,8 +617,7 @@
     margin-left: var(--primary-tab-peek-left, 0px);
   }
 
-  .product-shell-body:has(.product-main[data-primary-tab-dragging]),
-  .product-shell-body:has(.product-main[data-navigation-slide]) {
+  .product-shell[data-pages-moving] .product-shell-body {
     overflow-x: clip;
   }
 
@@ -842,10 +841,7 @@
    reduced transparency: the blur would otherwise be computed again for every
    frame of the slide. Resting and scrolling keep the glass (Product Owner,
    2026-11-26). */
-.product-shell:has(
-    .product-main:is([data-primary-tab-dragging], [data-navigation-slide])
-  )
-  .mobile-bottom-shell {
+.product-shell[data-pages-moving] .mobile-bottom-shell {
   background: var(--color-surface-overlay);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;

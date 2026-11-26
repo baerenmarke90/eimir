@@ -1278,18 +1278,19 @@
     align-items: start;
   }
 
-  .today-content:has(.today-section-living):has(.today-section-monthly) > * {
+  /* The placements need no `:has()`: outside the grid they have no effect,
+     and a `:has()` before a combinator makes Chromium restyle whole subtrees
+     when an ancestor's `:has()` state is checked. */
+  .today-content > * {
     grid-column: 1 / -1;
     min-width: 0;
   }
 
-  .today-content:has(.today-section-living):has(.today-section-monthly)
-    > .today-section-living {
+  .today-content > .today-section-living {
     grid-column: 1 / 2;
   }
 
-  .today-content:has(.today-section-living):has(.today-section-monthly)
-    > .today-section-monthly {
+  .today-content > .today-section-monthly {
     grid-column: 2 / -1;
   }
 }

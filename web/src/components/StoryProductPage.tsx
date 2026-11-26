@@ -16,10 +16,7 @@ import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { RecapsApi } from '../api/generated/apis/RecapsApi';
 import { AttachmentReadRequestParentTypeEnum } from '../api/generated/models/AttachmentReadRequest';
 import type { AuthorSummary } from '../api/generated/models/AuthorSummary';
-import {
-  DiscoverSelectionFromJSON,
-  DiscoverSelectionToJSON,
-} from '../api/generated/models/DiscoverSelection';
+import { DiscoverSelectionToJSON } from '../api/generated/models/DiscoverSelection';
 import type { StoryItem } from '../api/generated/models/StoryItem';
 import {
   StoryKind,
@@ -67,6 +64,10 @@ import {
   STORY_OURS_ROUTE,
   STORY_PHOTOS_ROUTE,
 } from '../client/routes';
+import {
+  STORY_DISCOVER_STALE_TIME,
+  storyDiscoverQuery,
+} from '../client/storyDiscoverQuery';
 import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import {
   aggregateStoryPages,
@@ -323,22 +324,14 @@ export function StoryProductPage({
     retry: false,
   });
   const discoverQuery = useQuery({
-    queryKey: authorSummaryQueryKeys.discover(spaceId, accountId),
-    queryFn: async () => {
-      return loadProductWithReadCache({
-        accountId,
-        spaceId,
-        kind: 'story-discover',
-        resourceId: 'discover',
-        load: () =>
-          startupReads?.takeDiscover() ??
-          apis.story.getStoryDiscover({ spaceId }),
-        serialize: DiscoverSelectionToJSON,
-        deserialize: (payload) => DiscoverSelectionFromJSON(payload),
-      });
-    },
+    ...storyDiscoverQuery({
+      apis,
+      accountId,
+      spaceId,
+      take: startupReads?.takeDiscover,
+    }),
     enabled: needsRead,
-    staleTime: 30_000,
+    staleTime: STORY_DISCOVER_STALE_TIME,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
     refetchInterval:

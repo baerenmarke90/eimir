@@ -156,6 +156,7 @@ import {
   loadAuthorizedSpaces,
   resolveActiveSpaceId,
 } from './client/spaceContext';
+import { usePrefetchStoryDiscover } from './client/storyDiscoverQuery';
 import { loadAuthorizedStoryImageResource } from './client/storyMediaLoader';
 import { type StoryStartupReads, startStoryReads } from './client/storyStartup';
 import { useAccountLanguage } from './client/useAccountLanguage';
@@ -553,6 +554,12 @@ function AuthenticatedApp({
     () => createM4ProductApis(apiBaseUrl, tokens.accessToken),
     [apiBaseUrl, tokens.accessToken],
   );
+  usePrefetchStoryDiscover({
+    enabled: isCapacitorNative(),
+    apis,
+    accountId: account.id,
+    spaceId,
+  });
   useGentleUse({ account, spaceId, api: m4Apis.notifications });
   useSystemTimeZone(apiBaseUrl, tokens.accessToken, account.id, spaceId);
   useVideoTransferNavigation({

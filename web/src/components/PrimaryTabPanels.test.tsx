@@ -467,6 +467,38 @@ it('builds the tabs beside the shown one after its opening, hidden until reveale
   }
 });
 
+it('draws a built neighbour once, practically invisibly, before its first reveal', async () => {
+  vi.useFakeTimers();
+  vi.spyOn(stageModule, 'stagesSettled').mockResolvedValue(undefined);
+  try {
+    render(<Harness prewarmNeighbours />);
+    await act(() => vi.advanceTimersByTimeAsync(1_600));
+    const built = panel('/story');
+    expect(built?.hidden).toBe(true);
+    expect(built?.dataset.primaryTabRehearse).toBeUndefined();
+
+    // A quiet moment later it is drawn for one frame (layout, images and the
+    // GPU's first use of its effects), then skipped again.
+    const seen: (string | undefined)[] = [];
+    for (let step = 0; step < 120; step += 1) {
+      await act(() => vi.advanceTimersByTimeAsync(16));
+      seen.push(panel('/story')?.dataset.primaryTabRehearse);
+    }
+    expect(seen).toContain('true');
+    expect(seen.at(-1)).toBeUndefined();
+    expect(panel('/story')?.hidden).toBe(true);
+    expect(panel('/story')?.getAttribute('aria-hidden')).toBe('true');
+
+    // Only once.
+    for (let step = 0; step < 200; step += 1) {
+      await act(() => vi.advanceTimersByTimeAsync(16));
+      expect(panel('/story')?.dataset.primaryTabRehearse).toBeUndefined();
+    }
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
 it('keeps a queued background mount out of a held gesture and stops listening after it runs', async () => {
   vi.useFakeTimers();
   const idle = vi.fn<(callback: () => void) => number>().mockReturnValue(1);

@@ -486,6 +486,15 @@
   margin-inline: auto;
 }
 
+/* A built neighbour is drawn for one frame before its first reveal
+   (`PrimaryTabPanels`): practically invisible, but painted (opacity 0 would
+   skip the paint), so its first layout and the GPU's first use of its
+   effects are paid while nobody touches the screen. */
+.product-main > .primary-tab-panel[hidden][data-primary-tab-rehearse] {
+  content-visibility: visible;
+  opacity: 0.002;
+}
+
 /* A panel prepared before its first visit (#2063) is laid out like the
    current page, so a map inside it draws at its real size, but invisibly,
    behind everything and outside the scrollable page. */

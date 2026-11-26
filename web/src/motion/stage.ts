@@ -127,8 +127,25 @@ function record(identity: string): StageRecord {
   return found;
 }
 
+/** Listeners for a phase change of any stage. */
+const anyPhase = new Set<() => void>();
+
 function notify(identity: string): void {
   for (const listener of listeners.get(identity) ?? []) listener();
+  for (const listener of [...anyPhase]) listener();
+}
+
+/** Resolves the first time `ready()` holds, checked on every phase change. */
+function whenStages(ready: () => boolean): Promise<void> {
+  if (ready()) return Promise.resolve();
+  return new Promise((resolve) => {
+    const check = () => {
+      if (!ready()) return;
+      anyPhase.delete(check);
+      resolve();
+    };
+    anyPhase.add(check);
+  });
 }
 
 function setPhase(identity: string, phase: StagePhase): void {
@@ -177,6 +194,21 @@ export function stageFinished(identity: string): Promise<void> {
  * Resolves once no opening waits for data or plays. Background work (building
  * a neighbouring tab) waits for it, so it never competes with an opening.
  */
+/**
+ * Resolves once an opening has begun (or was skipped) and none waits for its
+ * data any more: the shown page has its data, and network reads for another
+ * page no longer delay it.
+ */
+export function stagesReleased(): Promise<void> {
+  return whenStages(() => {
+    const phases = [...records.values()].map((found) => found.phase);
+    return (
+      phases.some((phase) => phase === 'playing' || phase === 'ended') &&
+      !phases.includes('waiting')
+    );
+  });
+}
+
 export async function stagesSettled(): Promise<void> {
   for (;;) {
     const open = [...records.values()].filter(
@@ -487,4 +519,5 @@ export function resetStagesForTests(): void {
   records.clear();
   holds.clear();
   listeners.clear();
+  anyPhase.clear();
 }

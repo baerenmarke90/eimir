@@ -47,6 +47,13 @@ const PREWARM_QUIET_MS = 1_500;
  */
 const NEIGHBOUR_AFTER_MS = 1_000;
 const NEIGHBOUR_QUIET_MS = 500;
+/**
+ * A built neighbour is drawn once, practically invisibly, a moment after it
+ * was built: its first layout, image decoding and the GPU's first use of its
+ * effects then happen while nobody touches the screen, not in the first
+ * frames of a swipe.
+ */
+const REHEARSE_AFTER_MS = 600;
 const PREWARM_INPUT = [
   'pointerdown',
   'pointerup',
@@ -150,6 +157,35 @@ function usePrewarm(
     return stop;
   }, [pathsKey, afterMs, quietMs, ready]);
   return prepared;
+}
+
+/**
+ * Draws each path of `ready` once, one at a time: the path is returned for
+ * one painted frame, then never again.
+ */
+function useRehearsal(ready: ReadonlySet<string>): string | null {
+  const [current, setCurrent] = useState<string | null>(null);
+  const done = useRef(new Set<string>());
+  useEffect(() => {
+    if (current) {
+      // The first callback runs before the frame that draws the panel, the
+      // second one after it was drawn.
+      let second = 0;
+      const first = requestAnimationFrame(() => {
+        second = requestAnimationFrame(() => {
+          done.current.add(current);
+          setCurrent(null);
+        });
+      });
+      return () => {
+        cancelAnimationFrame(first);
+        cancelAnimationFrame(second);
+      };
+    }
+    const next = [...ready].find((path) => !done.current.has(path));
+    if (next) setCurrent(next);
+  }, [ready, current]);
+  return current;
 }
 
 export interface PrimaryTabPanel {
@@ -316,6 +352,13 @@ export function PrimaryTabPanels({
     NEIGHBOUR_QUIET_MS,
     stagesSettled,
   );
+  const rehearsable = usePrewarm(
+    [...built].filter(unbuilt),
+    REHEARSE_AFTER_MS,
+    NEIGHBOUR_QUIET_MS,
+    stagesSettled,
+  );
+  const rehearsing = useRehearsal(rehearsable);
   const scrollPositions = useRef(new Map<string, number>());
   const peek = usePrimaryTabPeek();
   const peekRef = useRef<HTMLDivElement>(null);
@@ -413,6 +456,9 @@ export function PrimaryTabPanels({
         data-primary-tab={path}
         data-primary-tab-peek={peeking ? 'true' : undefined}
         data-primary-tab-prewarm={preparing ? 'true' : undefined}
+        data-primary-tab-rehearse={
+          prebuilt && rehearsing === path ? 'true' : undefined
+        }
         // A hidden tab stays rendered (skipped), so it is also taken out of
         // the accessibility tree and focus order explicitly.
         aria-hidden={visible ? undefined : true}

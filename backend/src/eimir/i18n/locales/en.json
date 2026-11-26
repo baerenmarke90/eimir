@@ -101,5 +101,12 @@
   "monitoring.backup_not_configured.intro": "eimir. receives no sign of life from any backup. Without one, a server failure loses data. This mail is sent once only.",
   "monitoring.backup_not_configured.button": "Open monitoring",
   "monitoring.backup_not_configured.reason": "You receive this mail because you look after this eimir. installation as a ServerAdmin.",
-  "monitoring.backup_not_configured.ignore": "You can turn alert mails off under Server administration › System › Monitoring."
+  "monitoring.backup_not_configured.ignore": "You can turn alert mails off under Server administration › System › Monitoring.",
+  "monitoring.support_reports.subject": "New reports from people using eimir.",
+  "monitoring.support_reports.preheader": "New problem reports or feedback have arrived.",
+  "monitoring.support_reports.heading": "New reports",
+  "monitoring.support_reports.intro": "New problem reports or feedback have arrived. Reports lets you read and answer them.",
+  "monitoring.support_reports.button": "Open reports",
+  "monitoring.support_reports.reason": "You receive this mail because you look after this eimir. installation as a ServerAdmin.",
+  "monitoring.support_reports.ignore": "You can turn alert mails off under Server administration › System › Monitoring."
 }

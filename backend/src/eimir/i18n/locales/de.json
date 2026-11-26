@@ -101,5 +101,12 @@
   "monitoring.backup_not_configured.intro": "eimir. bekommt von keinem Backup ein Lebenszeichen. Ohne Backup gehen bei einem Serverausfall Daten verloren. Diese Mail kommt nur einmal.",
   "monitoring.backup_not_configured.button": "Monitoring öffnen",
   "monitoring.backup_not_configured.reason": "Du bekommst diese Mail, weil du diese eimir.-Installation als ServerAdmin betreust.",
-  "monitoring.backup_not_configured.ignore": "Warn-Mails schaltest du unter Serververwaltung › System › Monitoring ab."
+  "monitoring.backup_not_configured.ignore": "Warn-Mails schaltest du unter Serververwaltung › System › Monitoring ab.",
+  "monitoring.support_reports.subject": "Neue Meldungen von Nutzerinnen und Nutzern",
+  "monitoring.support_reports.preheader": "Es sind neue Problemmeldungen oder Rückmeldungen eingegangen.",
+  "monitoring.support_reports.heading": "Neue Meldungen",
+  "monitoring.support_reports.intro": "Es sind neue Problemmeldungen oder Rückmeldungen eingegangen. Unter Meldungen kannst du sie lesen und beantworten.",
+  "monitoring.support_reports.button": "Meldungen öffnen",
+  "monitoring.support_reports.reason": "Du bekommst diese Mail, weil du diese eimir.-Installation als ServerAdmin betreust.",
+  "monitoring.support_reports.ignore": "Warn-Mails schaltest du unter Serververwaltung › System › Monitoring ab."
 }

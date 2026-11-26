@@ -1,17 +1,20 @@
-"""Mail alerts to ServerAdmins (ServerAdmin monitoring, #2317).
+"""Mail and push alerts to ServerAdmins (monitoring, #2317; admin push, #2314).
 
 The operator's own Uptime Kuma already reports a dead server or a silent
 worker. These alerts cover what it cannot see from outside: new failed jobs,
 Spaces near their Cloud quota, a nearly full media disk, bursts of failed
-email/push deliveries, and a missing backup on Cloud.
+email/push deliveries, a missing backup on Cloud, and new support reports
+while the operator plugin can triage them.
 
-Each condition keeps one state row. A mail goes out when the condition becomes
-active, and per condition at most once a day even if it flaps; the backup
-notice goes out once only. Nothing is mailed on resolution. Failed jobs older
-than the first evaluation (an upgrade) are never mailed. While alerts are switched off,
-active conditions are marked as handled, so switching them on again does not
-send a backlog. Mails name the condition and link to ServerAdmin; they carry
-no names, addresses or content.
+Each condition keeps one state row. An alert goes out when the condition
+becomes active, and per condition at most once a day even if it flaps; the
+backup notice goes out once only. Nothing is sent on resolution. Failed jobs
+and support reports older than the first evaluation (an upgrade) are never
+sent. Two instance switches choose the channels: alert mails and alert push.
+The state is shared, so one activation is one mail and one push. While both
+switches are off, active conditions are marked as handled, so switching them
+on again does not send a backlog. Alerts name the condition and link to
+ServerAdmin; they carry no names, addresses or content.
 """
 
 from __future__ import annotations
@@ -29,15 +32,18 @@ from eimir.administration import service as administration
 from eimir.attachments import quota as storage_quota
 from eimir.config import Deployment, MediaStoreBackend, Settings, get_settings
 from eimir.core.clock import now
-from eimir.identity.models import Account, AccountEmail
+from eimir.entitlements.models import Capability
 from eimir.jobs import queue
 from eimir.jobs.models import Job, JobStatus
 from eimir.jobs.worker import JobRegistry, registry
 from eimir.mail import MailMessage
 from eimir.mail import sender as mail_sender
 from eimir.mail.service_mail import service_mail
+from eimir.monitoring import operator_push
 from eimir.monitoring.models import MonitoringAlertState
 from eimir.monitoring.status import DELIVERY_FAILURE_BURST, failed_deliveries_since
+from eimir.plugins.loader import loaded_plugins
+from eimir.support_reports.models import SupportReport, SupportReportState
 
 log = logging.getLogger(__name__)
 
@@ -53,14 +59,34 @@ CODES = (
     "disk_pressure",
     "delivery_failures",
     "backup_not_configured",
+    "support_reports",
 )
 _ONE_TIME = {"backup_not_configured"}
+# Conditions about new rows: only rows newer than the high-water mark count.
+_WATERMARKED = ("failed_jobs", "support_reports")
 
 
 def _newest_failure(session: Session) -> datetime | None:
     return session.execute(
         select(func.max(Job.finished_at)).where(Job.status == JobStatus.FAILED.value)
     ).scalar_one()
+
+
+def _newest_new_report(session: Session) -> datetime | None:
+    return session.execute(
+        select(func.max(SupportReport.created_at)).where(
+            SupportReport.state == SupportReportState.NEW.value,
+            SupportReport.archived_at.is_(None),
+        )
+    ).scalar_one()
+
+
+def _support_operator_available(settings: Settings) -> bool:
+    """Reports are collected and the operator plugin can triage them."""
+    return (
+        settings.support_reports_enabled
+        and Capability.SUPPORT_OPERATOR.value in loaded_plugins().capabilities()
+    )
 
 
 def _space_quota_pressure(session: Session, settings: Settings) -> bool:
@@ -78,23 +104,6 @@ def _disk_pressure(settings: Settings) -> bool:
     except OSError:
         return False
     return usage.total > 0 and usage.used / usage.total >= PRESSURE_RATIO
-
-
-def _recipients(session: Session, settings: Settings) -> list[tuple[str, str]]:
-    allowed = [email.lower() for email in settings.server_admin_emails]
-    if not allowed:
-        return []
-    rows = session.execute(
-        select(AccountEmail.email, Account.locale)
-        .join(Account, Account.id == AccountEmail.account_id)
-        .where(
-            Account.disabled_at.is_(None),
-            AccountEmail.verified_at.is_not(None),
-            func.lower(AccountEmail.email).in_(allowed),
-        )
-        .order_by(AccountEmail.email)
-    ).all()
-    return [(email, locale) for email, locale in rows]
 
 
 def _state(session: Session, code: str) -> MonitoringAlertState:
@@ -120,25 +129,38 @@ def run(
     *,
     send: Callable[[MailMessage], None],
 ) -> list[str]:
-    """Evaluate every condition; mail what is due. Return the codes handled."""
-    enabled = bool(administration.get_settings(session).monitoring_alerts_enabled)
-    newest_failure = _newest_failure(session)
-    failed_jobs_state = _state(session, "failed_jobs")
-    if failed_jobs_state.high_water_mark is None and failed_jobs_state.last_sent_at is None:
-        # First evaluation (fresh install or upgrade): only failures from the
-        # last interval are new; older rows stay in the Jobs page.
-        failed_jobs_state.high_water_mark = at - INTERVAL
-    seen_failures = failed_jobs_state.high_water_mark or at - INTERVAL
+    """Evaluate every condition; mail and push what is due. Return the codes handled."""
+    switches = administration.get_settings(session)
+    mail_enabled = bool(switches.monitoring_alerts_enabled)
+    push_enabled = bool(switches.monitoring_push_enabled)
+    newest = {
+        "failed_jobs": _newest_failure(session),
+        "support_reports": (
+            _newest_new_report(session) if _support_operator_available(settings) else None
+        ),
+    }
+    seen: dict[str, datetime] = {}
+    for code in _WATERMARKED:
+        state = _state(session, code)
+        if state.high_water_mark is None and state.last_sent_at is None:
+            # First evaluation (fresh install or upgrade): only rows from the
+            # last interval are new; older ones stay on their ServerAdmin page.
+            state.high_water_mark = at - INTERVAL
+        seen[code] = state.high_water_mark or at - INTERVAL
     emails, pushes = failed_deliveries_since(session, at - timedelta(hours=1))
     active = {
-        "failed_jobs": newest_failure is not None and newest_failure > seen_failures,
+        **{
+            code: newest[code] is not None and newest[code] > seen[code]  # type: ignore[operator]
+            for code in _WATERMARKED
+        },
         "space_quota_pressure": _space_quota_pressure(session, settings),
         "disk_pressure": _disk_pressure(settings),
         "delivery_failures": max(emails, pushes) > DELIVERY_FAILURE_BURST,
         "backup_not_configured": settings.deployment is Deployment.CLOUD,
     }
-    recipients = _recipients(session, settings) if enabled else []
-    link = f"{settings.public_base_url.rstrip('/')}/server-admin?section=monitoring"
+    enabled = mail_enabled or push_enabled
+    recipients = operator_push.recipients(session, settings) if enabled else []
+    base = settings.public_base_url.rstrip("/")
     handled: list[str] = []
     for code in CODES:
         state = _state(session, code)
@@ -150,16 +172,36 @@ def run(
         if not _due(code, state, at):
             continue
         state.last_sent_at = at
-        if code == "failed_jobs" and newest_failure is not None:
-            state.high_water_mark = newest_failure
+        if code in newest and newest[code] is not None:
+            state.high_water_mark = newest[code]
         if not enabled:
             continue
         handled.append(code)
-        for email, locale in recipients:
-            try:
-                send(service_mail(f"monitoring.{code}", to=email, locale=locale, url=link))
-            except Exception:
-                log.warning("monitoring alert could not be sent", extra={"alert": code})
+        if mail_enabled:
+            link = base + (
+                operator_push.route(code)
+                if code == "support_reports"
+                else "/server-admin?section=monitoring"
+            )
+            for recipient in recipients:
+                try:
+                    send(
+                        service_mail(
+                            f"monitoring.{code}",
+                            to=recipient.email,
+                            locale=recipient.locale,
+                            url=link,
+                        )
+                    )
+                except Exception:
+                    log.warning("monitoring alert could not be sent", extra={"alert": code})
+        if push_enabled:
+            operator_push.notify(
+                session,
+                topic=code,
+                at=at,
+                recipients=[recipient.account_id for recipient in recipients],
+            )
     session.flush()
     return handled
 

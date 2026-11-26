@@ -87,8 +87,12 @@ export function ProShowcase({ anchor }: { anchor?: ReactNode }) {
       className="pro-showcase"
       aria-label={t('proPaywall.showcase.label')}
     >
-      {/* Focusable so the keyboard can scroll the cards (WCAG 2.1.1). */}
-      <ul className="pro-showcase-track" ref={trackRef} tabIndex={0}>
+      <ul
+        className="pro-showcase-track"
+        ref={trackRef}
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: the scrolling track takes focus so the arrow keys scroll the cards (WCAG 2.1.1, axe scrollable-region-focusable).
+        tabIndex={0}
+      >
         {PRO_SCENE_IDS.map((id, index) => (
           <li
             key={id}

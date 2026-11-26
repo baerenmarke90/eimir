@@ -190,6 +190,8 @@ function addCarousel(
     },
   });
   panel(path)?.appendChild(carousel);
+  // A track that moved reports it, as in a browser.
+  if (scrollLeft > 0) carousel.dispatchEvent(new Event('scroll'));
   return carousel;
 }
 
@@ -234,6 +236,35 @@ it('resets Wir tracks without reading unrelated content on peek or selection', a
   await act(() => openTab('/today'));
   await act(() => setPrimaryTabPeek(null));
   expect(readOffset).not.toHaveBeenCalled();
+});
+
+it('leaves Wir tracks that never moved alone when the tab is reopened', async () => {
+  // Writing an offset forces a layout of the whole page while it is shown.
+  render(<Harness />);
+  const lists = addCarousel('/today', 0);
+  const writes = vi.fn();
+  Object.defineProperty(lists, 'scrollLeft', {
+    configurable: true,
+    get: () => 0,
+    set: writes,
+  });
+  await act(() => navigate('/story'));
+  await act(() => setPrimaryTabPeek('/today', PEEK_GEOMETRY));
+  await act(
+    () =>
+      new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
+  );
+  await act(() => openTab('/today'));
+  expect(writes).not.toHaveBeenCalled();
+});
+
+it('does not scroll the page when the tab opens where the page already is', async () => {
+  render(<Harness />);
+  const scrollTo = vi.mocked(window.scrollTo);
+  scrollTo.mockClear();
+  // Both overviews start at the top: there is nothing to move.
+  await act(() => openTab('/story'));
+  expect(scrollTo).not.toHaveBeenCalled();
 });
 
 it('restores the Wir reading position on Back after a fast navigation', async () => {

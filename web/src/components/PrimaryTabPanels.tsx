@@ -195,17 +195,41 @@ export interface PrimaryTabPanel {
   retain?: boolean;
 }
 
+const WIR_TRACKS = '.wir-lists-row, .today-agenda-list, .today-stream';
+/** Wir tracks that were scrolled away from their first item. */
+const movedTracks = new Set<HTMLElement>();
+let watchingTracks = false;
+
 /**
- * Start Wir's lists, notes, agenda and activity tracks at their first item.
- * Only the tracks own horizontal scroll. Reading every descendant's offset
- * here would force layout reads across the dashboard during the swipe.
+ * Tracks report their own scroll, so a reset knows which tracks moved
+ * without reading any offset: writing an offset forces a layout of the whole
+ * page, which cost the Pixel up to 56 ms per swipe back to Wir.
  */
+function watchWirTracks() {
+  if (watchingTracks || typeof document === 'undefined') return;
+  watchingTracks = true;
+  document.addEventListener(
+    'scroll',
+    (event) => {
+      const track = event.target;
+      if (!(track instanceof HTMLElement) || !track.matches(WIR_TRACKS)) return;
+      if (track.scrollLeft > 0) movedTracks.add(track);
+      else movedTracks.delete(track);
+    },
+    { capture: true, passive: true },
+  );
+}
+
+/** Start Wir's lists, notes, agenda and activity tracks at their first item. */
 function resetWirCarousels(panel: Element | null) {
   if (!panel) return;
-  for (const track of panel.querySelectorAll<HTMLElement>(
-    '.wir-lists-row, .today-agenda-list, .today-stream',
-  ))
-    track.scrollLeft = 0;
+  for (const track of movedTracks) {
+    if (!track.isConnected) movedTracks.delete(track);
+    else if (panel.contains(track)) {
+      track.scrollLeft = 0;
+      movedTracks.delete(track);
+    }
+  }
 }
 
 /**
@@ -364,6 +388,7 @@ export function PrimaryTabPanels({
   const peekRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<string | null>(null);
   const renderedTab = useRef<string | null>(null);
+  useEffect(watchWirTracks, []);
 
   // Capture the outgoing reading position while its panel is still visible.
   // Once React hides that panel, the shorter destination can clamp scrollY
@@ -381,7 +406,14 @@ export function PrimaryTabPanels({
     // A tab selection opens its overview at the top. History and task
     // returns keep their captured reading position.
     const target = startAtTop ? 0 : (scrollPositions.current.get(active) ?? 0);
-    window.scrollTo({ top: target, behavior: 'instant' });
+    // The page is where the outgoing tab was left (read when it rendered).
+    // Scrolling forces a layout of the shown page, so it only runs when the
+    // position actually changes.
+    const current = previous
+      ? scrollPositions.current.get(previous)
+      : undefined;
+    if (current !== target)
+      window.scrollTo({ top: target, behavior: 'instant' });
     if (startAtTop && active === DEFAULT_APP_ROUTE)
       resetWirCarousels(
         document.querySelector(`[data-primary-tab="${active}"]`),

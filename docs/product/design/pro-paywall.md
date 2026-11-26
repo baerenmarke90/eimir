@@ -95,7 +95,9 @@ from the plan choice or costs noticeable battery.
    SVG/CSS illustration built from semantic tokens and `EimirIcon` motifs.
    It follows Light/Dark and the four app designs, works offline, adds no
    dependency and degrades to a composed still frame. It conveys the feeling
-   of a capability, not its real screen.
+   of a capability, not its real screen. (Revised with mockup v2 below: the
+   scenes reuse the `WorldArt` illustrations, the Mochi pair and five
+   bundled sample photos, with fixed artwork colours.)
 2. *Real feature components with sample data* (for example the real record
    crate): most authentic, but heavy. It conflicts with the existing rule that
    the overview reads no relationship content and makes no additional API
@@ -120,6 +122,48 @@ from the plan choice or costs noticeable battery.
      distance sharing, and the copy also names one-time messages.
 - Built as drawn mini scenes (approach 1).
 
+**Product Owner revision of the scenes (mockup v2, accepted 2026-11-26).**
+The Product Owner found the first mockup too fast, the map line wrong ("our
+line is not wavy"), the film monotonous and the whole too dull to invite a
+purchase, and asked for the Mochis in the scenes ("they accompany all
+scenes"). The accepted v2 replaces the scene list above:
+
+- **The Mochi pair guides every scene.** It is the pair from the Mochi memory
+  world (pink and mint, with the heart), drawn as artwork.
+- **Memory worlds** (about 16 s): the Mochis hop together and cuddle, and a
+  heart-shaped balloon with a sample photo rises. Then a calm tour of four
+  real world illustrations (`WorldArt`: record crate, photo booth, fridge door,
+  constellation), each about 2.5 s with its localized world name. The mini
+  Mochis sit in a corner.
+- **Recap films** (15 s): five 3 s parts with story progress segments, as in
+  the real recap film: (1) a cover photo with a slow zoom, a month title and
+  a count of moments; (2) three photos flying in as a collage; (3) a large
+  fact on the brand gradient ("3 new places discovered"); (4) a place photo
+  with a pin chip; (5) a goodbye ("See you in June!") with waving Mochis.
+- **Games & garden** (about 16 s): the Mochis toss seeds to each other, three
+  flowers open one after another and a butterfly passes. Then a game card
+  ("Who plans the next date?") appears with a matching answer.
+- **Memory map & closeness** (about 16 s): three photo pins pop onto a map,
+  the Mochis sit at both ends, and **one soft arc** draws between them, as the
+  real map connection does (`placeMapConnection.ts`, never a wavy route). A
+  glow travels along the arc and back. A distance chip ("412 km") appears with
+  the heart, then a one-time message chip.
+- **Sample photos.** Scenes use five fictional sample photos from the curated
+  demo set (`backend/demo_assets/manifest.json`: `memory-lake`,
+  `memory-picnic`, `memory-breakfast`, `memory-ravioli`, `memory-trier`;
+  Pixabay, CC0 1.0, published before 2019-01-09, no attribution required).
+  They are bundled as small WebP derivatives with a provenance note next to
+  them. They are never a couple's own content, and the paywall still makes
+  no request for them.
+- **Price anchor.** Below the gallery, for a Free Space only, one line names
+  the monthly equivalent of the yearly plan for both partners ("Everything
+  together for EUR 5.00 a month, for both of you"). It reuses the yearly
+  plan's existing monthly-equivalent calculation and follows live store
+  prices; it is no discount claim and no pressure.
+- **"New" marks** in the catalogue on recap films, couple games and garden,
+  the ten memory worlds and the Cloud storage allowance. The mark is a
+  small text tag with no date or urgency.
+
 **Proposals by the implementer (approved with this section).**
 
 - *Placement.* On the `general` context the gallery replaces the brand hero
@@ -143,8 +187,8 @@ from the plan choice or costs noticeable battery.
   stays in the `--reading-max` column with the same behaviour.
 - *Motion.* Only the card that is mostly visible animates, and only while the
   document is visible (IntersectionObserver plus `visibilitychange`). A scene
-  loops calmly over about 6–9 s using the existing motion tokens and the
-  motion catalogue where one fits. Scenes use transforms and opacity only
+  loops calmly over about 15–16 s (Product Owner revision above) and starts
+  from its beginning when its card comes into view. Scenes use transforms and opacity only
   (no layout animation) and pause off screen. With `prefers-reduced-motion`
   every scene shows a composed still frame that carries the same meaning,
   and indicator scrolling is instant. No haptics; the purchase success
@@ -168,7 +212,9 @@ from the plan choice or costs noticeable battery.
 **Constraints that remain binding.** Everything above in this contract:
 no relationship content, no extra API request, no automatic navigation,
 transparent terms, "Free stays free", purchase only with a real billing
-channel. Semantic tokens only; no new literal colours in components.
+channel. Semantic tokens for the page and the cards. The scene drawings are
+artwork like `WorldArt`: their colours belong to the picture and stay the same
+in Light, Dark and every app design.
 Smartphone-first at 320/360/390/430 px with 200 % text. Light and Dark in all
 four app designs. Visibility follows the runtime platform where it matters,
 never the viewport.

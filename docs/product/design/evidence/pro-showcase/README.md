@@ -9,13 +9,16 @@ The general page was reviewed before the mockup was made:
 
 - [current `main`, Free, Light](baseline-main-general-light.webp)
 
-The mockup captures are at 390 px. The gallery is shown at rest, and the scene
-motion is visible in the live mockup.
+The Product Owner rejected mockup v1 (too fast, a wavy map line, a monotonous
+film, too dull to invite a purchase) and accepted **mockup v2** on
+2026-11-26. The v2 captures are at 390 px. Each shows one moment of a moving
+scene; the live mockup shows the motion.
 
-- [General, Light, top](mockup-general-light-top.webp): heading, first highlight (memory worlds), next card peeking in.
-- [General, Light, plans](mockup-general-light-plans.webp): page indicator, plan choice, "for both" note and the purchase button. This is the Google Play state.
-- [General, Dark, top](mockup-general-dark-top.webp): the memory-worlds scene in its jar phase.
-- [Memory map context, Light](mockup-memory-map-light.webp): the matching scene replaces the two-circle hero, and the three benefits stay.
+- [General, Light, top](mockup-v2-general-light-top.webp): heading, the memory-worlds scene (Mochis with the heart balloon), the next card peeking in, page indicator and the price anchor line.
+- [Recap film, Light](mockup-v2-film-light.webp): the collage part of the five-part film.
+- [Map and closeness, Light](mockup-v2-map-light.webp): photo pins, the Mochis at both ends and the single soft arc with the distance chip.
+- [Games and garden, Dark](mockup-v2-garden-dark.webp): the garden in bloom with a butterfly; scene artwork keeps its colours in Dark.
 
-The demo data stays in a local preview, and nothing from it is shown. The scenes
-draw abstract shapes and hold no relationship content.
+The scenes use five fictional CC0 sample photos from the curated demo set,
+never a couple's own content. The demo data of the local preview is not
+shown.

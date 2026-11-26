@@ -1,6 +1,13 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -329,5 +336,125 @@ describe('ProPaywallPage', () => {
     );
     expect(test.purchase).toHaveBeenCalledWith('yearly');
     await waitFor(() => expect(screen.getByText('Planning home')).toBeTruthy());
+  });
+});
+
+describe('Pro showcase', () => {
+  const scenes = proPaywall.showcase.scenes;
+
+  function showcase() {
+    return screen.getByRole('region', { name: proPaywall.showcase.label });
+  }
+
+  it('shows four highlights on the general page in order', () => {
+    renderPaywall('/more/pro');
+    const region = showcase();
+    const items = within(region).getAllByRole('listitem');
+    expect(items).toHaveLength(4);
+    expect(
+      items.map((item) => within(item).getByRole('heading').textContent),
+    ).toEqual([
+      scenes.memoryWorlds.title,
+      scenes.recapFilms.title,
+      scenes.gamesGarden.title,
+      scenes.mapCloseness.title,
+    ]);
+    expect(within(region).getByText(scenes.recapFilms.body)).toBeTruthy();
+    expect(
+      [...region.querySelectorAll('[data-scene]')].map(
+        (node) => (node as HTMLElement).dataset.scene,
+      ),
+    ).toEqual(['memoryWorlds', 'recapFilms', 'gamesGarden', 'mapCloseness']);
+    for (const node of region.querySelectorAll('[data-scene]'))
+      expect(node.getAttribute('aria-hidden')).toBe('true');
+    // The gallery replaces the brand hero on the general page.
+    expect(document.querySelector('.pro-paywall-hero')).toBeNull();
+  });
+
+  it('marks the first highlight current and never advances on its own', () => {
+    vi.useFakeTimers();
+    try {
+      renderPaywall('/more/pro');
+      const indicators = within(showcase()).getAllByRole('button');
+      expect(indicators.map((button) => button.getAttribute('aria-label')))
+        .toEqual([
+          'Highlight 1 von 4',
+          'Highlight 2 von 4',
+          'Highlight 3 von 4',
+          'Highlight 4 von 4',
+        ]);
+      expect(indicators[0].getAttribute('aria-current')).toBe('true');
+      act(() => {
+        vi.advanceTimersByTime(60_000);
+      });
+      expect(indicators[0].getAttribute('aria-current')).toBe('true');
+      expect(indicators[1].hasAttribute('aria-current')).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('moves to a highlight from its indicator', () => {
+    renderPaywall('/more/pro');
+    const indicators = within(showcase()).getAllByRole('button');
+    fireEvent.click(indicators[2]);
+    expect(indicators[2].getAttribute('aria-current')).toBe('true');
+    expect(indicators[0].hasAttribute('aria-current')).toBe(false);
+  });
+
+  it('names the yearly price per month for both partners', () => {
+    renderPaywall('/more/pro');
+    expect(showcase().textContent).toMatch(
+      /Alles zusammen für 5,00\s€ im Monat, für euch beide\./,
+    );
+  });
+
+  it('shows the matching scene as hero on context pages', () => {
+    renderPaywall('/more/pro?context=memoryMap');
+    expect(
+      screen.queryByRole('region', { name: proPaywall.showcase.label }),
+    ).toBeNull();
+    const hero = document.querySelector('[data-scene]') as HTMLElement;
+    expect(hero.dataset.scene).toBe('mapCloseness');
+    expect(document.querySelector('.pro-paywall-hero')).toBeNull();
+  });
+
+  it.each([
+    ['recaps', 'recapFilms'],
+    ['games', 'gamesGarden'],
+  ])('shows the %s scene as hero', (context, scene) => {
+    renderPaywall(`/more/pro?context=${context}`);
+    expect(
+      (document.querySelector('[data-scene]') as HTMLElement).dataset.scene,
+    ).toBe(scene);
+  });
+
+  it('keeps the brand hero where no scene fits', () => {
+    renderPaywall('/more/pro?context=dateIdeas');
+    expect(document.querySelector('[data-scene]')).toBeNull();
+    expect(document.querySelector('.pro-paywall-hero')).toBeTruthy();
+  });
+
+  it('keeps the gallery for an active Space without plans or price', () => {
+    session.data = { tier: 'PREMIUM' };
+    renderPaywall('/more/pro');
+    expect(within(showcase()).getAllByRole('listitem')).toHaveLength(4);
+    expect(screen.queryByRole('radio')).toBeNull();
+    expect(showcase().textContent).not.toContain('im Monat');
+  });
+
+  it('falls back to the general gallery for an unknown context', () => {
+    renderPaywall('/more/pro?context=nope');
+    expect(within(showcase()).getAllByRole('listitem')).toHaveLength(4);
+  });
+
+  it('makes no request of its own', () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    try {
+      renderPaywall('/more/pro');
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      fetchSpy.mockRestore();
+    }
   });
 });

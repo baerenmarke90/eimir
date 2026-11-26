@@ -15,6 +15,7 @@ export const SERVER_ADMIN_SECTIONS = [
   'settings',
   'activity',
   'monitoring',
+  'search',
 ] as const;
 
 export type ServerAdminSection = (typeof SERVER_ADMIN_SECTIONS)[number];
@@ -27,7 +28,7 @@ export const AREA_SECTIONS: Record<
   readonly ServerAdminSection[]
 > = {
   situation: ['overview'],
-  people: ['accounts', 'spaces'],
+  people: ['search', 'accounts', 'spaces'],
   help: ['reports'],
   system: ['monitoring', 'jobs', 'storage', 'security', 'activity', 'settings'],
 };

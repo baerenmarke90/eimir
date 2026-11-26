@@ -1,0 +1,75 @@
+.server-admin-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: grid;
+  align-items: end;
+  justify-items: center;
+  background: var(--color-scrim);
+}
+
+.server-admin-sheet {
+  width: 100%;
+  max-height: 90vh;
+  overflow: auto;
+  display: grid;
+  gap: var(--space-4);
+  border-end-start-radius: 0;
+  border-end-end-radius: 0;
+  animation: server-admin-sheet-in var(--duration-transition)
+    var(--easing-enter);
+}
+
+.server-admin-sheet-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.server-admin-sheet-head h2,
+.server-admin-sheet p {
+  margin: 0;
+}
+
+.server-admin-sheet form {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.server-admin-sheet-field {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.server-admin-sheet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+@media (min-width: 48rem) {
+  .server-admin-sheet-backdrop {
+    align-items: center;
+    padding: var(--space-4);
+  }
+
+  .server-admin-sheet {
+    width: min(32rem, 100%);
+    border-radius: var(--radius-card);
+  }
+}
+
+@keyframes server-admin-sheet-in {
+  from {
+    transform: translateY(var(--space-5));
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .server-admin-sheet {
+    animation: none;
+  }
+}

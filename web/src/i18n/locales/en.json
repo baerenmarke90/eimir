@@ -4933,7 +4933,8 @@
       "settings": "Settings",
       "activity": "Activity log",
       "reports": "Reports",
-      "monitoring": "Monitoring"
+      "monitoring": "Monitoring",
+      "search": "Search"
     },
     "areas": {
       "aria": "Areas",
@@ -5012,6 +5013,112 @@
       "alertsLabel": "Send alert mails",
       "alertsSaveFailed": "The change was not saved. Please try again.",
       "alertsBody": "To the ServerAdmins on new failures, full storage, failed deliveries and a missing backup."
+    },
+    "sheet": {
+      "close": "Close"
+    },
+    "people": {
+      "title": "Find people",
+      "label": "Email or ID",
+      "placeholder": "Email, Account or Space ID",
+      "count_one": "{{count, number}} result",
+      "count_other": "{{count, number}} results",
+      "hint": "Enter at least two characters of an email address or a complete ID.",
+      "loading": "Searching …",
+      "error": "The search did not work. Try again.",
+      "empty": "Nothing found.",
+      "spaces": "Spaces",
+      "accounts": "Accounts",
+      "spaceMembers_one": "{{count, number}} person active",
+      "spaceMembers_other": "{{count, number}} people active"
+    },
+    "spaceFile": {
+      "title": "Space {{id}}",
+      "since": "since {{date}}",
+      "until": "runs until {{date}}",
+      "plan": {
+        "premium": "Premium · {{source}}",
+        "free": "Free"
+      },
+      "source": {
+        "googlePlay": "Google Play",
+        "appStore": "App Store",
+        "web": "Web",
+        "key": "Licence key",
+        "gift": "Gift",
+        "test": "Test",
+        "other": "other source"
+      },
+      "membersTitle": "Members",
+      "noMembers": "This Space has no members any more.",
+      "member": {
+        "active": "active",
+        "left": "left",
+        "removed": "removed",
+        "other": "unknown",
+        "noEmail": "no email"
+      },
+      "auth": {
+        "password": "Password",
+        "passkey": "Passkey",
+        "oidc": "Sign-in service",
+        "magicLink": "Sign-in link",
+        "other": "other sign-in"
+      },
+      "storageTitle": "Storage",
+      "storageOf": "{{used}} of {{quota}} · {{percent}} %",
+      "storageUnmetered": "{{used}} stored",
+      "override": "individual: {{quota}}",
+      "overrideUntil": "individual: {{quota}} until {{date}}",
+      "media": {
+        "image": "Photos",
+        "video": "Videos",
+        "audio": "Voice notes",
+        "document": "Documents",
+        "other": "Other"
+      },
+      "timelineTitle": "Recently",
+      "timelineEmpty": "Nothing has happened yet.",
+      "timeline": {
+        "giftGiven": "Premium given as a gift",
+        "giftEnded": "Premium gift ended",
+        "quotaSet": "Individual storage set",
+        "quotaCleared": "Individual storage removed",
+        "managerReconciled": "Space management assigned",
+        "adminAction": "Server administration action",
+        "premium": "Premium via {{source}}",
+        "free": "Free via {{source}}"
+      },
+      "adjustStorage": "Adjust storage",
+      "giftPremium": "Give Premium",
+      "manageGift": "Premium gift",
+      "privacy": "Only email addresses, sign-in methods and memberships are shown, no names and no content. Every visit to this page is recorded."
+    },
+    "quotaSheet": {
+      "title": "Adjust storage",
+      "intro": "This Space normally has {{tier}}. In use now: {{used}}.",
+      "amount": "Storage in GB",
+      "range": "Whole GB from 1 to 1024.",
+      "until": "Valid until (optional)",
+      "untilHint": "Afterwards the normal storage applies again.",
+      "belowUsage": "This is less than the Space already uses ({{used}}). Nothing is deleted, but new photos and videos no longer fit.",
+      "saveFailed": "That did not work. Try again.",
+      "remove": "Remove individual storage",
+      "save": "Save"
+    },
+    "giftSheet": {
+      "title": "Give Premium",
+      "currentUntil": "This Space has a Premium gift until {{date}}.",
+      "currentOpen": "This Space has a Premium gift without an end date.",
+      "end": "End gift",
+      "duration": "Duration",
+      "months_one": "{{count, number}} month",
+      "months_other": "{{count, number}} months",
+      "endsOn": "ends on {{date}}",
+      "reason": "Reason",
+      "reasonHint": "Only visible to the server administration, for example “beta test”.",
+      "failed": "That did not work. Try again.",
+      "give": "Give Premium"
     },
     "subNavigation": {
       "aria": "Pages"
@@ -5243,6 +5350,8 @@
         "authMethods": "Sign-in methods",
         "passkeys": "Passkeys",
         "emailTitle": "Email addresses",
+        "spacesTitle": "Spaces",
+        "noSpaces": "This Account is in no Space.",
         "primaryEmail": "Primary",
         "additionalEmail": "Additional",
         "typeEmailToVerify": "Enter the email address exactly to confirm",

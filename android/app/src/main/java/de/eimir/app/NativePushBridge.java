@@ -71,6 +71,7 @@ public final class NativePushBridge extends Plugin {
                         notificationId = canonical.equals(notificationId) ? canonical : null;
                     } catch (IllegalArgumentException invalid) { notificationId = null; }
                 }
+                NativePushNotifications.cancelOpened(getContext(), notificationId);
                 emit("notificationOpen", PushActivation.read(getContext()), notificationId, true);
             }
         }

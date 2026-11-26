@@ -17,7 +17,9 @@ import { authorDisplayName } from '../client/authorPresentation';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { dashboardQueryKey } from '../client/dashboardQueries';
 import {
+  NOTIFICATION_OPENED_EVENT,
   NOTIFICATION_WAKE_EVENT,
+  type NotificationOpenedDetail,
   type NotificationWakeScope,
   notificationArrivalKey,
   selectArrivedNotification,
@@ -629,6 +631,8 @@ export function ForegroundNotificationHost({
   // Items created before this shell instance are history, never arrivals.
   const notBefore = useRef(Date.now());
   const handled = useRef(new Set<string>());
+  // Notifications opened from outside (a push): never a foreground arrival.
+  const openedIds = useRef(new Set<string>());
   const previousCount = useRef<number | undefined>(undefined);
   const loadingArrivals = useRef(false);
   const arrivalReadPending = useRef(false);
@@ -745,11 +749,14 @@ export function ForegroundNotificationHost({
           !windowOwnsAttention()
         )
           return;
-        const arrived = selectArrivedNotification(page.items, {
-          accountId,
-          notBefore: notBefore.current,
-          handled: handled.current,
-        });
+        const arrived = selectArrivedNotification(
+          page.items.filter((item) => !openedIds.current.has(item.id)),
+          {
+            accountId,
+            notBefore: notBefore.current,
+            handled: handled.current,
+          },
+        );
         for (const item of page.items)
           markHandled(notificationArrivalKey(item));
         if (arrived) show(arrived);
@@ -785,6 +792,24 @@ export function ForegroundNotificationHost({
     window.addEventListener(NOTIFICATION_WAKE_EVENT, onWake);
     return () => window.removeEventListener(NOTIFICATION_WAKE_EVENT, onWake);
   }, [accountId, apiBaseUrl, refreshArrivals, spaceId]);
+
+  // Opened through a push: the receipt for it leaves, as if it had been
+  // opened here, and the same notification is not offered again as an arrival.
+  const entryId = entry?.id ?? null;
+  useEffect(() => {
+    function onOpened(event: Event) {
+      const detail = (event as CustomEvent<NotificationOpenedDetail>).detail;
+      if (!detail || detail.scope !== live.current.scope) return;
+      const ids = openedIds.current;
+      ids.add(detail.notificationId);
+      if (ids.size > HANDLED_LIMIT)
+        ids.delete(ids.values().next().value as string);
+      if (entryId === detail.notificationId) close();
+    }
+    window.addEventListener(NOTIFICATION_OPENED_EVENT, onOpened);
+    return () =>
+      window.removeEventListener(NOTIFICATION_OPENED_EVENT, onOpened);
+  }, [close, entryId]);
 
   // Push open: the item was already resolved through the authorized API.
   useEffect(() => {

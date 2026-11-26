@@ -545,3 +545,58 @@ def test_two_codes_redeemed_at_once_both_count(  # type: ignore[no-untyped-def]
         )
     assert latest == add_months(AT, 6)
     assert redeemed == 2
+
+
+def test_one_code_redeemed_by_two_spaces_at_once_works_once(  # type: ignore[no-untyped-def]
+    production_client, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _client, maker = production_client
+    # Two Spaces take two different per-Space locks, so only the code row
+    # lock keeps them apart. Hold each redemption inside the critical section
+    # so that, without that lock, both would read the code as open.
+    read_end = redemption._latest_premium_end
+
+    def slow_read_end(session: Session, space_id: UUID, at: datetime) -> datetime | None:
+        end = read_end(session, space_id, at)
+        time.sleep(0.5)
+        return end
+
+    monkeypatch.setattr(redemption, "_latest_premium_end", slow_read_end)
+    with maker.begin() as setup:
+        batch = _batch(setup, count=1)
+        [code] = _codes(setup, batch)
+        code_id, raw_code = code.id, code.payload.code
+        couples = [_couple(setup), _couple(setup)]
+
+    gate = Barrier(2, timeout=10)
+
+    def run(space_id: UUID, account_id: UUID) -> tuple[UUID, str]:
+        try:
+            with maker.begin() as worker:
+                gate.wait()
+                redeem(worker, space_id=space_id, account_id=account_id, raw_code=raw_code, at=AT)
+        except ConflictError as refused:
+            return space_id, str(refused.code)
+        return space_id, "redeemed"
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [pool.submit(run, space_id, account_id) for space_id, account_id in couples]
+        outcomes = [future.result(timeout=20) for future in futures]
+
+    assert sorted(result for _space, result in outcomes) == sorted(
+        ["redeemed", str(RedemptionErrorCode.USED)]
+    )
+    [winner] = [space_id for space_id, result in outcomes if result == "redeemed"]
+    with maker() as check:
+        grants = list(
+            check.scalars(
+                select(EntitlementGrant).where(
+                    EntitlementGrant.external_reference == f"gift-code:{code_id}"
+                )
+            )
+        )
+        redeemed_space_id = check.scalar(
+            select(GiftCode.redeemed_space_id).where(GiftCode.id == code_id)
+        )
+    assert [grant.space_id for grant in grants] == [winner]
+    assert redeemed_space_id == winner

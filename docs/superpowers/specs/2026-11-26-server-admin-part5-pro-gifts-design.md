@@ -145,12 +145,14 @@ ServerAdmin (ServerAdmin role, Cloud + Pro only, 404 otherwise):
   returns the batch with its codes.
 - `GET /server-admin/pro/gift-code-batches/{id}` — batch with codes and each code's state
   (free, handed out, redeemed on date with a link to the Space file, revoked, expired).
-- `POST …/gift-codes/{id}/handed-out` (toggle) and `POST …/gift-codes/{id}/revoke`,
+- `PUT …/gift-codes/{id}/handed-out` with `{handedOut}` (marks or unmarks) and
+  `POST …/gift-codes/{id}/revoke`,
   `POST …/gift-code-batches/{id}/revoke` (revokes all unredeemed codes of the batch).
 
 Couple (authenticated member of the Space, Cloud + Pro only):
 
-- `POST /spaces/{spaceId}/gift-codes/redeem` — `{code}` → `{effectiveUntil}` or a problem with
+- `POST /spaces/{spaceId}/gift-codes/redeem` — `{code}` → `{effectiveUntil, extended}`
+  (`extended`: the gift was appended to Pro the Space already had) or a problem with
   one of the codes `GIFT_CODE_INVALID` (unknown, revoked, expired), `GIFT_CODE_USED`,
   `GIFT_CODE_SUBSCRIPTION_ACTIVE`, `GIFT_CODE_UNLIMITED`, `RATE_LIMITED`.
 - Redemption takes a per-Space lock (`eimir.db.locks.lock_subject`) and then locks the code row

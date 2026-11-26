@@ -667,7 +667,7 @@ All figures are aggregates; the overview shows no names:
   A subscription cancelled and resumed within the window does not count; the
   label says "approximately".
 - **Running gifts:** one row per Space with its real end (the latest end of
-  its valid Premium grants), the origin (manual, or code with the batch note)
+  its running gifts), the origin (manual, or code with the batch note)
   and a link to the Space file, sorted by end date with unlimited gifts last,
   capped at 50 with a total.
 
@@ -734,6 +734,12 @@ redeemed to wipe the counted guesses and guess without limit.
   secret) as the unique lookup column; a database dump alone reveals no
   redeemable code. The plain code never appears in logs, problem details,
   audit metadata, alert mails or the grant row.
+- The lookup hash is keyed by `EIMIR_CURSOR_SIGNING_KEY`: changing that key
+  makes every outstanding unredeemed code invalid (couples then get
+  `GIFT_CODE_INVALID`); redeemed gifts keep running.
+- Revoking a single code is API-only
+  (`POST /api/v1/server-admin/pro/gift-codes/{codeId}/revoke`); the batch
+  sheet in the UI revokes all unredeemed codes of a batch at once.
 - The tables `gift_code_batches` and `gift_codes` belong to the first Pro
   migration chain. They are operator data, not couple content, and are
   excluded from every portability bundle (`EXCLUDED_TABLES`). Deleting a Space keeps its

@@ -72,7 +72,7 @@
     animation-name: eimir-motion-pro-blink;
     animation-duration: var(--pro-scene-blink-duration);
     animation-timing-function: steps(1);
-    animation-delay: 0s;
+    animation-delay: initial;
     animation-iteration-count: calc(var(--motion-ambient-repeat) * 4);
   }
 
@@ -216,7 +216,7 @@
     animation-name: eimir-motion-pro-film-float;
     animation-duration: var(--pro-scene-float-duration);
     animation-timing-function: var(--easing-standard);
-    animation-delay: 0s;
+    animation-delay: initial;
     /* 2.5 floats per 15 s film cycle, so they rest with the film. */
     animation-iteration-count: calc(var(--motion-ambient-repeat) * 2.5);
   }

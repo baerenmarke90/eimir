@@ -5010,6 +5010,7 @@
       },
       "lastSeen": "last {{time}}",
       "alertsLabel": "Send alert mails",
+      "alertsSaveFailed": "The change was not saved. Please try again.",
       "alertsBody": "To the ServerAdmins on new failures, full storage, failed deliveries and a missing backup."
     },
     "subNavigation": {

@@ -160,6 +160,7 @@ def main() -> None:
                     ATTACHMENT_AUDIO_VALIDATION,
                     *sorted(unclaimed),
                 ],
+                on_progress=heartbeat.progress,
             )
         except Exception:
             # A failure while polling must not terminate the process; otherwise

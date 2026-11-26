@@ -98,6 +98,8 @@ const serverAdmin = {
     },
     lastSeen: 'zuletzt {{time}}',
     alertsLabel: 'Warn-Mails senden',
+    alertsSaveFailed:
+      'Die Änderung wurde nicht gespeichert. Versuche es noch einmal.',
     alertsBody:
       'An die ServerAdmins bei neuen Fehlern, vollem Speicher, gescheiterten Zustellungen und fehlendem Backup.',
   },

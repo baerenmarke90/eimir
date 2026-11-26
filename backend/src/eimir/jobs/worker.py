@@ -57,8 +57,12 @@ def run_once(
     kinds: Collection[str] | None = None,
     excluded_kinds: Collection[str] = (),
     lease: timedelta = queue.DEFAULT_LEASE,
+    on_progress: Callable[[], None] | None = None,
 ) -> int:
     """Run one round and return the number of processed jobs.
+
+    ``on_progress`` is called before and after every job, so a liveness
+    signal sees a round of several long jobs as progress (#2317).
 
     Claiming happens in its own short transaction. Holding the claim lock
     until processing completes would allow one long-running job to block the
@@ -78,7 +82,11 @@ def run_once(
         job_ids = [(job.id, job.kind, dict(job.payload)) for job in jobs]
 
     for job_id, kind, payload in job_ids:
+        if on_progress is not None:
+            on_progress()
         _run_job(job_id, kind, payload)
+    if on_progress is not None and job_ids:
+        on_progress()
 
     return len(job_ids)
 

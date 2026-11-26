@@ -91,6 +91,26 @@ def test_new_failed_jobs_mail_once_per_new_failure(session: Session, outbox) -> 
     assert _run(session, at + timedelta(hours=26, minutes=5), outbox) == ["failed_jobs"]
 
 
+def test_repeated_new_failures_mail_at_most_once_a_day(session: Session, outbox) -> None:  # type: ignore[no-untyped-def]
+    _admin(session)
+    at = now()
+    _failed_job(session, at - timedelta(minutes=1))
+    assert _run(session, at, outbox) == ["failed_jobs"]
+    _failed_job(session, at + timedelta(minutes=8))
+    assert _run(session, at + timedelta(minutes=10), outbox) == []
+    _failed_job(session, at + timedelta(minutes=18))
+    assert _run(session, at + timedelta(minutes=20), outbox) == []
+    assert len(outbox) == 1
+
+
+def test_old_failures_before_the_first_run_are_not_mailed(session: Session, outbox) -> None:  # type: ignore[no-untyped-def]
+    _admin(session)
+    at = now()
+    _failed_job(session, at - timedelta(days=60))
+    assert _run(session, at, outbox) == []
+    assert outbox == []
+
+
 def test_space_quota_pressure_reminds_daily_while_active(
     session: Session, outbox, monkeypatch
 ) -> None:  # type: ignore[no-untyped-def]
@@ -101,11 +121,12 @@ def test_space_quota_pressure_reminds_daily_while_active(
     assert _run(session, at, outbox) == ["space_quota_pressure"]
     assert _run(session, at + timedelta(hours=2), outbox) == []
     assert _run(session, at + timedelta(hours=25), outbox) == ["space_quota_pressure"]
-    # Resolved, then active again: a new activation mail.
+    # Resolved and active again within a day: still at most one mail a day.
     monkeypatch.setattr(alerts, "_space_quota_pressure", lambda session, settings: False)
     assert _run(session, at + timedelta(hours=26), outbox) == []
     monkeypatch.setattr(alerts, "_space_quota_pressure", lambda session, settings: True)
-    assert _run(session, at + timedelta(hours=27), outbox) == ["space_quota_pressure"]
+    assert _run(session, at + timedelta(hours=27), outbox) == []
+    assert _run(session, at + timedelta(hours=49), outbox) == ["space_quota_pressure"]
 
 
 def test_switched_off_sends_nothing_and_re_enabling_sends_no_backlog(

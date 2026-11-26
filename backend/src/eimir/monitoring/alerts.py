@@ -6,8 +6,9 @@ Spaces near their Cloud quota, a nearly full media disk, bursts of failed
 email/push deliveries, and a missing backup on Cloud.
 
 Each condition keeps one state row. A mail goes out when the condition becomes
-active and at most once a day while it stays active; the backup notice goes
-out once only. Nothing is mailed on resolution. While alerts are switched off,
+active, and per condition at most once a day even if it flaps; the backup
+notice goes out once only. Nothing is mailed on resolution. Failed jobs older
+than the first evaluation (an upgrade) are never mailed. While alerts are switched off,
 active conditions are marked as handled, so switching them on again does not
 send a backlog. Mails name the condition and link to ServerAdmin; they carry
 no names, addresses or content.
@@ -109,8 +110,6 @@ def _due(code: str, state: MonitoringAlertState, at: datetime) -> bool:
         return True
     if code in _ONE_TIME:
         return False
-    if state.active_since is not None and state.last_sent_at < state.active_since:
-        return True
     return at - state.last_sent_at >= REMINDER
 
 
@@ -125,13 +124,14 @@ def run(
     enabled = bool(administration.get_settings(session).monitoring_alerts_enabled)
     newest_failure = _newest_failure(session)
     failed_jobs_state = _state(session, "failed_jobs")
+    if failed_jobs_state.high_water_mark is None and failed_jobs_state.last_sent_at is None:
+        # First evaluation (fresh install or upgrade): only failures from the
+        # last interval are new; older rows stay in the Jobs page.
+        failed_jobs_state.high_water_mark = at - INTERVAL
     emails, pushes = failed_deliveries_since(session, at - timedelta(hours=1))
     active = {
         "failed_jobs": newest_failure is not None
-        and (
-            failed_jobs_state.high_water_mark is None
-            or newest_failure > failed_jobs_state.high_water_mark
-        ),
+        and newest_failure > failed_jobs_state.high_water_mark,
         "space_quota_pressure": _space_quota_pressure(session, settings),
         "disk_pressure": _disk_pressure(settings),
         "delivery_failures": max(emails, pushes) > DELIVERY_FAILURE_BURST,
@@ -150,7 +150,7 @@ def run(
         if not _due(code, state, at):
             continue
         state.last_sent_at = at
-        if code == "failed_jobs":
+        if code == "failed_jobs" and newest_failure is not None:
             state.high_water_mark = newest_failure
         if not enabled:
             continue

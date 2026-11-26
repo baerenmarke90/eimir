@@ -69,6 +69,7 @@ def main() -> None:
                 limit=1,
                 kinds=kinds,
                 lease=VIDEO_LEASE,
+                on_progress=heartbeat.progress,
             )
         except Exception:
             log.exception("video worker round failed")

@@ -117,6 +117,18 @@ describe('ServerAdminMonitoringPanel', () => {
     expect(worker?.textContent).toContain(monitoring.status.silent);
   });
 
+  it('moves the switch at once and back with a message when saving fails', async () => {
+    const put = vi.fn().mockRejectedValue(new Error('offline'));
+    renderPanel(vi.fn().mockResolvedValue(data()), put);
+    const toggle = (await screen.findByRole('checkbox', {
+      name: monitoring.alertsLabel,
+    })) as HTMLInputElement;
+    fireEvent.click(toggle);
+    expect(toggle.checked).toBe(false);
+    expect(await screen.findByText(monitoring.alertsSaveFailed)).toBeTruthy();
+    expect(toggle.checked).toBe(true);
+  });
+
   it('turns alert mails off through the settings route', async () => {
     const put = vi.fn().mockResolvedValue({});
     renderPanel(vi.fn().mockResolvedValue(data()), put);

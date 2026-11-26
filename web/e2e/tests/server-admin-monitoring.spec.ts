@@ -92,7 +92,11 @@ function point(hoursAgo: number, extra: Record<string, unknown> = {}) {
   };
 }
 
-function monitoringData(range: string, filled: boolean): Monitoring {
+function monitoringData(
+  range: string,
+  filled: boolean,
+  alertsEnabled = true,
+): Monitoring {
   const points = filled
     ? Array.from({ length: 12 }, (_, index) => point(23 - index * 2))
     : [];
@@ -112,7 +116,7 @@ function monitoringData(range: string, filled: boolean): Monitoring {
       { key: 'email', status: 'ok', lastSeenAt: null },
       { key: 'push', status: 'ok', lastSeenAt: null },
     ],
-    alertsEnabled: true,
+    alertsEnabled,
   };
 }
 
@@ -123,7 +127,11 @@ async function install(
     filled = false,
   }: { data?: Overview; filled?: boolean } = {},
 ) {
-  const recorded = { ranges: [] as string[], alertWrites: [] as unknown[] };
+  const recorded = {
+    ranges: [] as string[],
+    alertWrites: [] as unknown[],
+    alertsEnabled: true,
+  };
   await installMocks(page);
   await page.route('**/api/v1/**', async (route) => {
     const request = route.request();
@@ -142,19 +150,23 @@ async function install(
     ) {
       const range = url.searchParams.get('range') ?? '24h';
       recorded.ranges.push(range);
-      return route.fulfill({ json: monitoringData(range, filled) });
+      return route.fulfill({
+        json: monitoringData(range, filled, recorded.alertsEnabled),
+      });
     }
     if (
       request.method() === 'PUT' &&
       pathname === '/api/v1/server-admin/settings/monitoring-alerts'
     ) {
-      recorded.alertWrites.push(request.postDataJSON());
+      const body = request.postDataJSON() as { enabled: boolean };
+      recorded.alertWrites.push(body);
+      recorded.alertsEnabled = body.enabled;
       return route.fulfill({
         json: {
           registrationEnabled: true,
           maintenanceMode: false,
           effectiveRegistrationEnabled: true,
-          monitoringAlertsEnabled: false,
+          monitoringAlertsEnabled: recorded.alertsEnabled,
           version: 2,
         },
       });
@@ -252,10 +264,12 @@ test('the operator reads monitoring, switches the range and turns alerts off', a
   await expect(
     page.getByRole('button', { name: monitoring.ranges['30d'] }),
   ).toHaveAttribute('aria-pressed', 'true');
-  expect(recorded.ranges).toContain('30d');
+  await expect.poll(() => recorded.ranges).toContain('30d');
 
   // Save: the alert switch writes once.
-  await page.getByRole('checkbox', { name: monitoring.alertsLabel }).uncheck();
+  const alerts = page.getByRole('checkbox', { name: monitoring.alertsLabel });
+  await alerts.uncheck();
+  await expect(alerts).not.toBeChecked();
   await expect.poll(() => recorded.alertWrites).toEqual([{ enabled: false }]);
 });
 

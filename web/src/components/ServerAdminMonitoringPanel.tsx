@@ -38,19 +38,25 @@ export function ServerAdminMonitoringPanel({ api }: { api: ServerAdminApi }) {
       api.getServerAdminMonitoringApiV1ServerAdminMonitoringGet({ range }),
     retry: false,
   });
+  // The switch moves at once; a failed save puts it back and says so.
+  const [alertsDraft, setAlertsDraft] = useState<boolean | null>(null);
   const alerts = useMutation({
     mutationFn: (enabled: boolean) =>
       api.updateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPut(
         { serverAdminSettingUpdate: { enabled } },
       ),
-    onSettled: () => {
-      void queryClient.invalidateQueries({
-        queryKey: ['server-admin', 'monitoring'],
-      });
+    onMutate: (enabled) => setAlertsDraft(enabled),
+    onSuccess: (_settings, enabled) => {
+      queryClient.setQueriesData<ServerAdminMonitoring>(
+        { queryKey: ['server-admin', 'monitoring'] },
+        (current) =>
+          current ? { ...current, alertsEnabled: enabled } : current,
+      );
       void queryClient.invalidateQueries({
         queryKey: ['server-admin', 'settings'],
       });
     },
+    onSettled: () => setAlertsDraft(null),
   });
   const percent = new Intl.NumberFormat(resolvedLocale(), {
     style: 'percent',
@@ -231,11 +237,16 @@ export function ServerAdminMonitoringPanel({ api }: { api: ServerAdminApi }) {
               id="server-monitoring-alerts"
               type="checkbox"
               aria-describedby="server-monitoring-alerts-help"
-              checked={data.alertsEnabled}
+              checked={alertsDraft ?? data.alertsEnabled}
               disabled={alerts.isPending}
               onChange={(event) => alerts.mutate(event.target.checked)}
             />
           </div>
+          {alerts.isError ? (
+            <p className="server-admin-muted" role="alert">
+              {t('serverAdmin.monitoring.alertsSaveFailed')}
+            </p>
+          ) : null}
         </>
       )}
     </section>

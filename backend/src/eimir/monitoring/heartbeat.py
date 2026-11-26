@@ -2,9 +2,11 @@
 
 A running container is not proof that the worker works: a loop that hangs in
 one call keeps the process alive. A small thread therefore writes the
-heartbeat every minute, while the loop records its own progress. A process
-counts as alive only when both are recent, so a long but healthy job (which
-keeps renewing its lease) stays alive and a hung loop turns silent.
+heartbeat every minute, while the loop records its own progress before and
+after every job. A process counts as alive only when both are recent: a round
+of many jobs stays alive, a single job may take up to its lease (after which
+the queue would hand it to another worker anyway), and a hung loop turns
+silent.
 
 The optional push URL is the operator's Uptime Kuma push monitor. It is
 configuration, carries a token, and is never logged or returned by any API.
@@ -172,5 +174,7 @@ def worker_heartbeat(settings: Settings, *, role: str) -> Heartbeat:
         role=role,
         name=settings.worker_name or socket.gethostname(),
         revision=build_revision(),
-        push_url=push_url.get_secret_value() if push_url else None,
+        # Only the main worker pings: a live video worker must not hide a hung
+        # main worker behind the same push monitor.
+        push_url=push_url.get_secret_value() if push_url and role == "worker" else None,
     )

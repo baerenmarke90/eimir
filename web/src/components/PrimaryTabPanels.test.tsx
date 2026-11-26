@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { useEffect } from 'react';
 import {
@@ -118,7 +120,7 @@ it('reveals Lists during the swipe and releases it when its route is left', asyn
   const lists = '/more/collections';
   render(<Harness />);
   await act(() => setPrimaryTabPeek(lists, PEEK_GEOMETRY));
-  expect(panel(lists)?.hasAttribute('inert')).toBe(true);
+  expect(panel(lists)?.getAttribute('aria-hidden')).toBe('true');
   await act(() => setPrimaryTabPeek(null));
   expect(panel(lists)).toBeNull();
 
@@ -128,7 +130,7 @@ it('reveals Lists during the swipe and releases it when its route is left', asyn
   await act(() => setPrimaryTabPeek(null));
   expect(screen.getByTestId('lists-search')).toBe(preview);
   expect(preview.textContent).toBe('?scope=ALL');
-  expect(panel(lists)?.hasAttribute('inert')).toBe(false);
+  expect(panel(lists)?.hasAttribute('aria-hidden')).toBe(false);
 
   await act(() => navigate('/plan/collections/new'));
   expect(panel(lists)).toBeNull();
@@ -408,7 +410,8 @@ it('reveals the neighbouring tab for a swipe without keeping it unless it is ope
   expect(peeked?.hidden).toBe(false);
   expect(peeked?.dataset.primaryTabPeek).toBe('true');
   expect(peeked?.getAttribute('aria-hidden')).toBe('true');
-  expect(peeked?.hasAttribute('inert')).toBe(true);
+  // Never `inert`: toggling it restyles the whole tab.
+  expect(peeked?.hasAttribute('inert')).toBe(false);
   expect(peeked?.style.getPropertyValue('--primary-tab-peek-width')).not.toBe(
     '',
   );
@@ -451,7 +454,7 @@ it('prepares a panel once the app is quiet and keeps it out of sight until visit
     expect(prepared?.dataset.primaryTabPrewarm).toBe('true');
     expect(prepared?.hidden).toBe(false);
     expect(prepared?.getAttribute('aria-hidden')).toBe('true');
-    expect(prepared?.hasAttribute('inert')).toBe(true);
+    expect(prepared?.hasAttribute('inert')).toBe(false);
     expect(mounts).toContain('plan');
     const mountsBefore = mounts.filter((name) => name === 'plan').length;
 
@@ -484,7 +487,7 @@ it('builds the tabs beside the shown one after its opening, hidden until reveale
     const built = panel('/story');
     expect(built?.hidden).toBe(true);
     expect(built?.getAttribute('aria-hidden')).toBe('true');
-    expect(built?.hasAttribute('inert')).toBe(true);
+    expect(built?.hasAttribute('inert')).toBe(false);
     // Only the neighbours: Planen is two tabs away from Wir.
     expect(panel('/plan')).toBeNull();
     const mountsBefore = mounts.filter((name) => name === 'story').length;
@@ -594,4 +597,22 @@ it('rechecks visibility and data saving at the idle callback and cancels deactiv
     vi.unstubAllGlobals();
     vi.useRealTimers();
   }
+});
+
+it('parks a tab by skipping its contents, which keeps them out of focus and the accessibility tree', () => {
+  // `content-visibility: hidden` does what `inert` did for a parked tab
+  // (focus order, find-in-page, accessibility tree) without inherited style.
+  const css = readFileSync(join(__dirname, '..', 'shell.css'), 'utf8').replace(
+    /\s+/g,
+    ' ',
+  );
+  const parked = css.slice(
+    css.indexOf('.product-main > .primary-tab-panel[hidden],'),
+  );
+  expect(parked.slice(0, parked.indexOf('}'))).toContain(
+    'content-visibility: hidden;',
+  );
+  expect(parked.slice(0, parked.indexOf('}'))).toContain(
+    'pointer-events: none;',
+  );
 });

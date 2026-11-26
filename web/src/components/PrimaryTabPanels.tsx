@@ -491,10 +491,12 @@ export function PrimaryTabPanels({
         data-primary-tab-rehearse={
           prebuilt && rehearsing === path ? 'true' : undefined
         }
-        // A hidden tab stays rendered (skipped), so it is also taken out of
-        // the accessibility tree and focus order explicitly.
+        // A parked tab skips its contents (`content-visibility: hidden`),
+        // which also takes them out of focus order, find-in-page and the
+        // accessibility tree; `aria-hidden` covers a peek and a preparation.
+        // No `inert`: it is inherited style, so each park and show would
+        // restyle every element of the tab (19-35 ms for Wir on the Pixel).
         aria-hidden={visible ? undefined : true}
-        inert={!visible}
         hidden={!visible && !peeking && !preparing}
       >
         <TabRouteContent

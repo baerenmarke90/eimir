@@ -800,6 +800,11 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
         await page.addStyleTag({
           content: `html { font-size: ${width === 320 ? '200%' : '100%'}; }`,
         });
+        // The route URL changes before the lazy page and its questions render.
+        await expect(page.locator('.couple-experience-page')).toBeVisible();
+        await expect(
+          page.locator('.couple-experience-questions a'),
+        ).toHaveCount(3);
         expect(
           await page.evaluate(
             () => document.documentElement.scrollWidth <= innerWidth,
@@ -819,9 +824,6 @@ for (const kind of ['happiness', 'timeTravel'] as const) {
           ).violations,
         ).toEqual([]);
         const question = Object.values(experienceCopy.questions[kind])[0];
-        await expect(
-          page.locator('.couple-experience-questions a'),
-        ).toHaveCount(3);
         await page.getByRole('link', { name: question, exact: true }).click();
         await expect(page).toHaveURL(new RegExp(base + '/new\\?question='));
         await expect(page.locator('.experience-selected-question')).toHaveText(

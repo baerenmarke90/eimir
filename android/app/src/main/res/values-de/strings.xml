@@ -124,4 +124,7 @@
     <string name="media_transfer_progress">%1$d%% übertragen</string>
     <string name="media_transfer_processing">Übertragung abgeschlossen. Video wird vorbereitet.</string>
     <string name="media_transfer_failed">Upload unterbrochen. Öffne eimir. zum Fortsetzen.</string>
+    <string name="shortcut_moment">Moment festhalten</string>
+    <string name="shortcut_wish">Wunsch hinzufügen</string>
+    <string name="shortcut_plan">Plan erstellen</string>
 </resources>

@@ -565,7 +565,7 @@ class PullRequestTierTest(unittest.TestCase):
         self.assertEqual(full["supply_chain_web_build"], "false")
 
     def test_label_gated_workflow_change_requires_the_label(self) -> None:
-        for path in (".github/workflows/web-browser-qa.yml", ".github/actions/attest-release-artifact/action.yml"):
+        for path in (".github/workflows/web-browser-qa.yml", ".github/workflows/ios-native.yml", ".github/actions/attest-release-artifact/action.yml"):
             with self.subTest(path=path):
                 self.assertEqual(tiered_outputs([path], pull_request=True)["label_required"], "true")
                 self.assertEqual(

@@ -696,6 +696,11 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 4,
       "reason": "ServerAdmin support reports (#2189): the operator opens Reports from the ServerAdmin navigation only while the admin plugin is installed, opens a report from the new-report queue (the list never shows the note), changes its state through the stale-authentication step-up that retries the same write, sends the one reply and sees it read-only, creates a ticket from the dialog that sends only the typed title and body and sees the tracker link, and returns to the list with focus restored; the operator archives a report (step-up retried), finds it only in the Archived view with its state kept, brings it back, and permanently deletes one only through the confirmation dialog (cancel holds focus and deletes nothing; a linked ticket is named as staying in the tracker); an uncertain PENDING ticket is cleared only after the duplicate warning is confirmed; the list, detail, archive/delete actions, delete dialog, archived view, ticket dialog and uncertain state in Compact 360/390/430 and Expanded 1440, Light/Dark, reduced motion and 200 % text with axe on the section and the dialog."
+    },
+    "app-shortcuts.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 8,
+      "reason": "Feature-owned native app-icon ingress: queued cold actions wait for login and authorized Space, all three composers save explicitly, warm reselect preserves drafts and deferred entry waits for existing Save; Android/iOS bridge simulation, Compact/Expanded and Light/Dark/reduced motion. Actual OS packaging and callbacks are separate native gates."
     }
   }
 }

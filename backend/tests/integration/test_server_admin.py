@@ -1300,3 +1300,53 @@ def test_overview_attention_lists_are_capped_at_five(
     assert payload["storagePressure"][0]["usedBytes"] == 92
     assert payload["expiringAdminGrantCount"] == 7
     assert len(payload["expiringAdminGrants"]) == 5
+
+
+def _stub_plugins(monkeypatch, capabilities):  # type: ignore[no-untyped-def]
+    from eimir.plugins import loader
+
+    class Stub:
+        name = "stub"
+
+        def capabilities(self) -> frozenset[str]:
+            return frozenset(capabilities)
+
+    monkeypatch.setattr(loader, "_loaded", loader.LoadedPlugins((Stub(),)))  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    ("deployment", "provided", "expected"),
+    [
+        ("cloud", ["gift_codes.operator"], True),
+        ("self_hosted", ["gift_codes.operator"], False),
+        ("cloud", [], False),
+    ],
+)
+def test_overview_pro_area_available(
+    client, session, server_admin_allowlist, monkeypatch, deployment, provided, expected
+) -> None:  # type: ignore[no-untyped-def]
+    _, token = _admin(session)
+    _quota_settings(monkeypatch, deployment)
+    _stub_plugins(monkeypatch, provided)
+
+    payload = client.get("/api/v1/server-admin/overview", headers=auth(token)).json()
+
+    assert payload["proAreaAvailable"] is expected
+
+
+def test_expiring_gifts_ignore_space_extended_by_later_grant(
+    client, session, server_admin_allowlist
+) -> None:  # type: ignore[no-untyped-def]
+    _, token = _admin(session)
+    owner = make_account(session, "Owner")
+    extended = make_space(session, owner)
+    _admin_grant(session, extended, until=now() + timedelta(days=3))
+    _admin_grant(session, extended, until=now() + timedelta(days=90), source="GOOGLE_PLAY")
+    only_gift = make_space(session, owner)
+    gift = _admin_grant(session, only_gift, until=now() + timedelta(days=3))
+
+    payload = client.get("/api/v1/server-admin/overview", headers=auth(token)).json()
+
+    assert payload["expiringAdminGrantCount"] == 1
+    [item] = payload["expiringAdminGrants"]
+    assert item["grantId"] == str(gift.id)

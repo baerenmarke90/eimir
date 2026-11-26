@@ -462,3 +462,24 @@ def test_support_operator_is_never_effective_even_when_its_plugin_is_loaded(
         )
         assert operator not in effective.capabilities
         assert not has_capability(FakeSession([grant(capabilities)]), space_id, operator, at=now)
+
+
+def test_gift_codes_operator_is_never_granted() -> None:
+    operator = Capability.GIFT_CODES_OPERATOR.value
+    assert operator not in ALL_PREMIUM_CAPABILITIES
+    space_id = uuid4()
+    now = datetime(2026, 9, 1, 12, 0, 0, tzinfo=UTC)
+    grant = EntitlementGrant(
+        id=uuid4(),
+        space_id=space_id,
+        source_type=EntitlementSourceType.GOOGLE_PLAY.value,
+        status=EntitlementStatus.ACTIVE.value,
+        tier=EntitlementTier.PREMIUM.value,
+        effective_from=now - timedelta(days=1),
+        effective_until=now + timedelta(days=30),
+        capabilities=None,
+    )
+    effective = get_effective_space_entitlement(
+        FakeSession([grant]), space_id, at=now, deployment=Deployment.CLOUD
+    )
+    assert operator not in effective.capabilities

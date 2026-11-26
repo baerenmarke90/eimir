@@ -14,7 +14,7 @@ from uuid import UUID
 from fastapi import APIRouter, Path, Query, Response
 from pydantic import Field
 from sqlalchemy import case, distinct, exists, func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
 from eimir.administration import account_operations
 from eimir.administration import service as administration
@@ -29,7 +29,7 @@ from eimir.api.schema import ApiModel
 from eimir.attachments import quota as storage_quota
 from eimir.attachments.models import Attachment, AttachmentStatus
 from eimir.auth import cloud
-from eimir.config import Deployment, MailTransport
+from eimir.config import Deployment, MailTransport, Settings
 from eimir.config import get_settings as get_runtime_settings
 from eimir.core.clock import ensure_utc, now
 from eimir.core.errors import NotFoundError, ValidationError
@@ -149,6 +149,7 @@ class ServerAdminOverview(ApiModel):
     recent_failed_jobs: list[ServerAdminFailedJob]
     support_reports_new: int
     support_reports_operator_available: bool
+    pro_area_available: bool
     worker_last_seen_at: datetime | None
     video_worker_status: str
     email_failures_last_hour: int
@@ -169,6 +170,19 @@ def support_reports_operator_available(*, enabled: bool) -> bool:
     its routes exist.
     """
     return enabled and Capability.SUPPORT_OPERATOR.value in loaded_plugins().capabilities()
+
+
+def pro_area_available(settings: Settings) -> bool:
+    """Whether the Pro overview and gift-code routes exist on this server.
+
+    True only on the Cloud deployment while a loaded plugin provides the gift
+    code operator capability, so the web client shows the area exactly when its
+    routes exist.
+    """
+    return (
+        settings.deployment is Deployment.CLOUD
+        and Capability.GIFT_CODES_OPERATOR.value in loaded_plugins().capabilities()
+    )
 
 
 class ServerAdminSettings(ApiModel):
@@ -758,11 +772,31 @@ def get_server_admin_overview(
         limit=_ATTENTION_LIMIT,
         settings=settings,
     )
+    # A Space whose Premium access is extended by another valid grant is not
+    # about to lose it, so it is neither listed nor counted.
+    later_grant = aliased(EntitlementGrant)
+    extended_by_later_grant = exists().where(
+        later_grant.space_id == EntitlementGrant.space_id,
+        later_grant.tier == EntitlementTier.PREMIUM.value,
+        later_grant.status.in_(
+            (
+                EntitlementStatus.ACTIVE.value,
+                EntitlementStatus.TRIAL.value,
+                EntitlementStatus.GRACE_PERIOD.value,
+                EntitlementStatus.GRANDFATHERED.value,
+            )
+        ),
+        or_(
+            later_grant.effective_until.is_(None),
+            later_grant.effective_until > EntitlementGrant.effective_until,
+        ),
+    )
     expiring_filters = (
         EntitlementGrant.source_type == EntitlementSourceType.ADMIN_GRANT.value,
         EntitlementGrant.status == EntitlementStatus.ACTIVE.value,
         EntitlementGrant.effective_until > current_time,
         EntitlementGrant.effective_until <= current_time + _EXPIRING_GRANT_WINDOW,
+        ~extended_by_later_grant,
     )
     expiring_admin_grant_count = session.execute(
         select(func.count()).select_from(EntitlementGrant).where(*expiring_filters)
@@ -861,6 +895,7 @@ def get_server_admin_overview(
         support_reports_operator_available=support_reports_operator_available(
             enabled=settings.support_reports_enabled
         ),
+        pro_area_available=pro_area_available(settings),
         worker_last_seen_at=worker_last_seen_at,
         video_worker_status=video_worker_status,
         email_failures_last_hour=email_failures,

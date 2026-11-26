@@ -338,6 +338,7 @@ def test_the_in_tree_pro_plugin_provides_the_moving_capabilities() -> None:
         Capability.THEME_BESPOKE_PACKS.value,
         Capability.DAILY_QUOTE.value,
         Capability.PLANNING_DATE_INSPIRATION.value,
+        Capability.GIFT_CODES_OPERATOR.value,
     }
 
 

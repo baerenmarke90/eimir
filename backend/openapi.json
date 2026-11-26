@@ -15604,6 +15604,10 @@
             "title": "Passkeyaccountcount",
             "type": "integer"
           },
+          "proAreaAvailable": {
+            "title": "Proareaavailable",
+            "type": "boolean"
+          },
           "processStartedAt": {
             "format": "date-time",
             "title": "Processstartedat",
@@ -15731,6 +15735,7 @@
           "recentFailedJobs",
           "supportReportsNew",
           "supportReportsOperatorAvailable",
+          "proAreaAvailable",
           "workerLastSeenAt",
           "videoWorkerStatus",
           "emailFailuresLastHour",

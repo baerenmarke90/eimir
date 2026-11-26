@@ -92,6 +92,7 @@ _PRESENCE = Capability.PRESENCE_LOCATION
 _QUOTE = Capability.DAILY_QUOTE
 _QUICK_ACTIONS = Capability.PARTNER_QUICK_ACTIONS_EXTENDED
 _OPERATOR = Capability.SUPPORT_OPERATOR
+_GIFT_CODES = Capability.GIFT_CODES_OPERATOR
 
 _JOINED = Purge(LifecycleEvent.PARTNER_JOINED)
 _ENDED = Purge(LifecycleEvent.MEMBERSHIP_ENDED)
@@ -310,6 +311,7 @@ PRO_CAPABILITIES = frozenset(
         Capability.THEME_BESPOKE_PACKS.value,
         Capability.DAILY_QUOTE.value,
         Capability.PLANNING_DATE_INSPIRATION.value,
+        _GIFT_CODES.value,
     }
 )
 """Capabilities implemented by the Pro plugin; granted only while it is loaded.

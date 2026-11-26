@@ -39,7 +39,7 @@ The following browser captures show the same playing heart moment on either side
 
 ![List layout](07-list-layout-375-light.jpg)
 
-**Expanded:** the story stays centred at its maximum width, with the renew action (`story.discoverRenew`) above it and the "time for you" group below.
+**Expanded:** the story stays centred at its maximum width, with the "time for you" group below. The renew action shown above it in these captures was removed by a Product Owner decision on 2026-11-26; pulling down on touch screens remains the renew gesture.
 
 | | |
 |---|---|

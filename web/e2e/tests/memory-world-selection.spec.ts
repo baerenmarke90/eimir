@@ -292,6 +292,13 @@ test('Pro saves the Plattenkiste, keeps it after reload and returns to Story', a
     .getByRole('button', { name: copy.choose.replace('{{name}}', story) })
     .click();
   expect(writes).toEqual(['crate', 'story']);
+  // In Story the round switch ends the row of theme circles.
+  await page.goto('/story?tab=discover');
+  await expect(
+    page.locator('.momente-story-top').getByRole('link', {
+      name: copy.switchWorldCurrent.replace('{{name}}', story),
+    }),
+  ).toBeVisible();
 });
 
 test('a kept Pro world after a downgrade is named and stays selected', async ({
@@ -464,7 +471,7 @@ test('Erinnerungen shows the Momentwolke with the loaded diary and opens a memor
   await expect(cloud).toBeFocused();
 });
 
-test('Erinnerungen shows the Fotoautomat with its style switch beside the world switch', async ({
+test('Erinnerungen shows the Fotoautomat with its style switch below its heading', async ({
   page,
 }, info) => {
   await installMocks(page, true, 'booth');
@@ -476,9 +483,16 @@ test('Erinnerungen shows the Fotoautomat with its style switch beside the world 
     'data-entered',
     'true',
   );
-  // The Klassisch/Modern switch sits in the row of the world switch entry.
-  const row = page.locator('.memory-world-switch');
-  const styles = row.getByRole('group', { name: worlds.booth.styleLabel });
+  // The round world switch ends the heading row; the Klassisch/Modern
+  // switch sits right below it, inside the world.
+  const head = world.locator('.memory-world-head').first();
+  await expect(
+    head.getByRole('link', {
+      name: copy.switchWorldCurrent.replace('{{name}}', copy.worlds.booth.name),
+    }),
+  ).toBeVisible();
+  const styles = world.getByRole('group', { name: worlds.booth.styleLabel });
+  await expect(head.getByRole('group')).toHaveCount(0);
   await expect(styles).toBeVisible();
   const classic = styles.getByRole('button', {
     name: worlds.booth.style.classic,
@@ -502,7 +516,7 @@ test('Erinnerungen shows the Fotoautomat with its style switch beside the world 
   await page.reload();
   await expect(
     page
-      .locator('.memory-world-switch')
+      .locator('.memory-booth-style')
       .getByRole('button', { name: worlds.booth.style.modern }),
   ).toHaveAttribute('aria-pressed', 'true');
 });

@@ -72,6 +72,8 @@
         "web/src/components/memoryWorlds/WorldArt.tsx",
         "web/src/components/StoryProductPage.tsx",
         "web/src/components/MemoryWorldSwitch.tsx",
+        "web/src/components/memoryWorlds/WorldHead.tsx",
+        "web/src/components/DiscoverStory.tsx",
         "web/src/components/memoryWorlds/MemoryWorldView.tsx",
         "web/src/components/memoryWorlds/MomentCloudWorld.tsx",
         "web/src/components/memoryWorlds/PhotoBoothWorld.tsx",

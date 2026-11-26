@@ -38,8 +38,8 @@ import { useFirstContentSettle } from '../client/firstContentSettle';
 import { galleryCover } from '../client/galleryCover';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { usePartnerNickname } from '../client/partnerNickname';
-import { usePrimaryTabPeeked } from '../client/primaryTabPeek';
 import { photoShape } from '../client/photoShape';
+import { usePrimaryTabPeeked } from '../client/primaryTabPeek';
 import {
   type ClientProblemError,
   clientProblemKind,
@@ -62,9 +62,9 @@ import {
   MEMORY_MAP_ROUTE,
   memoryDetailPath,
   milestoneDetailPath,
+  STORY_CHAPTERS_ROUTE,
   STORY_OURS_ROUTE,
   STORY_PHOTOS_ROUTE,
-  STORY_CHAPTERS_ROUTE,
 } from '../client/routes';
 import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import {
@@ -85,13 +85,13 @@ import { CoupleExperienceLinks } from './CoupleExperienceLinks';
 import { FirstStepAction } from './FirstStepAction';
 import { useKeepsakeSway } from './useKeepsakeSway';
 import './FirstContentSettle.css';
+import { useAppLayout } from '../client/wirDesign';
 import { DiaryChapterPeriods } from './DiaryChapterPeriods';
 import { DiscoverStory } from './DiscoverStory';
+import { EimirIcon } from './EimirIcon';
 import { MemoryPreview } from './MemoryPreview';
 import { MomentCreateMenu } from './MomentCreateMenu';
-import { useAppLayout } from '../client/wirDesign';
 import { PageHeader } from './PageHeader';
-import { EimirIcon } from './EimirIcon';
 import { ProblemState } from './ProblemState';
 import { PullToRefreshIndicator } from './PullToRefreshIndicator';
 import { QuietHint } from './QuietHint';
@@ -117,7 +117,11 @@ import { DiaryList } from './DiaryList';
 import './StoryTaskFilters.css';
 import './StoryYearsPage.css';
 import type { MemoryMapSession } from '../client/memoryMapSession';
+import { useMemoryWorld } from '../client/memoryWorldContext';
 import { parseMapPlace } from '../client/photoPlaces';
+import { MemoryWorldView } from './memoryWorlds/MemoryWorldView';
+import { WorldEnter } from './memoryWorlds/WorldEnter';
+import { WorldSwitchProvider } from './memoryWorlds/WorldHead';
 import {
   formatStoryDate,
   resolveStoryKindLabel,
@@ -125,10 +129,6 @@ import {
   storyItemPresentation,
 } from './storyPresentation';
 import { UiState } from './UiState';
-import { MemoryWorldSwitch } from './MemoryWorldSwitch';
-import { MemoryWorldView } from './memoryWorlds/MemoryWorldView';
-import { WorldEnter } from './memoryWorlds/WorldEnter';
-import { useMemoryWorld } from '../client/memoryWorldContext';
 import {
   useTimelineAutoPagination,
   useTimelineReveal,
@@ -948,68 +948,58 @@ export function StoryProductPage({
               Fotostory, the default) or another world. The loading card
               stays until the world is painted and cross-fades into it. The
               Expanded renew action replaces the touch-only pull gesture. */}
-            <WorldEnter
-              cover={<UiState kind="loading" title={t('story.loadingAria')} />}
-            >
-              <MemoryWorldSwitch world={memoryWorld} />
-              <div className="momente-discover-renew">
-                <button
-                  type="button"
-                  className="secondary"
-                  disabled={renewing}
-                  aria-busy={renewing}
-                  onClick={() => void renewSelection()}
-                >
-                  {renewing
-                    ? t('story.discoverRenewing')
-                    : t('story.discoverRenew')}
-                </button>
-              </div>
-              {memoryWorld === 'story' ? (
-                <DiscoverStory
-                  lead={storyLead}
-                  items={curatedItems}
-                  loadMemoryImage={loadMemoryImage}
-                  onOpen={openDiscoverItem}
-                  nicknameFor={nicknameFor}
-                />
-              ) : (
-                <MemoryWorldView
-                  world={memoryWorld}
-                  lead={featuredItem}
-                  leadHeadline={featuredHeadline}
-                  leadKicker={
-                    onThisDayKicker && leadContext
-                      ? t('story.onThisDay', { count: leadContext.yearsAgo })
-                      : t('story.featuredKicker')
-                  }
-                  items={curatedItems}
-                  moreItems={
-                    memoryWorld === 'cloud' ? timelineItems : undefined
-                  }
-                  loadMemoryImage={loadMemoryImage}
-                  onOpen={openDiscoverItem}
-                  nicknameFor={nicknameFor}
-                />
-              )}
-              {newsHint.activeId ? (
-                <QuietHint
-                  tone="new"
-                  onDismiss={newsHint.dismiss}
-                  action={{
-                    to: STORY_OURS_ROUTE,
-                    label: t('quietHints.news.waymarksAction'),
-                  }}
-                >
-                  {t('quietHints.news.waymarks')}
-                </QuietHint>
-              ) : null}
+            <WorldSwitchProvider value={memoryWorld}>
+              <WorldEnter
+                cover={
+                  <UiState kind="loading" title={t('story.loadingAria')} />
+                }
+              >
+                {memoryWorld === 'story' ? (
+                  <DiscoverStory
+                    lead={storyLead}
+                    items={curatedItems}
+                    loadMemoryImage={loadMemoryImage}
+                    onOpen={openDiscoverItem}
+                    nicknameFor={nicknameFor}
+                  />
+                ) : (
+                  <MemoryWorldView
+                    world={memoryWorld}
+                    lead={featuredItem}
+                    leadHeadline={featuredHeadline}
+                    leadKicker={
+                      onThisDayKicker && leadContext
+                        ? t('story.onThisDay', { count: leadContext.yearsAgo })
+                        : t('story.featuredKicker')
+                    }
+                    items={curatedItems}
+                    moreItems={
+                      memoryWorld === 'cloud' ? timelineItems : undefined
+                    }
+                    loadMemoryImage={loadMemoryImage}
+                    onOpen={openDiscoverItem}
+                    nicknameFor={nicknameFor}
+                  />
+                )}
+                {newsHint.activeId ? (
+                  <QuietHint
+                    tone="new"
+                    onDismiss={newsHint.dismiss}
+                    action={{
+                      to: STORY_OURS_ROUTE,
+                      label: t('quietHints.news.waymarksAction'),
+                    }}
+                  >
+                    {t('quietHints.news.waymarks')}
+                  </QuietHint>
+                ) : null}
 
-              <CoupleExperienceLinks
-                onOpen={openDiscoverItem}
-                lead={recapLead}
-              />
-            </WorldEnter>
+                <CoupleExperienceLinks
+                  onOpen={openDiscoverItem}
+                  lead={recapLead}
+                />
+              </WorldEnter>
+            </WorldSwitchProvider>
             {renewed ? (
               <p className="sr-only" role="status">
                 {t('story.discoverRenewed')}

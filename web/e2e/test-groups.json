@@ -298,8 +298,8 @@
     },
     "story-discover-tapestry.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 16,
-      "reason": "Wir-only retrospective placement, canonical order inside Fotostory themes, authorized and sensitive story media, motion-gated autoplay with pause and keyboard paging, Compact/Expanded reflow, explicit bounded renewal (pull gesture and Expanded button) with stable confirmed results, daily freshness, offline/rate/access denial and untitled Diary photo reading."
+      "baselineTests": 15,
+      "reason": "Wir-only retrospective placement, canonical order inside Fotostory themes, authorized and sensitive story media, motion-gated autoplay with pause and keyboard paging, Compact/Expanded reflow, explicit bounded renewal (pull gesture) with stable confirmed results, daily freshness, offline/rate/access denial and untitled Diary photo reading."
     },
     "story-featured-metadata.spec.ts": {
       "disposition": "PR_CRITICAL",

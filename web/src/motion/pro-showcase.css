@@ -48,17 +48,22 @@
     animation-duration: var(--pro-scene-cycle-duration);
     animation-timing-function: var(--easing-travel);
     animation-delay: calc(
-      var(--pro-scene-phase) * var(--pro-scene-cycle-duration) * -1
+      var(--pro-scene-phase) *
+      var(--pro-scene-cycle-duration) *
+      -1
     );
     animation-iteration-count: calc(
-      var(--motion-ambient-repeat) + var(--pro-scene-phase)
+      var(--motion-ambient-repeat) +
+      var(--pro-scene-phase)
     );
   }
 
   .pro-scene-recapFilms[data-started] .ps-p {
     animation-duration: var(--pro-scene-film-duration);
     animation-delay: calc(
-      var(--pro-scene-phase) * var(--pro-scene-film-duration) * -1
+      var(--pro-scene-phase) *
+      var(--pro-scene-film-duration) *
+      -1
     );
   }
 

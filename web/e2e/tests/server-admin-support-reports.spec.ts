@@ -353,9 +353,7 @@ async function expectReflow(page: Page) {
     Array.from(document.querySelectorAll('body *'))
       .filter((element) => {
         const box = element.getBoundingClientRect();
-        const scroller = element.parentElement?.closest(
-          '.server-admin-section-nav',
-        );
+        const scroller = element.parentElement?.closest('.server-admin-subnav');
         return (
           box.width > 1 &&
           (box.right > window.innerWidth + 1 || box.left < -1) &&
@@ -421,11 +419,13 @@ test('operator_triages_a_report_replies_once_and_creates_a_ticket', async ({
   await openSignedIn(page, '/server-admin');
 
   // Open: the Reports section is offered because the plugin is installed.
-  const navigation = page.getByRole('navigation', {
-    name: serverAdmin.navigation.aria,
-  });
+  // Help is offered because the plugin is installed; its name carries the
+  // unread count.
+  const navigation = page
+    .getByRole('navigation', { name: serverAdmin.areas.aria })
+    .filter({ visible: true });
   await navigation
-    .getByRole('link', { name: serverAdmin.navigation.reports, exact: true })
+    .getByRole('link', { name: new RegExp(`^${serverAdmin.areas.help}`) })
     .click();
   await expect(page).toHaveURL(/[?&]section=reports\b/);
   const reportsSection = sectionOf(page);

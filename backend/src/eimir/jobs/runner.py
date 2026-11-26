@@ -29,6 +29,7 @@ from eimir.engagement import service as engagement_service
 from eimir.identity import deletion_jobs as account_deletion_jobs
 from eimir.jobs import maintenance
 from eimir.jobs.worker import registry, run_once
+from eimir.monitoring import history as monitoring_history
 from eimir.monitoring.heartbeat import worker_heartbeat
 from eimir.observability import configure_logging
 from eimir.places import photo_enrichment
@@ -82,6 +83,7 @@ def _ensure_maintenance() -> None:
             space_retention.ensure_scheduled(session)
             photo_enrichment.ensure_scheduled(session)
             context_tag_jobs.ensure_scheduled(session)
+            monitoring_history.ensure_scheduled(session)
             for plugin in loaded_plugins().plugins:
                 plugin.ensure_scheduled(session)
     except Exception:
@@ -111,6 +113,7 @@ def main() -> None:
     photo_enrichment.register_handlers()
     context_tag_jobs.register_handlers()
     maintenance.register_handlers()
+    monitoring_history.register_handlers()
     gentle_jobs.register_handlers()
     media_cleanup.register_handlers()
     account_media.register_handlers()

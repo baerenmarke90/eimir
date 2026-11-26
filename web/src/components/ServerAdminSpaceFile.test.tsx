@@ -175,11 +175,17 @@ describe('ServerAdminSpaceFile', () => {
       ).disabled,
     ).toBe(true);
 
+    // Below the plan's 50 GB the plan applies, so nothing is refused.
     fireEvent.change(input, { target: { value: '20' } });
-    expect(screen.getByRole('status').textContent).toContain('46 GB');
+    expect(
+      screen.getByText(/50 GB/, { selector: '.server-admin-sheet-note' }),
+    ).toBeTruthy();
+    expect(screen.queryByRole('status')).toBeNull();
 
     fireEvent.change(input, { target: { value: '80' } });
-    expect(screen.queryByRole('status')).toBeNull();
+    expect(
+      screen.queryByText(/50 GB/, { selector: '.server-admin-sheet-note' }),
+    ).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: copy.quotaSheet.save }));
 
     await waitFor(() =>
@@ -188,6 +194,45 @@ describe('ServerAdminSpaceFile', () => {
         serverAdminStorageQuotaRequest: { quotaGb: 80, effectiveUntil: null },
       }),
     );
+  });
+
+  it('warns when the higher value is still below the current usage', async () => {
+    renderFile(
+      file({
+        storage: { ...file().storage, usedBytes: 70 * GB },
+      }),
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: copy.spaceFile.adjustStorage }),
+    );
+    const input = screen.getByLabelText(copy.quotaSheet.amount);
+
+    fireEvent.change(input, { target: { value: '60' } });
+    expect(screen.getByRole('status').textContent).toContain('70 GB');
+
+    fireEvent.change(input, { target: { value: '80' } });
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
+  it('says when the plan is higher than the individual value', async () => {
+    renderFile(
+      file({
+        storage: {
+          ...file().storage,
+          override: {
+            quotaBytes: 20 * GB,
+            effectiveUntil: null,
+            setAt: new Date('2026-11-26T10:00:00Z'),
+          },
+        },
+      }),
+    );
+
+    expect(
+      await screen.findByText(
+        copy.spaceFile.overrideBelowPlan.replace('{{quota}}', '20 GB'),
+      ),
+    ).toBeTruthy();
   });
 
   it('removes an individual quota', async () => {

@@ -348,14 +348,20 @@ test('the operator finds a Space, sets an individual quota and removes it again'
   await expect(page.getByText('lena@example.com')).toBeVisible();
   await expect(page.getByText(PARTNER_NAME)).toHaveCount(0);
 
-  // Save: a value below the usage warns first, then 80 GB is saved.
+  // Save: a value not above the plan says the plan stays (the higher value
+  // applies, PO 2026-11-26), then 80 GB is saved.
   await page.getByRole('button', { name: spaceFile.adjustStorage }).click();
   const dialog = page.getByRole('dialog', { name: quotaSheet.title });
   const amount = dialog.getByLabel(quotaSheet.amount);
   await amount.fill('20');
-  await expect(dialog.getByRole('status')).toContainText('46 GB');
-  await amount.fill('80');
+  await expect(
+    dialog.getByText(fill(quotaSheet.belowPlan, { tier: '50 GB' })),
+  ).toBeVisible();
   await expect(dialog.getByRole('status')).toHaveCount(0);
+  await amount.fill('80');
+  await expect(
+    dialog.getByText(fill(quotaSheet.belowPlan, { tier: '50 GB' })),
+  ).toHaveCount(0);
   await dialog.getByRole('button', { name: quotaSheet.save }).click();
 
   // Observe: the Space file shows the individual quota.

@@ -106,7 +106,9 @@ def test_setting_again_replaces_the_previous_override(client, session, cloud) ->
     response = client.put(_quota_url(space), json={"quotaGb": 2}, headers=auth(token))
 
     assert response.status_code == 200
-    assert response.json()["quotaBytes"] == 2 * GIGABYTE
+    # 2 GB is below Free (5 GB); the higher value applies.
+    assert response.json()["quotaBytes"] == FREE
+    assert response.json()["override"]["quotaBytes"] == 2 * GIGABYTE
     assert response.json()["override"]["effectiveUntil"] is None
 
 

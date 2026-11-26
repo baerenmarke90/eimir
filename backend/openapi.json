@@ -26128,7 +26128,7 @@
         ]
       },
       "put": {
-        "description": "Set an individual Cloud quota that replaces the tier value while active.\n\nIt may be higher or lower than the tier value. Below the current usage\nnothing is deleted; only new bytes are refused.",
+        "description": "Set an individual Cloud quota for the Space, optionally until a date.\n\nThe higher of it and the tier value applies while it is active, so a\nvalue below the tier has no effect. Over the quota nothing is deleted;\nonly new bytes are refused.",
         "operationId": "setServerAdminSpaceStorageQuota",
         "parameters": [
           {

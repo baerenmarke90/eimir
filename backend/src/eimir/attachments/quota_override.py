@@ -1,8 +1,9 @@
 """An individual Cloud storage quota for one Space (ServerAdmin part 3, #2324).
 
-A ServerAdmin may set a quota that replaces the tier value (Free or Premium)
-for one Space, higher or lower, optionally until a date. Afterwards the tier
-value applies again by itself; no job is needed. Over any quota nothing is
+A ServerAdmin may give one Space an individual quota, optionally until a
+date. The higher of it and the tier value (Free or Premium) applies, so it
+only ever raises storage and buying Premium is never undercut. Afterwards the
+tier value applies again by itself; no job is needed. Over any quota nothing is
 deleted; only new bytes are refused. Self-Hosted is unmetered and ignores it.
 """
 
@@ -11,16 +12,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import (
-    BigInteger,
-    CheckConstraint,
-    DateTime,
-    ForeignKey,
-    delete,
-    func,
-    or_,
-    select,
-)
+from sqlalchemy import BigInteger, CheckConstraint, DateTime, ForeignKey, delete, select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
@@ -63,19 +55,6 @@ def active_override(
     if row.effective_until is not None and row.effective_until <= at:
         return None
     return row
-
-
-def smallest_active_quota(session: Session, at: datetime) -> int | None:
-    """The lowest individual quota in force at ``at`` across all Spaces."""
-    value = session.scalar(
-        select(func.min(SpaceStorageQuotaOverride.quota_bytes)).where(
-            or_(
-                SpaceStorageQuotaOverride.effective_until.is_(None),
-                SpaceStorageQuotaOverride.effective_until > at,
-            )
-        )
-    )
-    return int(value) if value is not None else None
 
 
 def set_override(

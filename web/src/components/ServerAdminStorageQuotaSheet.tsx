@@ -51,7 +51,11 @@ export function ServerAdminStorageQuotaSheet({
     Number.isInteger(parsed) &&
     parsed >= MIN_QUOTA_GB &&
     parsed <= MAX_QUOTA_GB;
-  const belowUsage = valid && parsed * GIGABYTE < storage.usedBytes;
+  // The higher of the individual value and the plan applies (PO 2026-11-26).
+  const tier = storage.tierQuotaBytes;
+  const belowTier = valid && tier !== null && parsed * GIGABYTE <= tier;
+  const effective = valid ? Math.max(parsed * GIGABYTE, tier ?? 0) : null;
+  const belowUsage = effective !== null && effective < storage.usedBytes;
 
   const save = useMutation({
     mutationFn: () =>
@@ -132,6 +136,11 @@ export function ServerAdminStorageQuotaSheet({
             {t('serverAdmin.quotaSheet.untilHint')}
           </span>
         </div>
+        {belowTier && tier !== null ? (
+          <p className="server-admin-sheet-note">
+            {t('serverAdmin.quotaSheet.belowPlan', { tier: formatBytes(tier) })}
+          </p>
+        ) : null}
         {belowUsage ? (
           <p className="server-admin-warning-panel" role="status">
             {t('serverAdmin.quotaSheet.belowUsage', {

@@ -293,7 +293,15 @@ function SpaceFileContent({
             />
           </div>
         ) : null}
-        {storage.override ? (
+        {storage.override &&
+        storage.tierQuotaBytes !== null &&
+        storage.override.quotaBytes <= storage.tierQuotaBytes ? (
+          <p className="server-admin-muted">
+            {t('serverAdmin.spaceFile.overrideBelowPlan', {
+              quota: formatBytes(storage.override.quotaBytes),
+            })}
+          </p>
+        ) : storage.override ? (
           <p className="server-admin-space-file-override">
             {storage.override.effectiveUntil
               ? t('serverAdmin.spaceFile.overrideUntil', {

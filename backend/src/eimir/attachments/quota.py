@@ -116,11 +116,14 @@ def space_quota(
     settings = settings or get_settings()
     if settings.deployment is not Deployment.CLOUD:
         return None
-    # An individual quota set by a ServerAdmin replaces the tier value (#2324).
+    tier = tier_quota(session, space_id, settings=settings)
+    # An individual quota set by a ServerAdmin (#2324) only ever raises the
+    # tier value: the higher one applies, so buying Premium is never undercut
+    # (Product Owner, 2026-11-26). An unmetered tier stays unmetered.
     override = quota_override.active_override(session, space_id, clock.now())
-    if override is not None:
-        return override.quota_bytes
-    return tier_quota(session, space_id, settings=settings)
+    if override is not None and tier is not None:
+        return max(tier, override.quota_bytes)
+    return tier
 
 
 def tier_quota(session: Session, space_id: UUID, *, settings: Settings | None = None) -> int | None:
@@ -173,11 +176,6 @@ def spaces_near_quota(
         for value in (settings.storage_quota_free_bytes, settings.storage_quota_premium_bytes)
         if value is not None
     ]
-    # An individual quota (#2324) may lie below both tier values, or be the
-    # only metered value, so it bounds the candidates too.
-    smallest_override = quota_override.smallest_active_quota(session, clock.now())
-    if smallest_override is not None:
-        quotas.append(smallest_override)
     if not quotas:
         return 0, []
     counted = func.coalesce(Attachment.size, Attachment.declared_size)

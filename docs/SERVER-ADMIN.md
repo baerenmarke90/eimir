@@ -564,9 +564,11 @@ PUT /api/v1/server-admin/spaces/{spaceId}/storage-quota
 DELETE /api/v1/server-admin/spaces/{spaceId}/storage-quota
 ```
 
-- It replaces the Free or Premium value while it is active and may be higher
-  or lower. Whole GB from 1 to 1024; an end date must lie in the future and is
-  optional. After it, or after `DELETE`, the tier value applies again at once;
+- While it is active the higher of it and the Free or Premium value applies
+  (Product Owner, 2026-11-26): it only ever raises storage, and buying Premium
+  is never undercut by a smaller individual value. A value not above the plan
+  has no effect, which the sheet says. Whole GB from 1 to 1024; an end date
+  must lie in the future and is optional. After it, or after `DELETE`, the tier value applies again at once;
   no job is involved.
 - Over any quota nothing is deleted; only new bytes are refused. The Space
   file warns before a value below the current usage is saved.

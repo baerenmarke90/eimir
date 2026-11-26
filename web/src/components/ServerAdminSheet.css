@@ -42,6 +42,10 @@
   gap: var(--space-1);
 }
 
+.server-admin-sheet-note {
+  color: var(--color-text-secondary);
+}
+
 .server-admin-sheet-actions {
   display: flex;
   flex-wrap: wrap;

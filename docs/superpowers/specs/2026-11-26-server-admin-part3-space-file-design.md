@@ -60,8 +60,9 @@ The Product Owner decided to include the storage button: a ServerAdmin can set a
 **individual Cloud storage quota per Space**. Rules (agent's calls unless noted):
 
 - Cloud only; the action is absent on Self-Hosted (unmetered).
-- The override replaces the tier value (Free 5 GB / Premium 50 GB) for that Space while it
-  is active; it may be higher or lower than the tier value. Range 1 GB to 1 TB, whole GB.
+- While the override is active the higher of it and the tier value (Free 5 GB / Premium
+  50 GB) applies (Product Owner, 2026-11-26), so buying Premium is never undercut. Range
+  1 GB to 1 TB, whole GB.
 - Optional end date; after it the tier value applies again automatically. Clearing the
   override has the same effect immediately.
 - Over any quota nothing is deleted; only new bytes are refused (existing quota rule).

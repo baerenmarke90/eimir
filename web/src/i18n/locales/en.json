@@ -5073,6 +5073,7 @@
       "storageUnmetered": "{{used}} stored",
       "override": "individual: {{quota}}",
       "overrideUntil": "individual: {{quota}} until {{date}}",
+      "overrideBelowPlan": "individual: {{quota}} · the plan is higher and applies",
       "media": {
         "image": "Photos",
         "video": "Videos",
@@ -5104,6 +5105,7 @@
       "range": "Whole GB from 1 to 1024.",
       "until": "Valid until (optional)",
       "untilHint": "Afterwards the normal storage applies again.",
+      "belowPlan": "This is no more than the plan ({{tier}}). The higher value always applies, so the plan stays.",
       "belowUsage": "This is less than the Space already uses ({{used}}). Nothing is deleted, but new photos and videos no longer fit.",
       "saveFailed": "That did not work. Try again.",
       "remove": "Remove individual storage",

@@ -127,10 +127,11 @@ def set_server_admin_space_storage_quota(
     session: DbSession,
     space_id: Annotated[str, Path(max_length=64)],
 ) -> ServerAdminSpaceStorage:
-    """Set an individual Cloud quota that replaces the tier value while active.
+    """Set an individual Cloud quota for the Space, optionally until a date.
 
-    It may be higher or lower than the tier value. Below the current usage
-    nothing is deleted; only new bytes are refused.
+    The higher of it and the tier value applies while it is active, so a
+    value below the tier has no effect. Over the quota nothing is deleted;
+    only new bytes are refused.
     """
     _require_cloud()
     parsed = _require_space(session, space_id)

@@ -165,6 +165,7 @@ const serverAdmin = {
     storageUnmetered: '{{used}} gespeichert',
     override: 'individuell: {{quota}}',
     overrideUntil: 'individuell: {{quota}} bis {{date}}',
+    overrideBelowPlan: 'individuell: {{quota}} · der Tarif ist höher und gilt',
     media: {
       image: 'Fotos',
       video: 'Videos',
@@ -197,6 +198,8 @@ const serverAdmin = {
     range: 'Ganze GB von 1 bis 1024.',
     until: 'Gilt bis (optional)',
     untilHint: 'Danach gilt wieder der normale Speicher.',
+    belowPlan:
+      'Das ist nicht mehr als der Tarif ({{tier}}). Es gilt immer der höhere Wert, also bleibt es beim Tarif.',
     belowUsage:
       'Das ist weniger, als der Space schon belegt ({{used}}). Gelöscht wird nichts, aber neue Fotos und Videos passen nicht mehr hinein.',
     saveFailed: 'Das hat nicht geklappt. Versuche es noch einmal.',

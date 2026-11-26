@@ -244,19 +244,37 @@ def _override(session: Session, space, quota: int, until=None):  # type: ignore[
     session.flush()
 
 
-def test_override_replaces_the_tier_quota_while_active(session: Session) -> None:
+def test_a_higher_override_raises_the_tier_quota_while_active(session: Session) -> None:
     account = make_account(session, "Owner")
     space = make_space(session, account)
     _override(session, space, 7_000, until=now() + timedelta(days=3))
     assert space_quota(session, space.id, settings=_cloud()) == 7_000
 
 
-def test_override_can_be_lower_than_the_tier_value(session: Session) -> None:
+def test_a_lower_override_leaves_the_higher_tier_value(session: Session) -> None:
+    # PO 2026-11-26: the higher value applies, so buying Premium is never undercut.
     account = make_account(session, "Owner")
     space = make_space(session, account)
-    _grant(session, space, capabilities=[Capability.STORAGE_CLOUD_QUOTA_50GB.value])
     _override(session, space, 500)
-    assert space_quota(session, space.id, settings=_cloud()) == 500
+    assert space_quota(session, space.id, settings=_cloud()) == FREE
+    _grant(session, space, capabilities=[Capability.STORAGE_CLOUD_QUOTA_50GB.value])
+    assert space_quota(session, space.id, settings=_cloud()) == PREMIUM
+
+
+def test_premium_above_the_override_takes_over(session: Session) -> None:
+    account = make_account(session, "Owner")
+    space = make_space(session, account)
+    _override(session, space, 7_000)
+    _grant(session, space, capabilities=[Capability.STORAGE_CLOUD_QUOTA_50GB.value])
+    assert space_quota(session, space.id, settings=_cloud()) == PREMIUM
+
+
+def test_an_override_does_not_meter_an_unmetered_tier(session: Session) -> None:
+    account = make_account(session, "Owner")
+    space = make_space(session, account)
+    _override(session, space, 7_000)
+    settings = _cloud(storage_quota_free_bytes=None, storage_quota_premium_bytes=None)
+    assert space_quota(session, space.id, settings=settings) is None
 
 
 def test_expired_override_falls_back_to_the_tier_value(session: Session) -> None:
@@ -274,41 +292,40 @@ def test_override_is_ignored_on_self_hosted(session: Session) -> None:
     assert space_quota(session, space.id, settings=settings) is None
 
 
-def test_override_below_usage_refuses_new_bytes_and_keeps_the_files(session: Session) -> None:
+def test_usage_over_the_override_refuses_new_bytes_and_keeps_the_files(session: Session) -> None:
     account = make_account(session, "Owner")
     space = make_space(session, account)
-    _attachment(session, account, space.id, AttachmentStatus.READY, declared_size=800, size=800)
-    _override(session, space, 500)
+    _attachment(session, account, space.id, AttachmentStatus.READY, declared_size=1_500, size=1_500)
+    _override(session, space, 1_200)
     storage = space_storage(session, space.id, settings=_cloud())
-    assert storage.used == 800
+    assert storage.used == 1_500
+    assert storage.quota == 1_200
     assert storage.available == 0
     assert not storage.fits(1)
 
 
-def test_an_override_below_the_tier_values_reaches_the_pressure_list(session: Session) -> None:
+def test_a_higher_override_takes_a_space_off_the_pressure_list(session: Session) -> None:
     from eimir.attachments.quota import spaces_near_quota
 
     account = make_account(session, "Owner")
     space = make_space(session, account)
-    # 300 bytes is far below 90 % of the Free value (1_000) but over its override.
-    _attachment(session, account, space.id, AttachmentStatus.READY, declared_size=300, size=300)
-    _override(session, space, 200)
+    _attachment(session, account, space.id, AttachmentStatus.READY, declared_size=950, size=950)
+    assert spaces_near_quota(session, ratio=0.9, limit=10, settings=_cloud())[0] == 1
 
-    total, near = spaces_near_quota(session, ratio=0.9, limit=10, settings=_cloud())
+    _override(session, space, 2_000)
 
-    assert total == 1
-    assert near == [(space.id, 300, 200)]
+    assert spaces_near_quota(session, ratio=0.9, limit=10, settings=_cloud()) == (0, [])
 
 
-def test_an_override_counts_even_when_the_tiers_are_unmetered(session: Session) -> None:
+def test_a_space_over_its_override_stays_on_the_pressure_list(session: Session) -> None:
     from eimir.attachments.quota import spaces_near_quota
 
     account = make_account(session, "Owner")
     space = make_space(session, account)
-    _attachment(session, account, space.id, AttachmentStatus.READY, declared_size=300, size=300)
-    _override(session, space, 200)
-    settings = _cloud(storage_quota_free_bytes=None, storage_quota_premium_bytes=None)
+    _attachment(session, account, space.id, AttachmentStatus.READY, declared_size=1_900, size=1_900)
+    _override(session, space, 2_000)
 
-    total, near = spaces_near_quota(session, ratio=0.9, limit=10, settings=settings)
-
-    assert (total, near) == (1, [(space.id, 300, 200)])
+    assert spaces_near_quota(session, ratio=0.9, limit=10, settings=_cloud()) == (
+        1,
+        [(space.id, 1_900, 2_000)],
+    )

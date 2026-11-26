@@ -1510,7 +1510,7 @@ export class ServerAdminApi extends runtime.BaseAPI {
     }
 
     /**
-     * Set an individual Cloud quota that replaces the tier value while active.  It may be higher or lower than the tier value. Below the current usage nothing is deleted; only new bytes are refused.
+     * Set an individual Cloud quota for the Space, optionally until a date.  The higher of it and the tier value applies while it is active, so a value below the tier has no effect. Over the quota nothing is deleted; only new bytes are refused.
      * Set Server Admin Space Storage Quota
      */
     async setServerAdminSpaceStorageQuotaRaw(requestParameters: SetServerAdminSpaceStorageQuotaRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ServerAdminSpaceStorage>> {
@@ -1521,7 +1521,7 @@ export class ServerAdminApi extends runtime.BaseAPI {
     }
 
     /**
-     * Set an individual Cloud quota that replaces the tier value while active.  It may be higher or lower than the tier value. Below the current usage nothing is deleted; only new bytes are refused.
+     * Set an individual Cloud quota for the Space, optionally until a date.  The higher of it and the tier value applies while it is active, so a value below the tier has no effect. Over the quota nothing is deleted; only new bytes are refused.
      * Set Server Admin Space Storage Quota
      */
     async setServerAdminSpaceStorageQuota(requestParameters: SetServerAdminSpaceStorageQuotaRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminSpaceStorage> {

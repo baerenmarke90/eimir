@@ -77,7 +77,7 @@ class ProOverview:
     running_gifts_total: int
 
 
-def _effective_premium(at: datetime) -> ColumnElement[bool]:
+def effective_premium(at: datetime) -> ColumnElement[bool]:
     """SQL form of a PREMIUM grant that ``get_effective_space_entitlement`` counts at ``at``."""
     grant = EntitlementGrant
     conditions = [
@@ -100,7 +100,7 @@ def _effective_premium(at: datetime) -> ColumnElement[bool]:
     return and_(*conditions)
 
 
-def _auto_renewing() -> ColumnElement[bool]:
+def auto_renewing() -> ColumnElement[bool]:
     """``metadata.autoRenewing`` is true; a missing or other value counts as not renewing."""
     return EntitlementGrant.metadata_.contains({"autoRenewing": True})
 
@@ -132,7 +132,7 @@ def _premium_counts(session: Session, at: datetime) -> tuple[int, int, int]:
                 "gift"
             ),
         )
-        .where(_effective_premium(at))
+        .where(effective_premium(at))
         .group_by(grant.space_id)
         .subquery()
     )
@@ -155,14 +155,14 @@ def _play_states(session: Session, at: datetime) -> PlayStates:
     newest event only decides among equals.
     """
     grant = EntitlementGrant
-    effective = func.coalesce(_effective_premium(at), False)
+    effective = func.coalesce(effective_premium(at), False)
     latest = (
         select(
             grant.status,
             grant.effective_until,
             grant.source_event_at,
             effective.label("effective"),
-            _auto_renewing().label("auto_renewing"),
+            auto_renewing().label("auto_renewing"),
         )
         .where(grant.source_type == EntitlementSourceType.GOOGLE_PLAY.value)
         .distinct(grant.space_id)
@@ -222,7 +222,7 @@ def _cancellations(session: Session, at: datetime) -> int:
                     grant.status.in_(
                         (*_RUNNING_PLAY_STATUSES, EntitlementStatus.GRACE_PERIOD.value)
                     ),
-                    ~_auto_renewing(),
+                    ~auto_renewing(),
                 ),
             ),
         )
@@ -242,7 +242,7 @@ def _latest_gift_per_space(at: datetime) -> Subquery:
         )
         .where(
             grant.source_type == EntitlementSourceType.ADMIN_GRANT.value,
-            _effective_premium(at),
+            effective_premium(at),
         )
         .distinct(grant.space_id)
         .order_by(

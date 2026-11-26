@@ -16,6 +16,7 @@ import secrets
 from datetime import datetime
 
 from eimir.config import get_settings
+from eimir.core import clock
 
 ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
 _PREFIX = "EIMIR"
@@ -52,7 +53,13 @@ def lookup_hash(code: str) -> str:
 
 
 def add_months(value: datetime, months: int) -> datetime:
-    """Add calendar months to an instant, clamping the day to the target month's length."""
+    """Add calendar months to an instant, clamping the day to the target month's length.
+
+    Months are added to the UTC timestamp (design section 5.1). Values read
+    from the database carry the connection's time zone; adding months to their
+    local wall time would shift the instant by an hour across a DST change.
+    """
+    value = clock.ensure_utc(value)
     month_index = value.month - 1 + months
     year = value.year + month_index // 12
     month = month_index % 12 + 1

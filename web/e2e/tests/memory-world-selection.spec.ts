@@ -292,6 +292,10 @@ test('Pro saves the Plattenkiste, keeps it after reload and returns to Story', a
     .getByRole('button', { name: copy.choose.replace('{{name}}', story) })
     .click();
   expect(writes).toEqual(['crate', 'story']);
+  // Wait for save and sheet-history cleanup before starting another navigation.
+  await expect(dialog).toHaveCount(0);
+  await expect(page.locator('.memory-world-summary strong')).toHaveText(story);
+  await expect(page.getByRole('button', { name: copy.change })).toBeFocused();
   // In Story the round switch ends the row of theme circles.
   await page.goto('/story?tab=discover');
   await expect(

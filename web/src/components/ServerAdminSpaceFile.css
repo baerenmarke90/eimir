@@ -1,3 +1,12 @@
+/* Long German words must wrap at 360 px and 200 % text, as on the other
+   ServerAdmin pages. */
+.server-admin-space-file,
+.server-admin-people-search,
+.server-admin-account-spaces {
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
 .server-admin-space-file {
   display: grid;
   gap: var(--space-3);

@@ -26,9 +26,8 @@ from fastapi.testclient import TestClient
 
 from eimir.api import deps
 from eimir.api.errors import register_error_handlers
-from eimir.auth import recent_auth
 from eimir.config import Settings
-from eimir.core.errors import ErrorCode, ForbiddenError, NotFoundError
+from eimir.core.errors import ErrorCode, NotFoundError
 from eimir.db.session import get_session
 from eimir.support_reports import service
 from eimir.support_reports.models import SupportReport, SupportReportKind
@@ -82,7 +81,6 @@ class Harness:
     def __init__(self, monkeypatch: pytest.MonkeyPatch) -> None:
         self.report = _report()
         self.enabled = True
-        self.stale = False
         self.configured = True
         self.outcome: Exception | SupportReportTicket | None = None
         self.calls: list[tuple[str, dict[str, Any]]] = []
@@ -107,11 +105,6 @@ class Harness:
         monkeypatch.setattr(routes, "_configured_tracker", self._tracker)
         monkeypatch.setattr(tickets, "create_ticket", self._create)
         monkeypatch.setattr(tickets, "clear_ticket", self._clear)
-        monkeypatch.setattr(recent_auth, "require_grant", self._require_grant)
-
-    def _require_grant(self, *_: Any, **__: Any) -> None:
-        if self.stale:
-            raise ForbiddenError("Recent authentication is required.", "RECENT_REQUIRED")
 
     def _tracker(self) -> object | None:
         return object() if self.configured else None
@@ -271,18 +264,6 @@ def test_every_ticket_route_is_a_404_while_the_switch_is_off(harness: Harness) -
     ]
 
     assert [response.status_code for response in responses] == [404, 404]
-    assert harness.calls == []
-
-
-def test_stale_authentication_is_refused_before_any_work(harness: Harness) -> None:
-    harness.stale = True
-
-    responses = [
-        harness.client.post(harness.url(), json=BODY),
-        harness.client.delete(harness.url()),
-    ]
-
-    assert [response.status_code for response in responses] == [403, 403]
     assert harness.calls == []
 
 

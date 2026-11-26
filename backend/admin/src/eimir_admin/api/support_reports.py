@@ -24,10 +24,9 @@ from sqlalchemy.orm import Session
 
 from eimir.administration import service as administration
 from eimir.administration.models import AdministrationAction
-from eimir.api.deps import CurrentServerAdmin, CurrentSession, DbSession
+from eimir.api.deps import CurrentServerAdmin, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.v1.support_reports import ClientContextBody
-from eimir.auth import recent_auth
 from eimir.config import get_settings
 from eimir.core.errors import ConflictError, NotFoundError
 from eimir.core.ids import parse_id
@@ -95,17 +94,6 @@ def _report_id(value: str) -> UUID:
     if parsed is None:
         raise NotFoundError("Support report not found.", service.REPORT_NOT_FOUND)
     return parsed
-
-
-def _require_recent_authentication(
-    session: Session, admin: Account, device_session: CurrentSession
-) -> None:
-    recent_auth.require_grant(
-        session,
-        admin,
-        device_session,
-        purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
-    )
 
 
 def _ticket_summary(ticket: SupportReportTicket | None) -> SupportReportTicketSummary | None:
@@ -278,11 +266,9 @@ def set_support_report_state(
     report_id_text: ReportIdPath,
     body: SupportReportStateUpdate,
     admin: Operator,
-    device_session: CurrentSession,
     session: DbSession,
 ) -> SupportReportDetailView:
     """Set the triage marker of a report. Needs recent authentication."""
-    _require_recent_authentication(session, admin, device_session)
     report = service.set_state(session, _report_id(report_id_text), body.state)
     administration.record_action(
         session,
@@ -303,11 +289,9 @@ def set_support_report_archived(
     report_id_text: ReportIdPath,
     body: SupportReportArchiveUpdate,
     admin: Operator,
-    device_session: CurrentSession,
     session: DbSession,
 ) -> SupportReportDetailView:
     """Archive or unarchive a report; its triage state is kept. Needs recent authentication."""
-    _require_recent_authentication(session, admin, device_session)
     report = service.set_archived(session, _report_id(report_id_text), body.archived)
     administration.record_action(
         session,
@@ -331,13 +315,11 @@ def set_support_report_archived(
 def delete_support_report(
     report_id_text: ReportIdPath,
     admin: Operator,
-    device_session: CurrentSession,
     session: DbSession,
 ) -> None:
     """Delete a report permanently with its reply and ticket link. Needs recent authentication."""
     # A tracker issue stays: the tracker API cannot delete one. The audit entry names
     # the action and the reporter's account, never the text.
-    _require_recent_authentication(session, admin, device_session)
     account_id = service.delete_report(session, _report_id(report_id_text))
     administration.record_action(
         session,
@@ -357,11 +339,9 @@ def reply_to_support_report(
     report_id_text: ReportIdPath,
     body: SupportReportReplyCreate,
     admin: Operator,
-    device_session: CurrentSession,
     session: DbSession,
 ) -> SupportReportDetailView:
     """Send the single reply of at most 500 characters. Needs recent authentication."""
-    _require_recent_authentication(session, admin, device_session)
     report = service.send_reply(
         session,
         report_id=_report_id(report_id_text),
@@ -434,14 +414,12 @@ def create_support_report_ticket(
     report_id_text: ReportIdPath,
     body: SupportReportTicketCreate,
     admin: Operator,
-    device_session: CurrentSession,
     session: DbSession,
 ) -> SupportReportTicketSummary | JSONResponse:
     """Create the tracker ticket of a report. Needs recent authentication."""
     # The text sent is the title and body typed here plus a technical footer; the
     # report note and reply are never sent. The service commits around the tracker
     # call (see its module docstring), so no work of this route is pending afterwards.
-    _require_recent_authentication(session, admin, device_session)
     report_id = _report_id(report_id_text)
     if service.get_report(session, report_id) is None:
         raise NotFoundError("Support report not found.", service.REPORT_NOT_FOUND)
@@ -489,10 +467,8 @@ def create_support_report_ticket(
 def clear_support_report_ticket(
     report_id_text: ReportIdPath,
     admin: Operator,
-    device_session: CurrentSession,
     session: DbSession,
 ) -> None:
     """Forget the ticket link so a new ticket can be created. Needs recent authentication."""
     # The tracker issue itself stays; the client asks the operator to confirm first.
-    _require_recent_authentication(session, admin, device_session)
     tickets.clear_ticket(session, report_id=_report_id(report_id_text), operator_id=admin.id)

@@ -23,25 +23,6 @@ import serverAdmin from '../i18n/locales/serverAdmin';
 const reports = serverAdmin.reports;
 import { ServerAdminSupportReportDetail } from './ServerAdminSupportReportDetail';
 
-vi.mock('./ServerAdminRecentAuthModal', () => ({
-  ServerAdminRecentAuthModal: ({
-    onSuccess,
-    onCancel,
-  }: {
-    onSuccess: () => void;
-    onCancel: () => void;
-  }) => (
-    <div role="dialog" aria-label="ServerAdmin step-up">
-      <button type="button" onClick={onSuccess}>
-        Complete step-up
-      </button>
-      <button type="button" onClick={onCancel}>
-        Cancel step-up
-      </button>
-    </div>
-  ),
-}));
-
 const NOTE = 'Our private words about the bug';
 const reportId = '00000000-0000-4000-8000-0000000000aa';
 
@@ -93,14 +74,6 @@ function ticket(
   };
 }
 
-function stepUpRequired() {
-  return new ClientProblemError(
-    'permission',
-    403,
-    'RECENT_AUTHENTICATION_REQUIRED',
-  );
-}
-
 function renderDetail(
   initial: SupportReportDetailView,
   calls: Partial<Record<keyof ServerAdminSupportReportsApi, unknown>> = {},
@@ -119,8 +92,6 @@ function renderDetail(
       <ServerAdminSupportReportDetail
         api={api}
         reportId={initial.id}
-        apiBaseUrl="https://api.example.test"
-        accessToken="admin-token"
         onClose={onClose}
       />
     </QueryClientProvider>,
@@ -168,23 +139,6 @@ describe('ServerAdminSupportReportDetail archive and delete', () => {
       }),
     );
     expect(await screen.findByText(reports.manage.unarchived)).toBeTruthy();
-  });
-
-  it('retries archiving after step-up', async () => {
-    const setSupportReportArchived = vi
-      .fn()
-      .mockRejectedValueOnce(stepUpRequired())
-      .mockResolvedValueOnce(report({ archivedAt: new Date() }));
-    renderDetail(report(), { setSupportReportArchived });
-
-    fireEvent.click(
-      await screen.findByRole('button', { name: reports.manage.archive }),
-    );
-    await screen.findByRole('dialog', { name: 'ServerAdmin step-up' });
-    fireEvent.click(screen.getByRole('button', { name: 'Complete step-up' }));
-
-    expect(await screen.findByText(reports.manage.archived)).toBeTruthy();
-    expect(setSupportReportArchived).toHaveBeenCalledTimes(2);
   });
 
   it('names the consequence and deletes nothing until confirmed', async () => {
@@ -247,27 +201,6 @@ describe('ServerAdminSupportReportDetail archive and delete', () => {
     expect(
       await screen.findByText(reports.deleteDialog.ticketStays),
     ).toBeTruthy();
-  });
-
-  it('retries the deletion after step-up', async () => {
-    const deleteSupportReport = vi
-      .fn()
-      .mockRejectedValueOnce(stepUpRequired())
-      .mockResolvedValueOnce(undefined);
-    const onClose = vi.fn();
-    renderDetail(report(), { deleteSupportReport }, onClose);
-
-    fireEvent.click(
-      await screen.findByRole('button', { name: reports.manage.delete }),
-    );
-    fireEvent.click(
-      await screen.findByRole('button', { name: reports.deleteDialog.confirm }),
-    );
-    await screen.findByRole('dialog', { name: 'ServerAdmin step-up' });
-    fireEvent.click(screen.getByRole('button', { name: 'Complete step-up' }));
-
-    await waitFor(() => expect(onClose).toHaveBeenCalledWith('deleted'));
-    expect(deleteSupportReport).toHaveBeenCalledTimes(2);
   });
 
   it('keeps a failed deletion in the dialog and the report open', async () => {
@@ -403,8 +336,6 @@ describe('ServerAdminSupportReportDetail', () => {
         <ServerAdminSupportReportDetail
           api={{ getSupportReport } as unknown as ServerAdminSupportReportsApi}
           reportId={reportId}
-          apiBaseUrl="https://api.example.test"
-          accessToken="admin-token"
           onClose={vi.fn()}
           onDraftChange={onDraftChange}
         />
@@ -475,36 +406,6 @@ describe('ServerAdminSupportReportDetail', () => {
     );
     expect(await screen.findByText('Schon da')).toBeTruthy();
     expect(screen.queryByLabelText(reports.reply.label)).toBeNull();
-  });
-
-  it('stale authentication opens the recent-authentication modal and retries', async () => {
-    const replyToSupportReport = vi
-      .fn()
-      .mockRejectedValueOnce(stepUpRequired())
-      .mockResolvedValueOnce(
-        report({
-          hasReply: true,
-          reply: { repliedAt: new Date(), text: 'Hallo' },
-        }),
-      );
-    renderDetail(report(), { replyToSupportReport });
-
-    fireEvent.change(await screen.findByLabelText(reports.reply.label), {
-      target: { value: 'Hallo' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: reports.reply.send }));
-
-    await screen.findByRole('dialog', { name: 'ServerAdmin step-up' });
-    expect(replyToSupportReport).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole('alert')).toBeNull();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Complete step-up' }));
-
-    await waitFor(() => expect(replyToSupportReport).toHaveBeenCalledTimes(2));
-    expect(replyToSupportReport.mock.calls[1]?.[0]).toEqual(
-      replyToSupportReport.mock.calls[0]?.[0],
-    );
-    expect(await screen.findByText(reports.reply.sentTitle)).toBeTruthy();
   });
 
   it('ticket dialog sends only the typed title and body', async () => {
@@ -813,97 +714,20 @@ describe('ServerAdminSupportReportDetail ticket and write failures', () => {
     ).toBe('Long one');
   });
 
-  it('retries ticket creation after step-up and focuses the new link', async () => {
+  it('creates a ticket and focuses the new link', async () => {
     const createSupportReportTicket = vi
       .fn()
-      .mockRejectedValueOnce(stepUpRequired())
       .mockResolvedValueOnce(ticket({ number: 5 }));
     renderDetail(report(), { createSupportReportTicket });
 
     const dialog = await openTicketDialog();
     typeTicket(dialog, 'Crash', 'Steps');
-    await screen.findByRole('dialog', { name: 'ServerAdmin step-up' });
-    fireEvent.click(screen.getByRole('button', { name: 'Complete step-up' }));
 
     await waitFor(() =>
-      expect(createSupportReportTicket).toHaveBeenCalledTimes(2),
-    );
-    expect(createSupportReportTicket.mock.calls[1]?.[0]).toEqual(
-      createSupportReportTicket.mock.calls[0]?.[0],
+      expect(createSupportReportTicket).toHaveBeenCalledTimes(1),
     );
     const link = await screen.findByRole('link', { name: /Ticket #5/ });
     await waitFor(() => expect(document.activeElement).toBe(link));
-  });
-
-  it('returns focus into the ticket dialog when step-up is cancelled', async () => {
-    const createSupportReportTicket = vi
-      .fn()
-      .mockRejectedValueOnce(stepUpRequired());
-    renderDetail(report(), { createSupportReportTicket });
-
-    const dialog = await openTicketDialog();
-    typeTicket(dialog, 'Crash', '');
-    await screen.findByRole('dialog', { name: 'ServerAdmin step-up' });
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel step-up' }));
-
-    const heading = within(dialog).getByRole('heading', {
-      name: reports.ticketDialog.title,
-    });
-    await waitFor(() => expect(document.activeElement).toBe(heading));
-  });
-
-  it('retries a state change and a clear after step-up', async () => {
-    const setSupportReportState = vi
-      .fn()
-      .mockRejectedValueOnce(stepUpRequired())
-      .mockResolvedValueOnce(
-        report({
-          state: 'CLOSED',
-          ticket: ticket({
-            state: 'PENDING',
-            url: null,
-            number: null,
-            createdAt: new Date(Date.now() - 10 * 60 * 1000),
-          }),
-        }),
-      );
-    const clearSupportReportTicket = vi
-      .fn()
-      .mockRejectedValueOnce(stepUpRequired())
-      .mockResolvedValueOnce(undefined);
-    renderDetail(
-      report({
-        ticket: ticket({
-          state: 'PENDING',
-          url: null,
-          number: null,
-          createdAt: new Date(Date.now() - 10 * 60 * 1000),
-        }),
-      }),
-      { setSupportReportState, clearSupportReportTicket },
-    );
-
-    fireEvent.click(
-      await screen.findByRole('button', { name: reports.states.CLOSED }),
-    );
-    fireEvent.click(
-      await screen.findByRole('button', { name: 'Complete step-up' }),
-    );
-    await waitFor(() => expect(setSupportReportState).toHaveBeenCalledTimes(2));
-    expect(setSupportReportState.mock.calls[1]?.[0]).toEqual(
-      setSupportReportState.mock.calls[0]?.[0],
-    );
-
-    fireEvent.click(
-      await screen.findByRole('button', { name: reports.ticket.clear }),
-    );
-    fireEvent.click(
-      await screen.findByRole('button', { name: 'Complete step-up' }),
-    );
-    await waitFor(() =>
-      expect(clearSupportReportTicket).toHaveBeenCalledTimes(2),
-    );
-    expect(await screen.findByText(reports.ticket.cleared)).toBeTruthy();
   });
 
   it('shows the stored reply after a 409 and leaves without a draft prompt', async () => {

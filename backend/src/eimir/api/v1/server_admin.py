@@ -23,11 +23,11 @@ from eimir.administration.models import (
     AdministrationSetting,
     InstanceAdministrationSettings,
 )
-from eimir.api.deps import CurrentServerAdmin, CurrentSession, DbSession
+from eimir.api.deps import CurrentServerAdmin, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
 from eimir.attachments.models import Attachment, AttachmentStatus
-from eimir.auth import cloud, recent_auth
+from eimir.auth import cloud
 from eimir.config import MailTransport
 from eimir.config import get_settings as get_runtime_settings
 from eimir.core.clock import ensure_utc, now
@@ -941,17 +941,10 @@ def _space_entitlement_view(session: Session, space_id: UUID) -> ServerAdminSpac
 def reconcile_server_admin_space_configuration_manager(
     body: ServerAdminSpaceConfigurationManagerReconcileRequest,
     admin: CurrentServerAdmin,
-    device_session: CurrentSession,
     session: DbSession,
     space_id: Annotated[str, Path(max_length=64)],
 ) -> ServerAdminSpaceConfigurationManagerView:
     """Assign missing legacy Space configuration authority exactly once."""
-    recent_auth.require_grant(
-        session,
-        admin,
-        device_session,
-        purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
-    )
     parsed_space = _require_space(session, space_id)
     space = relationship_service.reconcile_configuration_manager(
         session,
@@ -994,7 +987,6 @@ def get_server_admin_space_entitlement(
 def grant_server_admin_space_entitlement(
     body: ServerAdminEntitlementGrantRequest,
     admin: CurrentServerAdmin,
-    device_session: CurrentSession,
     session: DbSession,
     space_id: Annotated[str, Path(max_length=64)],
 ) -> ServerAdminSpaceEntitlementView:
@@ -1005,17 +997,7 @@ def grant_server_admin_space_entitlement(
     instead (docs/m6/ENTITLEMENT-BOUNDARY.md §7.1). It reuses the existing normalized
     `record_grant` source-update interface unchanged rather than adding a
     second grant-mutation path.
-
-    Granting unlimited Premium is as consequential as the other high-risk
-    ServerAdmin actions in this router (account deletion, email verification,
-    recovery issuance), so it requires the same step-up re-authentication.
     """
-    recent_auth.require_grant(
-        session,
-        admin,
-        device_session,
-        purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
-    )
     parsed = _require_space(session, space_id)
     entitlements.record_grant(
         session,
@@ -1046,23 +1028,11 @@ def grant_server_admin_space_entitlement(
 def revoke_server_admin_space_entitlement_grant(
     body: ServerAdminEntitlementRevokeRequest,
     admin: CurrentServerAdmin,
-    device_session: CurrentSession,
     session: DbSession,
     space_id: Annotated[str, Path(max_length=64)],
     grant_id: Annotated[str, Path(max_length=64)],
 ) -> ServerAdminSpaceEntitlementView:
-    """Revoke one grant (e.g. an admin mistake, abuse, or a refund/chargeback).
-
-    Revoking a paying customer's entitlement is as consequential as the other
-    high-risk ServerAdmin actions in this router, so it requires the same
-    step-up re-authentication.
-    """
-    recent_auth.require_grant(
-        session,
-        admin,
-        device_session,
-        purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
-    )
+    """Revoke one grant (e.g. an admin mistake, abuse, or a refund/chargeback)."""
     parsed_space = _require_space(session, space_id)
     parsed_grant = parse_id(grant_id)
     if parsed_grant is None:
@@ -1240,17 +1210,10 @@ def request_server_admin_account_email_verification(
 def verify_server_admin_account_email(
     body: ServerAdminEmailVerificationRequest,
     admin: CurrentServerAdmin,
-    device_session: CurrentSession,
     session: DbSession,
     account_id: Annotated[str, Path(alias="accountId")],
     account_email_id: Annotated[str, Path(alias="accountEmailId")],
 ) -> ServerAdminAccountEmail:
-    recent_auth.require_grant(
-        session,
-        admin,
-        device_session,
-        purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
-    )
     parsed_email_id = parse_id(account_email_id)
     if parsed_email_id is None:
         raise NotFoundError(
@@ -1317,16 +1280,9 @@ def request_server_admin_account_recovery_email(
 def issue_server_admin_operator_recovery(
     response: Response,
     admin: CurrentServerAdmin,
-    device_session: CurrentSession,
     session: DbSession,
     account_id: Annotated[str, Path(alias="accountId")],
 ) -> ServerAdminRecoveryProof:
-    recent_auth.require_grant(
-        session,
-        admin,
-        device_session,
-        purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
-    )
     proof = account_operations.issue_operator_recovery(
         session,
         actor=admin,
@@ -1347,17 +1303,10 @@ def issue_server_admin_operator_recovery(
 )
 def delete_server_admin_account(
     admin: CurrentServerAdmin,
-    device_session: CurrentSession,
     session: DbSession,
     account_id: Annotated[str, Path(alias="accountId")],
     body: ServerAdminAccountDeletionRequest,
 ) -> ServerAdminAccountDeletionResult:
-    recent_auth.require_grant(
-        session,
-        admin,
-        device_session,
-        purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
-    )
     parsed_id = _parse_account_id(account_id)
     deletion = account_operations.delete_account(
         session,

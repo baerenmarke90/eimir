@@ -1,8 +1,8 @@
 """The operator routes for support reports against a real database (#2189).
 
 Reports are created through the Core service, as the reporter's endpoint does.
-The operator is a verified, allow-listed ServerAdmin; writes additionally need a
-recent-authentication grant.
+The operator is a verified, allow-listed ServerAdmin; writes need no step-up
+re-authentication.
 """
 
 from __future__ import annotations
@@ -20,10 +20,9 @@ pytest.importorskip("eimir_admin", reason="the eimir-admin distribution is not i
 from eimir_admin.support_tickets.models import SupportReportTicket, TicketState
 
 from eimir.administration.models import AdministrationAction, InstanceAdministrationActionEvent
-from eimir.auth import recent_auth
 from eimir.config import get_settings
 from eimir.core.clock import now
-from eimir.identity.models import Account, AccountEmail, DeviceSession
+from eimir.identity.models import Account, AccountEmail
 from eimir.plugins import loader
 from eimir.support_reports import service
 from eimir.support_reports.models import (
@@ -65,24 +64,13 @@ def reports_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
     get_settings.cache_clear()
 
 
-def _operator(session: Session, *, recent: bool) -> tuple[Account, str]:
+def _operator(session: Session) -> tuple[Account, str]:
     account = make_account(session, "Support operator")
     session.add(
         AccountEmail(account_id=account.id, email=ADMIN_EMAIL, is_primary=True, verified_at=now())
     )
     session.flush()
     token = sign_in(session, account)
-    if recent:
-        device_session = session.execute(
-            select(DeviceSession).where(DeviceSession.account_id == account.id)
-        ).scalar_one()
-        recent_auth.issue_grant(
-            session,
-            account,
-            device_session,
-            purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
-            method=recent_auth.RecentAuthenticationMethod.LOCAL_PASSWORD,
-        )
     return account, token
 
 
@@ -182,37 +170,9 @@ def test_anonymous_is_401(client: Any, session: Session) -> None:
         assert response.json()["code"] == "AUTHENTICATION_REQUIRED"
 
 
-def test_stale_authentication_is_refused_on_writes(client: Any, session: Session) -> None:
-    _, token = _operator(session, recent=False)
-    report = _report(session)
-
-    state = client.put(f"{BASE}/{report.id}/state", json={"state": "CLOSED"}, headers=auth(token))
-    reply = client.post(f"{BASE}/{report.id}/reply", json={"text": "Thanks"}, headers=auth(token))
-    archive = client.put(
-        f"{BASE}/{report.id}/archive", json={"archived": True}, headers=auth(token)
-    )
-    delete = client.delete(f"{BASE}/{report.id}", headers=auth(token))
-
-    for response in (state, reply, archive, delete):
-        assert response.status_code == 403
-        assert response.json()["code"] == recent_auth.RecentAuthenticationErrorCode.REQUIRED
-    session.refresh(report)
-    assert report.state == SupportReportState.NEW.value
-    assert report.archived_at is None
-    assert (
-        session.execute(
-            select(SupportReportReplyRow).where(SupportReportReplyRow.report_id == report.id)
-        ).scalar_one_or_none()
-        is None
-    )
-    assert _audit(session) == []
-    # Reading needs no recent authentication.
-    assert client.get(BASE, headers=auth(token)).status_code == 200
-
-
 @pytest.mark.usefixtures("reports_disabled")
 def test_feature_off_is_404(client: Any, session: Session) -> None:
-    _, token = _operator(session, recent=True)
+    _, token = _operator(session)
     report = _report(session)
 
     for method, path, body in _requests(report.id):
@@ -234,7 +194,7 @@ def test_feature_off_does_not_tell_a_non_admin_anything(client: Any, session: Se
 
 
 def test_list_filters_by_state_and_never_returns_note_text(client: Any, session: Session) -> None:
-    _, token = _operator(session, recent=False)
+    _, token = _operator(session)
     new = _report(session)
     progress = _report(session, state=SupportReportState.IN_PROGRESS)
     closed = _report(session, state=SupportReportState.CLOSED)
@@ -275,7 +235,7 @@ def test_list_filters_by_state_and_never_returns_note_text(client: Any, session:
 
 
 def test_list_pagination_cursor_is_bound_to_state(client: Any, session: Session) -> None:
-    _, token = _operator(session, recent=False)
+    _, token = _operator(session)
     ids = [_report(session).id for _ in range(3)]
 
     first = client.get(f"{BASE}?limit=2", headers=auth(token)).json()
@@ -298,7 +258,7 @@ def test_list_pagination_cursor_is_bound_to_state(client: Any, session: Session)
 
 
 def test_detail_returns_note_and_account_id_but_no_email(client: Any, session: Session) -> None:
-    _, token = _operator(session, recent=False)
+    _, token = _operator(session)
     reporter = _reporter(session, REPORTER_EMAIL)
     report = _report(session, account=reporter)
 
@@ -322,7 +282,7 @@ def test_detail_returns_note_and_account_id_but_no_email(client: Any, session: S
 def test_detail_shows_the_ticket_link_and_availability(
     client: Any, session: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    _, token = _operator(session, recent=False)
+    _, token = _operator(session)
     report = _report(session)
     session.add(
         SupportReportTicket(
@@ -356,7 +316,7 @@ def test_detail_shows_the_ticket_link_and_availability(
 
 
 def test_set_state_records_audit_and_sets_closed_at(client: Any, session: Session) -> None:
-    operator, token = _operator(session, recent=True)
+    operator, token = _operator(session)
     report = _report(session)
 
     closed = client.put(f"{BASE}/{report.id}/state", json={"state": "CLOSED"}, headers=auth(token))
@@ -386,7 +346,7 @@ def test_set_state_records_audit_and_sets_closed_at(client: Any, session: Sessio
 
 
 def test_reply_stores_once_and_second_is_409(client: Any, session: Session) -> None:
-    operator, token = _operator(session, recent=True)
+    operator, token = _operator(session)
     report = _report(session)
 
     first = client.post(
@@ -415,7 +375,7 @@ def test_reply_stores_once_and_second_is_409(client: Any, session: Session) -> N
 
 
 def test_reply_on_closed_report_works_once(client: Any, session: Session) -> None:
-    _, token = _operator(session, recent=True)
+    _, token = _operator(session)
     report = _report(session, state=SupportReportState.CLOSED)
 
     first = client.post(f"{BASE}/{report.id}/reply", json={"text": "Done."}, headers=auth(token))
@@ -427,7 +387,7 @@ def test_reply_on_closed_report_works_once(client: Any, session: Session) -> Non
 
 
 def test_reply_over_500_chars_is_422(client: Any, session: Session) -> None:
-    _, token = _operator(session, recent=True)
+    _, token = _operator(session)
     report = _report(session)
 
     too_long = client.post(
@@ -448,7 +408,7 @@ def test_reply_over_500_chars_is_422(client: Any, session: Session) -> None:
 
 
 def test_unknown_report_is_404(client: Any, session: Session) -> None:
-    _, token = _operator(session, recent=True)
+    _, token = _operator(session)
 
     for identifier in (uuid4(), "not-a-uuid", "0"):
         for method, path, body in _requests(identifier)[1:]:
@@ -461,7 +421,7 @@ def test_unknown_report_is_404(client: Any, session: Session) -> None:
 def test_archive_hides_a_report_from_the_default_list_and_keeps_its_state(
     client: Any, session: Session
 ) -> None:
-    operator, token = _operator(session, recent=True)
+    operator, token = _operator(session)
     report = _report(session, state=SupportReportState.CLOSED)
     other = _report(session)
 
@@ -494,7 +454,7 @@ def test_archive_hides_a_report_from_the_default_list_and_keeps_its_state(
 def test_delete_removes_the_report_reply_and_ticket_link_and_audits_without_text(
     client: Any, session: Session
 ) -> None:
-    operator, token = _operator(session, recent=True)
+    operator, token = _operator(session)
     reporter = _reporter(session)
     report = _report(session, account=reporter)
     other = _report(session)
@@ -547,7 +507,7 @@ def test_delete_removes_the_report_reply_and_ticket_link_and_audits_without_text
 def test_the_reporter_no_longer_sees_a_reply_of_a_deleted_report(
     client: Any, session: Session
 ) -> None:
-    _, token = _operator(session, recent=True)
+    _, token = _operator(session)
     reporter = _reporter(session)
     reporter_token = sign_in(session, reporter)
     report = _report(session, account=reporter)
@@ -561,7 +521,7 @@ def test_the_reporter_no_longer_sees_a_reply_of_a_deleted_report(
 
 
 def test_audit_entry_contains_no_text(client: Any, session: Session) -> None:
-    _, token = _operator(session, recent=True)
+    _, token = _operator(session)
     report = _report(session)
 
     client.put(f"{BASE}/{report.id}/state", json={"state": "IN_PROGRESS"}, headers=auth(token))
@@ -589,7 +549,7 @@ def test_audit_entry_contains_no_text(client: Any, session: Session) -> None:
 
 
 def test_responses_are_no_store(client: Any, session: Session) -> None:
-    _, token = _operator(session, recent=True)
+    _, token = _operator(session)
     report = _report(session)
 
     responses = [
@@ -612,7 +572,7 @@ def test_routes_absent_without_the_plugin(client: Any, session: Session) -> None
     from eimir.main import create_app
     from tests.support.plugins import pro_distribution_installed
 
-    _, token = _operator(session, recent=True)
+    _, token = _operator(session)
     report = _report(session)
     only_pro = (
         tuple(plugin for plugin in loader.loaded_plugins().plugins if plugin.name == "pro")
@@ -644,7 +604,7 @@ def _operator_available(client: Any, token: str) -> bool:
 
 
 def test_overview_advertises_the_operator_plugin(client: Any, session: Session) -> None:
-    _, token = _operator(session, recent=False)
+    _, token = _operator(session)
     assert _operator_available(client, token) is True
 
 
@@ -652,14 +612,14 @@ def test_overview_advertises_the_operator_plugin(client: Any, session: Session) 
 def test_overview_hides_the_operator_plugin_when_the_feature_is_off(
     client: Any, session: Session
 ) -> None:
-    _, token = _operator(session, recent=False)
+    _, token = _operator(session)
     assert _operator_available(client, token) is False
 
 
 def test_overview_hides_the_operator_plugin_when_only_pro_is_loaded(
     client: Any, session: Session
 ) -> None:
-    _, token = _operator(session, recent=False)
+    _, token = _operator(session)
     admin_loaded = loader._loaded
     loader._loaded = loader.LoadedPlugins(
         tuple(plugin for plugin in loader.loaded_plugins().plugins if plugin.name == "pro")

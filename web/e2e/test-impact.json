@@ -1507,7 +1507,6 @@
         "web/src/components/ServerAdminSupportReportsPanel.tsx",
         "web/src/components/ServerAdminSupportReportsPanel.css",
         "web/src/components/ServerAdminSupportReportDetail.tsx",
-        "web/src/components/ServerAdminRecentAuthModal.tsx",
         "web/src/components/TaskBackButton.tsx",
         "web/src/components/UiState.tsx",
         "web/src/components/useModalLifecycle.ts",

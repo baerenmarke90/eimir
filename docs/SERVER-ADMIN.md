@@ -245,8 +245,9 @@ Preserving the Space does not preserve its ability to accept that replacement
 Account. Diagnose mailbox requests, proof binding and authorized Space selection
 before proposing deletion as a way to retry onboarding.
 
-The ServerAdmin danger zone invokes that same lifecycle behind recent
-authentication, impact confirmation and exact typed target confirmation. The
+The ServerAdmin danger zone invokes that same lifecycle behind impact
+confirmation and exact typed target confirmation; like every ServerAdmin
+action it needs no step-up re-authentication (Product Owner, 2026-11-26). The
 privileged audit records the operator request and projects the authoritative
 lifecycle outcomes as `account_deletion_completed` or
 `account_deletion_failed`. These outcome entries are an immutable operational
@@ -331,21 +332,19 @@ All routes live under `/api/v1/server-admin/support-reports`, require the
 ServerAdmin guard, answer `Cache-Control: private, no-store` and answer `404`
 while `EIMIR_SUPPORT_REPORTS_ENABLED` is off.
 
-| Route | Purpose | Recent authentication |
-| --- | --- | --- |
-| `GET /` | List, optional `state` (`NEW`, `IN_PROGRESS`, `CLOSED`), `archived` (default `false`: unarchived reports; `true`: the archive), keyset `cursor`, `limit`; items carry kind, state, time, `archivedAt`, app version and build, failure reference and whether a reply and a ticket exist, plus the `newCount` of unarchived `NEW` reports; never the note | No |
-| `GET /{reportId}` | The report: note, technical client context, failure reference, request id, the opaque reporter account id (no name or email), the reply if any, the ticket link if any and `ticketAvailable` | No |
-| `PUT /{reportId}/state` | Set `NEW`, `IN_PROGRESS` or `CLOSED` | Yes |
-| `PUT /{reportId}/archive` | Archive (`{"archived": true}`) or unarchive a report | Yes |
-| `DELETE /{reportId}` | Delete the report permanently (`204`), with its reply and ticket link | Yes |
-| `POST /{reportId}/reply` | The one reply, plain text of at most 500 characters | Yes |
-| `POST /{reportId}/ticket` | Create the tracker ticket from the operator's title and body | Yes |
-| `DELETE /{reportId}/ticket` | Clear a ticket link so a new ticket can be created | Yes |
+| Route | Purpose |
+| --- | --- |
+| `GET /` | List, optional `state` (`NEW`, `IN_PROGRESS`, `CLOSED`), `archived` (default `false`: unarchived reports; `true`: the archive), keyset `cursor`, `limit`; items carry kind, state, time, `archivedAt`, app version and build, failure reference and whether a reply and a ticket exist, plus the `newCount` of unarchived `NEW` reports; never the note |
+| `GET /{reportId}` | The report: note, technical client context, failure reference, request id, the opaque reporter account id (no name or email), the reply if any, the ticket link if any and `ticketAvailable` |
+| `PUT /{reportId}/state` | Set `NEW`, `IN_PROGRESS` or `CLOSED` |
+| `PUT /{reportId}/archive` | Archive (`{"archived": true}`) or unarchive a report |
+| `DELETE /{reportId}` | Delete the report permanently (`204`), with its reply and ticket link |
+| `POST /{reportId}/reply` | The one reply, plain text of at most 500 characters |
+| `POST /{reportId}/ticket` | Create the tracker ticket from the operator's title and body |
+| `DELETE /{reportId}/ticket` | Clear a ticket link so a new ticket can be created |
 
-Reads need the ServerAdmin role only and are not audited. Writes additionally
-need a recent ServerAdmin authentication; a stale one answers
-`403 RECENT_AUTHENTICATION_REQUIRED`, the Web client asks for the step-up and
-retries the same write. Each write records one content-free privileged audit
+Reads and writes need the ServerAdmin role only, without a step-up
+re-authentication. Reads are not audited. Each write records one content-free privileged audit
 entry: `support_report.state_set`, `support_report.reply_sent`,
 `support_report.ticket_created`, `support_report.ticket_cleared`,
 `support_report.archived`, `support_report.unarchived` or
@@ -447,8 +446,7 @@ not be repaired from Membership order, join timestamps, invitation history,
 Account creation time, or client ordering.
 
 After the partners have been verified through an appropriate out-of-band
-process, a ServerAdmin with a current recent-authentication grant may perform
-the one-time recovery operation:
+process, a ServerAdmin may perform the one-time recovery operation:
 
 ```text
 POST /api/v1/server-admin/spaces/{spaceId}/configuration-manager/reconcile

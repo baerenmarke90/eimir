@@ -78,14 +78,10 @@ function ReportRow({
  */
 export function ServerAdminSupportReportsPanel({
   api,
-  apiBaseUrl,
-  accessToken,
   initialFilter = null,
   onDraftChange,
 }: {
   api: ServerAdminSupportReportsApi;
-  apiBaseUrl: string;
-  accessToken: string;
   /** The state query parameter of a deep link; defaults to new reports. */
   initialFilter?: string | null;
   /** Whether the open report holds an unsent reply or ticket text. */
@@ -325,8 +321,6 @@ export function ServerAdminSupportReportsPanel({
             key={selectedId}
             api={api}
             reportId={selectedId}
-            apiBaseUrl={apiBaseUrl}
-            accessToken={accessToken}
             onClose={closeDetail}
             onDraftChange={changeDraft}
           />

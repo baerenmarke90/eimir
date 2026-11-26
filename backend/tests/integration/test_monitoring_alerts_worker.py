@@ -30,7 +30,8 @@ def committed(engine: Engine, monkeypatch: pytest.MonkeyPatch) -> Iterator[sessi
     """Real commits, as the worker makes them; everything is removed afterwards."""
     from eimir.db import session as db_session
 
-    maker = sessionmaker(bind=engine, expire_on_commit=False)
+    # The production session settings (eimir.db.session): no autoflush.
+    maker = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
     monkeypatch.setattr(db_session, "get_sessionmaker", lambda: maker)
     created: list[object] = []
 

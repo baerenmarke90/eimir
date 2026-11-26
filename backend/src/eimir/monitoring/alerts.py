@@ -107,12 +107,23 @@ def _disk_pressure(settings: Settings) -> bool:
     return usage.total > 0 and usage.used / usage.total >= PRESSURE_RATIO
 
 
-def _state(session: Session, code: str) -> MonitoringAlertState:
-    state = session.get(MonitoringAlertState, code)
-    if state is None:
-        state = MonitoringAlertState(code=code)
-        session.add(state)
-    return state
+def _states(session: Session) -> dict[str, MonitoringAlertState]:
+    """Every condition's state row, created once per run where it is missing.
+
+    Production sessions do not autoflush, and a pending row is invisible to
+    ``Session.get``: looking a new code up twice would add it twice.
+    """
+    states = {
+        state.code: state
+        for state in session.scalars(
+            select(MonitoringAlertState).where(MonitoringAlertState.code.in_(CODES))
+        )
+    }
+    for code in CODES:
+        if code not in states:
+            states[code] = MonitoringAlertState(code=code)
+            session.add(states[code])
+    return states
 
 
 def _due(code: str, state: MonitoringAlertState, at: datetime) -> bool:
@@ -150,9 +161,10 @@ def evaluate(
             _newest_new_report(session) if _support_operator_available(settings) else None
         ),
     }
+    states = _states(session)
     seen: dict[str, datetime] = {}
     for code in _WATERMARKED:
-        state = _state(session, code)
+        state = states[code]
         if state.high_water_mark is None and state.last_sent_at is None:
             # First evaluation (fresh install or upgrade): only rows from the
             # last interval are new; older ones stay on their ServerAdmin page.
@@ -175,7 +187,7 @@ def evaluate(
     handled: list[str] = []
     mails: list[PlannedMail] = []
     for code in CODES:
-        state = _state(session, code)
+        state = states[code]
         if not active[code]:
             state.active_since = None
             continue

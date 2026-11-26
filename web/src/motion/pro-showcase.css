@@ -1,0 +1,1254 @@
+/*
+ * The motion layer's catalogue for the Pro showcase scenes (#2310; owner
+ * `components/proShowcase/ProScene.tsx`, still frames in `ProShowcase.css`).
+ *
+ * Four decorative scenes guided by the Mochi pair: memory worlds, the recap
+ * film, games and garden, map and closeness. They are ambient motion (M8):
+ *
+ * - a scene animates only after it first played (`data-started`), so a card
+ *   that was never current shows its composed still frame;
+ * - it plays only while it is the current gallery card and seen
+ *   (`data-ambient="on"`), pauses in place otherwise and continues from
+ *   there (M4, M8);
+ * - every loop runs `--motion-ambient-repeat` scene cycles and then rests at
+ *   the still frame (no fill), so an open page stops rendering motion;
+ * - a scene starts and ends at the phase of its cycle that equals its still
+ *   frame (`--pro-scene-phase`), so neither the start nor the rest jumps;
+ * - everything is declared inside `prefers-reduced-motion: no-preference`:
+ *   with reduced motion the still frames stand (M9).
+ *
+ * Only `transform`, `opacity` and the bounded line draw of the map arc
+ * (`stroke-dashoffset`) are animated (M6). The glow travels along the arc by
+ * `transform` through points of its quadratic curve.
+ */
+.pro-scene {
+  --pro-scene-cycle-duration: 16s;
+  --pro-scene-film-duration: 15s;
+  --pro-scene-blink-duration: 4s;
+  --pro-scene-float-duration: 6s;
+  --pro-scene-phase: 0;
+}
+
+/* The share of a cycle at which each scene looks like its still frame. */
+.pro-scene-memoryWorlds {
+  --pro-scene-phase: 0.36;
+}
+
+.pro-scene-recapFilms {
+  --pro-scene-phase: 0.34;
+}
+
+.pro-scene-gamesGarden,
+.pro-scene-mapCloseness {
+  --pro-scene-phase: 0.9;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pro-scene[data-started] .ps-p {
+    animation-duration: var(--pro-scene-cycle-duration);
+    animation-timing-function: var(--easing-travel);
+    animation-delay: calc(
+      var(--pro-scene-phase) *
+      var(--pro-scene-cycle-duration) *
+      -1
+    );
+    animation-iteration-count: calc(
+      var(--motion-ambient-repeat) +
+      var(--pro-scene-phase)
+    );
+  }
+
+  .pro-scene-recapFilms[data-started] .ps-p {
+    animation-duration: var(--pro-scene-film-duration);
+    animation-delay: calc(
+      var(--pro-scene-phase) *
+      var(--pro-scene-film-duration) *
+      -1
+    );
+  }
+
+  /* The blink spans the scene's cycles: 4 per 16 s cycle. */
+  .pro-scene[data-started] .ps-p.ps-blink {
+    animation-name: eimir-motion-pro-blink;
+    animation-duration: var(--pro-scene-blink-duration);
+    animation-timing-function: steps(1);
+    animation-delay: initial;
+    animation-iteration-count: calc(var(--motion-ambient-repeat) * 4);
+  }
+
+  /* 3.75 blinks per 15 s film cycle. */
+  .pro-scene-recapFilms[data-started] .ps-p.ps-blink {
+    animation-iteration-count: calc(var(--motion-ambient-repeat) * 3.75);
+  }
+
+  /* Not current or not seen: hold in place and continue later. */
+  .pro-scene[data-started]:not([data-ambient="on"]) .ps-p {
+    animation-play-state: paused;
+  }
+
+  /* 1 Memory worlds. */
+  .pro-scene[data-started] .ps1-mochi-world {
+    animation-name: eimir-motion-pro-mochi-world;
+  }
+
+  .pro-scene[data-started] .ps1-hop-a {
+    animation-name: eimir-motion-pro-hop-a;
+  }
+
+  .pro-scene[data-started] .ps1-hop-b {
+    animation-name: eimir-motion-pro-hop-b;
+  }
+
+  .pro-scene[data-started] .ps1-balloon {
+    animation-name: eimir-motion-pro-balloon;
+  }
+
+  .pro-scene[data-started] .ps1-tour {
+    animation-name: eimir-motion-pro-tour;
+  }
+
+  .pro-scene[data-started] .ps1-w1 {
+    animation-name: eimir-motion-pro-world-1;
+  }
+
+  .pro-scene[data-started] .ps1-w2 {
+    animation-name: eimir-motion-pro-world-2;
+  }
+
+  .pro-scene[data-started] .ps1-w3 {
+    animation-name: eimir-motion-pro-world-3;
+  }
+
+  .pro-scene[data-started] .ps1-w4 {
+    animation-name: eimir-motion-pro-world-4;
+  }
+
+  .pro-scene[data-started] .ps1-guide {
+    animation-name: eimir-motion-pro-guide;
+  }
+
+  /* 2 Recap film: five parts of a fifth of the cycle each. */
+  .pro-scene[data-started] .ps2-k1 {
+    animation-name: eimir-motion-pro-film-part-1;
+  }
+
+  .pro-scene[data-started] .ps2-k2 {
+    animation-name: eimir-motion-pro-film-part-2;
+  }
+
+  .pro-scene[data-started] .ps2-k3 {
+    animation-name: eimir-motion-pro-film-part-3;
+  }
+
+  .pro-scene[data-started] .ps2-k4 {
+    animation-name: eimir-motion-pro-film-part-4;
+  }
+
+  .pro-scene[data-started] .ps2-k5 {
+    animation-name: eimir-motion-pro-film-part-5;
+  }
+
+  .pro-scene[data-started] .ps-p.ps2-seg {
+    animation-timing-function: var(--easing-playback);
+  }
+
+  .pro-scene[data-started] .ps2-seg-k1 {
+    animation-name: eimir-motion-pro-film-progress-1;
+  }
+
+  .pro-scene[data-started] .ps2-seg-k2 {
+    animation-name: eimir-motion-pro-film-progress-2;
+  }
+
+  .pro-scene[data-started] .ps2-seg-k3 {
+    animation-name: eimir-motion-pro-film-progress-3;
+  }
+
+  .pro-scene[data-started] .ps2-seg-k4 {
+    animation-name: eimir-motion-pro-film-progress-4;
+  }
+
+  .pro-scene[data-started] .ps2-seg-k5 {
+    animation-name: eimir-motion-pro-film-progress-5;
+  }
+
+  .pro-scene[data-started] .ps2-kb {
+    animation-name: eimir-motion-pro-film-cover-zoom;
+  }
+
+  .pro-scene[data-started] .ps2-kb-late {
+    animation-name: eimir-motion-pro-film-place-zoom;
+  }
+
+  .pro-scene[data-started] .ps2-title {
+    animation-name: eimir-motion-pro-film-title;
+  }
+
+  .pro-scene[data-started] .ps2-fly1 {
+    animation-name: eimir-motion-pro-film-fly-1;
+  }
+
+  .pro-scene[data-started] .ps2-fly2 {
+    animation-name: eimir-motion-pro-film-fly-2;
+  }
+
+  .pro-scene[data-started] .ps2-fly3 {
+    animation-name: eimir-motion-pro-film-fly-3;
+  }
+
+  .pro-scene[data-started] .ps2-num {
+    animation-name: eimir-motion-pro-film-number;
+  }
+
+  .pro-scene[data-started] .ps2-pin {
+    animation-name: eimir-motion-pro-film-pin;
+  }
+
+  .pro-scene[data-started] .ps2-wave {
+    animation-name: eimir-motion-pro-film-wave;
+  }
+
+  .pro-scene[data-started] .ps2-wave-late {
+    animation-name: eimir-motion-pro-film-wave-late;
+  }
+
+  .pro-scene-recapFilms[data-started] .ps-p.ps2-float {
+    animation-name: eimir-motion-pro-film-float;
+    animation-duration: var(--pro-scene-float-duration);
+    animation-timing-function: var(--easing-standard);
+    animation-delay: initial;
+    /* 2.5 floats per 15 s film cycle, so they rest with the film. */
+    animation-iteration-count: calc(var(--motion-ambient-repeat) * 2.5);
+  }
+
+  .pro-scene-recapFilms[data-started] .ps-p.ps2-float-late {
+    animation-name: eimir-motion-pro-film-float-late;
+  }
+
+  /* 3 Games and garden. */
+  .pro-scene[data-started] .ps3-toss-a {
+    animation-name: eimir-motion-pro-toss-a;
+  }
+
+  .pro-scene[data-started] .ps3-toss-b {
+    animation-name: eimir-motion-pro-toss-b;
+  }
+
+  .pro-scene[data-started] .ps3-seed-a {
+    animation-name: eimir-motion-pro-seed-a;
+  }
+
+  .pro-scene[data-started] .ps3-seed-b {
+    animation-name: eimir-motion-pro-seed-b;
+  }
+
+  .pro-scene[data-started] .ps3-grow1 {
+    animation-name: eimir-motion-pro-grow-1;
+  }
+
+  .pro-scene[data-started] .ps3-grow2 {
+    animation-name: eimir-motion-pro-grow-2;
+  }
+
+  .pro-scene[data-started] .ps3-grow3 {
+    animation-name: eimir-motion-pro-grow-3;
+  }
+
+  .pro-scene[data-started] .ps3-bloom1 {
+    animation-name: eimir-motion-pro-bloom-1;
+  }
+
+  .pro-scene[data-started] .ps3-bloom2 {
+    animation-name: eimir-motion-pro-bloom-2;
+  }
+
+  .pro-scene[data-started] .ps3-bloom3 {
+    animation-name: eimir-motion-pro-bloom-3;
+  }
+
+  .pro-scene[data-started] .ps3-fly {
+    animation-name: eimir-motion-pro-butterfly;
+  }
+
+  .pro-scene[data-started] .ps3-game {
+    animation-name: eimir-motion-pro-game;
+  }
+
+  .pro-scene[data-started] .ps3-tick {
+    animation-name: eimir-motion-pro-tick;
+  }
+
+  /* 4 Map and closeness. */
+  .pro-scene[data-started] .ps4-mp1 {
+    animation-name: eimir-motion-pro-pin-1;
+  }
+
+  .pro-scene[data-started] .ps4-mp2 {
+    animation-name: eimir-motion-pro-pin-2;
+  }
+
+  .pro-scene[data-started] .ps4-mp3 {
+    animation-name: eimir-motion-pro-pin-3;
+  }
+
+  .pro-scene[data-started] .ps4-av {
+    animation-name: eimir-motion-pro-avatar;
+  }
+
+  .pro-scene[data-started] .ps4-arc {
+    stroke-dasharray: 230;
+    animation-name: eimir-motion-pro-arc;
+  }
+
+  .pro-scene[data-started] .ps4-glow {
+    animation-name: eimir-motion-pro-glow;
+  }
+
+  .pro-scene[data-started] .ps4-km {
+    animation-name: eimir-motion-pro-distance;
+  }
+
+  .pro-scene[data-started] .ps4-heart {
+    animation-name: eimir-motion-pro-heart;
+  }
+
+  .pro-scene[data-started] .ps4-msg {
+    animation-name: eimir-motion-pro-message;
+  }
+}
+
+@keyframes eimir-motion-pro-blink {
+  0%,
+  92% {
+    transform: scaleY(1);
+  }
+  94% {
+    transform: scaleY(0.1);
+  }
+  96%,
+  100% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes eimir-motion-pro-mochi-world {
+  0%,
+  36% {
+    opacity: 1;
+  }
+  40%,
+  97% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes eimir-motion-pro-hop-a {
+  0%,
+  4% {
+    transform: none;
+  }
+  8% {
+    transform: translate(10px, -14px);
+  }
+  11% {
+    transform: translate(20px, 0) scale(1.08, 0.9);
+  }
+  13% {
+    transform: translate(26px, 0);
+  }
+  17% {
+    transform: translate(26px, 0) scale(1.1, 0.88);
+  }
+  20%,
+  100% {
+    transform: translate(26px, 0);
+  }
+}
+
+@keyframes eimir-motion-pro-hop-b {
+  0%,
+  5% {
+    transform: none;
+  }
+  9% {
+    transform: translate(-10px, -14px);
+  }
+  12% {
+    transform: translate(-20px, 0) scale(1.08, 0.9);
+  }
+  14% {
+    transform: translate(-26px, 0);
+  }
+  17% {
+    transform: translate(-26px, 0) scale(1.1, 0.88);
+  }
+  20%,
+  100% {
+    transform: translate(-26px, 0);
+  }
+}
+
+@keyframes eimir-motion-pro-balloon {
+  0%,
+  18% {
+    transform: translateY(0) scale(0.2);
+    opacity: 0;
+  }
+  22% {
+    transform: translateY(-8px) scale(1);
+    opacity: 1;
+  }
+  36% {
+    transform: translateY(-62px) scale(1);
+    opacity: 1;
+  }
+  40%,
+  100% {
+    transform: translateY(-62px);
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-pro-tour {
+  0%,
+  37% {
+    opacity: 0;
+  }
+  41%,
+  96% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-pro-world-1 {
+  0%,
+  38% {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  42%,
+  54% {
+    opacity: 1;
+    transform: none;
+  }
+  58%,
+  100% {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+}
+
+@keyframes eimir-motion-pro-world-2 {
+  0%,
+  54% {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  58%,
+  70% {
+    opacity: 1;
+    transform: none;
+  }
+  74%,
+  100% {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+}
+
+@keyframes eimir-motion-pro-world-3 {
+  0%,
+  70% {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  74%,
+  85% {
+    opacity: 1;
+    transform: none;
+  }
+  89%,
+  100% {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+}
+
+@keyframes eimir-motion-pro-world-4 {
+  0%,
+  85% {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  89%,
+  96% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-pro-guide {
+  0%,
+  40% {
+    transform: translateY(40px);
+  }
+  45%,
+  94% {
+    transform: none;
+  }
+  99%,
+  100% {
+    transform: translateY(40px);
+  }
+}
+
+@keyframes eimir-motion-pro-film-part-1 {
+  0% {
+    opacity: 0;
+  }
+  2%,
+  19% {
+    opacity: 1;
+  }
+  21%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-pro-film-part-2 {
+  0%,
+  20% {
+    opacity: 0;
+  }
+  22%,
+  39% {
+    opacity: 1;
+  }
+  41%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-pro-film-part-3 {
+  0%,
+  40% {
+    opacity: 0;
+  }
+  42%,
+  59% {
+    opacity: 1;
+  }
+  61%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-pro-film-part-4 {
+  0%,
+  60% {
+    opacity: 0;
+  }
+  62%,
+  79% {
+    opacity: 1;
+  }
+  81%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-pro-film-part-5 {
+  0%,
+  80% {
+    opacity: 0;
+  }
+  82%,
+  99% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-pro-film-progress-1 {
+  0% {
+    transform: scaleX(0);
+  }
+  20%,
+  99% {
+    transform: scaleX(1);
+  }
+  100% {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes eimir-motion-pro-film-progress-2 {
+  0%,
+  20% {
+    transform: scaleX(0);
+  }
+  40%,
+  99% {
+    transform: scaleX(1);
+  }
+  100% {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes eimir-motion-pro-film-progress-3 {
+  0%,
+  40% {
+    transform: scaleX(0);
+  }
+  60%,
+  99% {
+    transform: scaleX(1);
+  }
+  100% {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes eimir-motion-pro-film-progress-4 {
+  0%,
+  60% {
+    transform: scaleX(0);
+  }
+  80%,
+  99% {
+    transform: scaleX(1);
+  }
+  100% {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes eimir-motion-pro-film-progress-5 {
+  0%,
+  80% {
+    transform: scaleX(0);
+  }
+  99% {
+    transform: scaleX(1);
+  }
+  100% {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes eimir-motion-pro-film-cover-zoom {
+  0% {
+    transform: scale(1.18) translate(-4px, 2px);
+  }
+  21%,
+  100% {
+    transform: scale(1.02);
+  }
+}
+
+@keyframes eimir-motion-pro-film-place-zoom {
+  0%,
+  60% {
+    transform: scale(1.18) translate(-4px, 2px);
+  }
+  81%,
+  100% {
+    transform: scale(1.02);
+  }
+}
+
+@keyframes eimir-motion-pro-film-title {
+  0%,
+  4% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  9%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes eimir-motion-pro-film-fly-1 {
+  0%,
+  20% {
+    transform: translate(-90px, 20px) rotate(-30deg);
+    opacity: 0;
+  }
+  25%,
+  100% {
+    transform: rotate(-8deg);
+    opacity: 1;
+  }
+}
+
+@keyframes eimir-motion-pro-film-fly-2 {
+  0%,
+  23% {
+    transform: translate(90px, -10px) rotate(30deg);
+    opacity: 0;
+  }
+  28%,
+  100% {
+    transform: rotate(6deg);
+    opacity: 1;
+  }
+}
+
+@keyframes eimir-motion-pro-film-fly-3 {
+  0%,
+  26% {
+    transform: translate(0, 90px) rotate(10deg);
+    opacity: 0;
+  }
+  31%,
+  100% {
+    transform: rotate(-3deg);
+    opacity: 1;
+  }
+}
+
+@keyframes eimir-motion-pro-film-number {
+  0%,
+  40% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  45% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  48%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes eimir-motion-pro-film-pin {
+  0%,
+  64% {
+    transform: translateY(-24px);
+    opacity: 0;
+  }
+  68% {
+    transform: none;
+    opacity: 1;
+  }
+  70% {
+    transform: scale(1.08, 0.92);
+  }
+  72%,
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes eimir-motion-pro-film-wave {
+  0%,
+  84% {
+    transform: rotate(0);
+  }
+  87% {
+    transform: rotate(-10deg);
+  }
+  90% {
+    transform: rotate(8deg);
+  }
+  93% {
+    transform: rotate(-6deg);
+  }
+  96%,
+  100% {
+    transform: rotate(0);
+  }
+}
+
+@keyframes eimir-motion-pro-film-wave-late {
+  0%,
+  87% {
+    transform: rotate(0);
+  }
+  90% {
+    transform: rotate(-10deg);
+  }
+  93% {
+    transform: rotate(8deg);
+  }
+  96% {
+    transform: rotate(-6deg);
+  }
+  99%,
+  100% {
+    transform: rotate(0);
+  }
+}
+
+@keyframes eimir-motion-pro-film-float {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translateY(-8px);
+    opacity: 0.5;
+  }
+}
+
+@keyframes eimir-motion-pro-film-float-late {
+  0%,
+  100% {
+    transform: translateY(-8px);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateY(0);
+    opacity: 0.9;
+  }
+}
+
+@keyframes eimir-motion-pro-toss-a {
+  0%,
+  3% {
+    transform: none;
+  }
+  6% {
+    transform: translateY(-10px) rotate(-6deg);
+  }
+  9%,
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes eimir-motion-pro-toss-b {
+  0%,
+  33% {
+    transform: none;
+  }
+  36% {
+    transform: translateY(-10px) rotate(6deg);
+  }
+  39%,
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes eimir-motion-pro-seed-a {
+  0%,
+  5% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  6% {
+    opacity: 1;
+  }
+  10% {
+    transform: translate(28px, -42px);
+  }
+  15% {
+    transform: translate(52px, 0);
+    opacity: 1;
+  }
+  16%,
+  100% {
+    opacity: 0;
+    transform: translate(52px, 0);
+  }
+}
+
+@keyframes eimir-motion-pro-seed-b {
+  0%,
+  35% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  36% {
+    opacity: 1;
+  }
+  40% {
+    transform: translate(-30px, -42px);
+  }
+  45% {
+    transform: translate(-56px, 0);
+    opacity: 1;
+  }
+  46%,
+  100% {
+    opacity: 0;
+    transform: translate(-56px, 0);
+  }
+}
+
+@keyframes eimir-motion-pro-grow-1 {
+  0%,
+  15% {
+    transform: scaleY(0);
+  }
+  24%,
+  95% {
+    transform: scaleY(1);
+  }
+  100% {
+    transform: scaleY(0);
+  }
+}
+
+@keyframes eimir-motion-pro-bloom-1 {
+  0%,
+  22% {
+    transform: scale(0) rotate(-60deg);
+  }
+  30%,
+  95% {
+    transform: none;
+  }
+  100% {
+    transform: scale(0);
+  }
+}
+
+@keyframes eimir-motion-pro-grow-2 {
+  0%,
+  45% {
+    transform: scaleY(0);
+  }
+  54%,
+  95% {
+    transform: scaleY(1);
+  }
+  100% {
+    transform: scaleY(0);
+  }
+}
+
+@keyframes eimir-motion-pro-bloom-2 {
+  0%,
+  52% {
+    transform: scale(0) rotate(60deg);
+  }
+  60%,
+  95% {
+    transform: none;
+  }
+  100% {
+    transform: scale(0);
+  }
+}
+
+@keyframes eimir-motion-pro-grow-3 {
+  0%,
+  56% {
+    transform: scaleY(0);
+  }
+  64%,
+  95% {
+    transform: scaleY(1);
+  }
+  100% {
+    transform: scaleY(0);
+  }
+}
+
+@keyframes eimir-motion-pro-bloom-3 {
+  0%,
+  62% {
+    transform: scale(0);
+  }
+  69%,
+  95% {
+    transform: none;
+  }
+  100% {
+    transform: scale(0);
+  }
+}
+
+@keyframes eimir-motion-pro-butterfly {
+  0%,
+  60% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  62% {
+    opacity: 1;
+  }
+  66% {
+    transform: translate(40px, -18px);
+  }
+  70% {
+    transform: translate(80px, 6px);
+  }
+  74% {
+    transform: translate(120px, -14px);
+    opacity: 1;
+  }
+  76%,
+  100% {
+    opacity: 0;
+    transform: translate(150px, -20px);
+  }
+}
+
+@keyframes eimir-motion-pro-game {
+  0%,
+  72% {
+    opacity: 0;
+    transform: translateY(16px) scale(0.9);
+  }
+  76%,
+  94% {
+    opacity: 1;
+    transform: none;
+  }
+  98%,
+  100% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes eimir-motion-pro-tick {
+  0%,
+  81% {
+    transform: scale(0);
+  }
+  84% {
+    transform: scale(1.3);
+  }
+  86%,
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes eimir-motion-pro-pin-1 {
+  0%,
+  3% {
+    transform: translateY(-30px);
+    opacity: 0;
+  }
+  8% {
+    transform: none;
+    opacity: 1;
+  }
+  10% {
+    transform: scale(1.08, 0.9);
+  }
+  12%,
+  95% {
+    transform: none;
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-pro-pin-2 {
+  0%,
+  9% {
+    transform: translateY(-30px);
+    opacity: 0;
+  }
+  14% {
+    transform: none;
+    opacity: 1;
+  }
+  16% {
+    transform: scale(1.08, 0.9);
+  }
+  18%,
+  95% {
+    transform: none;
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-pro-pin-3 {
+  0%,
+  15% {
+    transform: translateY(-30px);
+    opacity: 0;
+  }
+  20% {
+    transform: none;
+    opacity: 1;
+  }
+  22% {
+    transform: scale(1.08, 0.9);
+  }
+  24%,
+  95% {
+    transform: none;
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-pro-avatar {
+  0%,
+  26% {
+    transform: scale(0);
+  }
+  31% {
+    transform: scale(1.12);
+  }
+  34%,
+  95% {
+    transform: none;
+  }
+  100% {
+    transform: scale(0);
+  }
+}
+
+@keyframes eimir-motion-pro-arc {
+  0%,
+  34% {
+    stroke-dashoffset: 230;
+  }
+  46%,
+  95% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 230;
+  }
+}
+
+/* Points of the arc M44 146 Q96 52 196 50 at t = 0, .2, .4, .6, .8 and 1. */
+@keyframes eimir-motion-pro-glow {
+  0%,
+  46% {
+    transform: translate(44px, 146px);
+    opacity: 0;
+  }
+  48% {
+    transform: translate(66.7px, 112.1px);
+    opacity: 1;
+  }
+  50.5% {
+    transform: translate(93.3px, 85.5px);
+  }
+  53% {
+    transform: translate(123.7px, 66.3px);
+  }
+  55.5% {
+    transform: translate(157.9px, 54.5px);
+  }
+  58% {
+    transform: translate(196px, 50px);
+  }
+  60% {
+    transform: translate(157.9px, 54.5px);
+  }
+  62% {
+    transform: translate(123.7px, 66.3px);
+  }
+  64% {
+    transform: translate(93.3px, 85.5px);
+  }
+  66% {
+    transform: translate(66.7px, 112.1px);
+  }
+  68% {
+    transform: translate(44px, 146px);
+    opacity: 1;
+  }
+  70%,
+  100% {
+    transform: translate(44px, 146px);
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-pro-distance {
+  0%,
+  50% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  54% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  57%,
+  95% {
+    transform: none;
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-pro-heart {
+  0%,
+  52% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  56%,
+  60%,
+  64%,
+  68%,
+  95% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  62%,
+  66% {
+    transform: scale(1.25);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes eimir-motion-pro-message {
+  0%,
+  72% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  76% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+  79%,
+  94% {
+    transform: none;
+    opacity: 1;
+  }
+  98%,
+  100% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}

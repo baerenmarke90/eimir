@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { type RefObject, useEffect, useState } from 'react';
+import { type CSSProperties, type RefObject, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { ServerAdminApi } from '../api/generated/apis/ServerAdminApi';
 import type { ServerAdminSpaceFile as SpaceFile } from '../api/generated/models/ServerAdminSpaceFile';
@@ -289,7 +289,7 @@ function SpaceFileContent({
           >
             <span
               className={ratio >= PRESSURE_RATIO ? 'is-warning' : undefined}
-              style={{ inlineSize: `${fill * 100}%` }}
+              style={{ '--space-file-fill': fill } as CSSProperties}
             />
           </div>
         ) : null}

@@ -116,7 +116,9 @@
   block-size: 100%;
   border-radius: inherit;
   background: var(--color-brand);
-  transition: inline-size var(--duration-transition) var(--easing-standard);
+  transform: scaleX(var(--space-file-fill, 0));
+  transform-origin: left center;
+  transition: transform var(--duration-transition) var(--easing-standard);
 }
 
 .server-admin-space-file-bar span.is-warning {
@@ -201,12 +203,6 @@
   .server-admin-space-file-actions {
     grid-auto-flow: column;
     justify-content: start;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .server-admin-space-file-bar span {
-    transition: none;
   }
 }
 

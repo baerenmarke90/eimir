@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from 'vitest';
-import { isVisibleNow, observeVisibility } from './visibility';
+import { isVisibleNow, keptViewParked, observeVisibility } from './visibility';
 
 afterEach(() => {
   document.body.replaceChildren();
@@ -47,4 +47,12 @@ it('lets motion in a prepared view continue when the view is first visited', asy
     expect.objectContaining({ keptView: true, visible: true }),
   );
   stop();
+});
+
+it('parks only a hidden kept view, not a prepared one', () => {
+  expect(keptViewParked(keptView({ hidden: '' }).element)).toBe(true);
+  expect(
+    keptViewParked(keptView({ 'data-primary-tab-prewarm': 'rested' }).element),
+  ).toBe(false);
+  expect(keptViewParked(keptView().element)).toBe(false);
 });

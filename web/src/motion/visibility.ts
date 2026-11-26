@@ -34,6 +34,16 @@ function pageVisible(): boolean {
   );
 }
 
+/**
+ * Whether the element's kept view is parked (`hidden`). A view prepared
+ * before its first visit is unseen but not parked: an opening deferred until
+ * its view is shown waits only for a parked view, and a prepared view is
+ * shown complete instead (M12).
+ */
+export function keptViewParked(element: Element): boolean {
+  return Boolean(element.closest(KEPT_VIEW_SELECTOR)?.closest('[hidden]'));
+}
+
 function keptViewShown(element: Element): boolean {
   const panel = element.closest(KEPT_VIEW_SELECTOR);
   return (

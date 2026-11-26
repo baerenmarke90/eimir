@@ -43,7 +43,7 @@ describe('ServerAdmin area navigation', () => {
 
     expect(html).toContain('href="/server-admin"');
     expect(html).toContain('href="/server-admin?section=accounts"');
-    expect(html).toContain('href="/server-admin?section=jobs"');
+    expect(html).toContain('href="/server-admin?section=monitoring"');
     expect(html).not.toContain('section=reports');
     // The Compact bar and the Expanded list each mark People as current.
     const current = currentLinks(html);
@@ -78,7 +78,7 @@ describe('ServerAdmin area navigation', () => {
       />,
     );
     for (const tag of currentLinks(areas)) {
-      expect(tag).toContain('section=jobs');
+      expect(tag).toContain('section=monitoring');
     }
     const pages = markup(<ServerAdminSubNavigation activeSection="activity" />);
     const [current] = currentLinks(pages);

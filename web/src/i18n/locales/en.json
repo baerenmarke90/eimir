@@ -4932,7 +4932,8 @@
       "security": "Security & sign-in",
       "settings": "Settings",
       "activity": "Activity log",
-      "reports": "Reports"
+      "reports": "Reports",
+      "monitoring": "Monitoring"
     },
     "areas": {
       "aria": "Areas",
@@ -4964,10 +4965,53 @@
       "expiringGrant_one": "A Premium gift ends in {{count, number}} day",
       "expiringGrant_other": "A Premium gift ends in {{count, number}} days",
       "registrationsTitle": "New accounts",
+      "backupNotConfigured": "No backup set up",
+      "silent": "silent",
+      "push": "Push",
+      "pushOk": "fine",
+      "pushProblem": "many failures",
+      "backup": "Backup",
+      "backupMissing": "not set up",
+      "backupUnknown": "unknown",
       "moreStorage_one": "{{count, number}} more Space is nearly full",
       "moreStorage_other": "{{count, number}} more Spaces are nearly full",
       "moreExpiringGrants_one": "{{count, number}} more Premium gift ends soon",
       "moreExpiringGrants_other": "{{count, number}} more Premium gifts end soon"
+    },
+    "monitoring": {
+      "rangeAria": "Range",
+      "ranges": { "24h": "24 h", "30d": "30 days", "90d": "90 days" },
+      "emptyHistory": "History is just starting. The first values appear after an hour.",
+      "errorRate": "Error rate",
+      "errorRateTrend": "Error rate in the chosen range",
+      "responseTime": "Response time",
+      "responseTrend": "Response time in the chosen range",
+      "responseTimeHint": "for 95 % of requests",
+      "milliseconds": "{{value}} ms",
+      "noValue": "–",
+      "storage": "Storage",
+      "storageOf": "{{used}} of {{total}}",
+      "storageUsed": "{{used}} stored",
+      "storageTrend": "Storage in the chosen range",
+      "fullIn_one": "Full in about {{count, number}} day at this pace",
+      "fullIn_other": "Full in about {{count, number}} days at this pace",
+      "servicesTitle": "Services reporting in",
+      "services": {
+        "worker": "Worker",
+        "video_worker": "Video worker",
+        "email": "Mail",
+        "push": "Push"
+      },
+      "status": {
+        "ok": "running",
+        "silent": "silent",
+        "no_heartbeat_signal": "no signal yet",
+        "problem": "many failures in the last hour"
+      },
+      "lastSeen": "last {{time}}",
+      "alertsLabel": "Send alert mails",
+      "alertsSaveFailed": "The change was not saved. Please try again.",
+      "alertsBody": "To the ServerAdmins on new failures, full storage, failed deliveries and a missing backup."
     },
     "subNavigation": {
       "aria": "Pages"

@@ -5050,7 +5050,7 @@
       },
       "constraints": {
         "ck_instance_administration_events_setting_valid": {
-          "definition": "CHECK (setting::text = ANY (ARRAY['registration_enabled'::character varying, 'maintenance_mode'::character varying]::text[]))",
+          "definition": "CHECK (setting::text = ANY (ARRAY['registration_enabled'::character varying, 'maintenance_mode'::character varying, 'monitoring_alerts_enabled'::character varying]::text[]))",
           "kind": "c"
         },
         "fk_instance_administration_events_actor_id_accounts": {
@@ -5078,6 +5078,13 @@
         },
         "maintenance_mode": {
           "default": "false",
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "boolean"
+        },
+        "monitoring_alerts_enabled": {
+          "default": "true",
           "generated": null,
           "identity": null,
           "nullable": false,
@@ -6144,6 +6151,47 @@
         "uq_milestones_id_space_id": "CREATE UNIQUE INDEX uq_milestones_id_space_id ON public.milestones USING btree (id, space_id)"
       }
     },
+    "monitoring_alert_states": {
+      "columns": {
+        "active_since": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": true,
+          "type": "timestamp with time zone"
+        },
+        "code": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "character varying(64)"
+        },
+        "high_water_mark": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": true,
+          "type": "timestamp with time zone"
+        },
+        "last_sent_at": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": true,
+          "type": "timestamp with time zone"
+        }
+      },
+      "constraints": {
+        "pk_monitoring_alert_states": {
+          "definition": "PRIMARY KEY (code)",
+          "kind": "p"
+        }
+      },
+      "indexes": {
+        "pk_monitoring_alert_states": "CREATE UNIQUE INDEX pk_monitoring_alert_states ON public.monitoring_alert_states USING btree (code)"
+      }
+    },
     "notification_preferences": {
       "columns": {
         "account_id": {
@@ -6748,6 +6796,103 @@
       },
       "indexes": {
         "pk_once_receptions": "CREATE UNIQUE INDEX pk_once_receptions ON public.once_receptions USING btree (space_id, account_id)"
+      }
+    },
+    "operational_metric_hours": {
+      "columns": {
+        "active_spaces": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "integer"
+        },
+        "disk_total_bytes": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": true,
+          "type": "bigint"
+        },
+        "disk_used_bytes": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": true,
+          "type": "bigint"
+        },
+        "failed_emails": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "integer"
+        },
+        "failed_jobs": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "integer"
+        },
+        "failed_pushes": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "integer"
+        },
+        "hour": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "timestamp with time zone"
+        },
+        "new_accounts": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "integer"
+        },
+        "p95_ms": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": true,
+          "type": "integer"
+        },
+        "requests": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "integer"
+        },
+        "server_errors": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "integer"
+        },
+        "stored_bytes": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "bigint"
+        }
+      },
+      "constraints": {
+        "pk_operational_metric_hours": {
+          "definition": "PRIMARY KEY (hour)",
+          "kind": "p"
+        }
+      },
+      "indexes": {
+        "pk_operational_metric_hours": "CREATE UNIQUE INDEX pk_operational_metric_hours ON public.operational_metric_hours USING btree (hour)"
       }
     },
     "outbox_events": {
@@ -10987,6 +11132,47 @@
         "uq_reminders_id_space_id": "CREATE UNIQUE INDEX uq_reminders_id_space_id ON public.reminders USING btree (id, space_id)"
       }
     },
+    "request_metric_minutes": {
+      "columns": {
+        "latency_buckets": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "jsonb"
+        },
+        "minute": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "timestamp with time zone"
+        },
+        "requests": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "integer"
+        },
+        "server_errors": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "integer"
+        }
+      },
+      "constraints": {
+        "pk_request_metric_minutes": {
+          "definition": "PRIMARY KEY (minute)",
+          "kind": "p"
+        }
+      },
+      "indexes": {
+        "pk_request_metric_minutes": "CREATE UNIQUE INDEX pk_request_metric_minutes ON public.request_metric_minutes USING btree (minute)"
+      }
+    },
     "rule_preferences": {
       "columns": {
         "account_id": {
@@ -13616,6 +13802,58 @@
         "ix_wishes_space_id_status": "CREATE INDEX ix_wishes_space_id_status ON public.wishes USING btree (space_id, status)",
         "pk_wishes": "CREATE UNIQUE INDEX pk_wishes ON public.wishes USING btree (id)",
         "uq_wishes_id_space_id": "CREATE UNIQUE INDEX uq_wishes_id_space_id ON public.wishes USING btree (id, space_id)"
+      }
+    },
+    "worker_heartbeats": {
+      "columns": {
+        "build_revision": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "character varying(64)"
+        },
+        "last_progress_at": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "timestamp with time zone"
+        },
+        "last_seen_at": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "timestamp with time zone"
+        },
+        "role": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "character varying(16)"
+        },
+        "worker_name": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "character varying(128)"
+        }
+      },
+      "constraints": {
+        "ck_worker_heartbeats_role_valid": {
+          "definition": "CHECK (role::text = ANY (ARRAY['worker'::character varying, 'video-worker'::character varying]::text[]))",
+          "kind": "c"
+        },
+        "pk_worker_heartbeats": {
+          "definition": "PRIMARY KEY (worker_name)",
+          "kind": "p"
+        }
+      },
+      "indexes": {
+        "pk_worker_heartbeats": "CREATE UNIQUE INDEX pk_worker_heartbeats ON public.worker_heartbeats USING btree (worker_name)"
       }
     }
   }

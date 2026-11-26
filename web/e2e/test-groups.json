@@ -692,6 +692,11 @@
       "baselineTests": 4,
       "reason": "Support reports (#2189): from the error state a person opens the sheet, sends once with exactly the allowed fields and the failure shown there, sees a calm success, returns to the same screen and later reads the operator's reply as plain text in the notification list (HTML-looking text stays literal); from More the Help & feedback row exists only while the instance accepts reports, feedback needs text and attaches no failure, and an offline note is kept and delivered once after reconnect; the sheet lives in the shell, so a reconnect refetch that replaces the error state keeps it open with the typed note; the sheet states in Compact 360/390/430, Expanded 1280, Light/Dark and reduced motion with axe on the open sheet."
     },
+    "server-admin-monitoring.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 3,
+      "reason": "ServerAdmin monitoring (#2317): System > Monitoring opens with a calm empty history on a fresh installation, the range switch asks the server for 30 days and marks itself pressed, the alert switch writes exactly one settings change; the Situation's no-backup item on Cloud leads to Monitoring; with history the error-rate, response-time and storage lines render in Compact 360/390/430 and Expanded 1280, Light/Dark with axe, reduced motion and 200 % text without horizontal overflow."
+    },
     "server-admin-situation.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 4,

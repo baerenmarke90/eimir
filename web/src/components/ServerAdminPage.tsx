@@ -17,6 +17,7 @@ import {
   ServerAdminSubNavigation,
 } from './ServerAdminAreaNavigation';
 import { ServerAdminJobsPanel } from './ServerAdminJobsPanel';
+import { ServerAdminMonitoringPanel } from './ServerAdminMonitoringPanel';
 import { ServerAdminSituation } from './ServerAdminSituation';
 import { ServerAdminSpacesPanel } from './ServerAdminSpacesPanel';
 import { ServerAdminStoragePanel } from './ServerAdminStoragePanel';
@@ -840,6 +841,12 @@ export function ServerAdminPage({
       void overviewQuery.refetch();
       return;
     }
+    if (section === 'monitoring') {
+      void queryClient.invalidateQueries({
+        queryKey: ['server-admin', 'monitoring'],
+      });
+      return;
+    }
     if (section === 'storage') {
       void queryClient.invalidateQueries({
         queryKey: ['server-admin', 'storage'],
@@ -1080,6 +1087,10 @@ export function ServerAdminPage({
 
             {section === 'jobs' ? (
               <ServerAdminJobsPanel api={apis.serverAdmin} />
+            ) : null}
+
+            {section === 'monitoring' ? (
+              <ServerAdminMonitoringPanel api={apis.serverAdmin} />
             ) : null}
 
             {section === 'storage' ? (

@@ -38,6 +38,7 @@ MODEL_MODULES = (
     "eimir.jobs.models",
     "eimir.legal.models",
     "eimir.memories.models",
+    "eimir.monitoring.models",
     "eimir.milestones.models",
     "eimir.outbox.models",
     "eimir.people.models",

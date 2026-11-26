@@ -14,6 +14,7 @@ export const SERVER_ADMIN_SECTIONS = [
   'security',
   'settings',
   'activity',
+  'monitoring',
 ] as const;
 
 export type ServerAdminSection = (typeof SERVER_ADMIN_SECTIONS)[number];
@@ -28,7 +29,7 @@ export const AREA_SECTIONS: Record<
   situation: ['overview'],
   people: ['accounts', 'spaces'],
   help: ['reports'],
-  system: ['jobs', 'storage', 'security', 'activity', 'settings'],
+  system: ['monitoring', 'jobs', 'storage', 'security', 'activity', 'settings'],
 };
 
 export function resolveServerAdminSection(

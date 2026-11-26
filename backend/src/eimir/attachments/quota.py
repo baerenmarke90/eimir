@@ -173,6 +173,11 @@ def spaces_near_quota(
         for value in (settings.storage_quota_free_bytes, settings.storage_quota_premium_bytes)
         if value is not None
     ]
+    # An individual quota (#2324) may lie below both tier values, or be the
+    # only metered value, so it bounds the candidates too.
+    smallest_override = quota_override.smallest_active_quota(session, clock.now())
+    if smallest_override is not None:
+        quotas.append(smallest_override)
     if not quotas:
         return 0, []
     counted = func.coalesce(Attachment.size, Attachment.declared_size)

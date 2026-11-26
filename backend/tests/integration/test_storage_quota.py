@@ -283,3 +283,32 @@ def test_override_below_usage_refuses_new_bytes_and_keeps_the_files(session: Ses
     assert storage.used == 800
     assert storage.available == 0
     assert not storage.fits(1)
+
+
+def test_an_override_below_the_tier_values_reaches_the_pressure_list(session: Session) -> None:
+    from eimir.attachments.quota import spaces_near_quota
+
+    account = make_account(session, "Owner")
+    space = make_space(session, account)
+    # 300 bytes is far below 90 % of the Free value (1_000) but over its override.
+    _attachment(session, account, space.id, AttachmentStatus.READY, declared_size=300, size=300)
+    _override(session, space, 200)
+
+    total, near = spaces_near_quota(session, ratio=0.9, limit=10, settings=_cloud())
+
+    assert total == 1
+    assert near == [(space.id, 300, 200)]
+
+
+def test_an_override_counts_even_when_the_tiers_are_unmetered(session: Session) -> None:
+    from eimir.attachments.quota import spaces_near_quota
+
+    account = make_account(session, "Owner")
+    space = make_space(session, account)
+    _attachment(session, account, space.id, AttachmentStatus.READY, declared_size=300, size=300)
+    _override(session, space, 200)
+    settings = _cloud(storage_quota_free_bytes=None, storage_quota_premium_bytes=None)
+
+    total, near = spaces_near_quota(session, ratio=0.9, limit=10, settings=settings)
+
+    assert (total, near) == (1, [(space.id, 300, 200)])

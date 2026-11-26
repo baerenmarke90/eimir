@@ -46,6 +46,17 @@ const SOURCE_KEYS: Record<string, string> = {
   TEST_FIXTURE: 'serverAdmin.spaceFile.source.test',
 };
 
+const LIFECYCLE_KEYS: Record<string, string> = {
+  active: 'serverAdmin.spaces.lifecycle.active',
+  inactive: 'serverAdmin.spaces.lifecycle.inactive',
+  empty: 'serverAdmin.spaces.lifecycle.empty',
+};
+
+const ANOMALY_KEYS: Record<string, string> = {
+  no_memberships: 'serverAdmin.spaces.anomalies.noMemberships',
+  too_many_active_memberships: 'serverAdmin.spaces.anomalies.tooManyActive',
+};
+
 const AUTH_METHOD_KEYS: Record<string, string> = {
   LOCAL_PASSWORD: 'serverAdmin.spaceFile.auth.password',
   PASSKEY: 'serverAdmin.spaceFile.auth.passkey',
@@ -116,10 +127,12 @@ function SpaceFileContent({
     (grant) => grant.status === 'ACTIVE' && grant.tier === 'PREMIUM',
   );
   const gift = activeGift(entitlement.grants);
+  // Over an individual quota the share can pass 100 %; only the bar stops.
   const ratio =
     storage.quotaBytes && storage.quotaBytes > 0
-      ? Math.min(storage.usedBytes / storage.quotaBytes, 1)
+      ? storage.usedBytes / storage.quotaBytes
       : null;
+  const fill = ratio === null ? null : Math.min(ratio, 1);
 
   return (
     <article
@@ -132,6 +145,14 @@ function SpaceFileContent({
         </h2>
         <p className="server-admin-muted server-admin-actor-id">{space.id}</p>
         <ul className="server-admin-space-file-chips">
+          <li
+            className={space.anomalyCodes.length > 0 ? 'is-warning' : undefined}
+          >
+            {t(
+              LIFECYCLE_KEYS[space.lifecycleStatus] ??
+                'serverAdmin.spaces.lifecycle.active',
+            )}
+          </li>
           <li className={premium ? 'is-premium' : undefined}>
             {premium
               ? t('serverAdmin.spaceFile.plan.premium', {
@@ -156,6 +177,19 @@ function SpaceFileContent({
           ) : null}
         </ul>
       </header>
+
+      {space.anomalyCodes.length > 0 ? (
+        <div className="server-admin-warning-panel">
+          <strong>{t('serverAdmin.spaces.anomalies.title')}</strong>
+          <ul>
+            {space.anomalyCodes.map((code) => (
+              <li key={code}>
+                {ANOMALY_KEYS[code] ? t(ANOMALY_KEYS[code]) : code}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       <section
         className="server-admin-space-file-card"
@@ -237,18 +271,18 @@ function SpaceFileContent({
                 })}
           </strong>
         </div>
-        {ratio !== null ? (
+        {ratio !== null && fill !== null ? (
           <div
             className="server-admin-space-file-bar"
             role="progressbar"
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-valuenow={Math.round(ratio * 100)}
+            aria-valuenow={Math.round(fill * 100)}
             aria-label={t('serverAdmin.spaceFile.storageTitle')}
           >
             <span
               className={ratio >= PRESSURE_RATIO ? 'is-warning' : undefined}
-              style={{ inlineSize: `${ratio * 100}%` }}
+              style={{ inlineSize: `${fill * 100}%` }}
             />
           </div>
         ) : null}
@@ -378,11 +412,10 @@ export function ServerAdminSpaceFile({
     <section
       id="server-space-detail"
       className="server-admin-panel server-admin-panel-wide"
-      aria-live="polite"
       aria-busy={fileQuery.isPending}
     >
       {fileQuery.isPending ? (
-        <p className="server-admin-muted">
+        <p className="server-admin-muted" aria-live="polite">
           {t('serverAdmin.spaces.detail.loading')}
         </p>
       ) : fileQuery.isError ? (

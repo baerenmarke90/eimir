@@ -14,6 +14,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ServerAdminApi } from '../api/generated/apis/ServerAdminApi';
 import type { ServerAdminSpaceFile as SpaceFile } from '../api/generated/models/ServerAdminSpaceFile';
 import serverAdmin from '../i18n/locales/serverAdmin';
+import { giftEnd } from './ServerAdminPremiumGiftSheet';
 import { ServerAdminSpaceFile, shortSpaceId } from './ServerAdminSpaceFile';
 
 const SPACE_ID = '019b2e1a-7c3d-7f00-8a11-0123456789ab';
@@ -245,5 +246,94 @@ describe('ServerAdminSpaceFile', () => {
       until.getMonth() -
       new Date().getMonth();
     expect(months).toBe(6);
+  });
+
+  it('keeps the lifecycle status and names an anomaly', async () => {
+    renderFile(
+      file({
+        space: {
+          ...file().space,
+          activeMembershipCount: 3,
+          anomalyCodes: ['too_many_active_memberships'],
+        },
+      }),
+    );
+
+    expect(
+      await screen.findByText(copy.spaces.anomalies.tooManyActive),
+    ).toBeTruthy();
+    expect(screen.getByText(copy.spaces.lifecycle.active)).toBeTruthy();
+  });
+
+  it('shows the real percentage when a Space is over its quota', async () => {
+    renderFile(
+      file({
+        storage: { ...file().storage, usedBytes: 3 * GB, quotaBytes: 1 * GB },
+      }),
+    );
+
+    expect(await screen.findByText(/· 300 %/)).toBeTruthy();
+    expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe(
+      '100',
+    );
+  });
+
+  it('announces only loading and errors, not the whole file', async () => {
+    renderFile(file());
+
+    await screen.findByText('lena@example.com');
+    const live = document.querySelectorAll('[aria-live]');
+    for (const region of live) {
+      expect(region.textContent).not.toContain('lena@example.com');
+    }
+  });
+
+  it('ends a gift with its own reason, not the one typed for a new gift', async () => {
+    const revoke = vi.fn().mockResolvedValue(file().entitlement);
+    renderFile(
+      file({
+        entitlement: {
+          ...file().entitlement,
+          grants: [
+            {
+              id: 'g1',
+              sourceType: 'ADMIN_GRANT',
+              status: 'ACTIVE',
+              tier: 'PREMIUM',
+              effectiveFrom: new Date('2026-11-01T10:00:00Z'),
+              effectiveUntil: new Date('2099-01-01T10:00:00Z'),
+              capabilities: null,
+              externalReference: null,
+              createdAt: new Date('2026-11-01T10:00:00Z'),
+            },
+          ],
+        },
+      } as Partial<SpaceFile>),
+      {
+        revokeServerAdminSpaceEntitlementGrantApiV1ServerAdminSpacesSpaceIdEntitlementGrantsGrantIdRevokePost:
+          revoke,
+      } as Partial<ServerAdminApi>,
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: copy.spaceFile.manageGift }),
+    );
+    fireEvent.change(screen.getByLabelText(copy.giftSheet.reason), {
+      target: { value: 'Neuer Grund' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: copy.giftSheet.end }));
+
+    await waitFor(() => expect(revoke).toHaveBeenCalledTimes(1));
+    expect(
+      revoke.mock.calls[0][0].serverAdminEntitlementRevokeRequest.reason,
+    ).toBe('ended by operator');
+  });
+});
+
+describe('giftEnd', () => {
+  it('stays in the target month at the end of a long month', () => {
+    const end = giftEnd(1, new Date(2027, 0, 31, 12));
+    expect([end.getFullYear(), end.getMonth(), end.getDate()]).toEqual([
+      2027, 1, 28,
+    ]);
   });
 });

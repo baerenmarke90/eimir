@@ -7,9 +7,13 @@ import { ServerAdminSheet } from './ServerAdminSheet';
 
 export const GIFT_MONTHS = [1, 3, 6, 12] as const;
 
+/** ``months`` later, kept inside the target month (31 Jan + 1 → 28/29 Feb). */
 export function giftEnd(months: number, from = new Date()): Date {
   const end = new Date(from);
+  end.setDate(1);
   end.setMonth(end.getMonth() + months);
+  const lastDay = new Date(end.getFullYear(), end.getMonth() + 1, 0).getDate();
+  end.setDate(Math.min(from.getDate(), lastDay));
   return end;
 }
 
@@ -71,9 +75,8 @@ export function ServerAdminPremiumGiftSheet({
         {
           spaceId,
           grantId,
-          serverAdminEntitlementRevokeRequest: {
-            reason: reason.trim() || 'ended by operator',
-          },
+          // The typed reason belongs to a new gift, not to ending this one.
+          serverAdminEntitlementRevokeRequest: { reason: 'ended by operator' },
         },
       ),
     onSuccess: onSaved,

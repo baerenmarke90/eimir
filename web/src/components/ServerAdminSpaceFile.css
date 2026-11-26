@@ -37,6 +37,10 @@
   color: var(--color-brand-strong);
 }
 
+.server-admin-space-file-chips li.is-warning {
+  color: var(--color-warning);
+}
+
 .server-admin-space-file-chips li.is-positive {
   background: var(--color-success-surface);
   color: var(--color-success);

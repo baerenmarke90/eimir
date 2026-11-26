@@ -88,6 +88,14 @@ projection including available signals for:
   the switch was on;
 - `supportReportsOperatorAvailable`: whether the operator Reports section is
   available, see [Support reports](#support-reports);
+- `storagePressure` / `storagePressureCount`: Spaces at or above 85 % of their
+  Cloud storage quota, fullest first, at most five listed (Space id, counted
+  bytes and quota only; always empty on Self-Hosted, which is unmetered), with
+  the `storage_quota_pressure` warning while any exist;
+- `expiringAdminGrants` / `expiringAdminGrantCount`: active `ADMIN_GRANT`
+  entitlement grants ending within the next seven days, soonest first, at most
+  five listed (Space id, grant id and end only), with the
+  `admin_grants_expiring` warning while any exist;
 - privacy-safe warning codes for actionable configuration/runtime conditions.
 
 Where no authoritative runtime primitive exists yet, the API reports that the

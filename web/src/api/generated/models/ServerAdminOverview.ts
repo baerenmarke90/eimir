@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { ServerAdminStoragePressureItem } from './ServerAdminStoragePressureItem';
+import {
+    ServerAdminStoragePressureItemFromJSON,
+    ServerAdminStoragePressureItemFromJSONTyped,
+    ServerAdminStoragePressureItemToJSON,
+    ServerAdminStoragePressureItemToJSONTyped,
+} from './ServerAdminStoragePressureItem';
 import type { ServerAdminFailedJob } from './ServerAdminFailedJob';
 import {
     ServerAdminFailedJobFromJSON,
@@ -20,6 +27,13 @@ import {
     ServerAdminFailedJobToJSON,
     ServerAdminFailedJobToJSONTyped,
 } from './ServerAdminFailedJob';
+import type { ServerAdminExpiringGrantItem } from './ServerAdminExpiringGrantItem';
+import {
+    ServerAdminExpiringGrantItemFromJSON,
+    ServerAdminExpiringGrantItemFromJSONTyped,
+    ServerAdminExpiringGrantItemToJSON,
+    ServerAdminExpiringGrantItemToJSONTyped,
+} from './ServerAdminExpiringGrantItem';
 
 /**
  * Privacy-safe operational projection for one eimir. installation.
@@ -111,6 +125,18 @@ export interface ServerAdminOverview {
      * @memberof ServerAdminOverview
      */
     environment: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof ServerAdminOverview
+     */
+    expiringAdminGrantCount: number;
+    /**
+     * 
+     * @type {Array<ServerAdminExpiringGrantItem>}
+     * @memberof ServerAdminOverview
+     */
+    expiringAdminGrants: Array<ServerAdminExpiringGrantItem>;
     /**
      * 
      * @type {number}
@@ -227,6 +253,18 @@ export interface ServerAdminOverview {
     serverAdminVerifiedMatchCount: number;
     /**
      * 
+     * @type {Array<ServerAdminStoragePressureItem>}
+     * @memberof ServerAdminOverview
+     */
+    storagePressure: Array<ServerAdminStoragePressureItem>;
+    /**
+     * 
+     * @type {number}
+     * @memberof ServerAdminOverview
+     */
+    storagePressureCount: number;
+    /**
+     * 
      * @type {number}
      * @memberof ServerAdminOverview
      */
@@ -287,6 +325,8 @@ export function instanceOfServerAdminOverview(value: object): value is ServerAdm
     if (!('deployment' in value) || value['deployment'] === undefined) return false;
     if (!('enabledAccountCount' in value) || value['enabledAccountCount'] === undefined) return false;
     if (!('environment' in value) || value['environment'] === undefined) return false;
+    if (!('expiringAdminGrantCount' in value) || value['expiringAdminGrantCount'] === undefined) return false;
+    if (!('expiringAdminGrants' in value) || value['expiringAdminGrants'] === undefined) return false;
     if (!('jobsFailed' in value) || value['jobsFailed'] === undefined) return false;
     if (!('jobsPending' in value) || value['jobsPending'] === undefined) return false;
     if (!('jobsRunning' in value) || value['jobsRunning'] === undefined) return false;
@@ -306,6 +346,8 @@ export function instanceOfServerAdminOverview(value: object): value is ServerAdm
     if (!('recentFailedJobs' in value) || value['recentFailedJobs'] === undefined) return false;
     if (!('serverAdminAllowlistCount' in value) || value['serverAdminAllowlistCount'] === undefined) return false;
     if (!('serverAdminVerifiedMatchCount' in value) || value['serverAdminVerifiedMatchCount'] === undefined) return false;
+    if (!('storagePressure' in value) || value['storagePressure'] === undefined) return false;
+    if (!('storagePressureCount' in value) || value['storagePressureCount'] === undefined) return false;
     if (!('supportReportsNew' in value) || value['supportReportsNew'] === undefined) return false;
     if (!('supportReportsOperatorAvailable' in value) || value['supportReportsOperatorAvailable'] === undefined) return false;
     if (!('suspendedAccountCount' in value) || value['suspendedAccountCount'] === undefined) return false;
@@ -340,6 +382,8 @@ export function ServerAdminOverviewFromJSONTyped(json: any, ignoreDiscriminator:
         'deployment': json['deployment'],
         'enabledAccountCount': json['enabledAccountCount'],
         'environment': json['environment'],
+        'expiringAdminGrantCount': json['expiringAdminGrantCount'],
+        'expiringAdminGrants': ((json['expiringAdminGrants'] as Array<any>).map(ServerAdminExpiringGrantItemFromJSON)),
         'jobsFailed': json['jobsFailed'],
         'jobsPending': json['jobsPending'],
         'jobsRunning': json['jobsRunning'],
@@ -359,6 +403,8 @@ export function ServerAdminOverviewFromJSONTyped(json: any, ignoreDiscriminator:
         'recentFailedJobs': ((json['recentFailedJobs'] as Array<any>).map(ServerAdminFailedJobFromJSON)),
         'serverAdminAllowlistCount': json['serverAdminAllowlistCount'],
         'serverAdminVerifiedMatchCount': json['serverAdminVerifiedMatchCount'],
+        'storagePressure': ((json['storagePressure'] as Array<any>).map(ServerAdminStoragePressureItemFromJSON)),
+        'storagePressureCount': json['storagePressureCount'],
         'supportReportsNew': json['supportReportsNew'],
         'supportReportsOperatorAvailable': json['supportReportsOperatorAvailable'],
         'suspendedAccountCount': json['suspendedAccountCount'],
@@ -394,6 +440,8 @@ export function ServerAdminOverviewToJSONTyped(value?: ServerAdminOverview | nul
         'deployment': value['deployment'],
         'enabledAccountCount': value['enabledAccountCount'],
         'environment': value['environment'],
+        'expiringAdminGrantCount': value['expiringAdminGrantCount'],
+        'expiringAdminGrants': ((value['expiringAdminGrants'] as Array<any>).map(ServerAdminExpiringGrantItemToJSON)),
         'jobsFailed': value['jobsFailed'],
         'jobsPending': value['jobsPending'],
         'jobsRunning': value['jobsRunning'],
@@ -413,6 +461,8 @@ export function ServerAdminOverviewToJSONTyped(value?: ServerAdminOverview | nul
         'recentFailedJobs': ((value['recentFailedJobs'] as Array<any>).map(ServerAdminFailedJobToJSON)),
         'serverAdminAllowlistCount': value['serverAdminAllowlistCount'],
         'serverAdminVerifiedMatchCount': value['serverAdminVerifiedMatchCount'],
+        'storagePressure': ((value['storagePressure'] as Array<any>).map(ServerAdminStoragePressureItemToJSON)),
+        'storagePressureCount': value['storagePressureCount'],
         'supportReportsNew': value['supportReportsNew'],
         'supportReportsOperatorAvailable': value['supportReportsOperatorAvailable'],
         'suspendedAccountCount': value['suspendedAccountCount'],

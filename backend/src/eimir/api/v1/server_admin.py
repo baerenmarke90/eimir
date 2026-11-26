@@ -26,6 +26,7 @@ from eimir.administration.models import (
 from eimir.api.deps import CurrentServerAdmin, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
+from eimir.attachments import quota as storage_quota
 from eimir.attachments.models import Attachment, AttachmentStatus
 from eimir.auth import cloud
 from eimir.config import MailTransport
@@ -66,12 +67,32 @@ from eimir.support_reports import service as support_reports
 
 router = APIRouter(prefix="/server-admin", tags=["server-admin"])
 _PROCESS_STARTED_AT = now()
+# The Situation's attention lists (ServerAdmin redesign part 1).
+_STORAGE_PRESSURE_RATIO = 0.85
+_EXPIRING_GRANT_WINDOW = timedelta(days=7)
+_ATTENTION_LIMIT = 5
 
 AccountStatusFilter = Literal["all", "active", "suspended"]
 VerificationFilter = Literal["all", "verified", "unverified"]
 SpaceStatusFilter = Literal["all", "active", "inactive", "empty", "anomaly"]
 SpaceLifecycleStatus = Literal["active", "inactive", "empty"]
 AuditCategoryFilter = Literal["all", "settings", "accounts", "spaces", "destructive"]
+
+
+class ServerAdminStoragePressureItem(ApiModel):
+    """A Space at or above 85 % of its Cloud quota: id and bytes only."""
+
+    space_id: UUID
+    used_bytes: int
+    quota_bytes: int
+
+
+class ServerAdminExpiringGrantItem(ApiModel):
+    """An operator grant that ends within seven days: ids and end only."""
+
+    space_id: UUID
+    grant_id: UUID
+    effective_until: datetime
 
 
 class ServerAdminFailedJob(ApiModel):
@@ -126,6 +147,10 @@ class ServerAdminOverview(ApiModel):
     recent_failed_jobs: list[ServerAdminFailedJob]
     support_reports_new: int
     support_reports_operator_available: bool
+    storage_pressure_count: int
+    storage_pressure: list[ServerAdminStoragePressureItem]
+    expiring_admin_grant_count: int
+    expiring_admin_grants: list[ServerAdminExpiringGrantItem]
     warning_codes: list[str]
 
 
@@ -716,6 +741,32 @@ def get_server_admin_overview(
             now=current_time,
         )
 
+    storage_pressure_count, storage_pressure = storage_quota.spaces_near_quota(
+        session,
+        ratio=_STORAGE_PRESSURE_RATIO,
+        limit=_ATTENTION_LIMIT,
+        settings=settings,
+    )
+    expiring_filters = (
+        EntitlementGrant.source_type == EntitlementSourceType.ADMIN_GRANT.value,
+        EntitlementGrant.status == EntitlementStatus.ACTIVE.value,
+        EntitlementGrant.effective_until > current_time,
+        EntitlementGrant.effective_until <= current_time + _EXPIRING_GRANT_WINDOW,
+    )
+    expiring_admin_grant_count = session.execute(
+        select(func.count()).select_from(EntitlementGrant).where(*expiring_filters)
+    ).scalar_one()
+    expiring_admin_grants = (
+        session.execute(
+            select(EntitlementGrant)
+            .where(*expiring_filters)
+            .order_by(EntitlementGrant.effective_until.asc())
+            .limit(_ATTENTION_LIMIT)
+        )
+        .scalars()
+        .all()
+    )
+
     warning_codes: list[str] = []
     admin_settings = administration.get_access_state(session)
     if admin_settings.maintenance_mode:
@@ -732,6 +783,10 @@ def get_server_admin_overview(
         warning_codes.append("failed_jobs_present")
     if unread_reports_warning:
         warning_codes.append("support_reports_unread")
+    if storage_pressure_count:
+        warning_codes.append("storage_quota_pressure")
+    if expiring_admin_grant_count:
+        warning_codes.append("admin_grants_expiring")
 
     return ServerAdminOverview(
         application_status="ok",
@@ -784,6 +839,21 @@ def get_server_admin_overview(
         support_reports_operator_available=support_reports_operator_available(
             enabled=settings.support_reports_enabled
         ),
+        storage_pressure_count=storage_pressure_count,
+        storage_pressure=[
+            ServerAdminStoragePressureItem(space_id=space_id, used_bytes=used, quota_bytes=quota)
+            for space_id, used, quota in storage_pressure
+        ],
+        expiring_admin_grant_count=expiring_admin_grant_count,
+        expiring_admin_grants=[
+            ServerAdminExpiringGrantItem(
+                space_id=grant.space_id,
+                grant_id=grant.id,
+                effective_until=ensure_utc(grant.effective_until),
+            )
+            for grant in expiring_admin_grants
+            if grant.effective_until is not None
+        ],
         warning_codes=warning_codes,
     )
 

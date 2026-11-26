@@ -1139,3 +1139,164 @@ def test_unified_privileged_audit_filters_deletion_outcomes(
     assert failed.status_code == 200
     assert failed.json()["total"] == 1
     assert failed.json()["items"][0]["targetAccountId"] == str(target.id)
+
+
+# --- Situation attention lists (ServerAdmin redesign part 1) -----------------
+
+_FREE_QUOTA = 100
+_PREMIUM_QUOTA = 1_000
+
+
+def _quota_settings(monkeypatch, deployment):  # type: ignore[no-untyped-def]
+    from eimir.config import Deployment
+
+    settings = get_settings().model_copy(
+        update={
+            "deployment": Deployment(deployment),
+            "storage_quota_free_bytes": _FREE_QUOTA,
+            "storage_quota_premium_bytes": _PREMIUM_QUOTA,
+        }
+    )
+    monkeypatch.setattr(server_admin_api, "get_runtime_settings", lambda: settings)
+    monkeypatch.setattr("eimir.attachments.quota.get_settings", lambda: settings)
+    return settings
+
+
+def _stored(session, account, space, size: int):  # type: ignore[no-untyped-def]
+    from eimir.attachments.models import (
+        Attachment,
+        AttachmentPayload,
+        AttachmentStatus,
+        MediaType,
+    )
+
+    attachment = Attachment(
+        space_id=space.id,
+        owner_id=account.id,
+        privacy_class="OWNER_ONLY",
+        status=AttachmentStatus.READY.value,
+        media_type=MediaType.IMAGE.value,
+        declared_mime_type="image/jpeg",
+        declared_size=size,
+        mime_type="image/jpeg",
+        size=size,
+        ready_at=now(),
+        payload=AttachmentPayload(original_name="photo.jpg"),
+    )
+    session.add(attachment)
+    session.flush()
+
+
+def _admin_grant(
+    session, space, *, until, status="ACTIVE", source="ADMIN_GRANT", capabilities=None
+):  # type: ignore[no-untyped-def]
+    from eimir.entitlements.models import EntitlementSourceType, EntitlementStatus
+    from eimir.entitlements.service import record_grant
+
+    return record_grant(
+        session,
+        space_id=space.id,
+        source_type=EntitlementSourceType(source),
+        status=EntitlementStatus(status),
+        effective_from=now() - timedelta(days=30),
+        effective_until=until,
+        capabilities=capabilities,
+    )
+
+
+def test_overview_lists_spaces_near_cloud_quota(
+    client, session, server_admin_allowlist, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    _quota_settings(monkeypatch, "cloud")
+    _, token = _admin(session)
+    owner = make_account(session, "Owner")
+    near = make_space(session, owner)
+    calm = make_space(session, make_account(session, "Calm"))
+    _stored(session, owner, near, 90)
+    _stored(session, owner, calm, 50)
+
+    payload = client.get("/api/v1/server-admin/overview", headers=auth(token)).json()
+
+    assert payload["storagePressureCount"] == 1
+    assert payload["storagePressure"] == [
+        {"spaceId": str(near.id), "usedBytes": 90, "quotaBytes": _FREE_QUOTA}
+    ]
+    assert "storage_quota_pressure" in payload["warningCodes"]
+
+
+def test_overview_storage_pressure_respects_premium_quota(
+    client, session, server_admin_allowlist, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    _quota_settings(monkeypatch, "cloud")
+    _, token = _admin(session)
+    owner = make_account(session, "Owner")
+    premium = make_space(session, owner)
+    _stored(session, owner, premium, 90)
+    _admin_grant(session, premium, until=None, capabilities=["storage.cloud_quota_50gb"])
+
+    payload = client.get("/api/v1/server-admin/overview", headers=auth(token)).json()
+
+    assert payload["storagePressureCount"] == 0
+    assert payload["storagePressure"] == []
+
+
+def test_overview_storage_pressure_is_empty_on_self_hosted(
+    client, session, server_admin_allowlist, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    _quota_settings(monkeypatch, "self_hosted")
+    _, token = _admin(session)
+    owner = make_account(session, "Owner")
+    _stored(session, owner, make_space(session, owner), 90)
+
+    payload = client.get("/api/v1/server-admin/overview", headers=auth(token)).json()
+
+    assert payload["storagePressureCount"] == 0
+    assert payload["storagePressure"] == []
+    assert "storage_quota_pressure" not in payload["warningCodes"]
+
+
+def test_overview_lists_admin_grants_expiring_within_seven_days(
+    client, session, server_admin_allowlist
+) -> None:  # type: ignore[no-untyped-def]
+    _, token = _admin(session)
+    owner = make_account(session, "Owner")
+    soon = make_space(session, owner)
+    expiring = _admin_grant(session, soon, until=now() + timedelta(days=3))
+    _admin_grant(session, make_space(session, owner), until=now() + timedelta(days=8))
+    _admin_grant(session, make_space(session, owner), until=now() - timedelta(days=1))
+    _admin_grant(
+        session, make_space(session, owner), until=now() + timedelta(days=3), status="REVOKED"
+    )
+    _admin_grant(
+        session, make_space(session, owner), until=now() + timedelta(days=3), source="GOOGLE_PLAY"
+    )
+
+    payload = client.get("/api/v1/server-admin/overview", headers=auth(token)).json()
+
+    assert payload["expiringAdminGrantCount"] == 1
+    [item] = payload["expiringAdminGrants"]
+    assert item["spaceId"] == str(soon.id)
+    assert item["grantId"] == str(expiring.id)
+    assert "admin_grants_expiring" in payload["warningCodes"]
+
+
+def test_overview_attention_lists_are_capped_at_five(
+    client, session, server_admin_allowlist, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    _quota_settings(monkeypatch, "cloud")
+    _, token = _admin(session)
+    owner = make_account(session, "Owner")
+    for index in range(7):
+        space = make_space(session, make_account(session, f"Owner {index}"))
+        _stored(session, owner, space, 86 + index)
+        # The gift sits on another Space: a Premium grant would lift the quota.
+        gifted = make_space(session, make_account(session, f"Gifted {index}"))
+        _admin_grant(session, gifted, until=now() + timedelta(days=1 + index % 6))
+
+    payload = client.get("/api/v1/server-admin/overview", headers=auth(token)).json()
+
+    assert payload["storagePressureCount"] == 7
+    assert len(payload["storagePressure"]) == 5
+    assert payload["storagePressure"][0]["usedBytes"] == 92
+    assert payload["expiringAdminGrantCount"] == 7
+    assert len(payload["expiringAdminGrants"]) == 5

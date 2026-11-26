@@ -1,5 +1,8 @@
 import { type RefObject, useLayoutEffect, useRef } from 'react';
-import { setPrimaryTabPeek } from '../client/primaryTabPeek';
+import {
+  type PrimaryTabPeekGeometry,
+  setPrimaryTabPeek,
+} from '../client/primaryTabPeek';
 import { PRIMARY_APP_ROUTES, primaryTabIndex } from '../client/routes';
 import { isDocumentLeaveBlocked } from '../client/useDocumentLeaveGuard';
 import {
@@ -16,12 +19,12 @@ import {
   prefersReducedMotion,
   subscribeReducedMotion,
 } from '../motion/reducedMotion';
-import { run } from '../motion/run';
 import {
   crossfade,
   type NavigateDirection,
   navigate as navigateMotion,
 } from '../motion/replace';
+import { run } from '../motion/run';
 
 const EDGE_INSET = 24;
 const ENTRY_OPACITY = 0.92;
@@ -176,6 +179,17 @@ function settlePages(
 }
 
 const OPEN_OVERLAY = 'dialog[open], [aria-modal="true"], [role="menu"]';
+
+/** The main column a revealed neighbour is laid into, in page coordinates. */
+function peekGeometry(surface: HTMLElement): PrimaryTabPeekGeometry {
+  const box = surface.getBoundingClientRect();
+  const paddingTop = Number.parseFloat(getComputedStyle(surface).paddingTop);
+  return {
+    left: box.left,
+    width: box.width,
+    origin: box.top + window.scrollY + (paddingTop || 0),
+  };
+}
 
 function editingActive(): boolean {
   return Boolean(
@@ -612,7 +626,8 @@ export function useNavigationMotion({
         event.touches.length !== 1 ||
         !touch ||
         touch.identifier !== gesture.id ||
-        editingActive() ||
+        // Editing is checked at the start and the release, not per sample:
+        // reading the selection forces style and layout on every move.
         Math.abs(window.scrollY - gesture.scrollY) > 1
       ) {
         abortGesture();
@@ -661,9 +676,10 @@ export function useNavigationMotion({
       const peek = reducedMotion ? null : (neighbour?.path ?? null);
       if (gesture.peek !== peek) {
         gesture.peek = peek;
-        // Make the neighbour measurable when React reveals it, before paint.
+        // Measure the column while layout is still clean, then reveal.
+        const geometry = peek ? peekGeometry(surface) : null;
         applyDrag(gesture);
-        setPrimaryTabPeek(peek);
+        setPrimaryTabPeek(peek, geometry);
       } else if (!reducedMotion && !frame)
         frame = window.requestAnimationFrame(() => {
           frame = 0;

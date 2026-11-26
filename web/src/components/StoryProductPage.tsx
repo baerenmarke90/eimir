@@ -39,6 +39,7 @@ import { galleryCover } from '../client/galleryCover';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { usePartnerNickname } from '../client/partnerNickname';
 import { photoShape } from '../client/photoShape';
+import { usePrimaryTabActive } from '../client/primaryTabActive';
 import { usePrimaryTabPeeked } from '../client/primaryTabPeek';
 import {
   type ClientProblemError,
@@ -153,7 +154,7 @@ function isStoryKind(value: string | null): value is StoryKindValue {
 
 export function StoryProductPage({
   apis,
-  active = true,
+  active: activeOverride,
   accountId,
   spaceId,
   loadMemoryImage,
@@ -164,7 +165,10 @@ export function StoryProductPage({
   mapSession,
 }: {
   apis: ReferenceApis;
-  /** A kept or previewed panel retains its data while the active route owns input. */
+  /**
+   * A kept or previewed panel retains its data while the active route owns
+   * input. Defaults to the kept tab's own state (`usePrimaryTabActive`).
+   */
   active?: boolean;
   accountId: string;
   spaceId: string;
@@ -180,6 +184,8 @@ export function StoryProductPage({
   /** The map's session memory: the Karte segment reopens its Place. */
   mapSession?: MemoryMapSession;
 }) {
+  const tabActive = usePrimaryTabActive();
+  const active = activeOverride ?? tabActive;
   const rootIntro = useRootTabIntro<HTMLDivElement>('story');
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -242,7 +248,10 @@ export function StoryProductPage({
   // filters and mounted content for Back, even while a swipe previews Discover.
   // A parked panel nobody sees keeps showing its own view: it must not mount
   // Discover content (and read its recap) before it is revealed.
-  const peeked = usePrimaryTabPeeked(appRoutePath('story'));
+  const peeked = usePrimaryTabPeeked(
+    appRoutePath('story'),
+    !active && activeView !== 'discover',
+  );
   const displayedView = active || !peeked ? activeView : 'discover';
   // Discover does not inherit the retained Timeline scope.
   const effectiveFilters = filters;

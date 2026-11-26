@@ -14,13 +14,14 @@ import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { WishDetail } from '../api/generated/models/WishDetail';
 import { planListTitle } from '../client/discreetPlans';
+import { useFirstContentSettle } from '../client/firstContentSettle';
 import { formatCalendarDate } from '../client/formatRecency';
 import { groupPlanningOverviewPlans } from '../client/planningOverview';
 import { planScheduleLabel } from '../client/planningPresentation';
+import { usePrimaryTabActive } from '../client/primaryTabActive';
 import { usePrimaryTabPeeked } from '../client/primaryTabPeek';
 import { normalizeClientError } from '../client/problemDetails';
 import { sortByProductLabel } from '../client/productLabelOrder';
-import { useFirstContentSettle } from '../client/firstContentSettle';
 import { useQuietHint } from '../client/quietHints';
 import { useRootTabIntro } from '../client/rootTabIntro';
 import {
@@ -37,15 +38,16 @@ import { useTaskOrigin } from '../client/taskOrigin';
 import { textExcerpt } from '../client/textExcerpt';
 import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
 import { OVERVIEW_STALE_TIME } from '../client/useWarmOverviewQuery';
+import { useAppLayout } from '../client/wirDesign';
+import {
+  isHiddenDuringGame,
+  withoutHiddenWishes,
+} from '../client/wishConcealment';
 import {
   sortPlannedWishes,
   wishJourneyHint,
   wishPlanDateLabel,
 } from '../client/wishJourney';
-import {
-  isHiddenDuringGame,
-  withoutHiddenWishes,
-} from '../client/wishConcealment';
 import { groupCompletedSeries, type WishSeriesRow } from '../client/wishSeries';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AddActionLink } from './AddAction';
@@ -53,12 +55,12 @@ import { AutoLoadMore } from './AutoLoadMore';
 import { DiscreetLock, DiscreetPlaceholderLines } from './DiscreetPlan';
 import { EimirIcon } from './EimirIcon';
 import { OverviewCacheNotice } from './OverviewCacheNotice';
-import { useAppLayout } from '../client/wirDesign';
 import { PageHeader } from './PageHeader';
 import { PlanCover } from './PlanCover';
 import { PlanningOccasions } from './PlanningOccasions';
 import { QuietHint } from './QuietHint';
 import './FirstContentSettle.css';
+import { CollapsibleSearch } from './CollapsibleSearch';
 import {
   type PlanningScope,
   PlanningStatusScope,
@@ -66,7 +68,6 @@ import {
 } from './PlanningStatusScope';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
-import { CollapsibleSearch } from './CollapsibleSearch';
 import { HiddenWishGroup } from './WishGameConcealment';
 import { WishOriginMark } from './WishJourney';
 import { WishSelectionEntry } from './WishSelectionEntry';
@@ -282,7 +283,7 @@ function PlanenPanel({
 }
 
 export function SharedPlanningOverviewPage({
-  active = true,
+  active: activeOverride,
   apis,
   spaceId,
   apiBaseUrl,
@@ -291,6 +292,7 @@ export function SharedPlanningOverviewPage({
   profilesApi,
   accountId,
 }: {
+  /** Defaults to the kept tab's own state (`usePrimaryTabActive`). */
   active?: boolean;
   peopleApi?: PeopleApi;
   profilesApi?: ProfilesApi;
@@ -300,6 +302,8 @@ export function SharedPlanningOverviewPage({
   apiBaseUrl?: string;
   accessToken?: string;
 }) {
+  const tabActive = usePrimaryTabActive();
+  const active = activeOverride ?? tabActive;
   const rootIntro = useRootTabIntro<HTMLDivElement>('plan');
   const { t } = useTranslation();
   const layout = useAppLayout();
@@ -327,7 +331,13 @@ export function SharedPlanningOverviewPage({
   // A primary selection opens the unfiltered Plans segment. Keep the original
   // choices for a cancelled swipe and for Back to the parked entry. A parked
   // panel nobody sees keeps its own view and reads nothing it did not before.
-  const peeked = usePrimaryTabPeeked(appRoutePath('plan'));
+  const peeked = usePrimaryTabPeeked(
+    appRoutePath('plan'),
+    !active &&
+      (activeSegment !== 'plans' ||
+        selectedPlanStatus !== 'OPEN' ||
+        selectedPlanSearch !== ''),
+  );
   const preview = !active && peeked;
   const displayedSegment = preview ? 'plans' : activeSegment;
   const planStatus = preview ? 'OPEN' : selectedPlanStatus;

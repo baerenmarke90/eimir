@@ -14,6 +14,9 @@ import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
 import { usePrimaryNavigation } from '../client/usePrimaryNavigation';
 import { PrimaryTabPanels } from './PrimaryTabPanels';
 
+/** The column the swipe gesture measures before it reveals a tab. */
+const PEEK_GEOMETRY = { left: 0, width: 390, origin: 0 };
+
 let navigate: ReturnType<typeof useNavigate>;
 let openTab: ReturnType<typeof usePrimaryNavigation>['navigatePrimary'];
 const mounts: string[] = [];
@@ -106,12 +109,12 @@ it('mounts a tab on its first visit and keeps it mounted while hidden', async ()
 it('reveals Lists during the swipe and releases it when its route is left', async () => {
   const lists = '/more/collections';
   render(<Harness />);
-  await act(() => setPrimaryTabPeek(lists));
+  await act(() => setPrimaryTabPeek(lists, PEEK_GEOMETRY));
   expect(panel(lists)?.hasAttribute('inert')).toBe(true);
   await act(() => setPrimaryTabPeek(null));
   expect(panel(lists)).toBeNull();
 
-  await act(() => setPrimaryTabPeek(lists));
+  await act(() => setPrimaryTabPeek(lists, PEEK_GEOMETRY));
   const preview = screen.getByTestId('lists-search');
   await act(() => navigate(`${lists}?scope=ALL`));
   await act(() => setPrimaryTabPeek(null));
@@ -133,7 +136,7 @@ it('keeps mounted route consumers at rest while a visited tab is previewed and d
   await act(() => navigate('/plan'));
   renders.length = 0;
 
-  await act(() => setPrimaryTabPeek('/story'));
+  await act(() => setPrimaryTabPeek('/story', PEEK_GEOMETRY));
   const previewRenders = renders.splice(0);
   await act(() => setPrimaryTabPeek(null));
   expect({ previewRenders, cancelRenders: renders }).toEqual({
@@ -213,7 +216,12 @@ it('resets Wir tracks without reading unrelated content on peek or selection', a
   const readOffset = vi.fn(() => 0);
   Object.defineProperty(card, 'scrollLeft', { get: readOffset });
   await act(() => navigate('/story'));
-  await act(() => setPrimaryTabPeek('/today'));
+  await act(() => setPrimaryTabPeek('/today', PEEK_GEOMETRY));
+  // The reset joins the next frame's layout pass.
+  await act(
+    () =>
+      new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
+  );
   expect(lists.scrollLeft).toBe(0);
   await act(() => openTab('/today'));
   await act(() => setPrimaryTabPeek(null));
@@ -289,7 +297,7 @@ it('previews and reopens a previously scrolled primary tab at the top', async ()
   scroll.setScroll(540);
   await act(() => openTab('/plan'));
 
-  await act(() => setPrimaryTabPeek('/story'));
+  await act(() => setPrimaryTabPeek('/story', PEEK_GEOMETRY));
   expect(
     panel('/story')?.style.getPropertyValue('--primary-tab-peek-origin'),
   ).toBe('0px');
@@ -356,7 +364,7 @@ it('reveals the neighbouring tab for a swipe without keeping it unless it is ope
   render(<Harness />);
   expect(panel('/story')).toBeNull();
 
-  await act(() => setPrimaryTabPeek('/story'));
+  await act(() => setPrimaryTabPeek('/story', PEEK_GEOMETRY));
   const peeked = panel('/story');
   expect(peeked?.hidden).toBe(false);
   expect(peeked?.dataset.primaryTabPeek).toBe('true');
@@ -374,7 +382,7 @@ it('reveals the neighbouring tab for a swipe without keeping it unless it is ope
   expect(panel('/story')).toBeNull();
 
   // A committed swipe turns the peeked panel into the active, kept tab.
-  await act(() => setPrimaryTabPeek('/story'));
+  await act(() => setPrimaryTabPeek('/story', PEEK_GEOMETRY));
   const mountedForPeek = mounts.length;
   await act(() => navigate('/story'));
   await act(() => setPrimaryTabPeek(null));

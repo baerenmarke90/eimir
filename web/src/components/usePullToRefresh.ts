@@ -366,11 +366,9 @@ export function usePullToRefresh({
         event.touches.length !== 1
       )
         return;
-      if (
-        refreshInFlightRef.current ||
-        window.getSelection()?.isCollapsed === false ||
-        !isAtDocumentTop()
-      ) {
+      // A selection made during the pull ends it (`onSelectionChange`):
+      // reading the selection here would force style and layout per sample.
+      if (refreshInFlightRef.current || !isAtDocumentTop()) {
         cancelGesture();
         return;
       }
@@ -486,12 +484,18 @@ export function usePullToRefresh({
       suppressClick = false;
     };
 
+    const onSelectionChange = () => {
+      if (tracking && window.getSelection()?.isCollapsed === false)
+        cancelGesture();
+    };
+
     document.addEventListener('touchstart', onTouchStart, { passive: true });
     document.addEventListener('touchmove', onTouchMove, { passive: false });
     document.addEventListener('touchend', onTouchEnd, { passive: true });
     document.addEventListener('touchcancel', onTouchCancel, { passive: true });
     document.addEventListener('click', onClick, true);
     document.addEventListener('pointerdown', onPointerDown, true);
+    document.addEventListener('selectionchange', onSelectionChange);
 
     return () => {
       root.classList.remove('app-pull-refresh-enabled');
@@ -501,6 +505,7 @@ export function usePullToRefresh({
       document.removeEventListener('touchcancel', onTouchCancel);
       document.removeEventListener('click', onClick, true);
       document.removeEventListener('pointerdown', onPointerDown, true);
+      document.removeEventListener('selectionchange', onSelectionChange);
       resetReady();
       if (claimed && !refreshInFlightRef.current) {
         stopSettle();

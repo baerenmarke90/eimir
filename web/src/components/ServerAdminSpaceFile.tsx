@@ -71,24 +71,31 @@ const MEDIA_KEYS: Record<string, string> = {
   DOCUMENT: 'serverAdmin.spaceFile.media.document',
 };
 
-function timelineText(
-  entry: ServerAdminSpaceTimelineEntry,
-  t: (key: string, options?: Record<string, unknown>) => string,
-): string {
+function TimelineText({ entry }: { entry: ServerAdminSpaceTimelineEntry }) {
+  const { t } = useTranslation();
   if (entry.kind === 'entitlement_grant') {
     const source = t(
       SOURCE_KEYS[entry.sourceType ?? ''] ??
         'serverAdmin.spaceFile.source.other',
     );
-    return t(
-      entry.tier === 'PREMIUM'
-        ? 'serverAdmin.spaceFile.timeline.premium'
-        : 'serverAdmin.spaceFile.timeline.free',
-      { source },
+    return (
+      <span>
+        {t(
+          entry.tier === 'PREMIUM'
+            ? 'serverAdmin.spaceFile.timeline.premium'
+            : 'serverAdmin.spaceFile.timeline.free',
+          { source },
+        )}
+      </span>
     );
   }
-  return t(
-    TIMELINE_KEYS[entry.kind] ?? 'serverAdmin.spaceFile.timeline.adminAction',
+  return (
+    <span>
+      {t(
+        TIMELINE_KEYS[entry.kind] ??
+          'serverAdmin.spaceFile.timeline.adminAction',
+      )}
+    </span>
   );
 }
 
@@ -328,7 +335,7 @@ function SpaceFileContent({
                 <time dateTime={entry.at.toISOString()}>
                   {formatDay(entry.at)}
                 </time>
-                <span>{timelineText(entry, t)}</span>
+                <TimelineText entry={entry} />
               </li>
             ))}
           </ol>

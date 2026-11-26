@@ -162,6 +162,58 @@ describe('usePullToRefresh', () => {
     ).toBe(true);
   });
 
+  it('keeps the browser refresh suppressed while any surface still enables the gesture', () => {
+    const root = document.documentElement;
+    const onRefresh = vi.fn();
+    const app = renderHook(() =>
+      usePullToRefresh({ enabled: true, blocked: false, onRefresh }),
+    );
+    const momente = renderHook(() =>
+      usePullToRefresh({ enabled: true, blocked: false, onRefresh }),
+    );
+    expect(root.classList.contains('app-pull-refresh-enabled')).toBe(true);
+
+    momente.unmount();
+    expect(root.classList.contains('app-pull-refresh-enabled')).toBe(true);
+    app.unmount();
+    expect(root.classList.contains('app-pull-refresh-enabled')).toBe(false);
+  });
+
+  it('ends a pull whose page scrolls away from the top, without reading the position per move', () => {
+    const onRefresh = vi.fn();
+    renderHook(() =>
+      usePullToRefresh({ enabled: true, blocked: false, onRefresh }),
+    );
+    let scrollY = 0;
+    let reads = 0;
+    Object.defineProperty(window, 'scrollY', {
+      configurable: true,
+      get: () => {
+        reads += 1;
+        return scrollY;
+      },
+    });
+
+    act(() => {
+      dispatchTouch('touchstart', 100);
+      dispatchTouch('touchmove', 120);
+    });
+    const readsBeforeMoves = reads;
+    act(() => {
+      dispatchTouch('touchmove', 140);
+      dispatchTouch('touchmove', 160);
+    });
+    expect(reads).toBe(readsBeforeMoves);
+
+    scrollY = 40;
+    act(() => {
+      window.dispatchEvent(new Event('scroll'));
+      dispatchTouch('touchmove', 230);
+      dispatchTouch('touchend');
+    });
+    expect(onRefresh).not.toHaveBeenCalled();
+  });
+
   it('keeps a single refresh in flight across repeated gestures', async () => {
     let resolveRefresh: (() => void) | undefined;
     const onRefresh = vi.fn(

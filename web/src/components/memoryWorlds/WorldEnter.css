@@ -1,25 +1,27 @@
 /* WorldEnter: the world is drawn practically invisibly first, then faded and
    risen in once its heavy first paint is done, so the motion is actually
    seen. Motion roles only; with reduced motion they are 0 ms. */
+/* The world arrives with Enter `module`, like every module (Motion
+   Contract 4.1). */
 .memory-world-enter {
   transition:
-    opacity calc(var(--duration-context) * 2) var(--easing-enter),
-    translate calc(var(--duration-context) * 2.2) var(--easing-enter);
+    opacity var(--duration-module-enter) var(--easing-enter),
+    translate var(--duration-module-enter) var(--easing-enter);
 }
 .memory-world-enter[data-entered="false"] {
   /* Practically invisible, but painted (opacity 0 would skip the paint and
      move its whole cost to the start of the fade). */
   opacity: 0.002;
-  translate: 0 14px;
+  translate: 0 var(--motion-module-rise);
   transition: none;
   will-change: opacity, translate;
 }
 /* A world's own CSS entrance and loops wait until it is seen; they start
    from their first frame when the fade-in begins (#2283, Product Owner:
    the Stapel's prints must be seen falling). */
-.memory-world-enter[data-entered="false"] *,
-.memory-world-enter[data-entered="false"] *::before,
-.memory-world-enter[data-entered="false"] *::after {
+.memory-world-enter[data-seen="false"] *,
+.memory-world-enter[data-seen="false"] *::before,
+.memory-world-enter[data-seen="false"] *::after {
   animation-play-state: paused !important;
 }
 
@@ -38,4 +40,10 @@
 }
 .memory-world-stage[data-entered="true"] > .memory-world-cover {
   opacity: 0;
+}
+/* Entered while its tab was hidden: at rest at once when the tab is shown
+   (`WorldEnter.tsx`). */
+.memory-world-stage[data-enter="instant"] > .memory-world-cover,
+.memory-world-stage[data-enter="instant"] > .memory-world-enter {
+  transition: none;
 }

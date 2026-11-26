@@ -1,4 +1,3 @@
-import { useQuery } from '@tanstack/react-query';
 import {
   type MouseEvent,
   type ReactNode,
@@ -14,13 +13,14 @@ import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { WishDetail } from '../api/generated/models/WishDetail';
 import { planListTitle } from '../client/discreetPlans';
+import { useFirstContentSettle } from '../client/firstContentSettle';
 import { formatCalendarDate } from '../client/formatRecency';
 import { groupPlanningOverviewPlans } from '../client/planningOverview';
 import { planScheduleLabel } from '../client/planningPresentation';
+import { usePrimaryTabActive } from '../client/primaryTabActive';
 import { usePrimaryTabPeeked } from '../client/primaryTabPeek';
 import { normalizeClientError } from '../client/problemDetails';
 import { sortByProductLabel } from '../client/productLabelOrder';
-import { useFirstContentSettle } from '../client/firstContentSettle';
 import { useQuietHint } from '../client/quietHints';
 import { useRootTabIntro } from '../client/rootTabIntro';
 import {
@@ -37,15 +37,16 @@ import { useTaskOrigin } from '../client/taskOrigin';
 import { textExcerpt } from '../client/textExcerpt';
 import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
 import { OVERVIEW_STALE_TIME } from '../client/useWarmOverviewQuery';
+import { useAppLayout } from '../client/wirDesign';
+import {
+  isHiddenDuringGame,
+  withoutHiddenWishes,
+} from '../client/wishConcealment';
 import {
   sortPlannedWishes,
   wishJourneyHint,
   wishPlanDateLabel,
 } from '../client/wishJourney';
-import {
-  isHiddenDuringGame,
-  withoutHiddenWishes,
-} from '../client/wishConcealment';
 import { groupCompletedSeries, type WishSeriesRow } from '../client/wishSeries';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AddActionLink } from './AddAction';
@@ -53,12 +54,12 @@ import { AutoLoadMore } from './AutoLoadMore';
 import { DiscreetLock, DiscreetPlaceholderLines } from './DiscreetPlan';
 import { EimirIcon } from './EimirIcon';
 import { OverviewCacheNotice } from './OverviewCacheNotice';
-import { useAppLayout } from '../client/wirDesign';
 import { PageHeader } from './PageHeader';
 import { PlanCover } from './PlanCover';
 import { PlanningOccasions } from './PlanningOccasions';
 import { QuietHint } from './QuietHint';
 import './FirstContentSettle.css';
+import { CollapsibleSearch } from './CollapsibleSearch';
 import {
   type PlanningScope,
   PlanningStatusScope,
@@ -66,7 +67,6 @@ import {
 } from './PlanningStatusScope';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
-import { CollapsibleSearch } from './CollapsibleSearch';
 import { HiddenWishGroup } from './WishGameConcealment';
 import { WishOriginMark } from './WishJourney';
 import { WishSelectionEntry } from './WishSelectionEntry';
@@ -282,7 +282,7 @@ function PlanenPanel({
 }
 
 export function SharedPlanningOverviewPage({
-  active = true,
+  active: activeOverride,
   apis,
   spaceId,
   apiBaseUrl,
@@ -291,6 +291,7 @@ export function SharedPlanningOverviewPage({
   profilesApi,
   accountId,
 }: {
+  /** Defaults to the kept tab's own state (`usePrimaryTabActive`). */
   active?: boolean;
   peopleApi?: PeopleApi;
   profilesApi?: ProfilesApi;
@@ -300,6 +301,8 @@ export function SharedPlanningOverviewPage({
   apiBaseUrl?: string;
   accessToken?: string;
 }) {
+  const tabActive = usePrimaryTabActive();
+  const active = activeOverride ?? tabActive;
   const rootIntro = useRootTabIntro<HTMLDivElement>('plan');
   const { t } = useTranslation();
   const layout = useAppLayout();
@@ -327,7 +330,13 @@ export function SharedPlanningOverviewPage({
   // A primary selection opens the unfiltered Plans segment. Keep the original
   // choices for a cancelled swipe and for Back to the parked entry. A parked
   // panel nobody sees keeps its own view and reads nothing it did not before.
-  const peeked = usePrimaryTabPeeked(appRoutePath('plan'));
+  const peeked = usePrimaryTabPeeked(
+    appRoutePath('plan'),
+    !active &&
+      (activeSegment !== 'plans' ||
+        selectedPlanStatus !== 'OPEN' ||
+        selectedPlanSearch !== ''),
+  );
   const preview = !active && peeked;
   const displayedSegment = preview ? 'plans' : activeSegment;
   const planStatus = preview ? 'OPEN' : selectedPlanStatus;
@@ -513,8 +522,10 @@ export function SharedPlanningOverviewPage({
   );
 
   // #1790 F2: one quiet hint above the Plans list, derived from the wishes
-  // that left OPEN. Both lifecycle lists are small, so read them completely.
-  const journeyWishes = useQuery<WishDetail[]>({
+  // that left OPEN. Both lifecycle lists are small, so read them completely,
+  // in parallel. Like the Plans list it restores its last shared snapshot,
+  // so the hint is there with the list and never pushes it down later.
+  const journeyQuery = useWarmInfiniteQuery<WishDetail[], null>({
     queryKey: ['m5-s3', 'wishes', spaceId, 'journey-hint'],
     staleTime: OVERVIEW_STALE_TIME,
     enabled: (query) =>
@@ -522,9 +533,12 @@ export function SharedPlanningOverviewPage({
       planStatus === 'OPEN' &&
       (active || query.state.status === 'pending'),
     retry: false,
+    initialPageParam: null as null,
+    // The two lifecycle lists form one page.
+    getNextPageParam: () => undefined,
     queryFn: async ({ signal }) => {
-      const items: WishDetail[] = [];
-      for (const status of ['PLANNED', 'COMPLETED'] as const) {
+      const read = async (status: 'PLANNED' | 'COMPLETED') => {
+        const items: WishDetail[] = [];
         let cursor: string | null = null;
         for (let page = 0; page < JOURNEY_MAX_PAGES; page += 1) {
           const result = await apiCall(() =>
@@ -537,13 +551,17 @@ export function SharedPlanningOverviewPage({
           if (!result.hasMore || !result.nextCursor) break;
           cursor = result.nextCursor;
         }
-      }
-      return items;
+        return items;
+      };
+      const [planned, completed] = await Promise.all([
+        read('PLANNED'),
+        read('COMPLETED'),
+      ]);
+      return [...planned, ...completed];
     },
   });
-  const journeyHint = journeyWishes.data
-    ? wishJourneyHint(journeyWishes.data)
-    : null;
+  const journeyWishes = journeyQuery.data?.pages[0];
+  const journeyHint = journeyWishes ? wishJourneyHint(journeyWishes) : null;
 
   // A search must inspect the whole authorized scope, not just visible pages.
   useEffect(() => {
@@ -649,7 +667,7 @@ export function SharedPlanningOverviewPage({
   // The wish-to-plan tip retires once any wish became a plan. It reads only
   // data the overview already loaded, so it adds no request of its own.
   const wishBecamePlan =
-    Boolean(journeyWishes.data?.length) ||
+    Boolean(journeyWishes?.length) ||
     Boolean(
       plans.data?.pages.some((page) =>
         page.items.some((plan) => Boolean(plan.sourceWishId)),

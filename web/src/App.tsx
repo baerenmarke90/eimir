@@ -59,6 +59,7 @@ import { loadInstanceAccessStatus } from './client/instanceStatus';
 import { createM4ProductApis } from './client/m4Product';
 import { ProfilesApi } from './client/mediaApis';
 import type { MemoryMapSession } from './client/memoryMapSession';
+import { MemoryWorldProvider } from './client/memoryWorldContext';
 import {
   ONCE_CREATE_ROUTE,
   ONCE_ROUTE,
@@ -68,7 +69,6 @@ import { createPartnerLocationApi } from './client/partnerLocation';
 import { PartnerNicknameProvider } from './client/partnerNickname';
 import { createPeopleApi } from './client/peopleApi';
 import { PersonColoursProvider } from './client/personColoursContext';
-import { MemoryWorldProvider } from './client/memoryWorldContext';
 import { PLAN_SHORT_LINK_ROUTE_PATTERN } from './client/planShortLink';
 import { createPrivateAreaApi } from './client/privateArea';
 import {
@@ -156,13 +156,17 @@ import {
   loadAuthorizedSpaces,
   resolveActiveSpaceId,
 } from './client/spaceContext';
+import {
+  besideMomente,
+  usePrefetchStoryDiscover,
+} from './client/storyDiscoverQuery';
 import { loadAuthorizedStoryImageResource } from './client/storyMediaLoader';
 import { type StoryStartupReads, startStoryReads } from './client/storyStartup';
 import { useAccountLanguage } from './client/useAccountLanguage';
+import { useAppShortcuts } from './client/useAppShortcuts';
 import { useCalendarGoogleAppReturn } from './client/useCalendarGoogleAppReturn';
 import { useIdentityEntry } from './client/useIdentityEntry';
 import { usePlanShortLinkAppOpen } from './client/usePlanShortLinkAppOpen';
-import { useAppShortcuts } from './client/useAppShortcuts';
 import { useSessionRefresh } from './client/useSessionRefresh';
 import { useSystemTimeZone } from './client/useSystemTimeZone';
 import { useVideoTransferNavigation } from './client/useVideoTransferNavigation';
@@ -553,6 +557,13 @@ function AuthenticatedApp({
     () => createM4ProductApis(apiBaseUrl, tokens.accessToken),
     [apiBaseUrl, tokens.accessToken],
   );
+  usePrefetchStoryDiscover({
+    // Only where a swipe leads to Momente.
+    enabled: isCapacitorNative() && besideMomente(location.pathname),
+    apis,
+    accountId: account.id,
+    spaceId,
+  });
   useGentleUse({ account, spaceId, api: m4Apis.notifications });
   useSystemTimeZone(apiBaseUrl, tokens.accessToken, account.id, spaceId);
   useVideoTransferNavigation({
@@ -753,132 +764,164 @@ function AuthenticatedApp({
     spaceId,
     currentAccountId: account.id,
   };
-  const planningProductProps = {
-    accountId: account.id,
-    apis: planningApis,
-    spaceId,
-    apiBaseUrl,
-    accessToken: tokens.accessToken,
-  };
+  const planningProductProps = useMemo(
+    () => ({
+      accountId: account.id,
+      apis: planningApis,
+      spaceId,
+      apiBaseUrl,
+      accessToken: tokens.accessToken,
+    }),
+    [account.id, planningApis, spaceId, apiBaseUrl, tokens.accessToken],
+  );
 
-  const routeErrorFallback = (
-    <UiState
-      kind="error"
-      title={t('states.unexpected.title')}
-      body={t('states.unexpected.body')}
-      action={
-        <Link className="button-link secondary-link" to={DEFAULT_APP_ROUTE}>
-          {t('navigation.today')}
-        </Link>
-      }
-    />
+  const routeErrorFallback = useMemo(
+    () => (
+      <UiState
+        kind="error"
+        title={t('states.unexpected.title')}
+        body={t('states.unexpected.body')}
+        action={
+          <Link className="button-link secondary-link" to={DEFAULT_APP_ROUTE}>
+            {t('navigation.today')}
+          </Link>
+        }
+      />
+    ),
+    [t],
   );
   // Visited primary tabs stay mounted; their routes above render nothing.
-  const primaryTabPanels: PrimaryTabPanel[] = [
-    {
-      path: appRoutePath('today'),
-      element: (
-        <TodayPage
-          apis={m4Apis}
-          recapMediaApis={apis}
-          apiBaseUrl={apiBaseUrl}
-          spaceId={spaceId}
-          spacesApi={spacesApi}
-          dailyCheckInsApi={dailyCheckInsApi}
-          dailyQuoteApi={dailyQuoteApi}
-          entitlementApi={entitlementApi}
-          collectionsApi={planningApis.collections}
-          sharedNotesApi={planningApis.sharedNotes}
-          loadMemoryImage={loadMemoryImage}
-          profilesApi={profilesApi}
-          account={account}
-          partnerLocationApi={partnerLocationApi}
-          gamesApi={gamesApi}
-        />
-      ),
-    },
-    {
-      path: appRoutePath('story'),
-      element: (
-        <StoryProductPage
-          apis={apis}
-          active={
-            location.pathname.replace(/\/$/, '') === appRoutePath('story')
-          }
-          mapSession={memoryMapSession.current}
-          accountId={account.id}
-          spaceId={spaceId}
-          loadMemoryImage={loadMemoryImage}
-          profilesApi={profilesApi}
-          dashboardApi={m4Apis.dashboard}
-          recapsApi={m4Apis.recaps}
-          startupReads={
-            storyStartupReads?.kind === 'diary' ? storyStartupReads : undefined
-          }
-        />
-      ),
-    },
-    {
-      // The Momente map stays mounted once visited (#2063): starting a map
-      // needs the GPU and its places' photos, so returning to it reuses the
-      // live map instead of building it again.
-      path: MEMORY_MAP_ROUTE,
-      element: (
-        <DeferredPanel>
-          <MemoryMapPage
-            {...planningProductProps}
+  // The panels are built once per session inputs, not per navigation: a kept
+  // page renders again only when its own data or its tab's state changes
+  // (`usePrimaryTabActive`), never because another tab was opened.
+  const mapSession = memoryMapSession.current;
+  const primaryTabPanels = useMemo<PrimaryTabPanel[]>(
+    () => [
+      {
+        path: appRoutePath('today'),
+        element: (
+          <TodayPage
+            apis={m4Apis}
+            recapMediaApis={apis}
+            apiBaseUrl={apiBaseUrl}
+            spaceId={spaceId}
+            spacesApi={spacesApi}
+            dailyCheckInsApi={dailyCheckInsApi}
+            dailyQuoteApi={dailyQuoteApi}
+            entitlementApi={entitlementApi}
+            collectionsApi={planningApis.collections}
+            sharedNotesApi={planningApis.sharedNotes}
             loadMemoryImage={loadMemoryImage}
-            sessionViewport={memoryMapSession.current}
+            profilesApi={profilesApi}
+            account={account}
+            partnerLocationApi={partnerLocationApi}
+            gamesApi={gamesApi}
           />
-        </DeferredPanel>
-      ),
-    },
-    {
-      path: appRoutePath('plan'),
-      element: (
-        <SharedPlanningOverviewPage
-          active={location.pathname.replace(/\/$/, '') === appRoutePath('plan')}
-          key={JSON.stringify([apiBaseUrl, account.id, spaceId])}
-          {...planningProductProps}
-          accountId={account.id}
-          apiBaseUrl={apiBaseUrl}
-          peopleApi={peopleApi}
-          profilesApi={profilesApi}
-        />
-      ),
-    },
-    {
-      // The shared overviews unmount on exit so their forms and tab IDs
-      // belong only to the visible view.
-      path: MORE_COLLECTIONS_ROUTE,
-      retain: false,
-      element: (
-        <DeferredPanel>
-          <CollectionsOverviewPage {...planningProductProps} />
-        </DeferredPanel>
-      ),
-    },
-    {
-      path: MORE_NOTES_ROUTE,
-      retain: false,
-      element: (
-        <DeferredPanel>
-          <SharedNotesOverviewPage {...planningProductProps} />
-        </DeferredPanel>
-      ),
-    },
-    {
-      path: appRoutePath('more'),
-      element: (
-        <MoreOverviewPage
-          apiBaseUrl={apiBaseUrl}
-          accessToken={tokens.accessToken}
-          account={account}
-          spaceId={spaceId}
-        />
-      ),
-    },
-  ];
+        ),
+      },
+      {
+        path: appRoutePath('story'),
+        element: (
+          <StoryProductPage
+            apis={apis}
+            mapSession={mapSession}
+            accountId={account.id}
+            spaceId={spaceId}
+            loadMemoryImage={loadMemoryImage}
+            profilesApi={profilesApi}
+            dashboardApi={m4Apis.dashboard}
+            recapsApi={m4Apis.recaps}
+            startupReads={
+              storyStartupReads?.kind === 'diary'
+                ? storyStartupReads
+                : undefined
+            }
+          />
+        ),
+      },
+      {
+        // The Momente map stays mounted once visited (#2063): starting a map
+        // needs the GPU and its places' photos, so returning to it reuses the
+        // live map instead of building it again.
+        path: MEMORY_MAP_ROUTE,
+        element: (
+          <DeferredPanel>
+            <MemoryMapPage
+              {...planningProductProps}
+              loadMemoryImage={loadMemoryImage}
+              sessionViewport={mapSession}
+            />
+          </DeferredPanel>
+        ),
+      },
+      {
+        path: appRoutePath('plan'),
+        element: (
+          <SharedPlanningOverviewPage
+            key={JSON.stringify([apiBaseUrl, account.id, spaceId])}
+            {...planningProductProps}
+            accountId={account.id}
+            apiBaseUrl={apiBaseUrl}
+            peopleApi={peopleApi}
+            profilesApi={profilesApi}
+          />
+        ),
+      },
+      {
+        // The shared overviews unmount on exit so their forms and tab IDs
+        // belong only to the visible view.
+        path: MORE_COLLECTIONS_ROUTE,
+        retain: false,
+        element: (
+          <DeferredPanel>
+            <CollectionsOverviewPage {...planningProductProps} />
+          </DeferredPanel>
+        ),
+      },
+      {
+        path: MORE_NOTES_ROUTE,
+        retain: false,
+        element: (
+          <DeferredPanel>
+            <SharedNotesOverviewPage {...planningProductProps} />
+          </DeferredPanel>
+        ),
+      },
+      {
+        path: appRoutePath('more'),
+        element: (
+          <MoreOverviewPage
+            apiBaseUrl={apiBaseUrl}
+            accessToken={tokens.accessToken}
+            account={account}
+            spaceId={spaceId}
+          />
+        ),
+      },
+    ],
+    [
+      account,
+      apiBaseUrl,
+      apis,
+      dailyCheckInsApi,
+      dailyQuoteApi,
+      entitlementApi,
+      gamesApi,
+      loadMemoryImage,
+      m4Apis,
+      mapSession,
+      partnerLocationApi,
+      peopleApi,
+      planningApis.collections,
+      planningApis.sharedNotes,
+      planningProductProps,
+      profilesApi,
+      spaceId,
+      spacesApi,
+      storyStartupReads,
+      tokens.accessToken,
+    ],
+  );
 
   const relationshipContent = (
     <PartnerNicknameProvider
@@ -899,6 +942,7 @@ function AuthenticatedApp({
             panels={primaryTabPanels}
             fallback={routeErrorFallback}
             prewarm={PREWARMED_PANELS}
+            prewarmNeighbours={isCapacitorNative()}
           />
         }
       >

@@ -690,6 +690,22 @@ a.wir-distance-word:focus-visible {
   }
 }
 
+/* The marks pause their glass while the pages slide sideways, like the bar
+   (shell.css). */
+.product-main:is([data-primary-tab-dragging], [data-navigation-slide])
+  :is(
+    .wir-stage-gesture,
+    .today-page
+      .wir-stage
+      .today-hero
+      .partner-avatar-stack
+      .wir-checkin-note-dot,
+    .today-page .wir-stage .today-hero .partner-avatar-stack .wir-checkin-badge
+  ) {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
 @media (prefers-reduced-transparency: reduce), (forced-colors: active) {
   .wir-stage-gesture,
   .today-page

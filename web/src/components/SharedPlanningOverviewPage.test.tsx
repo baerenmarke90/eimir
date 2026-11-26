@@ -26,6 +26,11 @@ function infinitePage<T>(items: T[]) {
   };
 }
 
+/** The journey hint reads both lifecycle lists as one page. */
+function journeyPages<T>(items: T[]) {
+  return { pages: [items], pageParams: [null] };
+}
+
 const CREATOR = { id: 'account-lea', displayName: 'Lea' };
 
 function wish(overrides: {
@@ -706,7 +711,7 @@ describe('SharedPlanningOverviewPage wish journey (#1790 F2)', () => {
     );
     client.setQueryData(
       ['m5-s3', 'wishes', 'space-1', 'journey-hint'],
-      [
+      journeyPages([
         {
           ...wish({ id: 'a', title: 'A', status: 'PLANNED' }),
           plan: journeyPlan('p-a'),
@@ -717,7 +722,7 @@ describe('SharedPlanningOverviewPage wish journey (#1790 F2)', () => {
           plan: journeyPlan('p-b'),
           hasMemory: false,
         },
-      ],
+      ]),
     );
 
     const html = renderPlanning(client, '/plan');
@@ -745,7 +750,7 @@ describe('SharedPlanningOverviewPage wish journey (#1790 F2)', () => {
     };
     client.setQueryData(
       ['m5-s3', 'wishes', 'space-1', 'journey-hint'],
-      [completed],
+      journeyPages([completed]),
     );
     const waiting = renderPlanning(client, '/plan');
     expect(waiting).toContain(
@@ -755,7 +760,7 @@ describe('SharedPlanningOverviewPage wish journey (#1790 F2)', () => {
 
     client.setQueryData(
       ['m5-s3', 'wishes', 'space-1', 'journey-hint'],
-      [{ ...completed, hasMemory: true }],
+      journeyPages([{ ...completed, hasMemory: true }]),
     );
     expect(renderPlanning(client, '/plan')).not.toContain(
       'planen-wish-journey-hint',

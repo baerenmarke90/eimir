@@ -509,9 +509,10 @@
 }
 
 /*
- * Momente, Planen and Mehr open with the same short rise as the modules on
- * Wir, once per tab and app start: an Enter `stage` on the motion layer
- * (`useRootTabIntro`, Motion Contract 4.1). The layer sets
+ * Momente, Planen, Listen and Mehr open with Enter `module`, the one module
+ * entrance of every page (Motion Contract 4.1, also the Wir modules), once
+ * per tab and app start: an Enter `stage` on the motion layer
+ * (`useRootTabIntro`). The layer sets
  * `data-motion-stage="playing"` on the page only while the entrance runs, so
  * a kept tab that is shown again never replays it (M4). The header is left
  * out because it holds the floating create action, which must stay fixed to
@@ -520,8 +521,8 @@
  * (`useNavigationMotion`).
  */
 .page[data-motion-stage="playing"] > :not(.page-heading) {
-  --motion-stage-rise: 0.9rem;
-  animation: eimir-motion-root-rise calc(var(--duration-sequence-beat) * 2)
+  --motion-stage-rise: var(--motion-module-rise);
+  animation: eimir-motion-root-rise var(--duration-module-enter)
     var(--easing-enter)
     var(--root-intro-delay, calc(var(--duration-stagger-item) * 0)) both;
 }
@@ -536,4 +537,20 @@
 
 .page[data-motion-stage="playing"] > :nth-child(n + 4) {
   --root-intro-delay: calc(var(--duration-stagger-item) * 3);
+}
+
+/*
+ * A segment panel (Planen, Momente) fades in on its own when its segment is
+ * chosen (`PlanningReference.css`). During the entrance it keeps that fade in
+ * its animation list, under the rise. When the entrance ends, the fade is
+ * already finished and stays in the list, so it does not start again: a
+ * restart showed the whole content blinking once at the end of the first
+ * opening after start.
+ */
+.page[data-motion-stage="playing"]
+  > :is(.planen-panel, [role="tabpanel"]):not([hidden]) {
+  animation:
+    eimir-motion-enter-fade var(--duration-transition) var(--easing-enter),
+    eimir-motion-root-rise var(--duration-module-enter) var(--easing-enter)
+    var(--root-intro-delay, calc(var(--duration-stagger-item) * 0)) both;
 }

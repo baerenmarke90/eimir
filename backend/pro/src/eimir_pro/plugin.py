@@ -360,6 +360,7 @@ class InTreeProPlugin:
             date_ideas,
             games,
             garden,
+            gift_codes,
             heart_hunt,
             memory_map,
             once_messages,
@@ -387,6 +388,8 @@ class InTreeProPlugin:
             partner_quick_actions.router,
             relationship_passport.router,
             recap_composition.router,
+            gift_codes.admin_router,
+            gift_codes.router,
         )
 
     def register_jobs(self, registry: JobRegistry) -> None:

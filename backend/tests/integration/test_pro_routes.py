@@ -47,6 +47,7 @@ _S = "/api/v1/spaces/{spaceId}"
 _EXIT = "an exit that stays available after a downgrade (freemium matrix)"
 _RECEPTION = "once-message reception and deletion are not paywallable (freemium matrix)"
 _SOFT = "soft-gated: the neutral unavailable state, no location stored or shown"
+_OPERATOR = "ServerAdmin operator tooling, not a Space capability"
 
 NON_PAYWALLABLE: dict[tuple[str, str], str] = {
     ("DELETE", f"{_S}/calendar-sync/connections/{{connectionId}}"): f"Disconnect, {_EXIT}",
@@ -86,6 +87,13 @@ NON_PAYWALLABLE: dict[tuple[str, str], str] = {
     ("DELETE", f"{_S}/partner-location/device-credential/{{deviceId}}"): (
         f"Revoking a device, {_EXIT}"
     ),
+    ("POST", f"{_S}/gift-codes/redeem"): "Redeeming a gift code is how a Free Space gets Pro",
+    ("GET", "/api/v1/server-admin/pro/overview"): _OPERATOR,
+    ("POST", "/api/v1/server-admin/pro/gift-code-batches"): _OPERATOR,
+    ("GET", "/api/v1/server-admin/pro/gift-code-batches/{batchId}"): _OPERATOR,
+    ("POST", "/api/v1/server-admin/pro/gift-code-batches/{batchId}/revoke"): _OPERATOR,
+    ("PUT", "/api/v1/server-admin/pro/gift-codes/{codeId}/handed-out"): _OPERATOR,
+    ("POST", "/api/v1/server-admin/pro/gift-codes/{codeId}/revoke"): _OPERATOR,
     ("PUT", "/api/v1/partner-location/device-snapshot"): (
         "Authenticated by a device credential, which only an active share issues"
     ),

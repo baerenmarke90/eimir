@@ -312,7 +312,7 @@ async function openSignedIn(page: Page, route: string) {
 function areaNavigation(page: Page) {
   // Only one of the two area navigations is visible at a time.
   return page
-    .getByRole('navigation', { name: areas.aria })
+    .getByRole('navigation', { name: areas.aria, exact: true })
     .filter({ visible: true });
 }
 
@@ -413,7 +413,7 @@ async function expectReadable(
 async function expectProAreaLegible(page: Page) {
   await expectIconsSized(page.locator('#server-admin-main'));
   await expectReadable(
-    page.getByRole('heading', { level: 2, name: pro.title }),
+    page.getByRole('heading', { level: 2, name: pro.title, exact: true }),
     { minWidth: 100 },
   );
   await expectReadable(page.locator('.server-admin-pro-figure dt'), {
@@ -421,7 +421,7 @@ async function expectProAreaLegible(page: Page) {
   });
   await expectReadable(
     page
-      .getByRole('button', { name: pro.codes.create })
+      .getByRole('button', { name: pro.codes.create, exact: true })
       .locator('.add-action-label > span'),
     { minWidth: 80, singleLine: true },
   );
@@ -447,7 +447,7 @@ test('the operator creates gift codes, copies one and finds the batch again', as
     areaNavigation(page).getByRole('link', { name: areas.pro, exact: true }),
   ).toHaveAttribute('aria-current', 'page');
   await expect(
-    page.getByRole('heading', { level: 2, name: pro.title }),
+    page.getByRole('heading', { level: 2, name: pro.title, exact: true }),
   ).toBeVisible();
   await expect(page.getByText(pro.play.empty)).toBeVisible();
   await expect(page.getByText(pro.codes.empty)).toBeVisible();
@@ -456,13 +456,18 @@ test('the operator creates gift codes, copies one and finds the batch again', as
   await expect(page.getByLabel(pro.codes.duration)).toHaveValue('3');
   await page.getByLabel(pro.codes.count).fill('3');
   await page.getByLabel(pro.codes.note).fill('Summer party');
-  await page.getByRole('button', { name: pro.codes.create }).click();
+  await page
+    .getByRole('button', { name: pro.codes.create, exact: true })
+    .click();
 
   // Save: one write, and the new batch opens in its sheet with the codes.
   await expect
     .poll(() => recorded.creates)
     .toEqual([{ count: 3, durationMonths: 3, note: 'Summer party' }]);
-  const sheet = page.getByRole('dialog', { name: batchTitle(3, 3) });
+  const sheet = page.getByRole('dialog', {
+    name: batchTitle(3, 3),
+    exact: true,
+  });
   await expect(sheet).toBeVisible();
   const [created] = recorded.batches;
   await expect(sheet.locator('code')).toHaveText(
@@ -471,12 +476,19 @@ test('the operator creates gift codes, copies one and finds the batch again', as
   await expectIconsSized(page.locator('#server-admin-main'));
 
   // Observe: copying one code confirms it in the shared snackbar.
-  await sheet.getByRole('button', { name: pro.batch.copy }).first().click();
+  // Scoped to the first code row: "copy all open" also contains the word.
+  await sheet
+    .locator('.server-admin-pro-code')
+    .first()
+    .getByRole('button', { name: pro.batch.copy, exact: true })
+    .click();
   await expect(page.locator('.snackbar-message')).toHaveText(pro.batch.copied);
   expect(recorded.copied).toEqual([created.codes[0].code]);
 
   // Return: the batch waits in the list and opens the same sheet again.
-  await sheet.getByRole('button', { name: serverAdmin.sheet.close }).click();
+  await sheet
+    .getByRole('button', { name: serverAdmin.sheet.close, exact: true })
+    .click();
   await expect(sheet).toHaveCount(0);
   const row = page.getByRole('button', {
     name: new RegExp(`^${escapeRegExp(batchTitle(3, 3))}`),
@@ -484,7 +496,7 @@ test('the operator creates gift codes, copies one and finds the batch again', as
   await expect(row).toBeVisible();
   await row.click();
   await expect(
-    page.getByRole('dialog', { name: batchTitle(3, 3) }),
+    page.getByRole('dialog', { name: batchTitle(3, 3), exact: true }),
   ).toBeVisible();
 });
 
@@ -495,7 +507,7 @@ test('Pro area layout in Compact and Expanded, Light and Dark', async ({
   await page.setViewportSize({ width: 390, height: 844 });
   await openSignedIn(page, '/server-admin?section=pro');
   await expect(
-    page.getByRole('heading', { level: 2, name: pro.title }),
+    page.getByRole('heading', { level: 2, name: pro.title, exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole('button', {
@@ -521,9 +533,12 @@ test('Pro area layout in Compact and Expanded, Light and Dark', async ({
       name: new RegExp(`^${escapeRegExp(batchTitle(3, 12))}`),
     })
     .click();
-  const sheet = page.getByRole('dialog', { name: batchTitle(3, 12) });
+  const sheet = page.getByRole('dialog', {
+    name: batchTitle(3, 12),
+    exact: true,
+  });
   await expect(
-    sheet.getByRole('button', { name: pro.batch.handedOut }),
+    sheet.getByRole('button', { name: pro.batch.handedOut, exact: true }),
   ).toHaveCount(2);
   await expectIconsSized(sheet);
   for (const theme of ['light', 'dark'] as const) {
@@ -653,7 +668,7 @@ test('a couple redeems a gift code on the Pro page and sees Pro active', async (
   await openProPage(page);
 
   // Open: the quiet entry keeps an icon size and a one-line label.
-  const entry = page.getByRole('button', { name: giftCode.title });
+  const entry = page.getByRole('button', { name: giftCode.title, exact: true });
   await expect(entry).toBeVisible();
   await expectIconsSized(entry);
   await expectReadable(entry.locator('span'), {
@@ -661,7 +676,7 @@ test('a couple redeems a gift code on the Pro page and sees Pro active', async (
     singleLine: true,
   });
   await entry.click();
-  const sheet = page.getByRole('dialog', { name: giftCode.title });
+  const sheet = page.getByRole('dialog', { name: giftCode.title, exact: true });
   const field = sheet.getByLabel(giftCode.fieldLabel, { exact: true });
   await expect(field).toBeFocused();
 
@@ -673,7 +688,9 @@ test('a couple redeems a gift code on the Pro page and sees Pro active', async (
     await expectAccessible(page, '.short-task-sheet');
   }
   await setTheme(page, 'light');
-  await sheet.getByRole('button', { name: giftCode.redeem }).click();
+  await sheet
+    .getByRole('button', { name: giftCode.redeem, exact: true })
+    .click();
   await expect
     .poll(() => recorded.redeems)
     .toEqual([{ code: 'EIMIR-ABCD-EFGH' }]);
@@ -681,6 +698,7 @@ test('a couple redeems a gift code on the Pro page and sees Pro active', async (
   // Save: the sheet turns into the confirmation with the new end date.
   const confirmed = page.getByRole('dialog', {
     name: giftCode.success.new.title,
+    exact: true,
   });
   await expect(confirmed).toBeVisible();
   const [bodyBeforeDate] = giftCode.success.new.body.split('{{date}}');
@@ -694,7 +712,9 @@ test('a couple redeems a gift code on the Pro page and sees Pro active', async (
   await expectIconsSized(confirmed);
 
   // Return: closing shows the Pro page in its active state.
-  await confirmed.getByRole('button', { name: giftCode.done }).click();
+  await confirmed
+    .getByRole('button', { name: giftCode.done, exact: true })
+    .click();
   await expect(confirmed).toHaveCount(0);
   await expect(page.getByText(proPaywall.active.title)).toBeVisible();
 });
@@ -710,11 +730,13 @@ test('an already redeemed code is explained next to the field and stays typed', 
   });
   await openProPage(page);
 
-  await page.getByRole('button', { name: giftCode.title }).click();
-  const sheet = page.getByRole('dialog', { name: giftCode.title });
+  await page.getByRole('button', { name: giftCode.title, exact: true }).click();
+  const sheet = page.getByRole('dialog', { name: giftCode.title, exact: true });
   const field = sheet.getByLabel(giftCode.fieldLabel, { exact: true });
   await field.fill('EIMIR-USED-CODE');
-  await sheet.getByRole('button', { name: giftCode.redeem }).click();
+  await sheet
+    .getByRole('button', { name: giftCode.redeem, exact: true })
+    .click();
   await expect.poll(() => recorded.redeems).toHaveLength(1);
 
   // The explanation is tied to the field, takes focus and keeps the code.

@@ -114,8 +114,9 @@
   overflow-wrap: anywhere;
 }
 
-/* The side list's icons keep the icon size (EimirIcon has none of its own),
-   so labels such as the Pro area's never wrap letter by letter. */
+/* The side list keeps the standard icon token (24 px) rather than a
+   rem-based size, so its icons stay 24 px at 200 % text and the labels,
+   the Pro area's included, keep their room instead of wrapping. */
 .server-admin-area-link .eimir-icon {
   flex: none;
   inline-size: var(--icon-size-standard);

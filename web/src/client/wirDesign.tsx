@@ -304,6 +304,17 @@ function useWirDesignState({
 const Context = createContext<ReturnType<typeof useWirDesignState> | null>(
   null,
 );
+
+/**
+ * What the pages compose with. The full state above is a new object on every
+ * render of the provider, which renders with the app on each navigation; the
+ * pages of every kept tab read only this, which changes with the design.
+ */
+interface WirDesignPresentation {
+  current: WirDesignId;
+  presentationReady: boolean;
+}
+const PresentationContext = createContext<WirDesignPresentation | null>(null);
 export function WirDesignProvider(
   props: Parameters<typeof useWirDesignState>[0] & { children: ReactNode },
 ) {
@@ -332,15 +343,32 @@ export function WirDesignProvider(
       syncDocumentThemeColor();
     };
   }, [palette]);
-  return <Context.Provider value={state}>{props.children}</Context.Provider>;
+  const { current, presentationReady } = state;
+  const presentation = useMemo(
+    () => ({ current, presentationReady }),
+    [current, presentationReady],
+  );
+  return (
+    <Context.Provider value={state}>
+      <PresentationContext.Provider value={presentation}>
+        {props.children}
+      </PresentationContext.Provider>
+    </Context.Provider>
+  );
 }
+/** The full design state with its reads and saving, for the settings. */
 export function useWirDesign() {
   return useContext(Context);
 }
 
+/** The applied design for composing a page; `null` outside a signed-in Space. */
+export function useWirDesignPresentation() {
+  return useContext(PresentationContext);
+}
+
 /** A saved layout is visible as soon as its scoped preference is ready. */
 export function useAppLayout() {
-  const design = useWirDesign();
+  const design = useWirDesignPresentation();
   return design?.presentationReady
     ? wirDesignLayout(design.current)
     : undefined;

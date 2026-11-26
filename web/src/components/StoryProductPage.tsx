@@ -122,7 +122,7 @@ import { DiaryList } from './DiaryList';
 import './StoryTaskFilters.css';
 import './StoryYearsPage.css';
 import type { MemoryMapSession } from '../client/memoryMapSession';
-import { useMemoryWorld } from '../client/memoryWorldContext';
+import { useMemoryWorldId } from '../client/memoryWorldContext';
 import { parseMapPlace } from '../client/photoPlaces';
 import { MemoryWorldView } from './memoryWorlds/MemoryWorldView';
 import { WorldEnter } from './memoryWorlds/WorldEnter';
@@ -534,7 +534,7 @@ const StoryProductView = memo(function StoryProductView({
   const discoverError =
     discoverQuery.error ?? (discoverDenied ? renewProblem : null);
   const featuredItem = discoverQuery.data?.value.lead ?? null;
-  const memoryWorld = useMemoryWorld()?.world ?? 'story';
+  const memoryWorld = useMemoryWorldId() ?? 'story';
   const leadContext = discoverQuery.data?.value.leadContext ?? null;
   const locale = resolvedLocale();
   // Only show the anniversary label when the selection matches the viewer day.

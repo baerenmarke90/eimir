@@ -174,7 +174,7 @@ import './TodayRetrospectiveAlbum.css';
 import { concealedTitle } from '../client/discreetPlans';
 import {
   DEFAULT_WIR_DESIGN,
-  useWirDesign,
+  useWirDesignPresentation,
   wirDesignLayout,
 } from '../client/wirDesign';
 import { DiscreetLock } from './DiscreetPlan';
@@ -1119,7 +1119,7 @@ const TodayPageView = memo(function TodayPageView({
     [recapMediaApis, spaceId],
   );
   const { relationshipLabel } = usePartnerNickname();
-  const wirDesign = useWirDesign();
+  const wirDesign = useWirDesignPresentation();
   const wirDesignId = wirDesign?.current ?? DEFAULT_WIR_DESIGN;
   const wirLayout = wirDesignLayout(wirDesignId);
   // Zu zweit leads with the couple's names and uses compact check-in rows.

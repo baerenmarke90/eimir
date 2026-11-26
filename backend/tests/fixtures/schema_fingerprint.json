@@ -4976,7 +4976,7 @@
       },
       "constraints": {
         "ck_instance_administration_action_events_action_valid": {
-          "definition": "CHECK (action::text = ANY (ARRAY['account_suspended'::character varying, 'account_unsuspended'::character varying, 'account_sessions_revoked'::character varying, 'account_email_verified'::character varying, 'account_recovery_email_requested'::character varying, 'account_recovery_issued'::character varying, 'space_entitlement_granted'::character varying, 'space_entitlement_revoked'::character varying, 'account_deletion_requested'::character varying, 'account_deletion_completed'::character varying, 'account_deletion_failed'::character varying, 'space_configuration_manager_reconciled'::character varying, 'support_report.state_set'::character varying, 'support_report.reply_sent'::character varying, 'support_report.ticket_created'::character varying, 'support_report.ticket_cleared'::character varying, 'support_report.archived'::character varying, 'support_report.unarchived'::character varying, 'support_report.deleted'::character varying]::text[]))",
+          "definition": "CHECK (action::text = ANY (ARRAY['account_suspended'::character varying, 'account_unsuspended'::character varying, 'account_sessions_revoked'::character varying, 'account_email_verified'::character varying, 'account_recovery_email_requested'::character varying, 'account_recovery_issued'::character varying, 'space_entitlement_granted'::character varying, 'space_entitlement_revoked'::character varying, 'space_configuration_manager_reconciled'::character varying, 'account_deletion_requested'::character varying, 'account_deletion_completed'::character varying, 'account_deletion_failed'::character varying, 'support_report.state_set'::character varying, 'support_report.reply_sent'::character varying, 'support_report.ticket_created'::character varying, 'support_report.ticket_cleared'::character varying, 'support_report.archived'::character varying, 'support_report.unarchived'::character varying, 'support_report.deleted'::character varying, 'space_storage_quota_set'::character varying, 'space_storage_quota_cleared'::character varying, 'space_file_viewed'::character varying]::text[]))",
           "kind": "c"
         },
         "fk_instance_administration_action_events_actor_id_accounts": {
@@ -11856,6 +11856,66 @@
       "indexes": {
         "pk_space_profiles": "CREATE UNIQUE INDEX pk_space_profiles ON public.space_profiles USING btree (id)",
         "uq_space_profiles_space_id": "CREATE UNIQUE INDEX uq_space_profiles_space_id ON public.space_profiles USING btree (space_id)"
+      }
+    },
+    "space_storage_quota_overrides": {
+      "columns": {
+        "effective_until": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": true,
+          "type": "timestamp with time zone"
+        },
+        "quota_bytes": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "bigint"
+        },
+        "set_at": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "timestamp with time zone"
+        },
+        "set_by_account_id": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": true,
+          "type": "uuid"
+        },
+        "space_id": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": false,
+          "type": "uuid"
+        }
+      },
+      "constraints": {
+        "ck_space_storage_quota_overrides_quota_positive": {
+          "definition": "CHECK (quota_bytes > 0)",
+          "kind": "c"
+        },
+        "fk_space_storage_quota_overrides_set_by_account_id_accounts": {
+          "definition": "FOREIGN KEY (set_by_account_id) REFERENCES accounts(id) ON DELETE SET NULL",
+          "kind": "f"
+        },
+        "fk_space_storage_quota_overrides_space_id_spaces": {
+          "definition": "FOREIGN KEY (space_id) REFERENCES spaces(id) ON DELETE CASCADE",
+          "kind": "f"
+        },
+        "pk_space_storage_quota_overrides": {
+          "definition": "PRIMARY KEY (space_id)",
+          "kind": "p"
+        }
+      },
+      "indexes": {
+        "pk_space_storage_quota_overrides": "CREATE UNIQUE INDEX pk_space_storage_quota_overrides ON public.space_storage_quota_overrides USING btree (space_id)"
       }
     },
     "spaces": {

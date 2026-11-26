@@ -27,8 +27,10 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from eimir.attachments import quota_override
 from eimir.attachments.models import Attachment, AttachmentStatus
 from eimir.config import Deployment, Settings, get_settings
+from eimir.core import clock
 from eimir.core.errors import ErrorCode, PayloadTooLargeError
 from eimir.db.locks import lock_subject
 from eimir.entitlements import service as entitlements
@@ -114,6 +116,10 @@ def space_quota(
     settings = settings or get_settings()
     if settings.deployment is not Deployment.CLOUD:
         return None
+    # An individual quota set by a ServerAdmin replaces the tier value (#2324).
+    override = quota_override.active_override(session, space_id, clock.now())
+    if override is not None:
+        return override.quota_bytes
     premium = entitlements.has_capability(
         session,
         space_id,

@@ -228,3 +228,58 @@ def test_measuring_with_the_lock_serializes_the_space(session: Session, engine: 
     with engine.connect() as other:
         assert other.scalar(select(func.pg_try_advisory_xact_lock(key))) is False
         other.rollback()
+
+
+# --- Individual quota per Space (ServerAdmin part 3, #2324) ------------------
+
+
+def _override(session: Session, space, quota: int, until=None):  # type: ignore[no-untyped-def]
+    from eimir.attachments.quota_override import SpaceStorageQuotaOverride
+
+    session.add(
+        SpaceStorageQuotaOverride(
+            space_id=space.id, quota_bytes=quota, effective_until=until, set_at=now()
+        )
+    )
+    session.flush()
+
+
+def test_override_replaces_the_tier_quota_while_active(session: Session) -> None:
+    account = make_account(session, "Owner")
+    space = make_space(session, account)
+    _override(session, space, 7_000, until=now() + timedelta(days=3))
+    assert space_quota(session, space.id, settings=_cloud()) == 7_000
+
+
+def test_override_can_be_lower_than_the_tier_value(session: Session) -> None:
+    account = make_account(session, "Owner")
+    space = make_space(session, account)
+    _grant(session, space, capabilities=[Capability.STORAGE_CLOUD_QUOTA_50GB.value])
+    _override(session, space, 500)
+    assert space_quota(session, space.id, settings=_cloud()) == 500
+
+
+def test_expired_override_falls_back_to_the_tier_value(session: Session) -> None:
+    account = make_account(session, "Owner")
+    space = make_space(session, account)
+    _override(session, space, 7_000, until=now() - timedelta(minutes=1))
+    assert space_quota(session, space.id, settings=_cloud()) == FREE
+
+
+def test_override_is_ignored_on_self_hosted(session: Session) -> None:
+    account = make_account(session, "Owner")
+    space = make_space(session, account)
+    _override(session, space, 7_000)
+    settings = get_settings().model_copy(update={"deployment": Deployment.SELF_HOSTED})
+    assert space_quota(session, space.id, settings=settings) is None
+
+
+def test_override_below_usage_refuses_new_bytes_and_keeps_the_files(session: Session) -> None:
+    account = make_account(session, "Owner")
+    space = make_space(session, account)
+    _attachment(session, account, space.id, AttachmentStatus.READY, declared_size=800, size=800)
+    _override(session, space, 500)
+    storage = space_storage(session, space.id, settings=_cloud())
+    assert storage.used == 800
+    assert storage.available == 0
+    assert not storage.fits(1)

@@ -32,5 +32,7 @@ build-backend = "setuptools.build_meta"
 where = ["src"]
 
 [tool.setuptools.package-data]
+# The migration revisions are loaded by file path, not imported, so they ship as data.
+"eimir_pro" = ["alembic/versions/*.py"]
 "eimir_pro.quotes" = ["daily_sayings.json"]
 "eimir_pro.date_ideas" = ["data/*.json", "data/images/*.webp"]

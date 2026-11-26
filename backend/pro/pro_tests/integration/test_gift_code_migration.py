@@ -78,6 +78,15 @@ def test_the_chain_is_absolute_has_its_own_version_table_and_one_head() -> None:
     assert script.get_revision("0001").down_revision is None
 
 
+def test_the_revisions_ship_with_the_distribution() -> None:
+    """They are loaded by file path, not imported, so the wheel needs them as data."""
+    import tomllib
+
+    project = tomllib.loads((BACKEND / "pro" / "pyproject.toml").read_text(encoding="utf-8"))
+    package_data = project["tool"]["setuptools"]["package-data"]
+    assert "alembic/versions/*.py" in package_data["eimir_pro"]
+
+
 def test_the_revision_creates_both_tables_with_their_constraints() -> None:
     sql = _render()
 

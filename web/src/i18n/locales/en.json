@@ -4981,11 +4981,7 @@
     },
     "monitoring": {
       "rangeAria": "Range",
-      "ranges": {
-        "24h": "24 h",
-        "30d": "30 days",
-        "90d": "90 days"
-      },
+      "ranges": { "24h": "24 h", "30d": "30 days", "90d": "90 days" },
       "emptyHistory": "History is just starting. The first values appear after an hour.",
       "errorRate": "Error rate",
       "errorRateTrend": "Error rate in the chosen range",
@@ -5465,7 +5461,6 @@
       "emptyHint": "No reply templates yet.",
       "emptyLink": "Create a template",
       "loadError": "The reply templates could not be loaded.",
-      "inserted": "Template “{{name}}” inserted.",
       "listLabel": "Reply templates",
       "create": "Create a template",
       "limitHint": "No more than {{max}} templates are possible. Delete one to create a new one.",
@@ -5528,6 +5523,10 @@
         "PROBLEM": "Problem",
         "FEEDBACK": "Feedback"
       },
+      "platforms": {
+        "app": "App",
+        "web": "Web"
+      },
       "loadingTitle": "Loading reports",
       "loadingBody": "The reports of this installation are being queried.",
       "errorTitle": "Reports unavailable",
@@ -5547,7 +5546,7 @@
       "loadMoreError": "More reports could not be loaded.",
       "listLabel": "Reports",
       "item": {
-        "meta": "{{when}} · {{os}} · {{version}} ({{build}})",
+        "meta": "· {{platform}} · {{os}} · {{version}} ({{build}})",
         "version": "Version {{version}} ({{build}})",
         "replied": "Replied",
         "ticket": "Ticket",
@@ -5633,7 +5632,7 @@
       },
       "manage": {
         "title": "Archive and delete",
-        "archiveHint": "An archived report disappears from New, In progress, Done and All and no longer counts as new. It stays readable under “Archived” and keeps its status. The retention periods apply unchanged.",
+        "archiveHint": "An archived report disappears from New, In progress, Done and All and no longer counts as new. It stays readable under \u201cArchived\u201d and keeps its status. The retention periods apply unchanged.",
         "archivedHint": "This report is archived. Bring it back to show it in the lists again. The retention periods also apply in the archive.",
         "archive": "Archive report",
         "unarchive": "Bring back from archive",

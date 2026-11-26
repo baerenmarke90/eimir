@@ -3,9 +3,9 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import type { ServerAdminSupportReportsApi } from '../api/generated/apis/ServerAdminSupportReportsApi';
 import type { SupportReportListItem } from '../api/generated/models/SupportReportListItem';
 import { clientProblemKind } from '../client/problemDetails';
-import { formatRelativeElapsed } from '../client/relativeElapsed';
 import {
   formatReportDate,
+  formatReportDay,
   loadSupportReportPage,
   nextSupportReportCursor,
   resolveSupportReportFilter,
@@ -13,7 +13,7 @@ import {
   type SupportReportFilter,
   supportReportsQueryKey,
 } from '../client/supportReportsAdmin';
-import { resolvedLocale, useTranslation } from '../i18n';
+import { useTranslation } from '../i18n';
 import { ServerAdminSupportReportDetail } from './ServerAdminSupportReportDetail';
 import { UiState } from './UiState';
 import './ServerAdminSupportReportsPanel.css';
@@ -50,19 +50,18 @@ function ReportRow({
               dateTime={report.createdAt.toISOString()}
               title={formatReportDate(report.createdAt)}
             >
-              {t('serverAdmin.reports.item.meta', {
-                when: formatRelativeElapsed(report.createdAt, resolvedLocale()),
-                os: report.os,
-                version: report.appVersion,
-                build: report.build,
-              })}
-            </time>
+              {formatReportDay(report.createdAt)}
+            </time>{' '}
+            {t('serverAdmin.reports.item.meta', {
+              platform: t(`serverAdmin.reports.platforms.${report.platform}`),
+              os: report.os,
+              version: report.appVersion,
+              build: report.build,
+            })}
           </span>
         </span>
         {report.notePreview ? (
-          <blockquote className="server-admin-report-preview">
-            {report.notePreview}
-          </blockquote>
+          <q className="server-admin-report-preview">{report.notePreview}</q>
         ) : null}
         <span className="server-admin-report-row-state">
           {t(`serverAdmin.reports.states.${report.state}`)}
@@ -86,8 +85,8 @@ function ReportRow({
 }
 
 /**
- * The operator's triage queue of support reports (#2189): a state filter, the
- * new-report count and a keyset-paged list without note text. A report opens
+ * The operator's triage queue of support reports (#2189, #2327): state filters
+ * with their counts and a keyset-paged list of cards with a note preview. A report opens
  * in place; on Compact it replaces the list, on wide screens it sits beside it.
  */
 export function ServerAdminSupportReportsPanel({

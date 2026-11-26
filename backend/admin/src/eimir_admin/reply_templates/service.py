@@ -7,6 +7,7 @@ privileged audit: it is operator text, not an action on a person.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -53,10 +54,17 @@ def _ensure_name_free(session: Session, name: str, *, exclude: UUID | None = Non
         raise _name_taken()
 
 
-def _flush(session: Session) -> None:
-    """Flush; a concurrent writer that took the name meanwhile is the same conflict."""
+def _write(session: Session, change: Callable[[], None]) -> None:
+    """Apply and flush a change in a savepoint.
+
+    A concurrent writer that took the name after the pre-check loses on the
+    unique index; only the savepoint rolls back, so the conflict is a 409 and
+    the request's transaction stays usable. The change must happen inside the
+    savepoint: opening it flushes pending state first.
+    """
     try:
         with session.begin_nested():
+            change()
             session.flush()
     except IntegrityError as error:
         raise _name_taken() from error
@@ -68,8 +76,7 @@ def create_template(session: Session, *, name: str, text: str) -> SupportReplyTe
         raise ConflictError("The reply template limit is reached.", TEMPLATE_LIMIT_REACHED)
     _ensure_name_free(session, name)
     template = SupportReplyTemplate(name=name, text=text)
-    session.add(template)
-    _flush(session)
+    _write(session, lambda: session.add(template))
     session.refresh(template)
     return template
 
@@ -79,9 +86,12 @@ def update_template(
 ) -> SupportReplyTemplate:
     template = _get(session, template_id)
     _ensure_name_free(session, name, exclude=template.id)
-    template.name = name
-    template.text = text
-    _flush(session)
+
+    def change() -> None:
+        template.name = name
+        template.text = text
+
+    _write(session, change)
     session.refresh(template)
     return template
 

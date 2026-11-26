@@ -11,6 +11,7 @@ import { useSyncExternalStore } from 'react';
 import { ResponseError } from '../api/generated/runtime';
 import { resolvedLocale } from '../i18n';
 import { assertOnlineWrite, isClientOnline } from './connectivity';
+import { formatRelativeElapsed } from './relativeElapsed';
 import { ClientProblemError, normalizeClientError } from './problemDetails';
 
 /** Operator data helpers of the ServerAdmin "Reports" section (#2189). */
@@ -350,4 +351,20 @@ export function formatReportDate(value: Date): string {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(value);
+}
+
+/**
+ * The calendar day of a report relative to today ("today", "yesterday",
+ * "3 days ago"). The timestamp is reduced to its local calendar day first:
+ * the relative helper compares calendar days stored as UTC midnight.
+ */
+export function formatReportDay(
+  value: Date,
+  locale: string = resolvedLocale(),
+  now: Date = new Date(),
+): string {
+  const day = new Date(
+    Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()),
+  );
+  return formatRelativeElapsed(day, locale, now);
 }

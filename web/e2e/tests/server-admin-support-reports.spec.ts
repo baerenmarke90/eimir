@@ -938,7 +938,7 @@ test('operator_keeps_reply_templates_and_answers_with_one', async ({
   await expect(templatesSection).toContainText(templates.emptyTitle);
   expect(replyTemplates).toEqual([]);
 
-  // Expanded: the templates page and its sheet at 1280.
+  // Expanded: the templates page at 1280.
   await page.setViewportSize({ width: 1280, height: 900 });
   await expectReflow(page);
   await captureThemes(

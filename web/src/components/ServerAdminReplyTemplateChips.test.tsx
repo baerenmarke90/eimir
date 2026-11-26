@@ -69,6 +69,10 @@ describe('ServerAdminReplyTemplateChips', () => {
 
     expect(onInsert).toHaveBeenCalledWith('It is fixed now.');
     expect(screen.getByRole('button', { name: 'Thanks' })).toBeTruthy();
+    // The chips are a list named by their title.
+    expect(
+      screen.getByRole('list', { name: templates.chipsTitle }),
+    ).toBeTruthy();
   });
 
   it('leads to the templates page from the edit link', async () => {

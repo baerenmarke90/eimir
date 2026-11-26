@@ -142,11 +142,21 @@ describe('ServerAdminSupportReportsPanel', () => {
     expect(
       screen.getByRole('button', { name: reports.filter.archived }),
     ).toBeTruthy();
-    const quotes = document.querySelectorAll('blockquote');
+    // The preview is phrasing content inside the row button: a <q>, not a block.
+    expect(document.querySelectorAll('blockquote')).toHaveLength(0);
+    const quotes = document.querySelectorAll('q');
     expect(quotes).toHaveLength(1);
     expect(quotes[0]?.textContent).toBe(PREVIEW);
     expect(screen.getAllByText(reports.kinds.PROBLEM)).toHaveLength(2);
     expect(screen.getAllByText(/Android 16/)).toHaveLength(2);
+    const metas = Array.from(
+      document.querySelectorAll('.server-admin-report-row-meta'),
+    ).map((meta) => meta.textContent ?? '');
+    expect(metas).toHaveLength(2);
+    for (const meta of metas) expect(meta).toContain(reports.platforms.app);
+    expect(document.querySelectorAll('time')[0]?.textContent).not.toContain(
+      'Android',
+    );
     expect(screen.getByText(reports.anonymousFooter)).toBeTruthy();
     expect(screen.getByText(reports.item.replied)).toBeTruthy();
     expect(screen.queryByText(NOTE)).toBeNull();

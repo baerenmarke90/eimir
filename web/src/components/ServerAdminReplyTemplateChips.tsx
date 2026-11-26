@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useId } from 'react';
 import type { ServerAdminSupportReportsApi } from '../api/generated/apis/ServerAdminSupportReportsApi';
 import {
   loadReplyTemplates,
@@ -24,6 +25,7 @@ export function ServerAdminReplyTemplateChips({
   onEdit?: () => void;
 }) {
   const { t } = useTranslation();
+  const titleId = useId();
   const query = useQuery({
     queryKey: REPLY_TEMPLATES_QUERY_KEY,
     queryFn: () => loadReplyTemplates(api),
@@ -35,7 +37,7 @@ export function ServerAdminReplyTemplateChips({
   return (
     <div className="server-admin-template-chips">
       <div className="server-admin-template-chips-head">
-        <p className="server-admin-report-label">
+        <p id={titleId} className="server-admin-report-label">
           {t('serverAdmin.templates.chipsTitle')}
         </p>
         {onEdit && templates.length > 0 ? (
@@ -66,7 +68,10 @@ export function ServerAdminReplyTemplateChips({
           ) : null}
         </p>
       ) : (
-        <ul className="server-admin-template-chip-list">
+        <ul
+          className="server-admin-template-chip-list"
+          aria-labelledby={titleId}
+        >
           {templates.map((template) => (
             <li key={template.id}>
               <button

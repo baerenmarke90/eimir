@@ -593,7 +593,6 @@ const serverAdmin = {
     emptyHint: 'Noch keine Textbausteine.',
     emptyLink: 'Textbaustein anlegen',
     loadError: 'Textbausteine konnten nicht geladen werden.',
-    inserted: 'Textbaustein „{{name}}“ eingefügt.',
     listLabel: 'Textbausteine',
     create: 'Textbaustein anlegen',
     limitHint:
@@ -662,6 +661,10 @@ const serverAdmin = {
       PROBLEM: 'Problem',
       FEEDBACK: 'Feedback',
     },
+    platforms: {
+      app: 'App',
+      web: 'Web',
+    },
     loadingTitle: 'Meldungen werden geladen',
     loadingBody: 'Die Meldungen dieser Installation werden abgefragt.',
     errorTitle: 'Meldungen nicht verfügbar',
@@ -683,7 +686,7 @@ const serverAdmin = {
     loadMoreError: 'Weitere Meldungen konnten nicht geladen werden.',
     listLabel: 'Meldungen',
     item: {
-      meta: '{{when}} · {{os}} · {{version}} ({{build}})',
+      meta: '· {{platform}} · {{os}} · {{version}} ({{build}})',
       version: 'Version {{version}} ({{build}})',
       replied: 'Beantwortet',
       ticket: 'Ticket',

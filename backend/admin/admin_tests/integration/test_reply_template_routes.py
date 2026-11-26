@@ -232,3 +232,23 @@ def test_responses_are_no_store_and_writes_are_not_audited(client: Any, session:
         assert response.status_code < 300, response.text
         assert response.headers["cache-control"] == NO_STORE
     assert _audit_count(session) == before
+
+
+def test_a_name_taken_by_a_concurrent_writer_is_409_and_keeps_the_session(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The unique index decides a race the pre-check missed; the request may go on."""
+    from eimir_admin.reply_templates import service
+
+    from eimir.core.errors import ConflictError
+
+    service.create_template(session, name="Danke", text="First.")
+    # The other writer passed the pre-check before this one committed.
+    monkeypatch.setattr(service, "_ensure_name_free", lambda *args, **kwargs: None)
+
+    with pytest.raises(ConflictError) as raised:
+        service.create_template(session, name="DANKE", text="Second.")
+
+    assert raised.value.code == service.TEMPLATE_NAME_TAKEN
+    # Only the savepoint rolled back: the first template and the session survive.
+    assert [template.name for template in service.list_templates(session)] == ["Danke"]

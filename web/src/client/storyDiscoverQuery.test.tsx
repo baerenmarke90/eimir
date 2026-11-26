@@ -6,7 +6,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import * as stageModule from '../motion/stage';
 import { authorSummaryQueryKeys } from './authorSummaryConsumers';
 import type { ReferenceApis } from './referenceFlow';
-import { usePrefetchStoryDiscover } from './storyDiscoverQuery';
+import { besideMomente, usePrefetchStoryDiscover } from './storyDiscoverQuery';
 
 const selection = {
   items: [],
@@ -80,4 +80,15 @@ it('reads nothing ahead where it is not enabled', async () => {
     release();
   });
   expect(getStoryDiscover).not.toHaveBeenCalled();
+});
+
+it('reads ahead only on the tabs a swipe leads to Momente from', () => {
+  expect(besideMomente('/today')).toBe(true);
+  expect(besideMomente('/plan')).toBe(true);
+  expect(besideMomente('/plan/')).toBe(true);
+  // Momente itself reads on its own; details and other areas never swipe there.
+  expect(besideMomente('/story')).toBe(false);
+  expect(besideMomente('/story/memories/memory-1')).toBe(false);
+  expect(besideMomente('/more/private/collections/new')).toBe(false);
+  expect(besideMomente('/more/collections')).toBe(false);
 });

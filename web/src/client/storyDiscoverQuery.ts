@@ -9,6 +9,7 @@ import { stagesReleased } from '../motion/stage';
 import { authorSummaryQueryKeys } from './authorSummaryConsumers';
 import { loadProductWithReadCache } from './productReadCache';
 import type { ReferenceApis } from './referenceFlow';
+import { appRoutePath, primaryTabIndex } from './routes';
 
 /** How long a read of Momente › Erinnerungen counts as fresh. */
 export const STORY_DISCOVER_STALE_TIME = 30_000;
@@ -58,6 +59,14 @@ export function prefetchStoryDiscover(
     staleTime: STORY_DISCOVER_STALE_TIME,
     retry: false,
   });
+}
+
+/** Whether a swipe from `pathname` leads to Momente (the tabs beside it). */
+export function besideMomente(pathname: string): boolean {
+  const index = primaryTabIndex(pathname);
+  return (
+    index >= 0 && Math.abs(index - primaryTabIndex(appRoutePath('story'))) === 1
+  );
 }
 
 /**

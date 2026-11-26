@@ -156,7 +156,10 @@ import {
   loadAuthorizedSpaces,
   resolveActiveSpaceId,
 } from './client/spaceContext';
-import { usePrefetchStoryDiscover } from './client/storyDiscoverQuery';
+import {
+  besideMomente,
+  usePrefetchStoryDiscover,
+} from './client/storyDiscoverQuery';
 import { loadAuthorizedStoryImageResource } from './client/storyMediaLoader';
 import { type StoryStartupReads, startStoryReads } from './client/storyStartup';
 import { useAccountLanguage } from './client/useAccountLanguage';
@@ -555,7 +558,8 @@ function AuthenticatedApp({
     [apiBaseUrl, tokens.accessToken],
   );
   usePrefetchStoryDiscover({
-    enabled: isCapacitorNative(),
+    // Only where a swipe leads to Momente.
+    enabled: isCapacitorNative() && besideMomente(location.pathname),
     apis,
     accountId: account.id,
     spaceId,

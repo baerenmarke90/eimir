@@ -17,6 +17,7 @@ import {
 } from '../support/addAction';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '../support/axe';
+import { fulfillMomenteReadAhead } from '../support/momenteReadAhead';
 import {
   installNativeAppLifecycle,
   nativeSecureScreen,
@@ -459,6 +460,7 @@ async function installAuthorizedApiMocks(page: Page): Promise<string[]> {
     }
 
     if (await fulfillNoOccasionSources(route)) return;
+    if (await fulfillMomenteReadAhead(route)) return;
     unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {

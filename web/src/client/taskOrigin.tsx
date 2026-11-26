@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
 } from 'react';
@@ -105,7 +106,11 @@ interface OriginStore {
   active: boolean;
   scope: string;
   entries: Map<string, StoredOrigin>;
-  metadata: { path: string; value: TaskOriginMetadata } | null;
+  /**
+   * What the mounted pages of the current destination want restored, in the
+   * order they registered. A capture merges them, later ones last.
+   */
+  metadata: Set<{ value: TaskOriginMetadata }>;
 }
 
 export interface PrimaryDestination {
@@ -277,7 +282,7 @@ export function TaskOriginProvider({
     active: true,
     scope,
     entries: new Map(),
-    metadata: null,
+    metadata: new Set(),
   });
   // Invalidate synchronously, including callbacks retained by a late task result.
   if (storeRef.current.scope !== scope) {
@@ -287,11 +292,18 @@ export function TaskOriginProvider({
       active: true,
       scope,
       entries: new Map(),
-      metadata: null,
+      metadata: new Set(),
     };
   }
   const generation = storeRef.current;
-  const path = taskOriginPath(location.pathname, location.search);
+  // The contract below is one object for the whole session scope: it reads
+  // the current path and navigation when it is called. A contract that
+  // changed with every route would render every page that uses it, in every
+  // kept tab, on each navigation.
+  const pathRef = useRef<string | null>(null);
+  pathRef.current = taskOriginPath(location.pathname, location.search);
+  const navigateRef = useRef(navigate);
+  navigateRef.current = navigate;
 
   const resolveStored = useCallback(
     (key: unknown): StoredOrigin | null => {
@@ -312,11 +324,13 @@ export function TaskOriginProvider({
   const captureOrigin = useCallback(
     (metadata?: TaskOriginMetadata): string | null => {
       const store = storeRef.current;
+      const path = pathRef.current;
       if (!store.active || store !== generation || !path) return null;
-      const snapshot = {
-        ...(store.metadata?.path === path ? store.metadata.value : {}),
-        ...metadata,
-      };
+      const snapshot: TaskOriginMetadata = Object.assign(
+        {},
+        ...Array.from(store.metadata, (registered) => registered.value),
+        metadata,
+      );
       const key = `task-${crypto.randomUUID()}`;
       const currentState = window.history.state;
       const parentKey = currentState?.usr?.taskOriginKey;
@@ -366,7 +380,7 @@ export function TaskOriginProvider({
       );
       return key;
     },
-    [path, generation, resolveStored],
+    [generation, resolveStored],
   );
 
   const resolveOrigin = useCallback(
@@ -387,6 +401,7 @@ export function TaskOriginProvider({
   const requestReturn = useCallback(
     (key: unknown, fallback = '/story') => {
       if (!generation.active || storeRef.current !== generation) return;
+      const navigate = navigateRef.current;
       const origin = resolveStored(key);
       if (!origin) {
         // Without a captured origin, a parent directly below is still the
@@ -412,7 +427,7 @@ export function TaskOriginProvider({
         },
       });
     },
-    [navigate, resolveStored, generation],
+    [resolveStored, generation],
   );
 
   const primaryDestination = useCallback((root: string): PrimaryDestination => {
@@ -423,15 +438,14 @@ export function TaskOriginProvider({
 
   const registerOriginMetadata = useCallback(
     (metadata: TaskOriginMetadata) => {
-      if (!path || storeRef.current !== generation) return () => {};
-      const snapshot = { path, value: metadata };
-      storeRef.current.metadata = snapshot;
+      if (storeRef.current !== generation) return () => {};
+      const registered = { value: metadata };
+      generation.metadata.add(registered);
       return () => {
-        if (storeRef.current.metadata === snapshot)
-          storeRef.current.metadata = null;
+        generation.metadata.delete(registered);
       };
     },
-    [path, generation],
+    [generation],
   );
 
   useEffect(() => {
@@ -439,7 +453,7 @@ export function TaskOriginProvider({
     return () => {
       storeRef.current.active = false;
       storeRef.current.entries.clear();
-      storeRef.current.metadata = null;
+      storeRef.current.metadata.clear();
     };
   }, []);
 
@@ -469,6 +483,10 @@ export function TaskOriginProvider({
 /**
  * A kept, hidden primary tab must not publish return metadata or capture an
  * origin for the destination that is currently visible.
+ *
+ * The tab's pages keep one contract while the tab is parked and shown again:
+ * the scope itself withdraws their metadata when the tab is parked and
+ * publishes it again when the tab is shown, so no page renders for it.
  */
 export function PrimaryTabTaskOriginScope({
   active,
@@ -478,16 +496,48 @@ export function PrimaryTabTaskOriginScope({
   children: ReactNode;
 }) {
   const context = useContext(TaskOriginContext);
+  const activeRef = useRef(active);
+  const registrations = useRef(
+    new Set<{ value: TaskOriginMetadata; release: (() => void) | null }>(),
+  );
+  // Before the pages' own effects, which register while the tab is shown.
+  useLayoutEffect(() => {
+    activeRef.current = active;
+  }, [active]);
+  useEffect(() => {
+    if (!context || !active) return;
+    const held = registrations.current;
+    for (const registered of held)
+      registered.release ??= context.registerOriginMetadata(registered.value);
+    return () => {
+      for (const registered of held) {
+        registered.release?.();
+        registered.release = null;
+      }
+    };
+  }, [active, context]);
   const value = useMemo<TaskOriginContract | null>(
     () =>
-      context && !active
-        ? {
-            ...context,
-            captureOrigin: () => null,
-            registerOriginMetadata: () => () => {},
-          }
-        : context,
-    [active, context],
+      context && {
+        ...context,
+        captureOrigin: (metadata) =>
+          activeRef.current ? context.captureOrigin(metadata) : null,
+        registerOriginMetadata: (metadata) => {
+          const registered = {
+            value: metadata,
+            release: activeRef.current
+              ? context.registerOriginMetadata(metadata)
+              : null,
+          };
+          registrations.current.add(registered);
+          return () => {
+            registered.release?.();
+            registered.release = null;
+            registrations.current.delete(registered);
+          };
+        },
+      },
+    [context],
   );
   return (
     <TaskOriginContext.Provider value={value}>

@@ -30,6 +30,8 @@ function report(
   overrides: Partial<SupportReportDetailView> = {},
 ): SupportReportDetailView {
   return {
+    os: 'Android 16',
+    platform: 'app',
     accountId: '00000000-0000-4000-8000-0000000000ff',
     appVersion: '1.4.0',
     build: '412',

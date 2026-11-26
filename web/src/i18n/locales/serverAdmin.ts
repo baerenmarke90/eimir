@@ -586,10 +586,11 @@ const serverAdmin = {
   },
   reports: {
     title: 'Meldungen',
-    body: 'Problem- und Feedback-Meldungen aus der App. Die Liste zeigt keine Notizen; den Text siehst du erst in der geöffneten Meldung.',
-    newCount: 'Neu: {{count}}',
+    body: 'Problem- und Feedback-Meldungen aus der App. Die Liste zeigt den Anfang der Notiz; den ganzen Text siehst du in der geöffneten Meldung.',
+    anonymousFooter: 'Wer meldet, bleibt hier anonym.',
     filter: {
       label: 'Meldungen nach Status filtern',
+      withCount: '{{label}} · {{count}}',
       all: 'Alle',
       NEW: 'Neu',
       IN_PROGRESS: 'In Bearbeitung',
@@ -626,6 +627,7 @@ const serverAdmin = {
     loadMoreError: 'Weitere Meldungen konnten nicht geladen werden.',
     listLabel: 'Meldungen',
     item: {
+      meta: '{{when}} · {{os}} · {{version}} ({{build}})',
       version: 'Version {{version}} ({{build}})',
       replied: 'Beantwortet',
       ticket: 'Ticket',

@@ -1,13 +1,9 @@
 /*
- * ServerAdmin "Reports" section (#2189). Administration surface: denser than
- * couple-facing screens, but composed from Compact outward. On Compact an open
- * report replaces the list; from 80rem the list stays beside the report.
+ * ServerAdmin Help > Reports (#2189, cards and templates #2327). Administration
+ * surface: denser than couple-facing screens, but composed from Compact
+ * outward. On Compact an open report replaces the list; from 80rem the list
+ * stays beside the report.
  */
-
-/* The stacked Compact heading keeps the count a small pill, not a full bar. */
-.server-admin-reports .server-admin-section-heading > .server-admin-count {
-  align-self: flex-start;
-}
 
 .server-admin-reports-layout {
   display: grid;
@@ -92,15 +88,17 @@
   list-style: none;
 }
 
+/* A report is a card: what it says leads, the facts frame it. */
 .server-admin-report-row {
   display: grid;
   width: 100%;
   min-height: var(--touch-target-comfortable);
-  gap: var(--space-1);
-  padding: var(--space-3) var(--space-4);
+  gap: var(--space-2);
+  padding: var(--space-4);
   border: var(--border-surface-width) solid var(--color-border-subtle);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-large);
   background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
   color: var(--color-text);
   font-weight: 400;
   text-align: start;
@@ -121,8 +119,59 @@
 }
 
 .server-admin-report-row-meta {
+  min-width: 0;
   color: var(--color-text-secondary);
+  font-size: 0.875rem;
   overflow-wrap: anywhere;
+}
+
+/* The kind leads the row's accessible name but sits at the end visually. */
+.server-admin-report-kind {
+  order: 2;
+  flex: 0 0 auto;
+  padding: var(--space-1) var(--space-3);
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.server-admin-report-kind.is-problem {
+  background: var(--color-error-surface);
+  color: var(--color-danger, var(--color-text));
+}
+
+.server-admin-report-kind.is-feedback {
+  background: var(--color-discovery-surface);
+  color: var(--color-text);
+}
+
+/* The note preview is the reporter's own words: quoted, in the display face. */
+.server-admin-report-preview {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.server-admin-report-preview::before {
+  content: open-quote;
+}
+
+.server-admin-report-preview::after {
+  content: close-quote;
+}
+
+.server-admin-report-row-state {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.server-admin-report-anonymous {
+  margin: var(--space-4) 0 0;
+  font-size: 0.875rem;
+  text-align: center;
 }
 
 .server-admin-report-row-flags {

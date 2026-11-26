@@ -32,6 +32,8 @@ function problemResponse(status: number, body: Record<string, unknown>) {
 }
 
 const report: SupportReportDetailView = {
+  os: 'Android 16',
+  platform: 'app',
   accountId: '00000000-0000-4000-8000-000000000001',
   appVersion: '1.4.0',
   build: '412',

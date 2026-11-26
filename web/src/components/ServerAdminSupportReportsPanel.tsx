@@ -3,6 +3,7 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import type { ServerAdminSupportReportsApi } from '../api/generated/apis/ServerAdminSupportReportsApi';
 import type { SupportReportListItem } from '../api/generated/models/SupportReportListItem';
 import { clientProblemKind } from '../client/problemDetails';
+import { formatRelativeElapsed } from '../client/relativeElapsed';
 import {
   formatReportDate,
   loadSupportReportPage,
@@ -12,7 +13,7 @@ import {
   type SupportReportFilter,
   supportReportsQueryKey,
 } from '../client/supportReportsAdmin';
-import { useTranslation } from '../i18n';
+import { resolvedLocale, useTranslation } from '../i18n';
 import { ServerAdminSupportReportDetail } from './ServerAdminSupportReportDetail';
 import { UiState } from './UiState';
 import './ServerAdminSupportReportsPanel.css';
@@ -39,19 +40,32 @@ function ReportRow({
         onClick={onOpen}
       >
         <span className="server-admin-report-row-head">
-          <strong>{t(`serverAdmin.reports.kinds.${report.kind}`)}</strong>
-          <span className="server-admin-badge">
-            {t(`serverAdmin.reports.states.${report.state}`)}
+          <span
+            className={`server-admin-report-kind is-${report.kind.toLowerCase()}`}
+          >
+            {t(`serverAdmin.reports.kinds.${report.kind}`)}
+          </span>
+          <span className="server-admin-report-row-meta">
+            <time
+              dateTime={report.createdAt.toISOString()}
+              title={formatReportDate(report.createdAt)}
+            >
+              {t('serverAdmin.reports.item.meta', {
+                when: formatRelativeElapsed(report.createdAt, resolvedLocale()),
+                os: report.os,
+                version: report.appVersion,
+                build: report.build,
+              })}
+            </time>
           </span>
         </span>
-        <span className="server-admin-report-row-meta">
-          {formatReportDate(report.createdAt)}
-        </span>
-        <span className="server-admin-report-row-meta">
-          {t('serverAdmin.reports.item.version', {
-            version: report.appVersion,
-            build: report.build,
-          })}
+        {report.notePreview ? (
+          <blockquote className="server-admin-report-preview">
+            {report.notePreview}
+          </blockquote>
+        ) : null}
+        <span className="server-admin-report-row-state">
+          {t(`serverAdmin.reports.states.${report.state}`)}
         </span>
         {report.hasReply || report.ticket || report.archivedAt ? (
           <span className="server-admin-report-row-flags">
@@ -153,7 +167,19 @@ export function ServerAdminSupportReportsPanel({
 
   const pages = query.data?.pages ?? [];
   const items = pages.flatMap((page) => page.items);
-  const newCount = pages[0]?.newCount;
+  // The counts do not depend on the filter: keep the last ones while another
+  // filter loads, so the segments do not lose their numbers on every switch.
+  const latestCounts = pages[0]?.stateCounts;
+  const countsRef = useRef(latestCounts);
+  if (latestCounts) countsRef.current = latestCounts;
+  const stateCounts = countsRef.current;
+  const counts: Partial<Record<SupportReportFilter, number>> = stateCounts
+    ? {
+        NEW: stateCounts._new,
+        IN_PROGRESS: stateCounts.inProgress,
+        CLOSED: stateCounts.closed,
+      }
+    : {};
 
   let listContent: ReactNode;
   if (query.isPending) {
@@ -274,13 +300,6 @@ export function ServerAdminSupportReportsPanel({
           </h2>
           <p className="server-admin-muted">{t('serverAdmin.reports.body')}</p>
         </div>
-        {newCount !== undefined ? (
-          <span className="server-admin-count">
-            {t('serverAdmin.reports.newCount', {
-              count: newCount,
-            })}
-          </span>
-        ) : null}
       </div>
 
       <div
@@ -291,17 +310,26 @@ export function ServerAdminSupportReportsPanel({
             <legend className="sr-only">
               {t('serverAdmin.reports.filter.label')}
             </legend>
-            {SUPPORT_REPORT_FILTERS.map((value) => (
-              <button
-                key={value}
-                type="button"
-                className="secondary"
-                aria-pressed={filter === value}
-                onClick={() => changeFilter(value)}
-              >
-                {t(`serverAdmin.reports.filter.${value}`)}
-              </button>
-            ))}
+            {SUPPORT_REPORT_FILTERS.map((value) => {
+              const label = t(`serverAdmin.reports.filter.${value}`);
+              const count = counts[value];
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  className="secondary"
+                  aria-pressed={filter === value}
+                  onClick={() => changeFilter(value)}
+                >
+                  {count === undefined
+                    ? label
+                    : t('serverAdmin.reports.filter.withCount', {
+                        label,
+                        count,
+                      })}
+                </button>
+              );
+            })}
           </fieldset>
           {closedNotice === 'gone' ? (
             <p className="status status-error" role="alert">
@@ -314,6 +342,9 @@ export function ServerAdminSupportReportsPanel({
             </p>
           ) : null}
           {listContent}
+          <p className="server-admin-muted server-admin-report-anonymous">
+            {t('serverAdmin.reports.anonymousFooter')}
+          </p>
         </div>
 
         {selectedId ? (

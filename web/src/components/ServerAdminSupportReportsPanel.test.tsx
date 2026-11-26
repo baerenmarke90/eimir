@@ -24,6 +24,14 @@ const reports = serverAdmin.reports;
 import { ServerAdminSupportReportsPanel } from './ServerAdminSupportReportsPanel';
 
 const NOTE = 'Our private words about the bug';
+const PREVIEW = 'The video from the weekend does not load';
+
+/** A state segment's accessible name: its label and count, as the locale joins them. */
+function segment(state: 'NEW' | 'IN_PROGRESS' | 'CLOSED', count: number) {
+  return reports.filter.withCount
+    .replace('{{label}}', reports.filter[state])
+    .replace('{{count}}', String(count));
+}
 
 function item(index: number, overrides: Partial<SupportReportListItem> = {}) {
   return {
@@ -37,6 +45,9 @@ function item(index: number, overrides: Partial<SupportReportListItem> = {}) {
     state: 'NEW',
     archivedAt: null,
     ticket: null,
+    platform: 'app',
+    os: 'Android 16',
+    notePreview: null,
     ...overrides,
   } satisfies SupportReportListItem;
 }
@@ -50,6 +61,11 @@ function page(
     items,
     newCount: items.filter((entry) => entry.state === 'NEW').length,
     nextCursor: null,
+    stateCounts: {
+      _new: items.filter((entry) => entry.state === 'NEW').length,
+      inProgress: items.filter((entry) => entry.state === 'IN_PROGRESS').length,
+      closed: items.filter((entry) => entry.state === 'CLOSED').length,
+    },
     ...overrides,
   };
 }
@@ -102,16 +118,36 @@ afterEach(() => {
 });
 
 describe('ServerAdminSupportReportsPanel', () => {
-  it('renders list without note text', async () => {
-    const listSupportReports = vi
-      .fn()
-      .mockResolvedValue(
-        page([item(1), item(2, { hasReply: true })], { newCount: 3 }),
-      );
+  it('renders cards with the note preview but not the note', async () => {
+    const listSupportReports = vi.fn().mockResolvedValue(
+      page([item(1, { notePreview: PREVIEW }), item(2, { hasReply: true })], {
+        stateCounts: { _new: 3, inProgress: 2, closed: 0 },
+      }),
+    );
     const { getSupportReport } = renderPanel(listSupportReports);
 
-    expect(await screen.findByText('Neu: 3')).toBeTruthy();
-    expect(screen.getAllByRole('button', { name: /Problem/ })).toHaveLength(2);
+    expect(
+      await screen.findByRole('button', { name: segment('NEW', 3) }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: segment('IN_PROGRESS', 2) }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: segment('CLOSED', 0) }),
+    ).toBeTruthy();
+    // All and the archive carry no count.
+    expect(
+      screen.getByRole('button', { name: reports.filter.all }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: reports.filter.archived }),
+    ).toBeTruthy();
+    const quotes = document.querySelectorAll('blockquote');
+    expect(quotes).toHaveLength(1);
+    expect(quotes[0]?.textContent).toBe(PREVIEW);
+    expect(screen.getAllByText(reports.kinds.PROBLEM)).toHaveLength(2);
+    expect(screen.getAllByText(/Android 16/)).toHaveLength(2);
+    expect(screen.getByText(reports.anonymousFooter)).toBeTruthy();
     expect(screen.getByText(reports.item.replied)).toBeTruthy();
     expect(screen.queryByText(NOTE)).toBeNull();
     expect(getSupportReport).not.toHaveBeenCalled();
@@ -131,7 +167,7 @@ describe('ServerAdminSupportReportsPanel', () => {
         ),
       );
     renderPanel(listSupportReports);
-    await screen.findByText('Neu: 1');
+    await screen.findByRole('button', { name: segment('NEW', 1) });
 
     fireEvent.click(
       screen.getByRole('button', { name: reports.filter.archived }),
@@ -152,7 +188,7 @@ describe('ServerAdminSupportReportsPanel', () => {
         Promise.resolve(archived ? page([]) : page([item(1)])),
       );
     renderPanel(listSupportReports);
-    await screen.findByText('Neu: 1');
+    await screen.findByRole('button', { name: segment('NEW', 1) });
 
     fireEvent.click(
       screen.getByRole('button', { name: reports.filter.archived }),
@@ -164,11 +200,9 @@ describe('ServerAdminSupportReportsPanel', () => {
   it('filters by state', async () => {
     const listSupportReports = vi.fn().mockResolvedValue(page([item(1)]));
     renderPanel(listSupportReports);
-    await screen.findByText('Neu: 1');
+    await screen.findByRole('button', { name: segment('NEW', 1) });
 
-    fireEvent.click(
-      screen.getByRole('button', { name: reports.filter.CLOSED }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: segment('CLOSED', 0) }));
     await waitFor(() =>
       expect(listSupportReports).toHaveBeenLastCalledWith(
         expect.objectContaining({ state: 'CLOSED' }),
@@ -176,7 +210,7 @@ describe('ServerAdminSupportReportsPanel', () => {
     );
     expect(
       screen
-        .getByRole('button', { name: reports.filter.CLOSED })
+        .getByRole('button', { name: segment('CLOSED', 0) })
         .getAttribute('aria-pressed'),
     ).toBe('true');
 
@@ -259,8 +293,16 @@ describe('ServerAdminSupportReportsPanel', () => {
   });
 
   it('shows the new count as a number', async () => {
-    renderPanel(vi.fn().mockResolvedValue(page([], { newCount: 1234 })));
-    expect(await screen.findByText('Neu: 1234')).toBeTruthy();
+    renderPanel(
+      vi
+        .fn()
+        .mockResolvedValue(
+          page([], { stateCounts: { _new: 1234, inProgress: 0, closed: 0 } }),
+        ),
+    );
+    expect(
+      await screen.findByRole('button', { name: segment('NEW', 1234) }),
+    ).toBeTruthy();
   });
 
   it('opens a report in place and returns focus to its row', async () => {

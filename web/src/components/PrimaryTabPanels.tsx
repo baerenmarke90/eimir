@@ -20,12 +20,17 @@ import {
   primaryTabPeekGeometry,
   usePrimaryTabPeek,
 } from '../client/primaryTabPeek';
-import { DEFAULT_APP_ROUTE } from '../client/routes';
+import {
+  DEFAULT_APP_ROUTE,
+  PRIMARY_APP_ROUTES,
+  primaryTabIndex,
+} from '../client/routes';
 import {
   PrimaryTabTaskOriginScope,
   taskOriginPath,
   useTaskOrigin,
 } from '../client/taskOrigin';
+import { stagesSettled } from '../motion/stage';
 import { AppErrorBoundary } from './AppErrorBoundary';
 
 /** About half a second at 60 Hz for a revealed panel to finish settling. */
@@ -35,6 +40,13 @@ const USER_SCROLL_INTENTS = ['wheel', 'touchstart', 'keydown'] as const;
 const PREWARM_AFTER_MS = 4_000;
 /** ...and for this long without touch, scroll or keys. */
 const PREWARM_QUIET_MS = 1_500;
+/**
+ * The tabs beside the current one are built sooner: a first swipe to a tab
+ * that was never built mounts the whole page under the finger. They wait for
+ * the shown tab's opening, so they never compete with it.
+ */
+const NEIGHBOUR_AFTER_MS = 1_000;
+const NEIGHBOUR_QUIET_MS = 500;
 const PREWARM_INPUT = [
   'pointerdown',
   'pointerup',
@@ -55,7 +67,12 @@ const PREWARM_INPUT = [
  * prepared per idle period, as a transition, so React builds it in short
  * slices instead of one long task.
  */
-function usePrewarm(paths: readonly string[]): ReadonlySet<string> {
+function usePrewarm(
+  paths: readonly string[],
+  afterMs = PREWARM_AFTER_MS,
+  quietMs = PREWARM_QUIET_MS,
+  ready?: () => Promise<void>,
+): ReadonlySet<string> {
   const [prepared, setPrepared] = useState<ReadonlySet<string>>(
     () => new Set(),
   );
@@ -103,9 +120,9 @@ function usePrewarm(paths: readonly string[]): ReadonlySet<string> {
         document.hidden ||
         contacts.size ||
         touches ||
-        performance.now() - lastInput < PREWARM_QUIET_MS
+        performance.now() - lastInput < quietMs
       ) {
-        timer = window.setTimeout(attempt, PREWARM_QUIET_MS);
+        timer = window.setTimeout(attempt, quietMs);
         return;
       }
       if (inIdlePeriod) {
@@ -115,7 +132,7 @@ function usePrewarm(paths: readonly string[]): ReadonlySet<string> {
         );
         if (!rest.length) return stop();
         // The next path waits for its own quiet idle period.
-        timer = window.setTimeout(attempt, PREWARM_QUIET_MS);
+        timer = window.setTimeout(attempt, quietMs);
         key = rest.join('|');
         return;
       }
@@ -126,9 +143,12 @@ function usePrewarm(paths: readonly string[]): ReadonlySet<string> {
         idle = window.requestIdleCallback(prepare, { timeout: 2_000 });
       else timer = window.setTimeout(prepare, 0);
     };
-    timer = window.setTimeout(attempt, PREWARM_AFTER_MS);
+    timer = window.setTimeout(() => {
+      if (!ready) return attempt();
+      void ready().then(() => attempt());
+    }, afterMs);
     return stop;
-  }, [pathsKey]);
+  }, [pathsKey, afterMs, quietMs, ready]);
   return prepared;
 }
 
@@ -230,6 +250,7 @@ export function PrimaryTabPanels({
   panels,
   fallback,
   prewarm = [],
+  prewarmNeighbours = false,
 }: {
   panels: readonly PrimaryTabPanel[];
   fallback: ReactNode;
@@ -241,6 +262,12 @@ export function PrimaryTabPanels({
    * opened, so it never competes with the app's first seconds.
    */
   prewarm?: readonly string[];
+  /**
+   * Also build the tabs beside the current one soon after start, so a first
+   * swipe reveals a built page. They stay hidden like a parked tab (their
+   * layout is skipped until they are revealed).
+   */
+  prewarmNeighbours?: boolean;
 }) {
   const location = useLocation();
   const navigationType = useNavigationType();
@@ -269,14 +296,26 @@ export function PrimaryTabPanels({
     );
     return !parent || locations.current.has(parent.path);
   });
-  const eligible = candidates.filter(
-    (path): path is string =>
-      typeof path === 'string' &&
-      path !== active &&
-      !locations.current.has(path) &&
-      panels.some((panel) => panel.path === path && panel.retain !== false),
+  const unbuilt = (path: string | undefined): path is string =>
+    typeof path === 'string' &&
+    path !== active &&
+    !locations.current.has(path) &&
+    panels.some((panel) => panel.path === path && panel.retain !== false);
+  const prepared = usePrewarm(candidates.filter(unbuilt));
+  const index = primaryTabIndex(pathname);
+  const neighbours =
+    prewarmNeighbours && index >= 0
+      ? [
+          PRIMARY_APP_ROUTES[index - 1]?.path,
+          PRIMARY_APP_ROUTES[index + 1]?.path,
+        ].filter(unbuilt)
+      : [];
+  const built = usePrewarm(
+    neighbours,
+    NEIGHBOUR_AFTER_MS,
+    NEIGHBOUR_QUIET_MS,
+    stagesSettled,
   );
-  const prepared = usePrewarm(eligible);
   const scrollPositions = useRef(new Map<string, number>());
   const peek = usePrimaryTabPeek();
   const peekRef = useRef<HTMLDivElement>(null);
@@ -363,7 +402,8 @@ export function PrimaryTabPanels({
     // but is not kept (and unmounts again if the swipe is cancelled).
     const visited = path === active ? location : locations.current.get(path);
     const preparing = !visited && !peeking && prepared.has(path);
-    if (!visited && !peeking && !preparing) return null;
+    const prebuilt = !visited && !peeking && !preparing && built.has(path);
+    if (!visited && !peeking && !preparing && !prebuilt) return null;
     const visible = path === active;
     return (
       <div

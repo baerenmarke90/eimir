@@ -537,3 +537,20 @@
 .page[data-motion-stage="playing"] > :nth-child(n + 4) {
   --root-intro-delay: calc(var(--duration-stagger-item) * 3);
 }
+
+/*
+ * A segment panel (Planen, Momente) fades in on its own when its segment is
+ * chosen (`PlanningReference.css`). During the entrance it keeps that fade in
+ * its animation list, under the rise. When the entrance ends, the fade is
+ * already finished and stays in the list, so it does not start again: a
+ * restart showed the whole content blinking once at the end of the first
+ * opening after start.
+ */
+.page[data-motion-stage="playing"]
+  > :is(.planen-panel, [role="tabpanel"]):not([hidden]) {
+  animation:
+    eimir-motion-enter-fade var(--duration-transition) var(--easing-enter),
+    eimir-motion-root-rise calc(var(--duration-sequence-beat) * 2)
+    var(--easing-enter)
+    var(--root-intro-delay, calc(var(--duration-stagger-item) * 0)) both;
+}

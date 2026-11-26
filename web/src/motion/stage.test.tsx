@@ -16,6 +16,7 @@ import {
   STAGE_SCOPE_ATTRIBUTE,
   stageFinished,
   stagePhase,
+  stagesSettled,
   useStage,
   useStageHold,
 } from './stage';
@@ -293,10 +294,12 @@ describe('useStage places late members on its clock (#2147)', () => {
     scope()?.append(target);
     const fake = member(target, delay, 400);
     members.push(fake);
-    // A render of the stage (or a DOM mutation) places it.
+    // A render of the stage (or a DOM mutation) places it in the next
+    // frame's animation callbacks, before that frame paints.
     view.rerender(<HeldStage pending={false} hold={0} />);
     await act(async () => {
       await Promise.resolve();
+      vi.advanceTimersByTime(20);
     });
     return fake;
   }
@@ -331,5 +334,32 @@ describe('useStage places late members on its clock (#2147)', () => {
     const fake = await mount(members, view, false, 300);
     expect(fake.startTime).toBe(1000);
     expect(fake.timing).toEqual({ delay: 300, duration: 400 });
+  });
+});
+
+describe('stagesSettled', () => {
+  it('resolves at once when no opening waits or plays', async () => {
+    let settled = false;
+    void stagesSettled().then(() => {
+      settled = true;
+    });
+    await act(async () => {});
+    expect(settled).toBe(true);
+  });
+
+  it('waits until every running opening ended', async () => {
+    render(<Stage />);
+    let settled = false;
+    void stagesSettled().then(() => {
+      settled = true;
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(900);
+    });
+    expect(settled).toBe(false);
+    await act(async () => {
+      vi.advanceTimersByTime(100);
+    });
+    expect(settled).toBe(true);
   });
 });

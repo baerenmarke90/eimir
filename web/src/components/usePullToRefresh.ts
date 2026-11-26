@@ -70,6 +70,25 @@ function touchRefreshSupported(): boolean {
   );
 }
 
+/**
+ * The root class that lets CSS suppress the browser's own pull to refresh.
+ * Several surfaces can enable the gesture at once (the app surface and
+ * Momente); the class stays while any of them is enabled, so it is not
+ * toggled on every tab change (which also invalidated the motion token cache).
+ */
+const ROOT_CLASS = 'app-pull-refresh-enabled';
+let enabledSurfaces = 0;
+
+function enableRootClass(): () => void {
+  enabledSurfaces += 1;
+  if (enabledSurfaces === 1) document.documentElement.classList.add(ROOT_CLASS);
+  return () => {
+    enabledSurfaces -= 1;
+    if (enabledSurfaces === 0)
+      document.documentElement.classList.remove(ROOT_CLASS);
+  };
+}
+
 function isAtDocumentTop(): boolean {
   const scrollingElement = document.scrollingElement;
   return (
@@ -290,13 +309,16 @@ export function usePullToRefresh({
       return;
     }
 
-    const root = document.documentElement;
-    root.classList.add('app-pull-refresh-enabled');
+    const releaseRootClass = enableRootClass();
 
     // Where the disc rests while a refresh runs: fully shown, no further.
     const restOffset = threshold * INDICATOR_RATIO;
     const tracker = new VelocityTracker();
     let tracking = false;
+    // Whether the document is at its top, read once when a touch starts and
+    // then followed by scroll events: reading the scroll position per touch
+    // sample would force a layout while a swipe moves the pages.
+    let atTop = false;
     let claimed = false;
     let startX: number | null = null;
     let startY: number | null = null;
@@ -352,6 +374,7 @@ export function usePullToRefresh({
       clearGesture();
       resetReady();
       tracking = true;
+      atTop = true;
       startElement = target instanceof Element ? target : null;
       startX = event.touches[0]?.clientX ?? null;
       startY = event.touches[0]?.clientY ?? null;
@@ -366,9 +389,10 @@ export function usePullToRefresh({
         event.touches.length !== 1
       )
         return;
-      // A selection made during the pull ends it (`onSelectionChange`):
-      // reading the selection here would force style and layout per sample.
-      if (refreshInFlightRef.current || !isAtDocumentTop()) {
+      // A selection made during the pull ends it (`onSelectionChange`), and
+      // leaving the top ends it through `onScroll`: neither is read here, as
+      // that would force style and layout per sample.
+      if (refreshInFlightRef.current || !atTop) {
         cancelGesture();
         return;
       }
@@ -484,6 +508,10 @@ export function usePullToRefresh({
       suppressClick = false;
     };
 
+    const onScroll = () => {
+      if (tracking) atTop = isAtDocumentTop();
+    };
+
     const onSelectionChange = () => {
       if (tracking && window.getSelection()?.isCollapsed === false)
         cancelGesture();
@@ -496,9 +524,10 @@ export function usePullToRefresh({
     document.addEventListener('click', onClick, true);
     document.addEventListener('pointerdown', onPointerDown, true);
     document.addEventListener('selectionchange', onSelectionChange);
+    window.addEventListener('scroll', onScroll, { passive: true });
 
     return () => {
-      root.classList.remove('app-pull-refresh-enabled');
+      releaseRootClass();
       document.removeEventListener('touchstart', onTouchStart);
       document.removeEventListener('touchmove', onTouchMove);
       document.removeEventListener('touchend', onTouchEnd);
@@ -506,6 +535,7 @@ export function usePullToRefresh({
       document.removeEventListener('click', onClick, true);
       document.removeEventListener('pointerdown', onPointerDown, true);
       document.removeEventListener('selectionchange', onSelectionChange);
+      window.removeEventListener('scroll', onScroll);
       resetReady();
       if (claimed && !refreshInFlightRef.current) {
         stopSettle();

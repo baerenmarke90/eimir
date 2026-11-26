@@ -931,6 +931,7 @@ function AuthenticatedApp({
             panels={primaryTabPanels}
             fallback={routeErrorFallback}
             prewarm={PREWARMED_PANELS}
+            prewarmNeighbours={isCapacitorNative()}
           />
         }
       >

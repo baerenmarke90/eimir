@@ -1,6 +1,6 @@
 import type { RefObject } from 'react';
-import { motionCount, durationMs } from '../motion/tokens';
 import { useStage } from '../motion/stage';
+import { durationMs, motionCount } from '../motion/tokens';
 
 /**
  * The keyframe prefix of the root-tab entrance (`motion.css`). It differs
@@ -19,6 +19,13 @@ export function rootTabIntroDuration(): number {
   return durationMs('sequence-beat') * 2 + durationMs('stagger-item') * steps;
 }
 
+const REVEALED_WITHOUT_CHOICE =
+  '[data-primary-tab-peek], [data-primary-tab-prewarm]';
+
+function shownByChoice(root: Element): boolean {
+  return !root.closest(REVEALED_WITHOUT_CHOICE);
+}
+
 /**
  * The short opening rise of a root tab (Wir, Momente, Planen, Mehr): an Enter
  * `stage` on the motion layer, once per tab and app start.
@@ -28,6 +35,10 @@ export function rootTabIntroDuration(): number {
  * entrance's own deadline, or at once when the kept tab is hidden, so a
  * return to the tab never replays it (M3, M4). With reduced motion the
  * durations are `0ms` and it never plays (M9).
+ *
+ * A tab that a swipe reveals, or that is prepared in the background, is shown
+ * complete: content never rises while the finger drags the page, and the
+ * entrance never plays unseen (M12).
  */
 export function useRootTabIntro<T extends HTMLElement>(
   tab: string,
@@ -35,5 +46,6 @@ export function useRootTabIntro<T extends HTMLElement>(
   return useStage<T>(`root-tab:${tab}`, {
     duration: rootTabIntroDuration(),
     animationPrefix: ROOT_TAB_INTRO_PREFIX,
+    canStart: shownByChoice,
   });
 }

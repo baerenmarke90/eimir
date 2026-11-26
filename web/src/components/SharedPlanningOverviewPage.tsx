@@ -1,4 +1,3 @@
-import { useQuery } from '@tanstack/react-query';
 import {
   type MouseEvent,
   type ReactNode,
@@ -523,8 +522,10 @@ export function SharedPlanningOverviewPage({
   );
 
   // #1790 F2: one quiet hint above the Plans list, derived from the wishes
-  // that left OPEN. Both lifecycle lists are small, so read them completely.
-  const journeyWishes = useQuery<WishDetail[]>({
+  // that left OPEN. Both lifecycle lists are small, so read them completely,
+  // side by side. Like the Plans list it restores its last shared snapshot,
+  // so the hint is there with the list and never pushes it down later.
+  const journeyQuery = useWarmInfiniteQuery<WishDetail[], null>({
     queryKey: ['m5-s3', 'wishes', spaceId, 'journey-hint'],
     staleTime: OVERVIEW_STALE_TIME,
     enabled: (query) =>
@@ -532,9 +533,12 @@ export function SharedPlanningOverviewPage({
       planStatus === 'OPEN' &&
       (active || query.state.status === 'pending'),
     retry: false,
+    initialPageParam: null as null,
+    // The two lifecycle lists form one page.
+    getNextPageParam: () => undefined,
     queryFn: async ({ signal }) => {
-      const items: WishDetail[] = [];
-      for (const status of ['PLANNED', 'COMPLETED'] as const) {
+      const read = async (status: 'PLANNED' | 'COMPLETED') => {
+        const items: WishDetail[] = [];
         let cursor: string | null = null;
         for (let page = 0; page < JOURNEY_MAX_PAGES; page += 1) {
           const result = await apiCall(() =>
@@ -547,13 +551,17 @@ export function SharedPlanningOverviewPage({
           if (!result.hasMore || !result.nextCursor) break;
           cursor = result.nextCursor;
         }
-      }
-      return items;
+        return items;
+      };
+      const [planned, completed] = await Promise.all([
+        read('PLANNED'),
+        read('COMPLETED'),
+      ]);
+      return [...planned, ...completed];
     },
   });
-  const journeyHint = journeyWishes.data
-    ? wishJourneyHint(journeyWishes.data)
-    : null;
+  const journeyWishes = journeyQuery.data?.pages[0];
+  const journeyHint = journeyWishes ? wishJourneyHint(journeyWishes) : null;
 
   // A search must inspect the whole authorized scope, not just visible pages.
   useEffect(() => {
@@ -659,7 +667,7 @@ export function SharedPlanningOverviewPage({
   // The wish-to-plan tip retires once any wish became a plan. It reads only
   // data the overview already loaded, so it adds no request of its own.
   const wishBecamePlan =
-    Boolean(journeyWishes.data?.length) ||
+    Boolean(journeyWishes?.length) ||
     Boolean(
       plans.data?.pages.some((page) =>
         page.items.some((plan) => Boolean(plan.sourceWishId)),

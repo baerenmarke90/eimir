@@ -12,6 +12,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { setPrimaryTabPeek } from '../client/primaryTabPeek';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
 import { usePrimaryNavigation } from '../client/usePrimaryNavigation';
+import * as stageModule from '../motion/stage';
 import { PrimaryTabPanels } from './PrimaryTabPanels';
 
 /** The column the swipe gesture measures before it reveals a tab. */
@@ -45,7 +46,13 @@ function Navigator() {
   return null;
 }
 
-function Harness({ prewarm }: { prewarm?: readonly string[] }) {
+function Harness({
+  prewarm,
+  prewarmNeighbours,
+}: {
+  prewarm?: readonly string[];
+  prewarmNeighbours?: boolean;
+}) {
   return (
     <MemoryRouter initialEntries={['/today']}>
       <TaskOriginProvider accountId="account" spaceId="space">
@@ -53,6 +60,7 @@ function Harness({ prewarm }: { prewarm?: readonly string[] }) {
         <PrimaryTabPanels
           fallback={<p>failed</p>}
           prewarm={prewarm}
+          prewarmNeighbours={prewarmNeighbours}
           panels={[
             { path: '/today', element: <Page name="today" /> },
             { path: '/story', element: <Page name="story" /> },
@@ -423,6 +431,37 @@ it('prepares a panel once the app is quiet and keeps it out of sight until visit
     expect(visited?.hasAttribute('aria-hidden')).toBe(false);
     // The prepared page is reused, not mounted again.
     expect(mounts.filter((name) => name === 'plan').length).toBe(mountsBefore);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it('builds the tabs beside the shown one after its opening, hidden until revealed', async () => {
+  vi.useFakeTimers();
+  let endOpening: () => void = () => {};
+  const opening = new Promise<void>((resolve) => {
+    endOpening = resolve;
+  });
+  vi.spyOn(stageModule, 'stagesSettled').mockReturnValue(opening);
+  try {
+    render(<Harness prewarmNeighbours />);
+    // The opening of the shown tab is never competed with.
+    await act(() => vi.advanceTimersByTimeAsync(5_000));
+    expect(panel('/story')).toBeNull();
+    endOpening();
+    await act(() => vi.advanceTimersByTimeAsync(1_000));
+    const built = panel('/story');
+    expect(built?.hidden).toBe(true);
+    expect(built?.getAttribute('aria-hidden')).toBe('true');
+    expect(built?.hasAttribute('inert')).toBe(true);
+    // Only the neighbours: Planen is two tabs away from Wir.
+    expect(panel('/plan')).toBeNull();
+    const mountsBefore = mounts.filter((name) => name === 'story').length;
+    expect(mountsBefore).toBe(1);
+
+    act(() => openTab('/story'));
+    expect(panel('/story')?.hidden).toBe(false);
+    expect(mounts.filter((name) => name === 'story').length).toBe(1);
   } finally {
     vi.useRealTimers();
   }

@@ -96,6 +96,8 @@ interface StageRecord {
   detach: (() => void) | null;
   /** Late members already placed on the clock. */
   placed: WeakSet<Animation>;
+  /** The pending placement of late members, at most one per frame. */
+  placeFrame: number | null;
 }
 
 const records = new Map<string, StageRecord>();
@@ -118,6 +120,7 @@ function record(identity: string): StageRecord {
       holdTimer: null,
       detach: null,
       placed: new WeakSet(),
+      placeFrame: null,
     };
     records.set(identity, found);
   }
@@ -168,6 +171,20 @@ function end(identity: string): void {
 /** Resolves once the opening of `identity` ended or was skipped. */
 export function stageFinished(identity: string): Promise<void> {
   return record(identity).finished;
+}
+
+/**
+ * Resolves once no opening waits for data or plays. Background work (building
+ * a neighbouring tab) waits for it, so it never competes with an opening.
+ */
+export async function stagesSettled(): Promise<void> {
+  for (;;) {
+    const open = [...records.values()].filter(
+      (found) => found.phase === 'waiting' || found.phase === 'playing',
+    );
+    if (!open.length) return;
+    await Promise.all(open.map((found) => found.finished));
+  }
 }
 
 /** The opening's phase: not yet considered, waiting for data, playing, ended. */
@@ -315,7 +332,7 @@ function attach(identity: string, start: number): void {
   const scope = scopeOf(found);
   const mutations =
     scope && typeof MutationObserver !== 'undefined'
-      ? new MutationObserver(() => placeMembers(found, start))
+      ? new MutationObserver(() => schedulePlacement(found, start))
       : null;
   if (scope)
     mutations?.observe(scope, {
@@ -327,6 +344,7 @@ function attach(identity: string, start: number): void {
     clearTimeout(deadline);
     stopWatching();
     mutations?.disconnect();
+    cancelPlacement(found);
   };
 }
 
@@ -392,6 +410,27 @@ export function useStageHold(identity: string, pending: boolean): void {
   }, [identity, pending]);
 }
 
+/**
+ * Places late members once per frame, in the frame's animation callbacks
+ * (before its style, layout and paint, so a member never paints off the
+ * clock). Several renders and mutations of one frame need one placement:
+ * each `getAnimations({ subtree: true })` recalculates style for the scope.
+ */
+function schedulePlacement(found: StageRecord, start: number): void {
+  if (found.placeFrame !== null || typeof requestAnimationFrame !== 'function')
+    return;
+  found.placeFrame = requestAnimationFrame(() => {
+    found.placeFrame = null;
+    if (found.phase === 'playing') placeMembers(found, start);
+  });
+}
+
+function cancelPlacement(found: StageRecord): void {
+  if (found.placeFrame === null) return;
+  cancelAnimationFrame(found.placeFrame);
+  found.placeFrame = null;
+}
+
 export function useStage<T extends HTMLElement>(
   identity: string,
   options: StageOptions,
@@ -427,7 +466,7 @@ export function useStage<T extends HTMLElement>(
         if (rootChanged || !found.detach) attach(identity, start);
         else {
           paint(found, 'playing');
-          placeMembers(found, start);
+          schedulePlacement(found, start);
         }
         return;
       }

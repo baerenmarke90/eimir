@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { type Location, useLocation } from 'react-router-dom';
 import { taskOriginPath, useTaskOrigin } from './taskOrigin';
 
 function documentLayoutTop(element: HTMLElement): number {
@@ -12,22 +12,40 @@ function documentLayoutTop(element: HTMLElement): number {
   return top;
 }
 
-/** Restore authorized collection scope, loaded range, focus and layout position. */
-export function useTaskListReturn({
-  ready,
-  busy,
-  loadedPageCount,
-  canLoadMore,
-  loadMore,
-}: {
+interface TaskListReturnOptions {
   ready: boolean;
   busy: boolean;
   loadedPageCount: number;
   canLoadMore: boolean;
   loadMore: () => Promise<unknown>;
-}) {
-  const location = useLocation();
-  const { resolveOrigin, registerOriginMetadata } = useTaskOrigin();
+}
+
+/** Restore authorized collection scope, loaded range, focus and layout position. */
+export function useTaskListReturn(options: TaskListReturnOptions) {
+  return useTaskListReturnAt(useLocation(), useTaskOrigin(), options);
+}
+
+/**
+ * `useTaskListReturn` for a page that is handed its route and task origin
+ * instead of reading them (a memoized page of a kept primary tab).
+ */
+export function useTaskListReturnAt(
+  location: Location,
+  {
+    resolveOrigin,
+    registerOriginMetadata,
+  }: Pick<
+    ReturnType<typeof useTaskOrigin>,
+    'resolveOrigin' | 'registerOriginMetadata'
+  >,
+  {
+    ready,
+    busy,
+    loadedPageCount,
+    canLoadMore,
+    loadMore,
+  }: TaskListReturnOptions,
+) {
   const returnKey = (location.state as { taskReturnKey?: unknown } | null)
     ?.taskReturnKey;
   const candidateOrigin = resolveOrigin(returnKey);

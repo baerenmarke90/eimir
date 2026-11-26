@@ -37,12 +37,9 @@ it('loads only the visible carousel image and neighbours, moving and wrapping th
 
   await waitFor(() => expect(load).toHaveBeenCalledTimes(3));
   expect(load.mock.calls.map(([id]) => id)).toEqual(['0', '1', '5']);
-  // Loaded photos are shown together in the next frame.
-  await waitFor(() =>
-    expect(
-      view.container.querySelector('.is-active img')?.getAttribute('src'),
-    ).toBe('blob:0'),
-  );
+  expect(
+    view.container.querySelector('.is-active img')?.getAttribute('src'),
+  ).toBe('blob:0');
 
   fireEvent.click(screen.getByRole('button', { name: labels.next }));
   await waitFor(() => expect(load).toHaveBeenCalledTimes(4));
@@ -293,12 +290,9 @@ it('follows fullscreen navigation and restores the carousel window after close',
   expect(load.mock.calls.slice(-2).map(([id]) => id)).toEqual(['0', '5']);
   expect(revoke).toHaveBeenCalledWith('blob:2');
   expect(revoke).toHaveBeenCalledWith('blob:3');
-  // Loaded photos are shown together in the next frame.
-  await waitFor(() =>
-    expect(
-      view.container.querySelector('.is-active img')?.getAttribute('src'),
-    ).toBe('blob:0'),
-  );
+  expect(
+    view.container.querySelector('.is-active img')?.getAttribute('src'),
+  ).toBe('blob:0');
 });
 
 for (const inline of [false, true]) {

@@ -70,37 +70,6 @@ function snapshotState(
   return { urls, errors, loading };
 }
 
-/**
- * Views whose resources settled since the last frame. A map or gallery
- * receives its photos one network result at a time; showing all that arrived
- * within a frame in one render (one commit for every view) keeps a page from
- * rendering once per photo.
- */
-const settledViews = new Set<() => void>();
-let settledFlushScheduled = false;
-
-function flushSettledViews(): void {
-  settledFlushScheduled = false;
-  const views = Array.from(settledViews);
-  settledViews.clear();
-  for (const render of views) render();
-}
-
-function renderOnNextFrame(render: () => void): void {
-  settledViews.add(render);
-  if (settledFlushScheduled) return;
-  settledFlushScheduled = true;
-  // A hidden document runs no frames; its views still update.
-  if (
-    typeof requestAnimationFrame === 'function' &&
-    document.visibilityState !== 'hidden'
-  ) {
-    requestAnimationFrame(flushSettledViews);
-  } else {
-    setTimeout(flushSettledViews, 0);
-  }
-}
-
 function disposeEntry(entry: ResourceEntry): void {
   entry.controller.abort();
   entry.resource?.dispose();
@@ -140,11 +109,6 @@ export function useObjectUrlResources(
     errors: {},
     loading: new Set(),
   }));
-  // The view reads its resources from `entriesRef`; settled results only
-  // need it to render, once per frame.
-  const renderSettled = useRef(() => {
-    if (mountedRef.current) setState((current) => ({ ...current }));
-  });
 
   const identitySignature = JSON.stringify([
     scopeKey,
@@ -254,7 +218,15 @@ export function useObjectUrlResources(
           entry.resource = resource;
           entry.status = 'ready';
           entry.error = null;
-          renderOnNextFrame(renderSettled.current);
+          setState((current) => {
+            if (entriesRef.current.get(key) !== entry) return current;
+            const urls = { ...current.urls, [entry.resourceId]: resource.url };
+            const errors = { ...current.errors };
+            delete errors[entry.resourceId];
+            const loading = new Set(current.loading);
+            loading.delete(entry.resourceId);
+            return { urls, errors, loading };
+          });
         })
         .catch((error: unknown) => {
           if (
@@ -267,7 +239,15 @@ export function useObjectUrlResources(
 
           entry.status = 'error';
           entry.error = error;
-          renderOnNextFrame(renderSettled.current);
+          setState((current) => {
+            if (entriesRef.current.get(key) !== entry) return current;
+            const urls = { ...current.urls };
+            delete urls[entry.resourceId];
+            const errors = { ...current.errors, [entry.resourceId]: error };
+            const loading = new Set(current.loading);
+            loading.delete(entry.resourceId);
+            return { urls, errors, loading };
+          });
         });
     }
   }, [identitySignature]);

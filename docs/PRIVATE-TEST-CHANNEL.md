@@ -353,6 +353,8 @@ fail until a new read-only token is saved in Arcane.
 Before linking Git Sync, retain the current Compose/environment and a coordinated
 recovery point for PostgreSQL, media and the forward deletion journal. See
 [Self-Hosted Recovery](SELF-HOSTED-RECOVERY.md). Redeploy is not database rollback.
+Media mirror, standby host, database history and restore drills for this instance at
+go-live: [Go-live recovery](operations/go-live-recovery.md).
 
 Use the **existing** `eimir-test` project. Expected resources:
 

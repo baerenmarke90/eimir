@@ -5151,6 +5151,8 @@
         "duration": "Duration",
         "count": "Number",
         "countInvalid": "Enter a number from 1 to 100.",
+        "redeemableUntil": "Redeemable until",
+        "redeemableUntilHint": "Leave empty: 12 months.",
         "note": "Note (only for you)",
         "create": "Create codes",
         "creating": "Creating codes …",

@@ -8,6 +8,7 @@ import type { ServerAdminProApi } from '../api/generated/apis/ServerAdminProApi'
 import type { GiftCodeBatchCreate } from '../api/generated/models/GiftCodeBatchCreate';
 import type { GiftCodeBatchView } from '../api/generated/models/GiftCodeBatchView';
 import type { RunningGiftView } from '../api/generated/models/RunningGiftView';
+import { localDateInputValue } from './dateInput';
 
 /** Operator data of the ServerAdmin "Pro" area (part 5, #2328). */
 
@@ -25,6 +26,64 @@ export const proOverviewQueryKey = [
 
 export function giftCodeBatchQueryKey(batchId: string) {
   return [...SERVER_ADMIN_PRO_QUERY_KEY, 'batch', batchId] as const;
+}
+
+/** Latest deadline the server accepts, in months from now. */
+export const GIFT_CODE_REDEEMABLE_MONTHS_MAX = 24;
+
+/** Calendar months added to the UTC timestamp, clamped to the month's length (backend `add_months`). */
+function addUtcMonths(value: Date, months: number): Date {
+  const day = value.getUTCDate();
+  const result = new Date(value.getTime());
+  result.setUTCDate(1);
+  result.setUTCMonth(result.getUTCMonth() + months);
+  const monthLength = new Date(
+    Date.UTC(result.getUTCFullYear(), result.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  result.setUTCDate(Math.min(day, monthLength));
+  return result;
+}
+
+/**
+ * The local days the operator may pick as "redeemable until": from tomorrow
+ * to the last day whose end still lies within 24 months, since the server
+ * refuses a deadline beyond now + 24 months.
+ */
+export function redeemableUntilBounds(now: Date = new Date()): {
+  min: string;
+  max: string;
+} {
+  const tomorrow = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() + 1,
+  );
+  const limit = addUtcMonths(now, GIFT_CODE_REDEEMABLE_MONTHS_MAX);
+  const lastDay = new Date(
+    limit.getFullYear(),
+    limit.getMonth(),
+    limit.getDate() - 1,
+  );
+  return {
+    min: localDateInputValue(tomorrow),
+    max: localDateInputValue(lastDay),
+  };
+}
+
+/** The end of a picked local day (`YYYY-MM-DD`) as an instant, else `null`. */
+export function endOfLocalDay(value: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return null;
+  const end = new Date(
+    Number(match[1]),
+    Number(match[2]) - 1,
+    Number(match[3]),
+    23,
+    59,
+    59,
+    999,
+  );
+  return localDateInputValue(end) === value ? end : null;
 }
 
 /** The typed count as a whole number from 1 to 100, else `null`. */

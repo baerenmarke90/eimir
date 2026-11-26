@@ -3,8 +3,10 @@ import { Link } from 'react-router-dom';
 import type { ServerAdminProApi } from '../api/generated/apis/ServerAdminProApi';
 import type { ProOverviewView } from '../api/generated/models/ProOverviewView';
 import {
+  endOfLocalDay,
   GIFT_CODE_NOTE_MAX,
   parseGiftCodeCount,
+  redeemableUntilBounds,
   sortRunningGifts,
   useCreateGiftCodeBatch,
   useProOverview,
@@ -12,6 +14,7 @@ import {
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AddActionButton } from './AddAction';
 import { EimirIcon } from './EimirIcon';
+import { NativeDateInput } from './NativeDateField';
 import {
   batchIsExpired,
   ServerAdminGiftCodeBatchSheet,
@@ -129,10 +132,12 @@ function GiftCodesCard({
   const [months, setMonths] = useState(DEFAULT_MONTHS);
   const [count, setCount] = useState(DEFAULT_COUNT);
   const [note, setNote] = useState('');
+  const [until, setUntil] = useState('');
   const [attempted, setAttempted] = useState(false);
   const create = useCreateGiftCodeBatch(api);
   const parsedCount = parseGiftCodeCount(count);
   const countInvalid = attempted && parsedCount === null;
+  const untilBounds = redeemableUntilBounds();
   const handedOut = overview.batches.reduce(
     (sum, batch) => sum + batch.handedOut,
     0,
@@ -151,10 +156,13 @@ function GiftCodesCard({
     }
     if (create.isPending) return;
     const trimmedNote = note.trim();
+    // An empty date leaves the server default of 12 months.
+    const redeemableUntil = endOfLocalDay(until);
     create.mutate(
       {
         durationMonths: months,
         count: parsedCount,
+        ...(redeemableUntil ? { redeemableUntil } : {}),
         ...(trimmedNote ? { note: trimmedNote } : {}),
       },
       {
@@ -230,6 +238,22 @@ function GiftCodesCard({
             {t('serverAdmin.pro.codes.countInvalid')}
           </p>
         ) : null}
+        <div className="server-admin-pro-field">
+          <label htmlFor="server-admin-pro-until">
+            {t('serverAdmin.pro.codes.redeemableUntil')}
+          </label>
+          <NativeDateInput
+            id="server-admin-pro-until"
+            value={until}
+            min={untilBounds.min}
+            max={untilBounds.max}
+            aria-describedby="server-admin-pro-until-hint"
+            onChange={(event) => setUntil(event.target.value)}
+          />
+          <span id="server-admin-pro-until-hint" className="server-admin-muted">
+            {t('serverAdmin.pro.codes.redeemableUntilHint')}
+          </span>
+        </div>
         <div className="server-admin-pro-field">
           <label htmlFor="server-admin-pro-note">
             {t('serverAdmin.pro.codes.note')}

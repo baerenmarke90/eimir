@@ -248,6 +248,8 @@ const serverAdmin = {
       duration: 'Laufzeit',
       count: 'Anzahl',
       countInvalid: 'Gib eine Anzahl von 1 bis 100 ein.',
+      redeemableUntil: 'Einlösbar bis',
+      redeemableUntilHint: 'Leer lassen: 12 Monate.',
       note: 'Notiz (nur für dich)',
       create: 'Codes erstellen',
       creating: 'Codes werden erstellt …',

@@ -1566,6 +1566,7 @@
         "web/src/client/giftCodes.ts",
         "web/src/client/serverAdmin.ts",
         "web/src/client/instanceStatus.ts",
+        "web/src/client/supportReportsAvailability.ts",
         "web/src/client/snackbar.ts",
         "web/src/api/generated/apis/ServerAdminProApi.ts",
         "web/src/api/generated/apis/GiftCodesApi.ts",

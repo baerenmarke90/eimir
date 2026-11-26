@@ -328,6 +328,61 @@ describe('ServerAdminProPanel', () => {
     expect(within(sheet).getByText('EIMIR-CCCC-DDDD')).toBeTruthy();
   });
 
+  describe('redeemable until', () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      // Local noon, so the local and the UTC date agree in every test zone.
+      vi.setSystemTime(new Date(2026, 2, 10, 12, 0));
+    });
+    afterEach(() => vi.useRealTimers());
+
+    it('offers a labelled date from tomorrow to the last day within 24 months', async () => {
+      renderPanel(proOverview());
+
+      const until = (await screen.findByLabelText(
+        copy.codes.redeemableUntil,
+      )) as HTMLInputElement;
+      expect(until.type).toBe('date');
+      expect(until.value).toBe('');
+      expect(until.min).toBe('2026-03-11');
+      // The server refuses an end beyond now + 24 months, which the end of
+      // the 24-month day itself would be.
+      expect(until.max).toBe('2028-03-09');
+      const hint = document.getElementById(
+        until.getAttribute('aria-describedby') ?? '',
+      );
+      expect(hint?.textContent).toBe(copy.codes.redeemableUntilHint);
+    });
+
+    it('sends the end of the chosen local day as the deadline', async () => {
+      const api = renderPanel(proOverview());
+
+      fireEvent.change(
+        await screen.findByLabelText(copy.codes.redeemableUntil),
+        { target: { value: '2026-06-30' } },
+      );
+      fireEvent.click(screen.getByRole('button', { name: copy.codes.create }));
+
+      await waitFor(() => expect(api.createGiftCodeBatch).toHaveBeenCalled());
+      const [{ giftCodeBatchCreate }] = api.createGiftCodeBatch.mock.calls[0];
+      expect(giftCodeBatchCreate.redeemableUntil.toISOString()).toBe(
+        new Date(2026, 5, 30, 23, 59, 59, 999).toISOString(),
+      );
+    });
+
+    it('leaves the deadline to the server while the date is empty', async () => {
+      const api = renderPanel(proOverview());
+
+      fireEvent.click(
+        await screen.findByRole('button', { name: copy.codes.create }),
+      );
+
+      await waitFor(() => expect(api.createGiftCodeBatch).toHaveBeenCalled());
+      const [{ giftCodeBatchCreate }] = api.createGiftCodeBatch.mock.calls[0];
+      expect(giftCodeBatchCreate).not.toHaveProperty('redeemableUntil');
+    });
+  });
+
   it('opens a listed batch in the sheet', async () => {
     const api = renderPanel(proOverview());
 

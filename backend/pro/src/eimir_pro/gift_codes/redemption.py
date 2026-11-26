@@ -12,6 +12,11 @@ then its codes, and locking both here in the other order could deadlock.
 
 The plain code goes into no problem detail, log line or grant row; the grant
 names the code by its id and the batch in its metadata.
+
+Every attempt counts against the rate limits, successes and replays too. This
+deliberately departs from design section 5.4 ("successes do not count"):
+clearing the counters after a success would let any member replay a code the
+Space already redeemed to wipe the counted guesses, and guess without limit.
 """
 
 from __future__ import annotations
@@ -35,6 +40,7 @@ from eimir.entitlements.models import (
 )
 from eimir_pro.gift_codes.codes import (
     GRANT_BATCH_METADATA_KEY,
+    GRANT_EXTENDED_METADATA_KEY,
     GRANT_REFERENCE_PREFIX,
     add_months,
     lookup_hash,
@@ -44,9 +50,9 @@ from eimir_pro.gift_codes.models import GiftCode, GiftCodeBatch
 from eimir_pro.gift_codes.overview import auto_renewing, effective_premium
 from eimir_pro.gift_codes.service import code_state
 
-# Every attempt reserves a slot and a success clears both counters, so in
-# effect only failures count (design section 5.4). The daily window equals the
-# default cutoff of ``rate_limit.prune`` (one day); keep both in step.
+# Every attempt reserves a slot and nothing clears it (see the module
+# docstring). The daily window equals the default cutoff of
+# ``rate_limit.prune`` (one day); keep both in step.
 GIFT_CODE_HOURLY = rate_limit.Limit(attempts=5, window=timedelta(hours=1))
 """Attempts per Account and hour."""
 GIFT_CODE_DAILY = rate_limit.Limit(attempts=20, window=timedelta(days=1))
@@ -91,8 +97,9 @@ def redeem(
 ) -> Redemption:
     """Redeem a typed code for a Space; the caller has checked membership.
 
-    A replay of a code this Space already redeemed returns the stored end
-    without touching the grant, so a lost response can be retried safely.
+    A replay of a code this Space already redeemed returns the stored result
+    without touching the grant, so a lost response can be retried safely; it
+    does so only while that grant is still running.
     """
     rate_limit.check(session, _ACCOUNT_ACTION, str(account_id), GIFT_CODE_HOURLY)
     rate_limit.check(session, _SPACE_ACTION, str(space_id), GIFT_CODE_DAILY)
@@ -120,10 +127,9 @@ def redeem(
 
     state = code_state(code, batch, at)
     if state == "redeemed":
-        replayed = _replay(session, code, batch, space_id)
+        replayed = _replay(session, code, space_id, at)
         if replayed is None:
             raise ConflictError("This code has already been redeemed.", RedemptionErrorCode.USED)
-        _clear_attempts(session, account_id, space_id)
         return replayed
     if state not in ("open", "handed_out"):
         raise _invalid()
@@ -131,6 +137,7 @@ def redeem(
     latest_end = _latest_premium_end(session, space_id, at)
     start = max(at, latest_end) if latest_end is not None else at
     effective_until = add_months(start, batch.duration_months)
+    extended = start > at
     grant = entitlements.record_grant(
         session,
         space_id=space_id,
@@ -142,28 +149,34 @@ def redeem(
         account_id=account_id,
         external_reference=f"{GRANT_REFERENCE_PREFIX}{code.id}",
         source_event_at=at,
-        metadata={GRANT_BATCH_METADATA_KEY: str(batch.id)},
+        metadata={GRANT_BATCH_METADATA_KEY: str(batch.id), GRANT_EXTENDED_METADATA_KEY: extended},
     )
     code.redeemed_at = at
     code.redeemed_space_id = space_id
     code.redeemed_grant_id = grant.id
     session.flush()
-    _clear_attempts(session, account_id, space_id)
-    return Redemption(effective_until=effective_until, extended=start > at)
+    return Redemption(effective_until=effective_until, extended=extended)
 
 
-def _replay(
-    session: Session, code: GiftCode, batch: GiftCodeBatch, space_id: UUID
-) -> Redemption | None:
-    """The stored result when this Space redeemed the code; ``None`` otherwise."""
+def _replay(session: Session, code: GiftCode, space_id: UUID, at: datetime) -> Redemption | None:
+    """The stored result when this Space redeemed the code; ``None`` otherwise.
+
+    A grant the operator revoked, or one that has ended, is no longer a
+    success to report: the code then counts as used.
+    """
     if code.redeemed_space_id != space_id or code.redeemed_grant_id is None:
         return None
-    grant = session.get(EntitlementGrant, code.redeemed_grant_id)
-    if grant is None or grant.effective_until is None:
+    grant = session.get(EntitlementGrant, code.redeemed_grant_id, populate_existing=True)
+    if (
+        grant is None
+        or grant.status != EntitlementStatus.ACTIVE.value
+        or grant.effective_until is None
+        or grant.effective_until < at
+    ):
         return None
-    # A first redemption ends exactly ``duration`` months after its start;
-    # an appended one ends later.
-    extended = grant.effective_until > add_months(grant.effective_from, batch.duration_months)
+    # Stored at redemption: month clamping makes it impossible to derive from
+    # the grant's dates (30 Jan, ending 31 Jan, + 1 month ends 28 Feb either way).
+    extended = grant.metadata_.get(GRANT_EXTENDED_METADATA_KEY) is True
     return Redemption(effective_until=grant.effective_until, extended=extended)
 
 
@@ -200,8 +213,3 @@ def _latest_premium_end(session: Session, space_id: UUID, at: datetime) -> datet
             )
         ends.append(row.effective_until)
     return max(ends, default=None)
-
-
-def _clear_attempts(session: Session, account_id: UUID, space_id: UUID) -> None:
-    rate_limit.clear(session, _ACCOUNT_ACTION, str(account_id))
-    rate_limit.clear(session, _SPACE_ACTION, str(space_id))

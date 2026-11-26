@@ -132,7 +132,7 @@ def test_a_space_without_premium_gets_pro_from_now(session: Session) -> None:
     assert grant.effective_until == add_months(AT, 3)
     assert grant.external_reference == f"gift-code:{code.id}"
     assert grant.account_id == account_id
-    assert grant.metadata_ == {"giftCodeBatchId": str(batch.id)}
+    assert grant.metadata_ == {"giftCodeBatchId": str(batch.id), "giftCodeExtended": False}
     plain = code.payload.code
     assert plain not in repr(grant.metadata_)
     assert plain not in (grant.external_reference or "")
@@ -346,6 +346,68 @@ def test_a_replay_by_the_same_space_returns_the_stored_end(session: Session) -> 
     assert grant.updated_at == updated_before
 
 
+@pytest.mark.parametrize("ending", ["revoked", "ended"])
+def test_a_replay_of_a_revoked_or_ended_grant_is_used(session: Session, ending: str) -> None:
+    code = _codes(session, _batch(session))[0]
+    space_id, account_id = _couple(session)
+    result = _redeem(session, space_id, account_id, code)
+    [grant] = _grants(session, space_id)
+    replay_at = AT + timedelta(minutes=5)
+    if ending == "revoked":
+        grant.status = EntitlementStatus.REVOKED.value
+    else:
+        replay_at = result.effective_until + timedelta(seconds=1)
+    session.flush()
+
+    with pytest.raises(ConflictError) as raised:
+        redeem(
+            session,
+            space_id=space_id,
+            account_id=account_id,
+            raw_code=code.payload.code,
+            at=replay_at,
+        )
+
+    assert raised.value.code == RedemptionErrorCode.USED
+
+
+def test_a_replay_keeps_the_extension_answer_under_month_clamping(session: Session) -> None:
+    # 30 Jan + 1 month and 31 Jan + 1 month both end on 28 Feb, so the grant's
+    # dates alone cannot tell that the Space already had Pro.
+    at = datetime(2027, 1, 30, 12, 0, tzinfo=UTC)
+    code = _codes(session, _batch(session, duration_months=1))[0]
+    space_id, account_id = _couple(session)
+    _grant(session, space_id, effective_until=datetime(2027, 1, 31, 12, 0, tzinfo=UTC))
+
+    first = redeem(
+        session, space_id=space_id, account_id=account_id, raw_code=code.payload.code, at=at
+    )
+    replay = redeem(
+        session,
+        space_id=space_id,
+        account_id=account_id,
+        raw_code=code.payload.code,
+        at=at + timedelta(minutes=1),
+    )
+
+    assert first.effective_until == datetime(2027, 2, 28, 12, 0, tzinfo=UTC)
+    assert first.extended is True
+    assert replay == first
+
+
+def test_a_handed_out_code_is_redeemable(session: Session) -> None:
+    code = _codes(session, _batch(session))[0]
+    service.set_handed_out(session, code.id, True)
+    space_id, account_id = _couple(session)
+
+    result = _redeem(session, space_id, account_id, code)
+
+    assert result.effective_until == add_months(AT, 3)
+    session.refresh(code)
+    assert code.redeemed_space_id == space_id
+    assert code.handed_out_at is not None
+
+
 def test_five_failed_attempts_per_account_then_rate_limited(session: Session) -> None:
     space_id, account_id = _couple(session)
     for _ in range(redemption.GIFT_CODE_HOURLY.attempts):
@@ -363,30 +425,40 @@ def test_five_failed_attempts_per_account_then_rate_limited(session: Session) ->
     assert raised.value.code == ErrorCode.RATE_LIMITED
 
 
-def test_a_success_clears_the_account_counter(session: Session) -> None:
+def _fail(session: Session, space_id: UUID, account_id: UUID, times: int) -> None:
+    for _ in range(times):
+        with pytest.raises(ValidationError):
+            redeem(
+                session,
+                space_id=space_id,
+                account_id=account_id,
+                raw_code="EIMIR-ABCD-EFGH",
+                at=AT,
+            )
+
+
+def test_a_success_counts_against_the_account_limit(session: Session) -> None:
     code = _codes(session, _batch(session))[0]
     space_id, account_id = _couple(session)
     limit = redemption.GIFT_CODE_HOURLY.attempts
-    for _ in range(limit - 1):
-        with pytest.raises(ValidationError):
-            redeem(
-                session,
-                space_id=space_id,
-                account_id=account_id,
-                raw_code="EIMIR-ABCD-EFGH",
-                at=AT,
-            )
+    _fail(session, space_id, account_id, limit - 1)
     _redeem(session, space_id, account_id, code)
 
-    for _ in range(limit):
-        with pytest.raises(ValidationError):
-            redeem(
-                session,
-                space_id=space_id,
-                account_id=account_id,
-                raw_code="EIMIR-ABCD-EFGH",
-                at=AT,
-            )
+    with pytest.raises(RateLimitedError):
+        redeem(session, space_id=space_id, account_id=account_id, raw_code="EIMIR-ABCD-EFGH", at=AT)
+
+
+def test_a_replay_does_not_reset_the_account_limit(session: Session) -> None:
+    code = _codes(session, _batch(session))[0]
+    space_id, account_id = _couple(session)
+    partner = make_account(session, "Partner")
+    relationship_service.add_member(session, space_id, partner)
+    # The partner redeems, so the founder's own budget holds only their attempts.
+    _redeem(session, space_id, partner.id, code)
+    limit = redemption.GIFT_CODE_HOURLY.attempts
+    _fail(session, space_id, account_id, limit - 1)
+    _redeem(session, space_id, account_id, code)
+
     with pytest.raises(RateLimitedError):
         redeem(session, space_id=space_id, account_id=account_id, raw_code="EIMIR-ABCD-EFGH", at=AT)
 

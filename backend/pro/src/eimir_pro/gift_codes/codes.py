@@ -27,6 +27,8 @@ GRANT_REFERENCE_PREFIX = "gift-code:"
 """``external_reference`` prefix of a grant made by redeeming a code (``gift-code:<code id>``)."""
 GRANT_BATCH_METADATA_KEY = "giftCodeBatchId"
 """Grant metadata key naming the batch of a redeemed code; the code itself is never stored."""
+GRANT_EXTENDED_METADATA_KEY = "giftCodeExtended"
+"""Grant metadata key: whether the redemption extended Pro the Space already had."""
 _SEPARATORS = re.compile(r"[\s\-\u2013\u2014]+")
 
 

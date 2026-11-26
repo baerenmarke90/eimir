@@ -18,6 +18,7 @@ import pytest
 pytest.importorskip("eimir_admin", reason="the eimir-admin distribution is not installed")
 
 from eimir_admin.api import support_reports as routes
+from eimir_admin.api.models import SupportReportStateCounts
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -95,6 +96,11 @@ class Harness:
         )
         monkeypatch.setattr(routes, "_replied_report_ids", lambda session, ids: set())
         monkeypatch.setattr(routes, "_tickets_by_report", lambda session, ids: {})
+        monkeypatch.setattr(
+            routes,
+            "_state_counts",
+            lambda session: SupportReportStateCounts(new=4, in_progress=1, closed=0),
+        )
         monkeypatch.setattr(service, "get_report", self._get_report)
         monkeypatch.setattr(service, "count_new", lambda session: 4)
         monkeypatch.setattr(service, "list_reports", self._list_reports)
@@ -158,7 +164,7 @@ def harness(monkeypatch: pytest.MonkeyPatch) -> Harness:
     return Harness(monkeypatch)
 
 
-def test_the_list_has_triage_facts_and_never_the_note(harness: Harness) -> None:
+def test_the_list_has_triage_facts_and_a_note_preview(harness: Harness) -> None:
     response = harness.client.get(f"{BASE}?state=NEW&limit=10")
 
     assert response.status_code == 200
@@ -166,7 +172,9 @@ def test_the_list_has_triage_facts_and_never_the_note(harness: Harness) -> None:
     assert body["newCount"] == 4
     assert body["hasMore"] is True
     assert body["nextCursor"] == "next"
-    assert SECRET_NOTE not in response.text
+    assert body["stateCounts"] == {"new": 4, "inProgress": 1, "closed": 0}
+    assert body["items"][0]["notePreview"] == SECRET_NOTE
+    assert "note" not in body["items"][0]
     assert body["items"][0]["appVersion"] == "0.2.0"
     assert harness.calls == ["list:NEW:False:10"]
 

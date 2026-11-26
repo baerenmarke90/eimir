@@ -29,6 +29,8 @@ from tests.conftest import requires_database
 
 VERSION_TABLE = "alembic_version_admin"
 TABLE = "support_report_tickets"
+# The later revision of the same chain; the full-chain upgrade creates it too.
+TEMPLATES = "support_reply_templates"
 
 
 def _spec() -> MigrationSpec:
@@ -77,7 +79,8 @@ def test_the_chain_is_absolute_has_its_own_version_table_and_one_head() -> None:
     assert (Path(spec.script_location) / "versions").is_dir()
     assert spec.version_table == VERSION_TABLE
     script = _script()
-    assert script.get_heads() == ["0001"]
+    # One head; the reply template revision ``0002`` follows this one (#2327).
+    assert len(script.get_heads()) == 1
     assert script.get_revision("0001").down_revision is None
 
 
@@ -108,6 +111,7 @@ def test_the_chain_matches_the_model(engine: Engine) -> None:
 
     with engine.begin() as connection:
         connection.execute(text(f"DROP TABLE IF EXISTS {TABLE}"))
+        connection.execute(text(f"DROP TABLE IF EXISTS {TEMPLATES}"))
         connection.execute(text(f"DROP TABLE IF EXISTS {VERSION_TABLE}"))
     try:
         with engine.connect() as connection:
@@ -130,5 +134,6 @@ def test_the_chain_matches_the_model(engine: Engine) -> None:
     finally:
         with engine.begin() as connection:
             connection.execute(text(f"DROP TABLE IF EXISTS {VERSION_TABLE}"))
-        # The test engine created the table from the model; put it back for the others.
-        Base.metadata.tables[TABLE].create(engine, checkfirst=True)
+        # The test engine created the tables from the model; put them back for the others.
+        for name in (TABLE, TEMPLATES):
+            Base.metadata.tables[name].create(engine, checkfirst=True)

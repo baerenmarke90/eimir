@@ -13,9 +13,11 @@ import AxeBuilder from '../support/axe';
 import { installMocks } from '../support/storyTimelineFixture';
 
 const reports = serverAdmin.reports;
+const templates = serverAdmin.templates;
 
 /*
- * The operator's support reports section in the ServerAdmin area (#2189).
+ * The operator's support reports section in the ServerAdmin area (#2189),
+ * with note previews, state counts and reply templates (#2327).
  * The admin plugin's routes are mocked with their live contract; the server
  * behaviour (one reply, tracker calls) is covered by
  * the plugin's backend tests. ServerAdmin writes need no step-up
@@ -30,6 +32,9 @@ const FEEDBACK_NOTE = 'A weekly plan for both of us would be nice.';
 const REPLY = 'Thanks for the report, we found the cause.';
 const TICKET_BODY = 'Timeline request fails with 500 after 1.4.0.';
 const TICKET_URL = 'https://github.com/example/eimir-support/issues/42';
+const TEMPLATE_NAME = 'Thanks, on it';
+const TEMPLATE_TEXT = 'Thanks for your report, we are looking into it today.';
+const CHANGED_TEXT = 'Thanks for your report, it is fixed in the next version.';
 
 type State = 'NEW' | 'IN_PROGRESS' | 'CLOSED';
 
@@ -52,6 +57,25 @@ interface Report {
   requestId: string | null;
   reply: { text: string; repliedAt: string } | null;
   ticket: Ticket | null;
+}
+
+interface Template {
+  id: string;
+  name: string;
+  text: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** The server's preview: the note's first 160 characters on one line. */
+function notePreview(note: string | null): string | null {
+  if (note === null) return null;
+  const flat = note.split(/\s+/).filter(Boolean).join(' ');
+  if (!flat) return null;
+  const characters = Array.from(flat);
+  return characters.length <= 160
+    ? flat
+    : `${characters.slice(0, 160).join('')}…`;
 }
 
 interface Recorded {
@@ -160,7 +184,7 @@ function initialReports(): Report[] {
   ];
 }
 
-function listItem(report: Report) {
+function facts(report: Report) {
   return {
     id: report.id,
     kind: report.kind,
@@ -169,15 +193,21 @@ function listItem(report: Report) {
     archivedAt: report.archivedAt,
     appVersion: '1.4.0',
     build: '412',
+    platform: 'web',
+    os: 'Android 16',
     failureReference: report.failureReference,
     hasReply: report.reply !== null,
     ticket: report.ticket,
   };
 }
 
+function listItem(report: Report) {
+  return { ...facts(report), notePreview: notePreview(report.note) };
+}
+
 function detail(report: Report) {
   return {
-    ...listItem(report),
+    ...facts(report),
     accountId: REPORTER_ID,
     client: {
       appVersion: '1.4.0',
@@ -199,11 +229,12 @@ function detail(report: Report) {
 }
 
 /**
- * The ServerAdmin account, the overview with the operator flag and the eight
- * plugin routes.
+ * The ServerAdmin account, the overview with the operator flag and the
+ * plugin routes: reports and the operator's reply templates.
  */
 async function install(page: Page) {
   const data = initialReports();
+  const replyTemplates: Template[] = [];
   const recorded: Recorded = { writes: [] };
   await installMocks(page);
   // Registered after the shared fixture, so these answer first.
@@ -226,6 +257,49 @@ async function install(page: Page) {
       });
     const prefix = '/api/v1/server-admin/support-reports';
     if (!pathname.startsWith(prefix)) return route.fallback();
+    const templatesPath = `${prefix}/templates`;
+    if (
+      pathname === templatesPath ||
+      pathname.startsWith(`${templatesPath}/`)
+    ) {
+      const templateId = pathname.slice(templatesPath.length + 1) || null;
+      if (method === 'GET' && !templateId) {
+        const items = [...replyTemplates].sort((a, b) =>
+          a.name.toLowerCase().localeCompare(b.name.toLowerCase()),
+        );
+        return route.fulfill({ json: { items } });
+      }
+      const body = request.postData() ? request.postDataJSON() : null;
+      recorded.writes.push({ method, path: pathname, body });
+      const now = new Date().toISOString();
+      if (method === 'POST' && !templateId) {
+        const created: Template = {
+          id: `99999999-9999-4999-8999-${String(replyTemplates.length + 1).padStart(12, '0')}`,
+          ...(body as { name: string; text: string }),
+          createdAt: now,
+          updatedAt: now,
+        };
+        replyTemplates.push(created);
+        return route.fulfill({ status: 201, json: created });
+      }
+      const existing = replyTemplates.find(
+        (candidate) => candidate.id === templateId,
+      );
+      if (!existing)
+        return route.fulfill({
+          status: 404,
+          json: problemDetail(404, 'SUPPORT_TEMPLATE_NOT_FOUND', 'Not found'),
+        });
+      if (method === 'PUT') {
+        Object.assign(existing, body as object, { updatedAt: now });
+        return route.fulfill({ json: existing });
+      }
+      if (method === 'DELETE') {
+        replyTemplates.splice(replyTemplates.indexOf(existing), 1);
+        return route.fulfill({ status: 204, body: '' });
+      }
+      return route.fallback();
+    }
     if (method === 'GET' && pathname === prefix) {
       const state = url.searchParams.get('state');
       const archived = url.searchParams.get('archived') === 'true';
@@ -241,6 +315,14 @@ async function install(page: Page) {
           newCount: data.filter(
             (report) => report.state === 'NEW' && !report.archivedAt,
           ).length,
+          stateCounts: {
+            new: data.filter((r) => r.state === 'NEW' && !r.archivedAt).length,
+            inProgress: data.filter(
+              (r) => r.state === 'IN_PROGRESS' && !r.archivedAt,
+            ).length,
+            closed: data.filter((r) => r.state === 'CLOSED' && !r.archivedAt)
+              .length,
+          },
         },
       });
     }
@@ -302,7 +384,7 @@ async function install(page: Page) {
     }
     return route.fallback();
   });
-  return { data, recorded };
+  return { data, recorded, replyTemplates };
 }
 
 /** Opens a route and signs in; the app returns to it after the sign-in. */
@@ -327,12 +409,20 @@ function sectionOf(page: Page) {
       section
         .getByRole('list', { name: reports.listLabel })
         .getByRole('button', { name: new RegExp(`^${reports.kinds[kind]}`) }),
+    // The three states carry their count ("Neu · 1"); All and Archive do not.
     filter: (value: 'NEW' | 'IN_PROGRESS' | 'CLOSED' | 'all' | 'archived') =>
-      section
-        .locator('.server-admin-reports-browse')
-        .getByRole('button', { name: reports.filter[value], exact: true }),
+      section.locator('.server-admin-reports-browse').getByRole('button', {
+        name: new RegExp(`^${reports.filter[value]}( · \\d+)?$`),
+      }),
     detail: section.locator('article.server-admin-report-detail'),
   };
+}
+
+/** A state segment's accessible name, as the locale joins label and count. */
+function segment(state: State, count: number) {
+  return reports.filter.withCount
+    .replace('{{label}}', reports.filter[state])
+    .replace('{{count}}', String(count));
 }
 
 async function setTheme(page: Page, theme: 'light' | 'dark') {
@@ -439,17 +529,18 @@ test('operator_triages_a_report_replies_once_and_creates_a_ticket', async ({
   await expect(page).toHaveURL(/[?&]section=reports\b/);
   const reportsSection = sectionOf(page);
   await expect(reportsSection.heading).toBeVisible();
-  await expect(reportsSection.section).toContainText(
-    reports.newCount.replace('{{count}}', '1'),
+  await expect(reportsSection.filter('NEW')).toHaveAccessibleName(
+    segment('NEW', 1),
   );
-  // The queue starts at new reports and never shows the person's note.
+  // The queue starts at new reports; each card quotes the start of the note.
   await expect(reportsSection.filter('NEW')).toHaveAttribute(
     'aria-pressed',
     'true',
   );
   await expect(reportsSection.row('PROBLEM')).toBeVisible();
   await expect(reportsSection.row('FEEDBACK')).toHaveCount(0);
-  await expect(reportsSection.list).not.toContainText(NOTE);
+  await expect(reportsSection.row('PROBLEM')).toContainText(NOTE);
+  await expect(reportsSection.section).toContainText(reports.anonymousFooter);
 
   // Interact: the report opens in place of the list on Compact.
   await reportsSection.row('PROBLEM').click();
@@ -563,7 +654,8 @@ test('operator_triages_a_report_replies_once_and_creates_a_ticket', async ({
   await expect(row).toContainText(reports.item.replied);
   await expect(row).toContainText(reports.item.ticket);
   await expect(row).toContainText(reports.states.IN_PROGRESS);
-  await expect(reportsSection.list).not.toContainText(NOTE);
+  await expect(row).toContainText(NOTE);
+  await expect(row).not.toContainText(REPLY);
 });
 
 test('operator_archives_restores_and_permanently_deletes_a_report', async ({
@@ -598,8 +690,8 @@ test('operator_archives_restores_and_permanently_deletes_a_report', async ({
     .click();
   await expect(reportsSection.heading).toBeFocused();
   await expect(reportsSection.section).toContainText(reports.emptyNewBody);
-  await expect(reportsSection.section).toContainText(
-    reports.newCount.replace('{{count}}', '0'),
+  await expect(reportsSection.filter('NEW')).toHaveAccessibleName(
+    segment('NEW', 0),
   );
   await reportsSection.filter('all').click();
   await expect(reportsSection.row('PROBLEM')).toHaveCount(0);
@@ -721,6 +813,140 @@ test('uncertain_pending_ticket_is_cleared_only_after_confirmation', async ({
       body: null,
     },
   ]);
+});
+
+test('operator_keeps_reply_templates_and_answers_with_one', async ({
+  page,
+}, info) => {
+  test.setTimeout(90_000);
+  await page.setViewportSize({ width: 390, height: 844 });
+  const { recorded, replyTemplates } = await install(page);
+  await openSignedIn(page, '/server-admin?section=reports');
+  const reportsSection = sectionOf(page);
+  await expect(reportsSection.row('PROBLEM')).toBeVisible();
+
+  // Open: Help has a second page for the templates, empty at first.
+  const pages = page.getByRole('navigation', {
+    name: serverAdmin.subNavigation.aria,
+  });
+  await pages
+    .getByRole('link', { name: serverAdmin.navigation.replyTemplates })
+    .click();
+  await expect(page).toHaveURL(/[?&]section=replyTemplates\b/);
+  const templatesSection = page.locator('section.server-admin-templates');
+  await expect(
+    templatesSection.getByRole('heading', { level: 2, name: templates.title }),
+  ).toBeVisible();
+  await expect(templatesSection).toContainText(templates.emptyTitle);
+  await captureThemes(
+    page,
+    info,
+    '20-templates-empty-390',
+    'section.server-admin-templates',
+  );
+
+  // Interact: the filled create pill opens the sheet; name and text are saved.
+  await templatesSection
+    .getByRole('button', { name: templates.create, exact: true })
+    .click();
+  const sheet = page.getByRole('dialog', { name: templates.sheet.createTitle });
+  await expect(sheet.getByLabel(templates.sheet.nameLabel)).toBeFocused();
+  await sheet.getByLabel(templates.sheet.nameLabel).fill(TEMPLATE_NAME);
+  await sheet.getByLabel(templates.sheet.textLabel).fill(TEMPLATE_TEXT);
+  await captureThemes(page, info, '21-template-sheet-390', '[role="dialog"]');
+  await sheet
+    .getByRole('button', { name: templates.sheet.save, exact: true })
+    .click();
+  await expect(sheet).toBeHidden();
+  await expect(templatesSection.getByText(templates.saved)).toBeVisible();
+  const list = templatesSection.getByRole('list', {
+    name: templates.listLabel,
+  });
+  await expect(list).toContainText(TEMPLATE_NAME);
+  expect(recorded.writes.at(-1)).toEqual({
+    method: 'POST',
+    path: '/api/v1/server-admin/support-reports/templates',
+    body: { name: TEMPLATE_NAME, text: TEMPLATE_TEXT },
+  });
+  for (const width of [360, 390, 430]) {
+    await page.setViewportSize({ width, height: 844 });
+    await expectReflow(page);
+    await capture(page, info, `22-templates-list-${width}-light.png`);
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  // Save: back in a report, the chip inserts the text; Reply sends it once.
+  await pages
+    .getByRole('link', { name: serverAdmin.navigation.reports })
+    .click();
+  await reportsSection.row('PROBLEM').click();
+  const report = reportsSection.detail;
+  await expect(report.getByText(templates.chipsTitle)).toBeVisible();
+  await report
+    .getByRole('button', { name: TEMPLATE_NAME, exact: true })
+    .click();
+  const replyField = report.getByLabel(reports.reply.label, { exact: true });
+  await expect(replyField).toHaveValue(TEMPLATE_TEXT);
+  await expect(replyField).toBeFocused();
+  await captureThemes(
+    page,
+    info,
+    '23-detail-template-inserted-390',
+    'section.server-admin-reports',
+    report,
+  );
+  await report
+    .getByRole('button', { name: reports.reply.send, exact: true })
+    .click();
+  await expect(report.getByText(reports.reply.sent)).toBeVisible();
+  expect(recorded.writes.at(-1)).toEqual({
+    method: 'POST',
+    path: `/api/v1/server-admin/support-reports/${PROBLEM_ID}/reply`,
+    body: { text: TEMPLATE_TEXT },
+  });
+  // After the one reply, the templates are gone with the form.
+  await expect(report.getByText(templates.chipsTitle)).toHaveCount(0);
+
+  // Return: from the feedback report the Edit link leads to the templates,
+  // where the template is changed and then deleted after a confirmation.
+  await report
+    .getByRole('button', { name: reports.detail.back, exact: true })
+    .click();
+  await reportsSection.filter('all').click();
+  await reportsSection.row('FEEDBACK').click();
+  await report
+    .getByRole('button', { name: templates.edit, exact: true })
+    .click();
+  await expect(page).toHaveURL(/[?&]section=replyTemplates\b/);
+  await list.getByRole('button', { name: new RegExp(TEMPLATE_NAME) }).click();
+  const editSheet = page.getByRole('dialog', {
+    name: templates.sheet.editTitle,
+  });
+  await editSheet.getByLabel(templates.sheet.textLabel).fill(CHANGED_TEXT);
+  await editSheet
+    .getByRole('button', { name: templates.sheet.save, exact: true })
+    .click();
+  await expect(editSheet).toBeHidden();
+  expect(replyTemplates[0]?.text).toBe(CHANGED_TEXT);
+  await list.getByRole('button', { name: new RegExp(TEMPLATE_NAME) }).click();
+  page.once('dialog', (dialog) => void dialog.accept());
+  await page
+    .getByRole('dialog', { name: templates.sheet.editTitle })
+    .getByRole('button', { name: templates.sheet.delete, exact: true })
+    .click();
+  await expect(templatesSection.getByText(templates.deleted)).toBeVisible();
+  await expect(templatesSection).toContainText(templates.emptyTitle);
+  expect(replyTemplates).toEqual([]);
+
+  // Expanded: the templates page at 1280.
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expectReflow(page);
+  await captureThemes(
+    page,
+    info,
+    '24-templates-1280',
+    'section.server-admin-templates',
+  );
 });
 
 test.describe('states at 2x', () => {

@@ -18,6 +18,8 @@ Name | Type
 `id` | string
 `kind` | [SupportReportKind](SupportReportKind.md)
 `note` | string
+`os` | string
+`platform` | string
 `reply` | [SupportReportOperatorReply](SupportReportOperatorReply.md)
 `requestId` | string
 `state` | [SupportReportState](SupportReportState.md)
@@ -42,6 +44,8 @@ const example = {
   "id": null,
   "kind": null,
   "note": null,
+  "os": null,
+  "platform": null,
   "reply": null,
   "requestId": null,
   "state": null,

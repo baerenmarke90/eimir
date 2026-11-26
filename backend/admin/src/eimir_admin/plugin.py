@@ -53,12 +53,13 @@ class AdminPlugin:
         return ADMIN_CAPABILITIES
 
     def model_modules(self) -> Sequence[str]:
-        return ("eimir_admin.support_tickets.models",)
+        return ("eimir_admin.support_tickets.models", "eimir_admin.reply_templates.models")
 
     def routers(self) -> Sequence[APIRouter]:
-        from eimir_admin.api import support_reports
+        from eimir_admin.api import reply_templates, support_reports
 
-        return (support_reports.router,)
+        # Templates first: ``/templates`` must not be matched as ``/{reportId}``.
+        return (reply_templates.router, support_reports.router)
 
     def register_jobs(self, registry: JobRegistry) -> None:
         del registry

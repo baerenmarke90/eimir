@@ -437,7 +437,7 @@ while `EIMIR_SUPPORT_REPORTS_ENABLED` is off.
 
 | Route | Purpose |
 | --- | --- |
-| `GET /` | List, optional `state` (`NEW`, `IN_PROGRESS`, `CLOSED`), `archived` (default `false`: unarchived reports; `true`: the archive), keyset `cursor`, `limit`; items carry kind, state, time, `archivedAt`, app version and build, failure reference and whether a reply and a ticket exist, plus the `newCount` of unarchived `NEW` reports; never the note |
+| `GET /` | List, optional `state` (`NEW`, `IN_PROGRESS`, `CLOSED`), `archived` (default `false`: unarchived reports; `true`: the archive), keyset `cursor`, `limit`; items carry kind, state, time, `archivedAt`, app version and build, `platform` and `os`, failure reference, whether a reply and a ticket exist and a `notePreview` (the note's first 160 characters on one line, Product Owner decision 2026-11-26, [#2327](https://github.com/baerenmarke90/eimir/issues/2327)), plus the `newCount` of unarchived `NEW` reports and the `stateCounts` of unarchived reports per state; never the full note |
 | `GET /{reportId}` | The report: note, technical client context, failure reference, request id, the opaque reporter account id (no name or email), the reply if any, the ticket link if any and `ticketAvailable` |
 | `PUT /{reportId}/state` | Set `NEW`, `IN_PROGRESS` or `CLOSED` |
 | `PUT /{reportId}/archive` | Archive (`{"archived": true}`) or unarchive a report |
@@ -445,6 +445,10 @@ while `EIMIR_SUPPORT_REPORTS_ENABLED` is off.
 | `POST /{reportId}/reply` | The one reply, plain text of at most 500 characters |
 | `POST /{reportId}/ticket` | Create the tracker ticket from the operator's title and body |
 | `DELETE /{reportId}/ticket` | Clear a ticket link so a new ticket can be created |
+| `GET /templates` | The reply templates, sorted by name regardless of case |
+| `POST /templates` | Create a reply template (`201`) |
+| `PUT /templates/{templateId}` | Replace a template's name and text |
+| `DELETE /templates/{templateId}` | Delete a template (`204`) |
 
 Reads and writes need the ServerAdmin role only, without a step-up
 re-authentication. Reads are not audited. Each write records one content-free privileged audit
@@ -452,6 +456,7 @@ entry: `support_report.state_set`, `support_report.reply_sent`,
 `support_report.ticket_created`, `support_report.ticket_cleared`,
 `support_report.archived`, `support_report.unarchived` or
 `support_report.deleted`. Report text never enters the audit, logs or metrics.
+Template writes are not audited (see [Reply templates](#reply-templates)).
 
 The plugin routers are mounted behind the normal-operation dependency, so in
 maintenance mode they answer `503` like other product routes, while the rest of
@@ -480,6 +485,29 @@ the ServerAdmin area stays reachable.
 A report receives exactly one reply. It is sent once and cannot be edited or
 withdrawn; a second attempt answers `409 SUPPORT_REPORT_ALREADY_REPLIED`. The
 reporter reads it as plain text in their notifications.
+
+### Reply templates
+
+The operator keeps reply texts and inserts one into a reply with a tap
+([#2327](https://github.com/baerenmarke90/eimir/issues/2327), Product Owner
+decisions 2026-11-26).
+
+- Templates are operator text in the plugin table `support_reply_templates`,
+  shared by all ServerAdmins of the instance, not i18n resources and not tied
+  to a report, Account or Space. They are stored as plain text and are not part
+  of any personal data copy or Space export.
+- A template has a name of 1 to 40 and a text of 1 to 500 characters after
+  trimming (`422` otherwise); a reply cannot be longer either. Names are unique
+  regardless of case (`409 SUPPORT_TEMPLATE_NAME_TAKEN`). At most 30 templates
+  exist (`409 SUPPORT_TEMPLATE_LIMIT`). An unknown or malformed id answers
+  `404 SUPPORT_TEMPLATE_NOT_FOUND`.
+- No placeholders: reports are anonymous, so there is no name to fill in.
+- Template writes need the ServerAdmin role only and leave no privileged audit
+  entry: they change operator text, not anything about a person. Sending a reply
+  stays audited as `support_report.reply_sent`.
+- Inserting a template never overwrites typed text: it goes to the caret or
+  replaces the selection; a result over 500 characters is not cut but blocks
+  sending until the operator shortens it.
 
 ### Tickets
 
@@ -511,7 +539,9 @@ reporter reads it as plain text in their notifications.
 ### Runbook: downgrades
 
 - The plugin's migration chain creates `support_report_tickets` with a foreign
-  key to the Core table `support_reports` from Core migration `0175`. Before a
+  key to the Core table `support_reports` from Core migration `0175`, and in
+  revision `0002` the reply templates. Downgrading the plugin chain below `0002`
+  deletes every template. Before a
   Core downgrade below `0175`, downgrade the admin plugin chain to its base
   first.
 - The downgrade of Core migration `0177` drops `support_reports.archived_at`

@@ -4933,6 +4933,7 @@
       "settings": "Settings",
       "activity": "Activity log",
       "reports": "Reports",
+      "replyTemplates": "Reply templates",
       "monitoring": "Monitoring",
       "search": "Search",
       "pro": "Pro & gift codes"
@@ -5635,12 +5636,61 @@
       "enabled": "Active",
       "disabled": "Inactive"
     },
+    "templates": {
+      "title": "Reply templates",
+      "body": "Saved replies for reports. All ServerAdmins share the same templates.",
+      "chipsTitle": "Reply with a template",
+      "edit": "Edit",
+      "emptyHint": "No reply templates yet.",
+      "emptyLink": "Create a template",
+      "loadError": "The reply templates could not be loaded.",
+      "listLabel": "Reply templates",
+      "create": "Create a template",
+      "limitHint": "No more than {{max}} templates are possible. Delete one to create a new one.",
+      "emptyTitle": "No reply templates yet",
+      "emptyBody": "Create replies you write often. In an opened report you insert them with one tap.",
+      "loadingTitle": "Loading reply templates",
+      "loadingBody": "The saved replies are being fetched.",
+      "errorTitle": "Reply templates unavailable",
+      "errorBody": "The reply templates could not be loaded.",
+      "offlineNotice": "You are offline. You can change templates again once the connection is back.",
+      "saved": "Template saved.",
+      "deleted": "Template deleted.",
+      "gone": "This template no longer exists.",
+      "sheet": {
+        "eyebrow": "Reply template",
+        "createTitle": "New reply template",
+        "editTitle": "Edit reply template",
+        "nameLabel": "Name",
+        "nameHint": "Shown on the button in the report.",
+        "textLabel": "Text",
+        "counter": "{{length}} / {{max}}",
+        "counterLabel": "{{length}} of {{max}} characters",
+        "nameRequired": "Enter a name.",
+        "nameTooLong": "The name can have at most {{max}} characters.",
+        "textRequired": "Enter a text.",
+        "textTooLong": "The text can have at most {{max}} characters.",
+        "save": "Save",
+        "saving": "Saving …",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "deleting": "Deleting …",
+        "deleteConfirm": "Delete the template “{{name}}”? This cannot be undone.",
+        "discardConfirm": "Your changes to this template will be lost. Close anyway?"
+      },
+      "errors": {
+        "limit": "There are already {{max}} templates. Delete one before you create a new one.",
+        "nameTaken": "Another template already has this name.",
+        "notFound": "This template no longer exists."
+      }
+    },
     "reports": {
       "title": "Reports",
-      "body": "Problem and feedback reports from the app. The list shows no notes; you see the text only in the opened report.",
-      "newCount": "New: {{count}}",
+      "body": "Problem and feedback reports from the app. The list shows the start of the note; you see the full text in the opened report.",
+      "anonymousFooter": "Whoever reports stays anonymous here.",
       "filter": {
         "label": "Filter reports by status",
+        "withCount": "{{label}} · {{count}}",
         "all": "All",
         "NEW": "New",
         "IN_PROGRESS": "In progress",
@@ -5655,6 +5705,10 @@
       "kinds": {
         "PROBLEM": "Problem",
         "FEEDBACK": "Feedback"
+      },
+      "platforms": {
+        "app": "App",
+        "web": "Web"
       },
       "loadingTitle": "Loading reports",
       "loadingBody": "The reports of this installation are being queried.",
@@ -5675,6 +5729,7 @@
       "loadMoreError": "More reports could not be loaded.",
       "listLabel": "Reports",
       "item": {
+        "meta": "· {{platform}} · {{os}} · {{version}} ({{build}})",
         "version": "Version {{version}} ({{build}})",
         "replied": "Replied",
         "ticket": "Ticket",

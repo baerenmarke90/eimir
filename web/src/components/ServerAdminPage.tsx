@@ -1,6 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
-import { useNavigationType, useSearchParams } from 'react-router-dom';
+import {
+  useNavigate,
+  useNavigationType,
+  useSearchParams,
+} from 'react-router-dom';
 import type { ServerAdminApi } from '../api/generated/apis/ServerAdminApi';
 import type { ServerAdminOverview } from '../api/generated/models/ServerAdminOverview';
 import type { ServerAdminPrivilegedAuditItem } from '../api/generated/models/ServerAdminPrivilegedAuditItem';
@@ -27,6 +31,7 @@ import {
   availableSection,
   resolveServerAdminSection,
   type ServerAdminSection,
+  sectionHref,
 } from './serverAdminAreas';
 import { TaskBackLink } from './TaskBackButton';
 import { ThemeControl } from './ThemeControl';
@@ -39,6 +44,13 @@ const ServerAdminSupportReportsPanel = lazy(() =>
   import('./ServerAdminSupportReportsPanel').then(
     ({ ServerAdminSupportReportsPanel }) => ({
       default: ServerAdminSupportReportsPanel,
+    }),
+  ),
+);
+const ServerAdminReplyTemplatesPanel = lazy(() =>
+  import('./ServerAdminReplyTemplatesPanel').then(
+    ({ ServerAdminReplyTemplatesPanel }) => ({
+      default: ServerAdminReplyTemplatesPanel,
     }),
   ),
 );
@@ -796,6 +808,9 @@ export function ServerAdminPage({
   const confirmLeaveReports = () =>
     !reportsDraftDirty ||
     window.confirm(t('serverAdmin.reports.detail.discardDraftConfirm'));
+  const navigate = useNavigate();
+  // Both Help pages need the operator plugin; without it they share one state.
+  const helpSection = section === 'reports' || section === 'replyTemplates';
   const settingsQuery = useQuery({
     queryKey: ['server-admin', 'settings'],
     queryFn: () =>
@@ -867,6 +882,13 @@ export function ServerAdminPage({
     if (section === 'storage') {
       void queryClient.invalidateQueries({
         queryKey: ['server-admin', 'storage'],
+      });
+      return;
+    }
+    if (section === 'replyTemplates') {
+      void overviewQuery.refetch();
+      void queryClient.invalidateQueries({
+        queryKey: ['server-admin', 'support-reports', 'templates'],
       });
       return;
     }
@@ -988,8 +1010,13 @@ export function ServerAdminPage({
           />
 
           <div className="server-admin-grid">
-            <ServerAdminSubNavigation activeSection={section} />
-            {section === 'reports' ? (
+            <ServerAdminSubNavigation
+              activeSection={section}
+              confirmLeave={
+                section === 'reports' ? confirmLeaveReports : undefined
+              }
+            />
+            {helpSection ? (
               supportReportsAvailable ? (
                 <Suspense
                   fallback={
@@ -1002,11 +1029,20 @@ export function ServerAdminPage({
                     </section>
                   }
                 >
-                  <ServerAdminSupportReportsPanel
-                    api={apis.supportReports}
-                    initialFilter={searchParams.get('state')}
-                    onDraftChange={setReportsDraftDirty}
-                  />
+                  {section === 'replyTemplates' ? (
+                    <ServerAdminReplyTemplatesPanel api={apis.supportReports} />
+                  ) : (
+                    <ServerAdminSupportReportsPanel
+                      api={apis.supportReports}
+                      initialFilter={searchParams.get('state')}
+                      onDraftChange={setReportsDraftDirty}
+                      onEditTemplates={() => {
+                        // The open report asked already; the draft is given up.
+                        setReportsDraftDirty(false);
+                        navigate(sectionHref('replyTemplates'));
+                      }}
+                    />
+                  )}
                 </Suspense>
               ) : (
                 <section className="server-admin-panel server-admin-panel-wide">

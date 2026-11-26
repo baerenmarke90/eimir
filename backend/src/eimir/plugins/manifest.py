@@ -309,6 +309,9 @@ PLUGIN_TABLES: tuple[PluginTable, ...] = (
         protected_payload_context="GiftCodePayload",
         chain=True,
     ),
+    # Operator plugin: the operator's reply templates (#2327). Operator text shared
+    # by all ServerAdmins; no scope, Account or report column, so nothing to purge.
+    PluginTable("support_reply_templates", _OPERATOR, None, (), chain=True),
 )
 
 PLUGIN_TABLE_NAMES = frozenset(row.table for row in PLUGIN_TABLES)

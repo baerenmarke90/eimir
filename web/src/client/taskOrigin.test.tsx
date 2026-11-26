@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { act, cleanup, render, waitFor } from '@testing-library/react';
+import { memo, useEffect } from 'react';
 import {
   BrowserRouter,
   MemoryRouter,
@@ -8,6 +9,8 @@ import {
 } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  PrimaryTabTaskOriginScope,
+  type TaskOriginMetadata,
   TaskOriginProvider,
   taskOriginPath,
   useTaskOrigin,
@@ -427,4 +430,112 @@ it('the rooms picker restores only known public paths and the full Wir view', ()
     '/more/settings/appearance',
   );
   expect(taskOriginPath('/more/private/notes/private-id', '')).toBeNull();
+});
+
+/** Every contract a page was handed: a new one renders the whole page. */
+const contracts = new Set<ReturnType<typeof useTaskOrigin>>();
+let scoped: ReturnType<typeof useTaskOrigin>;
+let root: ReturnType<typeof useTaskOrigin>;
+let go: ReturnType<typeof useNavigate>;
+/** A kept page: it reads the contract but not the location. */
+const KeptPage = memo(function KeptPage({
+  metadata,
+}: {
+  metadata?: TaskOriginMetadata;
+}) {
+  const contract = useTaskOrigin();
+  scoped = contract;
+  contracts.add(contract);
+  const { registerOriginMetadata } = contract;
+  useEffect(
+    () => (metadata ? registerOriginMetadata(metadata) : undefined),
+    [metadata, registerOriginMetadata],
+  );
+  return null;
+});
+const RootProbe = memo(function RootProbe() {
+  root = useTaskOrigin();
+  return null;
+});
+function Go() {
+  go = useNavigate();
+  return null;
+}
+const RANGE: TaskOriginMetadata = { loadedPageCount: 7 };
+const SEARCH: TaskOriginMetadata = { sharedNotesSearch: 'picnic' };
+function Tabs({ active = true }: { active?: boolean }) {
+  return (
+    <MemoryRouter initialEntries={['/story']}>
+      <TaskOriginProvider accountId="account-a" spaceId="space-a">
+        <Go />
+        <RootProbe />
+        <PrimaryTabTaskOriginScope active={active}>
+          <KeptPage metadata={RANGE} />
+          <KeptPage metadata={SEARCH} />
+        </PrimaryTabTaskOriginScope>
+      </TaskOriginProvider>
+    </MemoryRouter>
+  );
+}
+function Shown({ search }: { search: boolean }) {
+  return (
+    <MemoryRouter initialEntries={['/story']}>
+      <TaskOriginProvider accountId="account-a" spaceId="space-a">
+        <RootProbe />
+        <PrimaryTabTaskOriginScope active>
+          <KeptPage metadata={RANGE} />
+          {search ? <KeptPage metadata={SEARCH} /> : null}
+        </PrimaryTabTaskOriginScope>
+      </TaskOriginProvider>
+    </MemoryRouter>
+  );
+}
+
+describe('task origin contract identity', () => {
+  beforeEach(() => {
+    contracts.clear();
+  });
+
+  it('keeps one contract across navigation and captures the current path', async () => {
+    render(<Tabs />);
+    const first = scoped;
+    const firstRoot = root;
+    await act(async () => go('/plan'));
+    expect(scoped).toBe(first);
+    expect(root).toBe(firstRoot);
+    expect(root.resolveOrigin(root.captureOrigin())?.to).toBe('/plan');
+    await act(async () => go('/more/private/notes/private-id'));
+    expect(root.captureOrigin()).toBeNull();
+  });
+
+  it('parks and shows a kept tab without rendering its pages, publishing metadata only while shown', async () => {
+    const view = render(<Tabs />);
+    const capture = () => root.resolveOrigin(root.captureOrigin());
+    // Every page of the shown tab contributes its own metadata.
+    expect(capture()).toMatchObject({
+      loadedPageCount: 7,
+      sharedNotesSearch: 'picnic',
+    });
+    expect(scoped.captureOrigin()).not.toBeNull();
+    view.rerender(<Tabs active={false} />);
+    expect(contracts.size).toBe(1);
+    expect(scoped.captureOrigin()).toBeNull();
+    expect(capture()).toMatchObject({ loadedPageCount: 1 });
+    expect(capture()?.sharedNotesSearch).toBeUndefined();
+    view.rerender(<Tabs />);
+    expect(contracts.size).toBe(1);
+    expect(capture()).toMatchObject({
+      loadedPageCount: 7,
+      sharedNotesSearch: 'picnic',
+    });
+    view.unmount();
+  });
+
+  it('withdraws the metadata of a page that leaves a shown tab', () => {
+    const view = render(<Shown search />);
+    view.rerender(<Shown search={false} />);
+    const origin = root.resolveOrigin(root.captureOrigin());
+    expect(origin?.loadedPageCount).toBe(7);
+    expect(origin?.sharedNotesSearch).toBeUndefined();
+  });
 });

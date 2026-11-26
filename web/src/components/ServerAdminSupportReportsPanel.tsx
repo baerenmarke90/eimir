@@ -5,6 +5,7 @@ import type { SupportReportListItem } from '../api/generated/models/SupportRepor
 import { clientProblemKind } from '../client/problemDetails';
 import {
   formatReportDate,
+  formatReportDay,
   loadSupportReportPage,
   nextSupportReportCursor,
   resolveSupportReportFilter,
@@ -39,19 +40,31 @@ function ReportRow({
         onClick={onOpen}
       >
         <span className="server-admin-report-row-head">
-          <strong>{t(`serverAdmin.reports.kinds.${report.kind}`)}</strong>
-          <span className="server-admin-badge">
-            {t(`serverAdmin.reports.states.${report.state}`)}
+          <span
+            className={`server-admin-report-kind is-${report.kind.toLowerCase()}`}
+          >
+            {t(`serverAdmin.reports.kinds.${report.kind}`)}
+          </span>
+          <span className="server-admin-report-row-meta">
+            <time
+              dateTime={report.createdAt.toISOString()}
+              title={formatReportDate(report.createdAt)}
+            >
+              {formatReportDay(report.createdAt)}
+            </time>{' '}
+            {t('serverAdmin.reports.item.meta', {
+              platform: t(`serverAdmin.reports.platforms.${report.platform}`),
+              os: report.os,
+              version: report.appVersion,
+              build: report.build,
+            })}
           </span>
         </span>
-        <span className="server-admin-report-row-meta">
-          {formatReportDate(report.createdAt)}
-        </span>
-        <span className="server-admin-report-row-meta">
-          {t('serverAdmin.reports.item.version', {
-            version: report.appVersion,
-            build: report.build,
-          })}
+        {report.notePreview ? (
+          <q className="server-admin-report-preview">{report.notePreview}</q>
+        ) : null}
+        <span className="server-admin-report-row-state">
+          {t(`serverAdmin.reports.states.${report.state}`)}
         </span>
         {report.hasReply || report.ticket || report.archivedAt ? (
           <span className="server-admin-report-row-flags">
@@ -72,20 +85,23 @@ function ReportRow({
 }
 
 /**
- * The operator's triage queue of support reports (#2189): a state filter, the
- * new-report count and a keyset-paged list without note text. A report opens
+ * The operator's triage queue of support reports (#2189, #2327): state filters
+ * with their counts and a keyset-paged list of cards with a note preview. A report opens
  * in place; on Compact it replaces the list, on wide screens it sits beside it.
  */
 export function ServerAdminSupportReportsPanel({
   api,
   initialFilter = null,
   onDraftChange,
+  onEditTemplates,
 }: {
   api: ServerAdminSupportReportsApi;
   /** The state query parameter of a deep link; defaults to new reports. */
   initialFilter?: string | null;
   /** Whether the open report holds an unsent reply or ticket text. */
   onDraftChange?: (dirty: boolean) => void;
+  /** Opens the reply templates page from an open report. */
+  onEditTemplates?: () => void;
 }) {
   const { t } = useTranslation();
   const [filter, setFilter] = useState<SupportReportFilter>(() =>
@@ -153,7 +169,19 @@ export function ServerAdminSupportReportsPanel({
 
   const pages = query.data?.pages ?? [];
   const items = pages.flatMap((page) => page.items);
-  const newCount = pages[0]?.newCount;
+  // The counts do not depend on the filter: keep the last ones while another
+  // filter loads, so the segments do not lose their numbers on every switch.
+  const latestCounts = pages[0]?.stateCounts;
+  const countsRef = useRef(latestCounts);
+  if (latestCounts) countsRef.current = latestCounts;
+  const stateCounts = countsRef.current;
+  const counts: Partial<Record<SupportReportFilter, number>> = stateCounts
+    ? {
+        NEW: stateCounts._new,
+        IN_PROGRESS: stateCounts.inProgress,
+        CLOSED: stateCounts.closed,
+      }
+    : {};
 
   let listContent: ReactNode;
   if (query.isPending) {
@@ -274,13 +302,6 @@ export function ServerAdminSupportReportsPanel({
           </h2>
           <p className="server-admin-muted">{t('serverAdmin.reports.body')}</p>
         </div>
-        {newCount !== undefined ? (
-          <span className="server-admin-count">
-            {t('serverAdmin.reports.newCount', {
-              count: newCount,
-            })}
-          </span>
-        ) : null}
       </div>
 
       <div
@@ -291,17 +312,26 @@ export function ServerAdminSupportReportsPanel({
             <legend className="sr-only">
               {t('serverAdmin.reports.filter.label')}
             </legend>
-            {SUPPORT_REPORT_FILTERS.map((value) => (
-              <button
-                key={value}
-                type="button"
-                className="secondary"
-                aria-pressed={filter === value}
-                onClick={() => changeFilter(value)}
-              >
-                {t(`serverAdmin.reports.filter.${value}`)}
-              </button>
-            ))}
+            {SUPPORT_REPORT_FILTERS.map((value) => {
+              const label = t(`serverAdmin.reports.filter.${value}`);
+              const count = counts[value];
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  className="secondary"
+                  aria-pressed={filter === value}
+                  onClick={() => changeFilter(value)}
+                >
+                  {count === undefined
+                    ? label
+                    : t('serverAdmin.reports.filter.withCount', {
+                        label,
+                        count,
+                      })}
+                </button>
+              );
+            })}
           </fieldset>
           {closedNotice === 'gone' ? (
             <p className="status status-error" role="alert">
@@ -314,6 +344,9 @@ export function ServerAdminSupportReportsPanel({
             </p>
           ) : null}
           {listContent}
+          <p className="server-admin-muted server-admin-report-anonymous">
+            {t('serverAdmin.reports.anonymousFooter')}
+          </p>
         </div>
 
         {selectedId ? (
@@ -323,6 +356,7 @@ export function ServerAdminSupportReportsPanel({
             reportId={selectedId}
             onClose={closeDetail}
             onDraftChange={changeDraft}
+            onEditTemplates={onEditTemplates}
           />
         ) : null}
       </div>

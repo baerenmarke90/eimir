@@ -20,6 +20,7 @@ import {
   supportReportErrorKey,
   isTicketUncertain,
   ticketFooterPreview,
+  formatReportDay,
 } from './supportReportsAdmin';
 
 function problemResponse(status: number, body: Record<string, unknown>) {
@@ -32,6 +33,8 @@ function problemResponse(status: number, body: Record<string, unknown>) {
 }
 
 const report: SupportReportDetailView = {
+  os: 'Android 16',
+  platform: 'app',
   accountId: '00000000-0000-4000-8000-000000000001',
   appVersion: '1.4.0',
   build: '412',
@@ -371,5 +374,28 @@ describe('support report admin helpers', () => {
     expect(replyApi).not.toHaveBeenCalled();
     expect((error as ClientProblemError).kind).toBe('offline');
     online.mockRestore();
+  });
+});
+
+describe('formatReportDay', () => {
+  // Late evening, local time: half of all timestamps lie on the other side of noon.
+  const now = new Date(2026, 10, 26, 20, 0);
+
+  it('names a report from this afternoon as today', () => {
+    expect(formatReportDay(new Date(2026, 10, 26, 13, 0), 'en', now)).toBe(
+      'today',
+    );
+  });
+
+  it('names a report from last evening as yesterday', () => {
+    expect(formatReportDay(new Date(2026, 10, 25, 18, 0), 'en', now)).toBe(
+      'yesterday',
+    );
+  });
+
+  it('names a report from just after midnight as today', () => {
+    expect(formatReportDay(new Date(2026, 10, 26, 0, 5), 'en', now)).toBe(
+      'today',
+    );
   });
 });

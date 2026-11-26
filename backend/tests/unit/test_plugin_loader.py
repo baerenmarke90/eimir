@@ -511,9 +511,12 @@ def test_the_worker_refuses_to_start_when_a_plugin_refuses_its_configuration(
         runner.main()
 
 
-def test_the_in_tree_pro_plugin_has_no_chain_and_accepts_the_settings() -> None:
-    # The existing Pro tables stay in the Core chain (Decision 0017, decision 6).
+def test_the_in_tree_pro_plugin_has_its_own_chain_and_accepts_the_settings() -> None:
+    # The older Pro tables stay in the Core chain (Decision 0017, decision 6);
+    # the gift code tables start the Pro chain (ServerAdmin part 5).
     from eimir.config import get_settings
 
-    assert pro_plugin_object().migrations() is None
+    spec = pro_plugin_object().migrations()
+    assert spec is not None
+    assert spec.version_table == "alembic_version_pro"
     pro_plugin_object().validate(get_settings())

@@ -294,6 +294,12 @@ PLUGIN_TABLES: tuple[PluginTable, ...] = (
     # column; the row cascades with its report (``ON DELETE CASCADE``), so the
     # retention of reports and the deletion of the reporter's Account remove it.
     PluginTable("support_report_tickets", _OPERATOR, None, ()),
+    # Pro plugin, its own migration chain (``alembic_version_pro``): operator-made
+    # gift codes (ServerAdmin part 5). Operator data without a Space scope: a
+    # deleted Space, grant or Account only clears its reference (``ON DELETE SET
+    # NULL``), so the batch counts stay right; the codes cascade with their batch.
+    PluginTable("gift_code_batches", _GIFT_CODES, None, ("created_by", "revoked_by")),
+    PluginTable("gift_codes", _GIFT_CODES, None, (), protected_payload_context="GiftCodePayload"),
 )
 
 PLUGIN_TABLE_NAMES = frozenset(row.table for row in PLUGIN_TABLES)

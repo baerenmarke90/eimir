@@ -10,6 +10,7 @@ plugin imports no Pro module before a hook runs.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
@@ -46,6 +47,7 @@ _MODEL_MODULES = (
     "eimir_pro.calendar_sync.models",
     "eimir_pro.couple_games.models",
     "eimir_pro.garden.models",
+    "eimir_pro.gift_codes.models",
     "eimir_pro.heart_hunt.models",
     "eimir_pro.once_messages.models",
     "eimir_pro.partner_quick_actions.models",
@@ -496,9 +498,13 @@ class InTreeProPlugin:
         return _DATE_IDEAS
 
     def migrations(self) -> MigrationSpec | None:
-        # The existing Pro tables stay in the Core chain (Decision 0017,
-        # decision 6); a plugin chain starts with the first new Pro table.
-        return None
+        # The older Pro tables stay in the Core chain (Decision 0017, decision
+        # 6); the Pro chain starts with the gift code tables (ServerAdmin part
+        # 5). It runs after the Core chain and references Core tables only.
+        return MigrationSpec(
+            script_location=str(Path(__file__).resolve().parent / "alembic"),
+            version_table="alembic_version_pro",
+        )
 
     def validate(self, settings: Settings) -> None:
         # The integration settings are still Core settings and Core validates them.

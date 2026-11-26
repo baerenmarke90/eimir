@@ -278,6 +278,10 @@ EXCLUDED_TABLES: dict[str, str] = {
     # Operator-side technical link of a support report to the operator's ticket (#2189). It is
     # not personal content of the reporter, so it stays out of the personal data copy (#2245).
     "support_report_tickets": "Operator-side ticket link of a report; not the person's content.",
+    # Operator-made gift codes (ServerAdmin part 5). A redeemed code's Pro time is the Space's
+    # entitlement grant, not the code.
+    "gift_code_batches": "Operator-side gift code batch/code; not a couple's content.",
+    "gift_codes": "Operator-side gift code batch/code; not a couple's content.",
     # The Transfer Bundle's own tables (feature removed by Decision 0020).
     "transfer_exports": "Transfer Bundle bookkeeping of the removed self-service feature.",
     "transfer_imports": "Transfer Bundle bookkeeping of the removed self-service feature.",

@@ -74,12 +74,13 @@ def admin_plugin_object() -> Any:
     return import_module("eimir_admin.plugin").plugin
 
 
-CHAIN_PLUGIN_TABLES = frozenset({"support_report_tickets"})
+CHAIN_PLUGIN_TABLES = frozenset({"support_report_tickets", "gift_code_batches", "gift_codes"})
 """Manifest tables created by a plugin's own migration chain, never by the Core chain.
 
-The Pro tables are part of the Core chain; the operator plugin's are not
-(Decision 0017, decision 6). The test database gets them from the models when
-that distribution is installed.
+The older Pro tables are part of the Core chain; the operator plugin's table and
+the Pro gift code tables (ServerAdmin part 5) are not (Decision 0017, decision
+6). The shared test database does not keep them; each plugin's own tests create
+them from the models per module when that distribution is installed.
 """
 
 

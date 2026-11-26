@@ -41,7 +41,12 @@ from tests.support.plugins import (
 )
 
 BACKEND = Path(__file__).resolve().parents[2]
-ADMIN_TABLES = set(CHAIN_PLUGIN_TABLES)
+# The operator plugin's tables; the Pro chain's gift code tables are chain tables too.
+ADMIN_TABLES = {
+    row.table
+    for row in PLUGIN_TABLES
+    if row.table in CHAIN_PLUGIN_TABLES and row.capability.value in ADMIN_CAPABILITIES
+}
 
 
 def _plugin_model_modules() -> set[str]:

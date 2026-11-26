@@ -523,7 +523,7 @@ export function SharedPlanningOverviewPage({
 
   // #1790 F2: one quiet hint above the Plans list, derived from the wishes
   // that left OPEN. Both lifecycle lists are small, so read them completely,
-  // side by side. Like the Plans list it restores its last shared snapshot,
+  // in parallel. Like the Plans list it restores its last shared snapshot,
   // so the hint is there with the list and never pushes it down later.
   const journeyQuery = useWarmInfiniteQuery<WishDetail[], null>({
     queryKey: ['m5-s3', 'wishes', spaceId, 'journey-hint'],

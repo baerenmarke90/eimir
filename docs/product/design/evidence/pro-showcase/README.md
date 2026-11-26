@@ -33,7 +33,7 @@ of a moving scene.
 - [390 px, Light, Free, general](app-390-light-general-free.webp): heading, the memory-worlds card on its world tour, indicator, price anchor.
 - [390 px, Light, recap film](app-390-light-film.webp) and [map and closeness](app-390-light-map.webp): the current card plays, the indicator follows.
 - [430 px, Light, general](app-430-light-general.webp): the Mochis with the rising balloon.
-- [360 px, Dark, garden](app-360-dark-garden.webp), [price and plans](app-360-dark-price-and-plans.webp) and [catalogue](app-360-dark-catalogue.webp) with the "Neu" tags, the ten worlds and the storage entry.
+- [360 px, Dark, garden](app-360-dark-garden.webp), [price and plans](app-360-dark-price-and-plans.webp) and [catalogue](app-360-dark-catalogue.webp) with the `proPaywall.catalogue.new` tags, the ten worlds and the storage entry.
 - [390 px, Light, memory map context](app-390-light-memory-map-context.webp): the scene replaces the two-circle hero; the three benefits stay.
 - [390 px, Light, Pro active](app-390-light-active.webp): gallery kept, no price anchor and no plans.
 - [320 px, 200 % text](app-320-light-text-200.webp): no horizontal page scroll. The pane's browser has no German hyphenation dictionary, so long headings break anywhere here; `hyphens: auto` applies where the WebView has one.

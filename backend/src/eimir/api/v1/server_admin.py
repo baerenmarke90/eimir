@@ -777,7 +777,9 @@ def get_server_admin_overview(
     )
 
     worker_status, worker_last_seen_at = heartbeat.worker_state(session, "worker", current_time)
-    video_worker_status, _ = heartbeat.worker_state(session, "video-worker", current_time)
+    video_worker_status, _video_last_seen = heartbeat.worker_state(
+        session, "video-worker", current_time
+    )
     email_failures, push_failures = failed_deliveries_since(
         session, current_time - timedelta(hours=1)
     )

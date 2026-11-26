@@ -128,10 +128,10 @@ def run(
         # First evaluation (fresh install or upgrade): only failures from the
         # last interval are new; older rows stay in the Jobs page.
         failed_jobs_state.high_water_mark = at - INTERVAL
+    seen_failures = failed_jobs_state.high_water_mark or at - INTERVAL
     emails, pushes = failed_deliveries_since(session, at - timedelta(hours=1))
     active = {
-        "failed_jobs": newest_failure is not None
-        and newest_failure > failed_jobs_state.high_water_mark,
+        "failed_jobs": newest_failure is not None and newest_failure > seen_failures,
         "space_quota_pressure": _space_quota_pressure(session, settings),
         "disk_pressure": _disk_pressure(settings),
         "delivery_failures": max(emails, pushes) > DELIVERY_FAILURE_BURST,

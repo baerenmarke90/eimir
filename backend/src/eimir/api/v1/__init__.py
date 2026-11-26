@@ -56,6 +56,7 @@ from eimir.api.v1 import (
     server_admin,
     server_admin_monitoring,
     server_admin_observability,
+    server_admin_space_file,
     session_context,
     shared_notes,
     spaces,
@@ -82,6 +83,7 @@ router.include_router(instance.router)
 router.include_router(server_admin.router)
 router.include_router(server_admin_observability.router)
 router.include_router(server_admin_monitoring.router)
+router.include_router(server_admin_space_file.router)
 
 normal_router = APIRouter(dependencies=[Depends(require_normal_operation)])
 normal_router.include_router(account.router)

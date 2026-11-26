@@ -18,6 +18,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { isVisibleNow, observeVisibility } from '../../motion/visibility';
 import './WorldEnter.css';
 
 /** Frames count as smooth when two in a row arrive within this time. */
@@ -30,7 +31,8 @@ const MAX_WAIT_MS = 2400;
 const DECODE_WAIT_MS = 1200;
 
 /**
- * Whether the world is actually seen yet. While the world is drawn at its
+ * Whether the world is actually seen yet: entered, and its tab shown at least
+ * once. While the world is drawn at its
  * practically invisible opacity, its own entrance (prints falling onto the
  * Stapel, notes pinned to the door, the book's invite) must wait, or it plays
  * unseen under the loading card. Outside `WorldEnter` a world counts as seen.
@@ -49,6 +51,10 @@ export function WorldEnter({
   cover?: ReactNode;
 }) {
   const [entered, setEntered] = useState(false);
+  // A world that enters while its tab is hidden is there at once when the
+  // tab is shown: a hidden tab skips its style, so a cross-fade started there
+  // would only play on the reveal and show the loading card again.
+  const [instant, setInstant] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     let frame = 0;
@@ -92,17 +98,41 @@ export function WorldEnter({
       await waitSmooth();
       await decodeImages();
       await waitSmooth();
-      if (!cancelled) setEntered(true);
+      if (cancelled) return;
+      const box = boxRef.current;
+      setInstant(Boolean(box && !isVisibleNow(box).keptView));
+      setEntered(true);
     })();
     return () => {
       cancelled = true;
       cancelAnimationFrame(frame);
     };
   }, []);
+  // Seen: entered and its tab shown at least once. A tab built ahead enters
+  // its world unseen; the world's own entrance (the Stapel's falling prints)
+  // waits for the person, so it never plays while the tab is hidden.
+  const [seen, setSeen] = useState(false);
+  useEffect(() => {
+    const box = boxRef.current;
+    if (!entered || seen || !box) return;
+    let stop: (() => void) | undefined;
+    stop = observeVisibility(
+      box,
+      (state) => {
+        if (!state.keptView || !state.page) return;
+        setSeen(true);
+        stop?.();
+      },
+      { onScreen: false },
+    );
+    return () => stop?.();
+  }, [entered, seen]);
+  const worldSeen = entered && seen;
   return (
     <div
       className="memory-world-stage"
       data-entered={entered ? 'true' : 'false'}
+      data-enter={instant ? 'instant' : undefined}
     >
       {/* The loading card stays until the world is ready, then cross-fades. */}
       {cover ? (
@@ -117,8 +147,9 @@ export function WorldEnter({
         ref={boxRef}
         className="memory-world-enter"
         data-entered={entered ? 'true' : 'false'}
+        data-seen={worldSeen ? 'true' : 'false'}
       >
-        <WorldEnteredContext.Provider value={entered}>
+        <WorldEnteredContext.Provider value={worldSeen}>
           {children}
         </WorldEnteredContext.Provider>
       </div>

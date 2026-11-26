@@ -449,20 +449,50 @@
   }
 }
 
-/* A kept primary tab is layout-transparent; hidden tabs leave layout entirely. */
+/* A kept primary tab is a plain block around its page. */
 .primary-tab-panel {
   /* Measured per peek by the tab panels; these are the neutral defaults. */
   --primary-tab-peek-left: 0px;
   --primary-tab-peek-width: 100%;
   --primary-tab-peek-origin: 0px;
 
-  display: contents;
+  display: block;
 }
 
-.primary-tab-panel[hidden],
+/* A hidden tab keeps its rendering state and skips it: it is laid over the
+   viewport out of the reading flow, like a pager page, so showing it again
+   (a peek or a return) reuses its layout and never restarts its CSS
+   animations, which `display: none` would. */
+.product-main > .primary-tab-panel[hidden],
 .product-main:not([data-primary-tab-dragging])
   > .primary-tab-panel[data-primary-tab-peek] {
-  display: none;
+  position: fixed;
+  z-index: -1;
+  top: 0;
+  left: 0;
+  display: block;
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  content-visibility: hidden;
+  pointer-events: none;
+}
+
+.product-main > .primary-tab-panel[hidden] > .page,
+.product-main:not([data-primary-tab-dragging])
+  > .primary-tab-panel[data-primary-tab-peek]
+  > .page {
+  width: calc(100% - 2 * var(--page-gutter));
+  margin-inline: auto;
+}
+
+/* A built neighbour is drawn for one frame before its first reveal
+   (`PrimaryTabPanels`): practically invisible, but painted (opacity 0 would
+   skip the paint), so its first layout and the GPU's first use of its
+   effects are paid while nobody touches the screen. */
+.product-main > .primary-tab-panel[hidden][data-primary-tab-rehearse] {
+  content-visibility: visible;
+  opacity: 0.002;
 }
 
 /* A panel prepared before its first visit (#2063) is laid out like the
@@ -587,8 +617,7 @@
     margin-left: var(--primary-tab-peek-left, 0px);
   }
 
-  .product-shell-body:has(.product-main[data-primary-tab-dragging]),
-  .product-shell-body:has(.product-main[data-navigation-slide]) {
+  .product-shell[data-pages-moving] .product-shell-body {
     overflow-x: clip;
   }
 
@@ -805,6 +834,17 @@
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
+}
+
+/* While the pages slide sideways between tabs (a swipe or a tab chosen in
+   the bar), the glass pauses and the bar takes its opaque surface, as with
+   reduced transparency: the blur would otherwise be computed again for every
+   frame of the slide. Resting and scrolling keep the glass (Product Owner,
+   2026-11-26). */
+.product-shell[data-pages-moving] .mobile-bottom-shell {
+  background: var(--color-surface-overlay);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 .mobile-bottom-shell .mobile-bottom-nav {

@@ -42,13 +42,13 @@ describe('ServerAdmin area navigation', () => {
     );
 
     expect(html).toContain('href="/server-admin"');
-    expect(html).toContain('href="/server-admin?section=accounts"');
+    expect(html).toContain('href="/server-admin?section=search"');
     expect(html).toContain('href="/server-admin?section=monitoring"');
     expect(html).not.toContain('section=reports');
     // The Compact bar and the Expanded list each mark People as current.
     const current = currentLinks(html);
     expect(current).toHaveLength(2);
-    for (const tag of current) expect(tag).toContain('section=accounts');
+    for (const tag of current) expect(tag).toContain('section=search');
   });
 
   it('adds Help with the unread badge when the plugin is available', () => {
@@ -129,7 +129,7 @@ describe('ServerAdmin area navigation', () => {
         screen.getAllByRole('link', { name: serverAdmin.areas.people })[0],
       );
       expect(screen.getByTestId('location').textContent).toBe(
-        '?section=accounts',
+        '?section=search',
       );
     });
   });

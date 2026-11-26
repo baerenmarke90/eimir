@@ -20,6 +20,13 @@ import {
     AccountDeletionStatusToJSON,
     AccountDeletionStatusToJSONTyped,
 } from './AccountDeletionStatus';
+import type { ServerAdminAccountSpace } from './ServerAdminAccountSpace';
+import {
+    ServerAdminAccountSpaceFromJSON,
+    ServerAdminAccountSpaceFromJSONTyped,
+    ServerAdminAccountSpaceToJSON,
+    ServerAdminAccountSpaceToJSONTyped,
+} from './ServerAdminAccountSpace';
 import type { ServerAdminAccountEmail } from './ServerAdminAccountEmail';
 import {
     ServerAdminAccountEmailFromJSON,
@@ -136,6 +143,12 @@ export interface ServerAdminAccountDetail {
      * @memberof ServerAdminAccountDetail
      */
     primaryEmail: string | null;
+    /**
+     * 
+     * @type {Array<ServerAdminAccountSpace>}
+     * @memberof ServerAdminAccountDetail
+     */
+    spaces?: Array<ServerAdminAccountSpace>;
 }
 
 
@@ -189,6 +202,7 @@ export function ServerAdminAccountDetailFromJSONTyped(json: any, ignoreDiscrimin
         'mailRecoveryAvailable': json['mailRecoveryAvailable'],
         'passkeyCount': json['passkeyCount'],
         'primaryEmail': json['primaryEmail'],
+        'spaces': json['spaces'] == null ? undefined : ((json['spaces'] as Array<any>).map(ServerAdminAccountSpaceFromJSON)),
     };
 }
 
@@ -220,6 +234,7 @@ export function ServerAdminAccountDetailToJSONTyped(value?: ServerAdminAccountDe
         'mailRecoveryAvailable': value['mailRecoveryAvailable'],
         'passkeyCount': value['passkeyCount'],
         'primaryEmail': value['primaryEmail'],
+        'spaces': value['spaces'] == null ? undefined : ((value['spaces'] as Array<any>).map(ServerAdminAccountSpaceToJSON)),
     };
 }
 

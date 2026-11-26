@@ -16,6 +16,8 @@ import {
   STAGE_SCOPE_ATTRIBUTE,
   stageFinished,
   stagePhase,
+  stagesReleased,
+  stagesSettled,
   useStage,
   useStageHold,
 } from './stage';
@@ -53,6 +55,15 @@ function Stage({ canStart }: { canStart?: () => boolean }) {
     duration: 1000,
     canStart,
   });
+  return <div data-testid="stage" ref={ref} />;
+}
+
+function HeldOpening({ pending }: { pending: boolean }) {
+  const ref = useStage<HTMLDivElement>('test.held', {
+    duration: 1000,
+    hold: 400,
+  });
+  useStageHold('test.held', pending);
   return <div data-testid="stage" ref={ref} />;
 }
 
@@ -293,10 +304,12 @@ describe('useStage places late members on its clock (#2147)', () => {
     scope()?.append(target);
     const fake = member(target, delay, 400);
     members.push(fake);
-    // A render of the stage (or a DOM mutation) places it.
+    // A render of the stage (or a DOM mutation) places it in the next
+    // frame's animation callbacks, before that frame paints.
     view.rerender(<HeldStage pending={false} hold={0} />);
     await act(async () => {
       await Promise.resolve();
+      vi.advanceTimersByTime(20);
     });
     return fake;
   }
@@ -331,5 +344,64 @@ describe('useStage places late members on its clock (#2147)', () => {
     const fake = await mount(members, view, false, 300);
     expect(fake.startTime).toBe(1000);
     expect(fake.timing).toEqual({ delay: 300, duration: 400 });
+  });
+});
+
+describe('stagesSettled', () => {
+  it('resolves at once when no opening waits or plays', async () => {
+    let settled = false;
+    void stagesSettled().then(() => {
+      settled = true;
+    });
+    await act(async () => {});
+    expect(settled).toBe(true);
+  });
+
+  it('waits until every running opening ended', async () => {
+    render(<Stage />);
+    let settled = false;
+    void stagesSettled().then(() => {
+      settled = true;
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(900);
+    });
+    expect(settled).toBe(false);
+    await act(async () => {
+      vi.advanceTimersByTime(100);
+    });
+    expect(settled).toBe(true);
+  });
+});
+
+describe('stagesReleased', () => {
+  it('waits until an opening began, not merely until nothing waits', async () => {
+    let released = false;
+    void stagesReleased().then(() => {
+      released = true;
+    });
+    await act(async () => {});
+    // Nothing was considered yet: the shown tab still loads its data.
+    expect(released).toBe(false);
+
+    const view = render(<HeldOpening pending />);
+    await act(async () => {});
+    expect(stagePhase('test.held')).toBe('waiting');
+    expect(released).toBe(false);
+
+    view.rerender(<HeldOpening pending={false} />);
+    await act(async () => {});
+    expect(stagePhase('test.held')).toBe('playing');
+    expect(released).toBe(true);
+  });
+
+  it('resolves at once when an opening already began', async () => {
+    render(<Stage />);
+    let released = false;
+    void stagesReleased().then(() => {
+      released = true;
+    });
+    await act(async () => {});
+    expect(released).toBe(true);
   });
 });

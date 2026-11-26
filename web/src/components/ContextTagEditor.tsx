@@ -1,6 +1,6 @@
 import {
-  type Ref,
   type ReactNode,
+  type Ref,
   useEffect,
   useId,
   useImperativeHandle,
@@ -12,8 +12,8 @@ import { useApiRuntime } from '../client/apiRuntimeContext';
 import { useContextTagSuggestions } from '../client/useContextTagSuggestions';
 import { useTranslation } from '../i18n';
 import './MemoryTagChoices.css';
-import { EimirIcon } from './EimirIcon';
 import { AddActionButton } from './AddAction';
+import { EimirIcon } from './EimirIcon';
 import { ComposerChip, ComposerTool } from './PageComposer';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 
@@ -149,6 +149,7 @@ function ContextTagEditorContent({
   const editor = (
     <fieldset
       className={`memory-tag-choices${discloseEmpty ? ' context-tag-disclosure' : ''}`}
+      data-entry={entryVisible ? 'open' : 'closed'}
       disabled={disabled}
     >
       <legend

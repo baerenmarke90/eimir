@@ -16,10 +16,7 @@ import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { RecapsApi } from '../api/generated/apis/RecapsApi';
 import { AttachmentReadRequestParentTypeEnum } from '../api/generated/models/AttachmentReadRequest';
 import type { AuthorSummary } from '../api/generated/models/AuthorSummary';
-import {
-  DiscoverSelectionFromJSON,
-  DiscoverSelectionToJSON,
-} from '../api/generated/models/DiscoverSelection';
+import { DiscoverSelectionToJSON } from '../api/generated/models/DiscoverSelection';
 import type { StoryItem } from '../api/generated/models/StoryItem';
 import {
   StoryKind,
@@ -39,6 +36,7 @@ import { galleryCover } from '../client/galleryCover';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { usePartnerNickname } from '../client/partnerNickname';
 import { photoShape } from '../client/photoShape';
+import { usePrimaryTabActive } from '../client/primaryTabActive';
 import { usePrimaryTabPeeked } from '../client/primaryTabPeek';
 import {
   type ClientProblemError,
@@ -66,6 +64,10 @@ import {
   STORY_OURS_ROUTE,
   STORY_PHOTOS_ROUTE,
 } from '../client/routes';
+import {
+  STORY_DISCOVER_STALE_TIME,
+  storyDiscoverQuery,
+} from '../client/storyDiscoverQuery';
 import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import {
   aggregateStoryPages,
@@ -153,7 +155,7 @@ function isStoryKind(value: string | null): value is StoryKindValue {
 
 export function StoryProductPage({
   apis,
-  active = true,
+  active: activeOverride,
   accountId,
   spaceId,
   loadMemoryImage,
@@ -164,7 +166,10 @@ export function StoryProductPage({
   mapSession,
 }: {
   apis: ReferenceApis;
-  /** A kept or previewed panel retains its data while the active route owns input. */
+  /**
+   * A kept or previewed panel retains its data while the active route owns
+   * input. Defaults to the kept tab's own state (`usePrimaryTabActive`).
+   */
   active?: boolean;
   accountId: string;
   spaceId: string;
@@ -180,6 +185,8 @@ export function StoryProductPage({
   /** The map's session memory: the Karte segment reopens its Place. */
   mapSession?: MemoryMapSession;
 }) {
+  const tabActive = usePrimaryTabActive();
+  const active = activeOverride ?? tabActive;
   const rootIntro = useRootTabIntro<HTMLDivElement>('story');
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -242,7 +249,10 @@ export function StoryProductPage({
   // filters and mounted content for Back, even while a swipe previews Discover.
   // A parked panel nobody sees keeps showing its own view: it must not mount
   // Discover content (and read its recap) before it is revealed.
-  const peeked = usePrimaryTabPeeked(appRoutePath('story'));
+  const peeked = usePrimaryTabPeeked(
+    appRoutePath('story'),
+    !active && activeView !== 'discover',
+  );
   const displayedView = active || !peeked ? activeView : 'discover';
   // Discover does not inherit the retained Timeline scope.
   const effectiveFilters = filters;
@@ -314,22 +324,14 @@ export function StoryProductPage({
     retry: false,
   });
   const discoverQuery = useQuery({
-    queryKey: authorSummaryQueryKeys.discover(spaceId, accountId),
-    queryFn: async () => {
-      return loadProductWithReadCache({
-        accountId,
-        spaceId,
-        kind: 'story-discover',
-        resourceId: 'discover',
-        load: () =>
-          startupReads?.takeDiscover() ??
-          apis.story.getStoryDiscover({ spaceId }),
-        serialize: DiscoverSelectionToJSON,
-        deserialize: (payload) => DiscoverSelectionFromJSON(payload),
-      });
-    },
+    ...storyDiscoverQuery({
+      apis,
+      accountId,
+      spaceId,
+      take: startupReads?.takeDiscover,
+    }),
     enabled: needsRead,
-    staleTime: 30_000,
+    staleTime: STORY_DISCOVER_STALE_TIME,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
     refetchInterval:

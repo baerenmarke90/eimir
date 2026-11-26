@@ -31,19 +31,28 @@ export function useViewportClamp(ref: RefObject<HTMLElement | null>): void {
     const element = ref.current;
     if (!element || typeof window === 'undefined') return;
     let frame = 0;
+    // Start from no shift; afterwards every change is written only when the
+    // measured shift differs.
+    let applied = 0;
+    element.style.setProperty('--viewport-clamp-shift', '0px');
     const measure = () => {
       // Not laid out (hidden tab) or mid-motion: keep the last settled value.
-      if (element.closest(NAVIGATION_MOTION_SELECTOR)) return;
-      element.style.setProperty('--viewport-clamp-shift', '0px');
-      const rect = element.getBoundingClientRect();
-      if (rect.width === 0 && rect.height === 0) return;
+      if (element.closest(`${NAVIGATION_MOTION_SELECTOR}, [hidden]`)) return;
+      // Read before writing, and take the applied shift out of the measured
+      // box, so the measurement never forces a second layout.
+      const box = element.getBoundingClientRect();
+      if (box.width === 0 && box.height === 0) return;
+      const left = box.left - applied;
+      const right = box.right - applied;
       const viewport = document.documentElement.clientWidth;
       let shift = 0;
-      if (rect.left < VIEWPORT_EDGE_GAP_PX) {
-        shift = VIEWPORT_EDGE_GAP_PX - rect.left;
-      } else if (rect.right > viewport - VIEWPORT_EDGE_GAP_PX) {
-        shift = viewport - VIEWPORT_EDGE_GAP_PX - rect.right;
+      if (left < VIEWPORT_EDGE_GAP_PX) {
+        shift = VIEWPORT_EDGE_GAP_PX - left;
+      } else if (right > viewport - VIEWPORT_EDGE_GAP_PX) {
+        shift = viewport - VIEWPORT_EDGE_GAP_PX - right;
       }
+      if (shift === applied) return;
+      applied = shift;
       element.style.setProperty('--viewport-clamp-shift', `${shift}px`);
     };
     const schedule = () => {

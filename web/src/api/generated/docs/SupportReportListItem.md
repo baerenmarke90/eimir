@@ -1,7 +1,7 @@
 
 # SupportReportListItem
 
-One report in the list: triage facts only, no note text.
+One report in the list: triage facts and a short note preview, never the full note.
 
 ## Properties
 
@@ -15,6 +15,9 @@ Name | Type
 `hasReply` | boolean
 `id` | string
 `kind` | [SupportReportKind](SupportReportKind.md)
+`notePreview` | string
+`os` | string
+`platform` | string
 `state` | [SupportReportState](SupportReportState.md)
 `ticket` | [SupportReportTicketSummary](SupportReportTicketSummary.md)
 
@@ -33,6 +36,9 @@ const example = {
   "hasReply": null,
   "id": null,
   "kind": null,
+  "notePreview": null,
+  "os": null,
+  "platform": null,
   "state": null,
   "ticket": null,
 } satisfies SupportReportListItem

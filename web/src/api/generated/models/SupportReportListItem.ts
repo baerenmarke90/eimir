@@ -36,7 +36,7 @@ import {
 } from './SupportReportKind';
 
 /**
- * One report in the list: triage facts only, no note text.
+ * One report in the list: triage facts and a short note preview, never the full note.
  * @export
  * @interface SupportReportListItem
  */
@@ -91,6 +91,24 @@ export interface SupportReportListItem {
     kind: SupportReportKind;
     /**
      * 
+     * @type {string}
+     * @memberof SupportReportListItem
+     */
+    notePreview: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof SupportReportListItem
+     */
+    os: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof SupportReportListItem
+     */
+    platform: string;
+    /**
+     * 
      * @type {SupportReportState}
      * @memberof SupportReportListItem
      */
@@ -117,6 +135,9 @@ export function instanceOfSupportReportListItem(value: object): value is Support
     if (!('hasReply' in value) || value['hasReply'] === undefined) return false;
     if (!('id' in value) || value['id'] === undefined) return false;
     if (!('kind' in value) || value['kind'] === undefined) return false;
+    if (!('notePreview' in value) || value['notePreview'] === undefined) return false;
+    if (!('os' in value) || value['os'] === undefined) return false;
+    if (!('platform' in value) || value['platform'] === undefined) return false;
     if (!('state' in value) || value['state'] === undefined) return false;
     if (!('ticket' in value) || value['ticket'] === undefined) return false;
     return true;
@@ -140,6 +161,9 @@ export function SupportReportListItemFromJSONTyped(json: any, ignoreDiscriminato
         'hasReply': json['hasReply'],
         'id': json['id'],
         'kind': SupportReportKindFromJSON(json['kind']),
+        'notePreview': json['notePreview'],
+        'os': json['os'],
+        'platform': json['platform'],
         'state': SupportReportStateFromJSON(json['state']),
         'ticket': SupportReportTicketSummaryFromJSON(json['ticket']),
     };
@@ -164,6 +188,9 @@ export function SupportReportListItemToJSONTyped(value?: SupportReportListItem |
         'hasReply': value['hasReply'],
         'id': value['id'],
         'kind': SupportReportKindToJSON(value['kind']),
+        'notePreview': value['notePreview'],
+        'os': value['os'],
+        'platform': value['platform'],
         'state': SupportReportStateToJSON(value['state']),
         'ticket': SupportReportTicketSummaryToJSON(value['ticket']),
     };

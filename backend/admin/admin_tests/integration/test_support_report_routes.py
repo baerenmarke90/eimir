@@ -193,7 +193,7 @@ def test_feature_off_does_not_tell_a_non_admin_anything(client: Any, session: Se
     assert response.status_code == 403
 
 
-def test_list_filters_by_state_and_never_returns_note_text(client: Any, session: Session) -> None:
+def test_list_filters_by_state_and_returns_a_note_preview(client: Any, session: Session) -> None:
     _, token = _operator(session)
     new = _report(session)
     progress = _report(session, state=SupportReportState.IN_PROGRESS)
@@ -219,19 +219,55 @@ def test_list_filters_by_state_and_never_returns_note_text(client: Any, session:
         "failureReference",
         "appVersion",
         "build",
+        "platform",
+        "os",
+        "notePreview",
         "hasReply",
         "ticket",
     }
+    assert item["notePreview"] == SECRET_NOTE
+    assert item["platform"] == "app"
+    assert item["os"] == "Android 16"
     assert item["hasReply"] is True
     assert item["failureReference"] == "GET:/api/v1/plans:500:INTERNAL_ERROR:app"
     assert item["appVersion"] == "0.2.0"
     assert item["build"] == "123"
     assert next(e for e in body["items"] if e["id"] == str(new.id))["hasReply"] is False
     for response in (everything, only_closed):
-        assert SECRET_NOTE not in response.text
+        assert REPORTER_EMAIL not in response.text
+        assert "Private Reporter Name" not in response.text
     assert [entry["id"] for entry in only_closed.json()["items"]] == [str(closed.id)]
     # The unread count is not narrowed by the list filter.
     assert only_closed.json()["newCount"] == 1
+
+
+def test_list_cuts_a_long_note(client: Any, session: Session) -> None:
+    _, token = _operator(session)
+    long_note = "word " * 40
+    _report(session, note=long_note)
+    blank = _report(session, note="  \n ")
+
+    items = client.get(BASE, headers=auth(token)).json()["items"]
+
+    previews = {item["id"]: item["notePreview"] for item in items}
+    assert previews[str(blank.id)] is None
+    cut = next(value for key, value in previews.items() if key != str(blank.id))
+    assert len(cut) == 161
+    assert cut.endswith("…")
+    assert long_note.strip() not in "".join(item["notePreview"] or "" for item in items)
+
+
+def test_list_state_counts_ignore_archived(client: Any, session: Session) -> None:
+    _, token = _operator(session)
+    _report(session)
+    _report(session)
+    _report(session, state=SupportReportState.IN_PROGRESS)
+    archived = _report(session)
+    service.set_archived(session, archived.id, True)
+
+    for path in (BASE, f"{BASE}?state=CLOSED", f"{BASE}?archived=true"):
+        body = client.get(path, headers=auth(token)).json()
+        assert body["stateCounts"] == {"new": 2, "inProgress": 1, "closed": 0}, path
 
 
 def test_list_pagination_cursor_is_bound_to_state(client: Any, session: Session) -> None:

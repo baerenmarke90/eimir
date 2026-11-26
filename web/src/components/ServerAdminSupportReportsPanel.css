@@ -1,13 +1,9 @@
 /*
- * ServerAdmin "Reports" section (#2189). Administration surface: denser than
- * couple-facing screens, but composed from Compact outward. On Compact an open
- * report replaces the list; from 80rem the list stays beside the report.
+ * ServerAdmin Help > Reports (#2189, cards and templates #2327). Administration
+ * surface: denser than couple-facing screens, but composed from Compact
+ * outward. On Compact an open report replaces the list; from 80rem the list
+ * stays beside the report.
  */
-
-/* The stacked Compact heading keeps the count a small pill, not a full bar. */
-.server-admin-reports .server-admin-section-heading > .server-admin-count {
-  align-self: flex-start;
-}
 
 .server-admin-reports-layout {
   display: grid;
@@ -92,15 +88,17 @@
   list-style: none;
 }
 
+/* A report is a card: what it says leads, the facts frame it. */
 .server-admin-report-row {
   display: grid;
   width: 100%;
   min-height: var(--touch-target-comfortable);
-  gap: var(--space-1);
-  padding: var(--space-3) var(--space-4);
+  gap: var(--space-2);
+  padding: var(--space-4);
   border: var(--border-surface-width) solid var(--color-border-subtle);
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-large);
   background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
   color: var(--color-text);
   font-weight: 400;
   text-align: start;
@@ -121,8 +119,52 @@
 }
 
 .server-admin-report-row-meta {
+  min-width: 0;
   color: var(--color-text-secondary);
+  font-size: 0.875rem;
   overflow-wrap: anywhere;
+}
+
+/* The kind leads the row's accessible name but sits at the end visually. */
+.server-admin-report-kind {
+  order: 2;
+  flex: 0 0 auto;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.server-admin-report-kind.is-problem {
+  background: var(--color-error-surface);
+  color: var(--color-error);
+}
+
+.server-admin-report-kind.is-feedback {
+  background: var(--color-discovery-surface);
+  color: var(--color-text);
+}
+
+/* The note preview is the reporter's own words: quoted, in the display face. */
+.server-admin-report-preview {
+  display: block;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.server-admin-report-row-state {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.server-admin-report-anonymous {
+  margin: var(--space-4) 0 0;
+  font-size: 0.875rem;
+  text-align: center;
 }
 
 .server-admin-report-row-flags {
@@ -383,4 +425,108 @@
     max-height: 92vh;
     border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
   }
+}
+
+/* Reply templates above the reply field (#2327): tinted chips, no outline. */
+.server-admin-template-chips {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.server-admin-template-chips-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.server-admin-template-chips-head .server-admin-report-label {
+  margin: 0;
+}
+
+.server-admin-template-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.server-admin-template-chip {
+  min-height: var(--touch-target-comfortable);
+  overflow-wrap: anywhere;
+  padding: var(--space-2) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand-surface);
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.server-admin-template-edit {
+  min-height: var(--touch-target-comfortable);
+  padding: 0 var(--space-2);
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+/* Reply leads; the ticket shortcut is a round icon button beside it. */
+.server-admin-report-reply-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.server-admin-report-reply-actions > button[type="submit"] {
+  flex: 1 1 auto;
+}
+
+.server-admin-report-ticket-icon {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: var(--touch-target-comfortable);
+  height: var(--touch-target-comfortable);
+  padding: 0;
+  border-radius: var(--radius-pill);
+}
+
+/* Help > Reply templates (#2327): the create pill, then one card per template. */
+.server-admin-template-create {
+  margin: var(--space-4) 0;
+}
+
+.server-admin-template-list {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.server-admin-template-row {
+  display: grid;
+  width: 100%;
+  min-height: var(--touch-target-comfortable);
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border: var(--border-surface-width) solid var(--color-border-subtle);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+  color: var(--color-text);
+  font-weight: 400;
+  text-align: start;
+}
+
+.server-admin-template-row-text {
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

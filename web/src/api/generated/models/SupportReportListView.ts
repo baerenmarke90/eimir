@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { SupportReportStateCounts } from './SupportReportStateCounts';
+import {
+    SupportReportStateCountsFromJSON,
+    SupportReportStateCountsFromJSONTyped,
+    SupportReportStateCountsToJSON,
+    SupportReportStateCountsToJSONTyped,
+} from './SupportReportStateCounts';
 import type { SupportReportListItem } from './SupportReportListItem';
 import {
     SupportReportListItemFromJSON,
@@ -51,6 +58,12 @@ export interface SupportReportListView {
      * @memberof SupportReportListView
      */
     nextCursor: string | null;
+    /**
+     * 
+     * @type {SupportReportStateCounts}
+     * @memberof SupportReportListView
+     */
+    stateCounts: SupportReportStateCounts;
 }
 
 /**
@@ -61,6 +74,7 @@ export function instanceOfSupportReportListView(value: object): value is Support
     if (!('items' in value) || value['items'] === undefined) return false;
     if (!('newCount' in value) || value['newCount'] === undefined) return false;
     if (!('nextCursor' in value) || value['nextCursor'] === undefined) return false;
+    if (!('stateCounts' in value) || value['stateCounts'] === undefined) return false;
     return true;
 }
 
@@ -78,6 +92,7 @@ export function SupportReportListViewFromJSONTyped(json: any, ignoreDiscriminato
         'items': ((json['items'] as Array<any>).map(SupportReportListItemFromJSON)),
         'newCount': json['newCount'],
         'nextCursor': json['nextCursor'],
+        'stateCounts': SupportReportStateCountsFromJSON(json['stateCounts']),
     };
 }
 
@@ -96,6 +111,7 @@ export function SupportReportListViewToJSONTyped(value?: SupportReportListView |
         'items': ((value['items'] as Array<any>).map(SupportReportListItemToJSON)),
         'newCount': value['newCount'],
         'nextCursor': value['nextCursor'],
+        'stateCounts': SupportReportStateCountsToJSON(value['stateCounts']),
     };
 }
 

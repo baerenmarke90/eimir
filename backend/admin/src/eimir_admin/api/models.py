@@ -1,8 +1,9 @@
 """Wire models of the operator support-report API (#2189).
 
-A list item never carries the note: the text of a report is read one report at a
-time, in the detail. The detail names the reporter by the opaque account id
-only; the operator finds the person through the ServerAdmin account directory.
+A list item carries only a preview of the note (at most 160 characters, #2327);
+the full text of a report is read one report at a time, in the detail. The
+detail names the reporter by the opaque account id only; the operator finds the
+person through the ServerAdmin account directory.
 """
 
 from __future__ import annotations
@@ -39,8 +40,8 @@ class SupportReportOperatorReply(ApiModel):
     replied_at: datetime
 
 
-class SupportReportListItem(ApiModel):
-    """One report in the list: triage facts only, no note text."""
+class SupportReportFacts(ApiModel):
+    """The triage facts shared by the list item and the detail."""
 
     id: UUID
     kind: SupportReportKind
@@ -51,8 +52,26 @@ class SupportReportListItem(ApiModel):
     failure_reference: str | None
     app_version: str
     build: str
+    # From the client context, for the card's meta line.
+    platform: str
+    os: str
     has_reply: bool
     ticket: SupportReportTicketSummary | None
+
+
+class SupportReportListItem(SupportReportFacts):
+    """One report in the list: triage facts and a short note preview, never the full note."""
+
+    # The note's first 160 characters on one line, or null without a note.
+    note_preview: str | None
+
+
+class SupportReportStateCounts(ApiModel):
+    """Unarchived reports per triage state, whatever the list filter."""
+
+    new: int
+    in_progress: int
+    closed: int
 
 
 class SupportReportListView(ApiModel):
@@ -61,9 +80,10 @@ class SupportReportListView(ApiModel):
     has_more: bool
     # Unarchived reports still in state NEW, whatever the list filter.
     new_count: int
+    state_counts: SupportReportStateCounts
 
 
-class SupportReportDetailView(SupportReportListItem):
+class SupportReportDetailView(SupportReportFacts):
     """One report in full, with its reply and ticket link."""
 
     note: str | None

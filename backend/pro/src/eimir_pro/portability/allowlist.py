@@ -240,6 +240,11 @@ EXCLUDED_TABLES: dict[str, str] = {
     "instance_administration_action_events": "Instance administration log.",
     "instance_administration_events": "Instance administration log.",
     "instance_administration_settings": "Instance administration.",
+    # ServerAdmin monitoring (#2317): operational state of the old instance.
+    "monitoring_alert_states": "Alert state of the old instance.",
+    "operational_metric_hours": "Operational history of the old instance.",
+    "request_metric_minutes": "Request counters of the old instance.",
+    "worker_heartbeats": "Worker liveness of the old instance.",
     "instance_bootstrap_state": "Instance administration.",
     "spaces": "The target Space exists already; the Space identity is not copied.",
     "space_configurations": "Instance-level Space configuration.",

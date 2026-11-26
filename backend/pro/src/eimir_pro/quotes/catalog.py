@@ -1,12 +1,17 @@
 """Curated, code-owned catalog of daily quotes, categories, and sources.
 
 This catalog is closed and code-owned (#1151):
-- Every saying is AI-generated text without an individual author. It is selected for
-  eimir. and used under the repository license, so no author or citation is shown.
+- The sayings are text without an individual author (AI-generated drafts, edited and
+  approved one by one by the Product Owner). They are used under the repository
+  license, so no author or citation is shown.
+- A separate small set of "Klassiker" are public-domain quotations. They show the
+  author and work; translations are our own and are labelled as translations.
 - The previous catalog of public-domain quotations and first-party editorial sayings is
   archived in `backend/pro/archive/quotes` and no longer served.
 - Rights and provenance stay recorded per saying in `daily_sayings.json`.
 - Each saying expresses a complete thought and carries exactly one category.
+- A collection holds the shared rights data. A single entry may override
+  `publication_year` and `source_display` (for example the work of an author).
 """
 
 from __future__ import annotations
@@ -151,7 +156,7 @@ def _load_localized_sayings() -> tuple[DailyQuote, ...]:
                 collection.get("rights_classification", RightsClassification.PUBLIC_DOMAIN)
             )
             rights_basis = collection["rights_basis"]
-            source_display = collection.get("source_display")
+            source_display = entry.get("source_display", collection.get("source_display"))
             translator = collection.get("translator")
             original_locale = collection.get("original_locale", "de")
             if locale != original_locale and (
@@ -178,8 +183,14 @@ def _load_localized_sayings() -> tuple[DailyQuote, ...]:
                     rights_classification=rights,
                     attribution_required=bool(author),
                     original_work=entry["work"],
-                    source_edition=f"{collection['source_edition']} {collection['source_url']}",
-                    publication_year=collection.get("publication_year"),
+                    source_edition=" ".join(
+                        part
+                        for part in (collection["source_edition"], collection.get("source_url", ""))
+                        if part
+                    ),
+                    publication_year=entry.get(
+                        "publication_year", collection.get("publication_year")
+                    ),
                     translator=translator,
                     rights_basis=rights_basis,
                 )

@@ -1,7 +1,8 @@
 """Authoritative Daily Quote Resolver.
 
 Determines the personal quote of the day for an authenticated caller within a Space:
-- Stable across reloads for the same Account + Space Day.
+- Stable across reloads for the same Space Day, shared by both partners, never repeating
+  the previous day's pick.
 - Bound to Space Pro capability (`daily.quote`).
 - Account-scoped personal category preferences across the curated sources.
 - Graceful fallback when selected categories yield no quote.
@@ -13,7 +14,7 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -77,6 +78,11 @@ def _normalize_lang(loc: str) -> str:
     return loc.split("-")[0].split("_")[0].lower()
 
 
+def _daily_index(space_id: object, day: date, size: int) -> int:
+    digest = hashlib.sha256(f"{space_id}:{day.isoformat()}".encode()).digest()
+    return int.from_bytes(digest[:8], "big") % size
+
+
 def resolve_daily_quote(
     session: Session,
     authorization: AuthorizationContext,
@@ -116,12 +122,14 @@ def resolve_daily_quote(
     if not candidate_pool:
         return ResolvedDailyQuote(quote=None, checked_on=checked_on, enabled=True)
 
-    # Deterministic selection based on (account_id, checked_on)
-    # Sort deterministically by id
+    # Seeded random pick per (space, day): both partners see the same pool entry on a given
+    # day, it stays stable across reloads, and it never repeats the previous day's pick.
     sorted_candidates = sorted(candidate_pool, key=lambda q: q.id)
-    hash_input = f"{authorization.account_id}:{checked_on.isoformat()}"
-    digest = hashlib.sha256(hash_input.encode("utf-8")).digest()
-    index = int.from_bytes(digest[:8], "big") % len(sorted_candidates)
+    index = _daily_index(authorization.space_id, checked_on, len(sorted_candidates))
+    if len(sorted_candidates) > 1 and index == _daily_index(
+        authorization.space_id, checked_on - timedelta(days=1), len(sorted_candidates)
+    ):
+        index = (index + 1) % len(sorted_candidates)
     chosen_quote = sorted_candidates[index]
 
     return ResolvedDailyQuote(

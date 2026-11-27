@@ -304,8 +304,16 @@ test('Today event trace keeps compact borderless composition and authoritative o
   for (const rect of rects) {
     expect(rect.width).toBeLessThan(320);
   }
-  const tops = rects.map((rect) => rect.top);
-  expect(new Set(tops).size).toBeLessThan(tops.length);
+  // A tile that was hovered returns from its lift over a short transition, so
+  // the shared row is measured until the tiles have settled.
+  await expect
+    .poll(async () => {
+      const settled = await tiles.evaluateAll((nodes) =>
+        nodes.map((node) => Math.round(node.getBoundingClientRect().top)),
+      );
+      return settled.length - new Set(settled).size;
+    })
+    .toBeGreaterThan(0);
 
   // Matches the Shared Planning Horizon ("Demnächst") tile width directly
   // above (#791 fifth follow-up): an earlier round capped these tiles

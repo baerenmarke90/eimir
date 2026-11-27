@@ -1776,6 +1776,50 @@
       }
     }
   },
+  "wirNotices": {
+    "title": "New for you",
+    "all": "See all",
+    "allLine": "All notifications",
+    "kinds": {
+      "today": "Today",
+      "date": "Date suggestion",
+      "counter": "New suggestion",
+      "selection": "Wish selection",
+      "list": "List",
+      "note": "Note",
+      "picture": "Picture ping-pong",
+      "heart": "Heart hunt",
+      "comment": "Comment",
+      "reaction": "Reaction"
+    },
+    "titles": {
+      "wish": "Your wish",
+      "selection": "Your wish selection",
+      "list": "A list",
+      "note": "New note",
+      "picture": "Your picture is finished",
+      "heart": "Found!",
+      "moment": "Your moment"
+    },
+    "lines": {
+      "date": "Waiting for your answer",
+      "selectionShared_one": "{{count}} idea to choose from",
+      "selectionShared_other": "{{count}} ideas to choose from",
+      "selectionShared": "Choose together",
+      "selectionReady": "Your result is here",
+      "selectionRandom": "Let chance decide?",
+      "shared": "Newly shared",
+      "picture": "Give it a name",
+      "heart": "Now you hide one.",
+      "on": "on “{{title}}”",
+      "more_one": "and {{count}} more",
+      "more_other": "and {{count}} more",
+      "moreItems_one": "+ {{count}} more",
+      "moreItems_other": "+ {{count}} more",
+      "allDay": "All day",
+      "plan": "Your plan for today"
+    }
+  },
   "wirDesign": {
     "title": "App design",
     "intro": "How eimir. feels for you. Only your view changes.",
@@ -3125,13 +3169,13 @@
       "settingsLabel": "Games waiting for you",
       "title": "Your turn",
       "reasons": {
-        "WHO_OF_US": "{{name}} is waiting for your answers.",
-        "WISH_DETECTIVE": "{{name}} is waiting for your move.",
-        "OUR_MOMENTS": "{{name}} is waiting for your move.",
-        "PICTURE_PING_PONG": "{{name}} drew on. Your turn.",
-        "HEART_HUNT": "{{name}} hid a heart for you.",
-        "GARDEN_SEED": "A seed from {{name}} is waiting to be planted.",
-        "GARDEN_BOUQUET": "{{name}} tied a bouquet for you."
+        "WHO_OF_US": "Your answers are still missing.",
+        "WISH_DETECTIVE": "Your move.",
+        "OUR_MOMENTS": "Your move.",
+        "PICTURE_PING_PONG": "Your turn to draw.",
+        "HEART_HUNT": "A heart is waiting to be found.",
+        "GARDEN_SEED": "A seed is waiting to be planted.",
+        "GARDEN_BOUQUET": "A bouquet for you."
       }
     },
     "heartHunt": {

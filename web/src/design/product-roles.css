@@ -127,6 +127,8 @@
   --duration-module-enter: 600ms;
   --motion-module-rise: 8px;
   --duration-send-flight: 560ms;
+  --duration-card-arrival: 1100ms;
+  --duration-card-arrival-sweep: 900ms;
   --duration-gesture-moment: 900ms;
   --duration-stagger-item: 60ms;
   --duration-stagger-module: 220ms;
@@ -222,6 +224,8 @@
     --duration-sequence-beat: 0ms;
     --duration-module-enter: 0ms;
     --duration-send-flight: 0ms;
+    --duration-card-arrival: 0ms;
+    --duration-card-arrival-sweep: 0ms;
     --duration-gesture-moment: 0ms;
     --duration-stagger-item: 0ms;
     --duration-stagger-module: 0ms;

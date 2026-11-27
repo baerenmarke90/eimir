@@ -1,0 +1,69 @@
+/*
+ * A new card arrives on Wir (#2345 B, Product Owner 2026-11-27, variant C):
+ * the reel makes room, then the card emerges from a soft blur, slightly
+ * smaller and lower, rises a touch past its size and settles; one light
+ * sweep crosses it. No glow or pulse follows. Cards present at a Wir opening
+ * wait until the opening has finished. With reduced motion every duration
+ * role is zero, so the card simply appears.
+ *
+ * The keyframes live in the motion layer (src/motion/motion.css, Motion
+ * Contract M14). The item sets `--wir-card-arrival-width` (its tile width). Only layout
+ * width animates on the item, never a transform, so the horizontal track is
+ * not nudged. The sweep colour is a local role at the token boundary.
+ */
+.wir-card-arrive {
+  --wir-card-arrival-wait: calc(var(--duration-sequence-beat) * 0);
+  --wir-card-sweep: #ffffffb3;
+
+  animation: eimir-motion-card-room var(--duration-module-enter)
+    var(--easing-standard) var(--wir-card-arrival-wait) backwards;
+}
+
+:root[data-theme="dark"] .wir-card-arrive {
+  --wir-card-sweep: #ffffff40;
+}
+
+.wir-card-arrive-after-opening {
+  --wir-card-arrival-wait: calc(var(--duration-module-enter) * 2);
+}
+
+.wir-card-arrive > a {
+  position: relative;
+  animation: eimir-motion-card-emerge var(--duration-card-arrival)
+    var(--easing-standard)
+    calc(var(--wir-card-arrival-wait) + var(--duration-module-enter)) backwards;
+}
+
+.wir-card-arrive > a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(
+      105deg,
+      transparent 35%,
+      var(--wir-card-sweep) 50%,
+      transparent 65%
+    )
+    no-repeat;
+  background-size: 250% 100%;
+  animation: eimir-motion-card-sweep var(--duration-card-arrival-sweep)
+    var(--easing-standard)
+    calc(
+      var(--wir-card-arrival-wait) +
+      var(--duration-module-enter) +
+      var(--duration-card-arrival) *
+      0.7
+    )
+    backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wir-card-arrive,
+  .wir-card-arrive > a,
+  .wir-card-arrive > a::after {
+    animation: none;
+  }
+}

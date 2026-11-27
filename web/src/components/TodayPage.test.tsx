@@ -2495,6 +2495,7 @@ describe('formatRelationshipDuration', () => {
     const MODULE_SECTION_MARKER: Record<DashboardModuleKey, string> = {
       relationship_presence: 'today-hero',
       partner_distance: 'partner-distance-signal',
+      new_for_you: 'today-section-new-for-you',
       shared_experience: 'shared-experience-section',
       games_waiting: 'today-section-waiting-games',
       daily_quote: 'daily-quote-card',
@@ -2525,7 +2526,10 @@ describe('formatRelationshipDuration', () => {
         key !== 'shared_garden' &&
         // Premium module with its own read that renders only while a game
         // waits; covered by `WirWaitingGamesModule.test.tsx`.
-        key !== 'games_waiting',
+        key !== 'games_waiting' &&
+        // Its own notice read that renders only while something is new or
+        // planned today; covered by `WirNewForYouModule.test.tsx`.
+        key !== 'new_for_you',
     );
 
     it('renders a personal complete order in DOM order, including the presence hero', () => {

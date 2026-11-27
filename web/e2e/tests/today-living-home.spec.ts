@@ -2300,8 +2300,15 @@ test('the add action stays put while a tab slides in', async ({ page }) => {
   await signInAndOpenToday(page);
   await expect(page.locator('[data-floating-create]:visible')).toHaveCount(1);
   // Keep the real slide observable even when Chromium misses a frame on CI.
-  await page.addStyleTag({
-    content: '.product-main { --duration-transition: 600ms; }',
+  // Motion reads its roles from the root element and caches them by the
+  // root's attributes, so the longer role goes on the root's own style: a
+  // rule on `.product-main` was never read, and the 180 ms slide could end
+  // before the first sampled frame after the tap.
+  await page.evaluate(() => {
+    document.documentElement.style.setProperty(
+      '--duration-transition',
+      '600ms',
+    );
   });
   for (const [label, destination] of [
     ['Momente', '/story'],

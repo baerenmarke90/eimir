@@ -21,7 +21,9 @@ from eimir.entitlements.models import (
     EntitlementTier,
 )
 
-NON_ENTITLEMENT_CAPABILITIES = frozenset({Capability.SUPPORT_OPERATOR.value})
+NON_ENTITLEMENT_CAPABILITIES = frozenset(
+    {Capability.SUPPORT_OPERATOR.value, Capability.GIFT_CODES_OPERATOR.value}
+)
 """Plugin-owned capabilities that no Premium grant carries (operator access, not a feature)."""
 ALL_PREMIUM_CAPABILITIES = [
     capability.value

@@ -1544,6 +1544,40 @@
         "web/src/i18n/locales/serverAdmin.ts"
       ]
     },
+    "server-admin-pro.spec.ts": {
+      "roots": [
+        "web/src/components/ServerAdminProPanel.tsx",
+        "web/src/components/ServerAdminProPanel.css",
+        "web/src/components/ServerAdminGiftCodeBatchSheet.tsx",
+        "web/src/components/GiftCodeRedeemSheet.tsx",
+        "web/src/components/GiftCodeRedeemSheet.css",
+        "web/src/components/ProPaywallPage.tsx",
+        "web/src/components/ShortTaskSheet.tsx",
+        "web/src/components/ServerAdminSheet.tsx",
+        "web/src/components/ServerAdminSheet.css",
+        "web/src/components/ServerAdminPage.tsx",
+        "web/src/components/ServerAdminPage.css",
+        "web/src/components/ServerAdminAreaNavigation.tsx",
+        "web/src/components/serverAdminAreas.ts",
+        "web/src/components/AddAction.tsx",
+        "web/src/components/Snackbar.tsx",
+        "web/src/components/UiState.tsx",
+        "web/src/client/serverAdminPro.ts",
+        "web/src/client/giftCodes.ts",
+        "web/src/client/serverAdmin.ts",
+        "web/src/client/instanceStatus.ts",
+        "web/src/client/supportReportsAvailability.ts",
+        "web/src/client/snackbar.ts",
+        "web/src/api/generated/apis/ServerAdminProApi.ts",
+        "web/src/api/generated/apis/GiftCodesApi.ts",
+        "web/src/api/generated/models/ProOverviewView.ts",
+        "web/src/api/generated/models/GiftCodeBatchView.ts",
+        "web/src/api/generated/models/GiftCodeRedemptionView.ts",
+        "web/src/api/generated/models/ServerAdminOverview.ts",
+        "web/src/i18n/locales/serverAdmin.ts",
+        "web/src/i18n/locales/proPaywall.ts"
+      ]
+    },
     "server-admin-situation.spec.ts": {
       "roots": [
         "web/src/components/ServerAdminPage.tsx",

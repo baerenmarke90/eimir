@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   AREA_SECTIONS,
   areaForSection,
+  availableSection,
   resolveServerAdminSection,
   SERVER_ADMIN_SECTIONS,
   sectionHref,
@@ -51,6 +52,27 @@ describe('ServerAdmin areas', () => {
       'help',
       'system',
     ]);
+  });
+
+  it('places Pro between Help and System only when available', () => {
+    expect(areaForSection('pro')).toBe('pro');
+    expect(
+      visibleAreas({ supportReportsAvailable: true, proAreaAvailable: false }),
+    ).not.toContain('pro');
+    expect(
+      visibleAreas({ supportReportsAvailable: true, proAreaAvailable: true }),
+    ).toEqual(['situation', 'people', 'help', 'pro', 'system']);
+    expect(
+      visibleAreas({ supportReportsAvailable: false, proAreaAvailable: true }),
+    ).toEqual(['situation', 'people', 'pro', 'system']);
+  });
+
+  it('falls back to the overview when Pro is unavailable', () => {
+    const pro = resolveServerAdminSection('pro');
+    expect(pro).toBe('pro');
+    expect(availableSection(pro, { proAreaAvailable: false })).toBe('overview');
+    expect(availableSection(pro, { proAreaAvailable: true })).toBe('pro');
+    expect(availableSection('jobs', { proAreaAvailable: false })).toBe('jobs');
   });
 
   it('builds stable links with optional parameters', () => {

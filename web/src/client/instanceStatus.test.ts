@@ -7,6 +7,37 @@ import {
 } from './instanceStatus';
 
 describe('instance registration availability', () => {
+  it('reads gift code redemption only from an explicit true', async () => {
+    const base = {
+      maintenanceMode: false,
+      registrationAvailable: true,
+      registrationUnavailableReason: null,
+    };
+    expect(
+      (
+        await loadInstanceAccessStatus('https://cloud.invalid', async () => ({
+          ...base,
+          giftCodesAvailable: true,
+        }))
+      ).giftCodesAvailable,
+    ).toBe(true);
+    expect(
+      (
+        await loadInstanceAccessStatus(
+          'https://cloud.invalid',
+          async () => base,
+        )
+      ).giftCodesAvailable,
+    ).toBe(false);
+    expect(
+      (
+        await loadInstanceAccessStatus('https://cloud.invalid', async () => {
+          throw new Error('unreachable');
+        })
+      ).giftCodesAvailable,
+    ).toBe(false);
+  });
+
   it('distinguishes available, administrator-disabled and maintenance states', () => {
     expect(
       classifyRegistrationAvailability({

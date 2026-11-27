@@ -25,7 +25,7 @@ from dataclasses import dataclass, field
 from typing import Any, cast
 from uuid import UUID
 
-from sqlalchemy import CursorResult, Engine, text
+from sqlalchemy import CursorResult, Engine, inspect, text
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.elements import TextClause
 
@@ -35,7 +35,7 @@ from eimir.db.registry import load_all_models
 from eimir.domain.payload import CRYPTO_VERSION_PLAINTEXT, CRYPTO_VERSION_SERVER_AEAD
 from eimir.media.base import MediaStore
 from eimir.media.encrypted import FORMAT_VERSION, MAGIC, EncryptingMediaStore
-from eimir.plugins.manifest import protected_payload_tables
+from eimir.plugins.manifest import PLUGIN_TABLES, protected_payload_tables
 from eimir.security.errors import EncryptionError
 from eimir.security.keyring import EncryptionMode, KeyWrapper
 from eimir.security.payload_envelope import ENVELOPE_KEYS, MARKER, PayloadProtector
@@ -77,6 +77,25 @@ def payload_tables() -> list[PayloadTable]:
     return [found[name] for name in sorted(found)]
 
 
+def present_payload_tables(session: Session) -> list[PayloadTable]:
+    """``payload_tables`` without a plugin chain table that this database never received.
+
+    A chain table (manifest ``chain``) is created only by its plugin's own
+    migration chain, which runs only while that plugin is loaded. A Core-only
+    instance that never ran the plugin has no such table, and reading it would
+    fail. A chain table that exists is always kept, loaded plugin or not, so
+    an instance that once ran the plugin still migrates, rotates and verifies it.
+    """
+    entries = payload_tables()
+    chain = {row.table for row in PLUGIN_TABLES if row.chain}
+    candidates = [entry.name for entry in entries if entry.name in chain]
+    if not candidates:
+        return entries
+    inspector = inspect(session.connection())
+    absent = {name for name in candidates if not inspector.has_table(name)}
+    return [entry for entry in entries if entry.name not in absent]
+
+
 @dataclass
 class TableReport:
     table: str
@@ -92,7 +111,7 @@ class TableReport:
 def payload_status(session: Session) -> list[TableReport]:
     """Count rows per scheme and key id. Needs no key and reads no content."""
     reports: list[TableReport] = []
-    for entry in payload_tables():
+    for entry in present_payload_tables(session):
         report = TableReport(entry.name)
         rows = session.execute(
             text(
@@ -182,7 +201,7 @@ def migrate_payloads(
     """Encrypt every legacy plaintext row. Safe to interrupt and to repeat."""
     protector = PayloadProtector(EncryptionMode.MIGRATING, wrapper)
     results: dict[str, BatchResult] = {}
-    for entry in payload_tables():
+    for entry in present_payload_tables(session):
         result = results.setdefault(entry.name, BatchResult())
         where = f"crypto_version = {CRYPTO_VERSION_PLAINTEXT} AND NOT (payload ? '{MARKER}')"
         update = text(_GUARDED_UPDATE.format(table=entry.name))
@@ -210,7 +229,7 @@ def rewrap_payloads(
     """Re-wrap data keys of rows still under a non-active KEK. Payloads are untouched."""
     protector = PayloadProtector(EncryptionMode.REQUIRED, wrapper)
     results: dict[str, BatchResult] = {}
-    for entry in payload_tables():
+    for entry in present_payload_tables(session):
         result = results.setdefault(entry.name, BatchResult())
         where = f"payload ? '{MARKER}' AND payload->>'kid' <> :active"
         update = text(_GUARDED_UPDATE.format(table=entry.name))
@@ -252,7 +271,7 @@ def verify_payloads(
     protector = PayloadProtector(EncryptionMode.MIGRATING, wrapper)
     report = VerifyReport()
     statuses = {status.table: status for status in payload_status(session)}
-    for entry in payload_tables():
+    for entry in present_payload_tables(session):
         # An optional payload column is NULL until its row was backfilled.
         for batch in _keyed_batches(session, entry, "payload IS NOT NULL", batch_size):
             for _, stored in batch:
@@ -380,7 +399,7 @@ def audit_raw_payloads(session: Session, report: RawAuditReport) -> None:
     exactly the envelope keys and ``crypto_version`` names the envelope scheme.
     Keys beside the envelope would be plaintext sitting next to ciphertext.
     """
-    for entry in payload_tables():
+    for entry in present_payload_tables(session):
         total, bad = session.execute(
             text(
                 f"SELECT count(*), count(*) FILTER (WHERE NOT ("

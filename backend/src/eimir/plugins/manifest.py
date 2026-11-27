@@ -83,6 +83,8 @@ class PluginTable:
     """Short-lived state that is deleted entirely while its plugin is absent."""
     notification_targets: tuple[EngagementTarget, ...] = ()
     """Notification targets that point at this table's ``id``; deleted with the row."""
+    chain: bool = False
+    """Created by its plugin's own migration chain, never by the Core chain."""
 
 
 _GAMES = Capability.GAMES_COUPLE
@@ -92,6 +94,7 @@ _PRESENCE = Capability.PRESENCE_LOCATION
 _QUOTE = Capability.DAILY_QUOTE
 _QUICK_ACTIONS = Capability.PARTNER_QUICK_ACTIONS_EXTENDED
 _OPERATOR = Capability.SUPPORT_OPERATOR
+_GIFT_CODES = Capability.GIFT_CODES_OPERATOR
 
 _JOINED = Purge(LifecycleEvent.PARTNER_JOINED)
 _ENDED = Purge(LifecycleEvent.MEMBERSHIP_ENDED)
@@ -292,10 +295,23 @@ PLUGIN_TABLES: tuple[PluginTable, ...] = (
     # Operator plugin: the tracker ticket of a support report. It holds no scope
     # column; the row cascades with its report (``ON DELETE CASCADE``), so the
     # retention of reports and the deletion of the reporter's Account remove it.
-    PluginTable("support_report_tickets", _OPERATOR, None, ()),
+    PluginTable("support_report_tickets", _OPERATOR, None, (), chain=True),
+    # Pro plugin, its own migration chain (``alembic_version_pro``): operator-made
+    # gift codes (ServerAdmin part 5). Operator data without a Space scope: a
+    # deleted Space, grant or Account only clears its reference (``ON DELETE SET
+    # NULL``), so the batch counts stay right; the codes cascade with their batch.
+    PluginTable("gift_code_batches", _GIFT_CODES, None, ("created_by", "revoked_by"), chain=True),
+    PluginTable(
+        "gift_codes",
+        _GIFT_CODES,
+        None,
+        ("revoked_by",),
+        protected_payload_context="GiftCodePayload",
+        chain=True,
+    ),
     # Operator plugin: the operator's reply templates (#2327). Operator text shared
     # by all ServerAdmins; no scope, Account or report column, so nothing to purge.
-    PluginTable("support_reply_templates", _OPERATOR, None, ()),
+    PluginTable("support_reply_templates", _OPERATOR, None, (), chain=True),
 )
 
 PLUGIN_TABLE_NAMES = frozenset(row.table for row in PLUGIN_TABLES)
@@ -313,9 +329,14 @@ PRO_CAPABILITIES = frozenset(
         Capability.THEME_BESPOKE_PACKS.value,
         Capability.DAILY_QUOTE.value,
         Capability.PLANNING_DATE_INSPIRATION.value,
+        _GIFT_CODES.value,
     }
 )
 """Capabilities implemented by the Pro plugin; granted only while it is loaded.
+
+``gift_codes.operator`` is operator access, not a Space feature: like the
+operator plugin's ``support.operator`` it is in
+``entitlements.service.NON_ENTITLEMENT_CAPABILITIES`` and no grant carries it.
 
 The capabilities without any implementation (including ``daily.insights``,
 whose Einblicke implementation was removed and archived in #2210) keep

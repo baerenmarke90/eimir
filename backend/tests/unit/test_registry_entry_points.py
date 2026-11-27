@@ -6,9 +6,12 @@ import subprocess
 import sys
 from pathlib import Path
 
-from eimir.plugins.manifest import PLUGIN_TABLE_NAMES
+from eimir.plugins.manifest import (
+    ADMIN_CAPABILITIES,
+    PLUGIN_TABLES,
+    PRO_CAPABILITIES,
+)
 from tests.support.plugins import (
-    CHAIN_PLUGIN_TABLES,
     admin_distribution_installed,
     pro_distribution_installed,
 )
@@ -84,9 +87,15 @@ def test_registry_migrations_and_test_engine_agree_in_fresh_processes() -> None:
     assert _tables(ALEMBIC) == production
     # With the Pro distribution installed the test engine also creates the plugin
     # tables, as the migrations do, so the Core-only configuration has them too.
-    plugin_tables = (
-        PLUGIN_TABLE_NAMES - CHAIN_PLUGIN_TABLES if pro_distribution_installed() else set()
-    )
+    # The models of an installed plugin also cover its chain tables, which the
+    # fixture drops again right after creating them.
+    plugin_tables: set[str] = set()
+    if pro_distribution_installed():
+        plugin_tables |= _owned_tables(PRO_CAPABILITIES)
     if admin_distribution_installed():
-        plugin_tables |= CHAIN_PLUGIN_TABLES
+        plugin_tables |= _owned_tables(ADMIN_CAPABILITIES)
     assert _tables(FIXTURE) == production | {"privacy_probes"} | plugin_tables
+
+
+def _owned_tables(capabilities: frozenset[str]) -> set[str]:
+    return {row.table for row in PLUGIN_TABLES if row.capability.value in capabilities}

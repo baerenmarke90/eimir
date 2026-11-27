@@ -223,11 +223,19 @@ def engine() -> Iterator[Engine]:
     db_engine = create_engine(INTEGRATION_DATABASE_URL, future=True)
     Base.metadata.create_all(db_engine)
     # A plugin chain table does not live in the shared Core database: Core
-    # migrations that downgrade past its parent table (support_reports) could not
-    # drop that parent otherwise. The plugin's own tests create it per module.
-    for chain_table in CHAIN_PLUGIN_TABLES:
-        if chain_table in Base.metadata.tables:
-            Base.metadata.tables[chain_table].drop(db_engine, checkfirst=True)
+    # migrations that downgrade past its parent tables (support_reports, accounts,
+    # spaces, entitlement_grants) could not drop them otherwise. The plugin's own
+    # tests create it per module.
+    # ``drop_all`` orders them, so a chain table goes before the one it references.
+    Base.metadata.drop_all(
+        db_engine,
+        tables=[
+            Base.metadata.tables[name]
+            for name in CHAIN_PLUGIN_TABLES
+            if name in Base.metadata.tables
+        ],
+        checkfirst=True,
+    )
     # Without ``eimir-pro`` the Pro tables have no models here. They come from the
     # Core migration chain, and the Core manifest executor works on them.
     plugin_tables_from_migrations = not pro_distribution_installed()

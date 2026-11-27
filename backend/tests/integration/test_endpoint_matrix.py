@@ -458,6 +458,13 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/date-ideas"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/date-ideas/images/{imageId}"),
+    # Redemption rules (Cloud-only 404, rate limits, refusals) live in the Pro
+    # test_gift_code_routes; membership answers before the deployment check.
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/gift-codes/redeem",
+        body={"code": "EIMIR-ABCD-EFGH"},
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/moments/candidates"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/wishes/candidates"),
     # Herzversteck owns its privacy, photo and unknown-round rules in test_heart_hunt; the
@@ -1665,6 +1672,13 @@ SERVER_ADMIN_ONLY: tuple[tuple[str, str], ...] = (
     ("POST", "/api/v1/server-admin/accounts/{accountId}/recovery/operator"),
     ("POST", "/api/v1/server-admin/accounts/{accountId}/emails/{accountEmailId}/verify"),
     ("POST", "/api/v1/server-admin/accounts/{accountId}/deletion"),
+    # The Pro area (ServerAdmin part 5): Pro plugin routes, 404 outside eimir. Cloud.
+    ("GET", "/api/v1/server-admin/pro/overview"),
+    ("POST", "/api/v1/server-admin/pro/gift-code-batches"),
+    ("GET", "/api/v1/server-admin/pro/gift-code-batches/{batchId}"),
+    ("POST", "/api/v1/server-admin/pro/gift-code-batches/{batchId}/revoke"),
+    ("PUT", "/api/v1/server-admin/pro/gift-codes/{codeId}/handed-out"),
+    ("POST", "/api/v1/server-admin/pro/gift-codes/{codeId}/revoke"),
 )
 """Instance-scoped operations that require authenticated ServerAdmin authority."""
 

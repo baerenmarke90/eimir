@@ -4935,13 +4935,15 @@
       "reports": "Reports",
       "replyTemplates": "Reply templates",
       "monitoring": "Monitoring",
-      "search": "Search"
+      "search": "Search",
+      "pro": "Pro & gift codes"
     },
     "areas": {
       "aria": "Areas",
       "situation": "Situation",
       "people": "People",
       "help": "Help",
+      "pro": "Pro",
       "system": "System",
       "helpUnread_one": "Help, {{count, number}} new report",
       "helpUnread_other": "Help, {{count, number}} new reports"
@@ -5125,6 +5127,78 @@
       "reasonHint": "Only visible to the server administration, for example “beta test”.",
       "failed": "That did not work. Try again.",
       "give": "Give Premium"
+    },
+    "pro": {
+      "eyebrow": "eimir. Cloud",
+      "title": "Pro & gift codes",
+      "figures": {
+        "spaces": "Spaces",
+        "premium": "of which Pro",
+        "premiumSplit": "{{play, number}} Google Play · {{gift, number}} gifted",
+        "cancellations": "Cancellations 30 d (approx.)"
+      },
+      "play": {
+        "title": "Google Play subscriptions",
+        "active": "active",
+        "paymentProblem": "payment issue",
+        "cancelledRunning": "cancelled, running out",
+        "ended30d": "ended (30 d)",
+        "empty": "No data from Google Play yet – the Play Console is not set up yet."
+      },
+      "codes": {
+        "title": "eimir. gift codes",
+        "body": "unlock Pro, no payment details",
+        "duration": "Duration",
+        "count": "Number",
+        "countInvalid": "Enter a number from 1 to 100.",
+        "redeemableUntil": "Redeemable until",
+        "redeemableUntilHint": "Leave empty: 12 months.",
+        "note": "Note (only for you)",
+        "create": "Create codes",
+        "creating": "Creating codes …",
+        "createFailed": "That did not work. Try again.",
+        "totals": "{{handedOut, number}} handed out · {{redeemed, number}} redeemed",
+        "redeemAt": "Redeem at {{host}}",
+        "batchesTitle": "Created codes",
+        "empty": "No codes created yet.",
+        "batchTitle_one": "{{count, number}} code · {{duration}}",
+        "batchTitle_other": "{{count, number}} codes · {{duration}}",
+        "batchCounts": "{{open, number}} open · {{handedOut, number}} handed out · {{redeemed, number}} redeemed",
+        "revoked": "revoked",
+        "expired": "expired"
+      },
+      "gifts": {
+        "title": "Running gifts",
+        "empty": "No gift is running right now.",
+        "fromCode": "Gift code",
+        "fromCodeNote": "Gift code · {{note}}",
+        "manual": "given by hand",
+        "until": "until {{date}}",
+        "noEnd": "no end date",
+        "openSpace": "Open Space {{id}}",
+        "more": "The next {{shown, number}} of {{total, number}}"
+      },
+      "batch": {
+        "fallbackTitle": "eimir. gift codes",
+        "redeemableUntil": "redeemable until {{date}}",
+        "codesAria": "Codes",
+        "copy": "Copy",
+        "copyAll": "Copy all open",
+        "copied": "Code copied",
+        "copiedAll_one": "{{count, number}} code copied",
+        "copiedAll_other": "{{count, number}} codes copied",
+        "copyFailed": "Copying did not work.",
+        "handedOut": "handed out",
+        "redeemed": "redeemed",
+        "redeemedOn": "redeemed on {{date}}",
+        "revoked": "revoked",
+        "expired": "expired",
+        "revokeOpen": "Revoke open codes",
+        "revokeConfirm": "Every code not yet redeemed stops working. Redeemed gifts keep running.",
+        "revokeConfirmAction": "Revoke",
+        "revokeCancel": "Cancel",
+        "failed": "That did not work. Try again."
+      }
     },
     "subNavigation": {
       "aria": "Pages"
@@ -7065,6 +7139,33 @@
       "partnerActive": "Pro is already active for your shared space.",
       "expired": "Your Pro access has expired. Your content stays fully intact.",
       "nothingToRestore": "We found no Pro purchase to restore. Nothing was charged."
+    },
+    "giftCode": {
+      "title": "Redeem a gift code",
+      "hint": "Did you receive a gift code for eimir. Pro? Enter it here – it counts for both of you.",
+      "fieldLabel": "Code",
+      "placeholder": "EIMIR-XXXX-XXXX",
+      "redeem": "Redeem",
+      "redeeming": "Redeeming …",
+      "success": {
+        "new": {
+          "title": "Pro is unlocked.",
+          "body": "You have eimir. Pro until {{date}}. Enjoy!"
+        },
+        "extended": {
+          "title": "Pro is extended.",
+          "body": "You now have eimir. Pro until {{date}}."
+        }
+      },
+      "done": "Done",
+      "errors": {
+        "invalid": "This code is invalid or has expired. Please check the spelling.",
+        "used": "This code has already been redeemed.",
+        "subscriptionActive": "You already have Pro through your subscription. Feel free to pass the code on.",
+        "unlimited": "You already have Pro without an end date. Feel free to pass the code on.",
+        "rateLimited": "Too many attempts. Please try again in an hour.",
+        "network": "That didn't work just now. Please try again."
+      }
     },
     "settingsAction": "View plans",
     "contextAction": "Discover with eimir. Pro"

@@ -702,6 +702,11 @@
       "baselineTests": 2,
       "reason": "ServerAdmin People and the Space file (#2324): People opens at one search and marks itself current, an email part finds the Space without showing any name, the Space file shows members by email, plan, storage by media type and history; the storage sheet warns below the current usage, saves an individual 80 GB quota once and the file shows it, and removing it brings the plan's storage back; the Space file and the storage sheet in Compact 360/390/430 and Expanded 1280, Light/Dark with axe, reduced motion and 200 % text without horizontal overflow, and the search results at 200 % text."
     },
+    "server-admin-pro.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 4,
+      "reason": "ServerAdmin Pro and eimir. gift codes (#2328): on eimir. Cloud the Pro area is current, a fresh instance shows calm empty Google Play and code states, the operator creates three 3-month codes with a private note in exactly one write, the new batch opens in its sheet with the codes, copying one confirms it in the shared snackbar, and the batch waits in the list and reopens; figures, Google Play chips, batches and running gifts in Compact 360/390/430 and Expanded 1280, Light/Dark with axe, every icon at most 32 px and the area title, tile labels, create button and Pro navigation label not squeezed, the batch sheet in Light/Dark with axe, reduced motion and 200 % text without horizontal overflow; on the web Pro page the quiet entry opens the redeem sheet, a code is sent in capitals once, the confirmation takes focus and closing shows Pro active; an already redeemed code is explained next to the field (described by it, focused, aria-invalid) and the typed code stays."
+    },
     "server-admin-situation.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 4,

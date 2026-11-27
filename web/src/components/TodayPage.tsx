@@ -2603,7 +2603,6 @@ const TodayPageView = memo(function TodayPageView({
           entitlementApi={entitlementApi}
           accountId={account.id}
           spaceId={spaceId}
-          partnerName={partnerName}
           visible={isDashboardModuleVisible(
             dashboardPreferences,
             'games_waiting',

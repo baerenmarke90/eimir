@@ -4,8 +4,8 @@ The instance settings row stores when an operator last marked the failed jobs
 as seen; the Situation page then lists only jobs that failed afterwards. The
 content-free administration audit gains the action ``failed_jobs_seen``.
 
-Revision ID: 0183
-Revises: 0182
+Revision ID: 0184
+Revises: 0183
 """
 
 from __future__ import annotations
@@ -13,8 +13,8 @@ from __future__ import annotations
 import sqlalchemy as sa
 from alembic import op
 
-revision = "0183"
-down_revision = "0182"
+revision = "0184"
+down_revision = "0183"
 branch_labels = None
 depends_on = None
 

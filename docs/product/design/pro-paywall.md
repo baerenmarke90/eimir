@@ -160,9 +160,9 @@ scenes"). The accepted v2 replaces the scene list above:
   together for EUR 5.00 a month, for both of you"). It reuses the yearly
   plan's existing monthly-equivalent calculation and follows live store
   prices; it is no discount claim and no pressure.
-- **"New" marks** in the catalogue on recap films, couple games and garden,
-  the ten memory worlds and the Cloud storage allowance. The mark is a
-  small text tag with no date or urgency.
+- **No "new" marks.** The catalogue carries no "new" tags (Product Owner
+  correction of 2026-11-27): eimir. is relaunched as a whole and nobody knows
+  the app yet, so marking single capabilities as new has no meaning.
 
 **Proposals by the implementer (approved with this section).**
 

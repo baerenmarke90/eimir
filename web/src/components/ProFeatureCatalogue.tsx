@@ -21,14 +21,6 @@ export const PRO_MEMORY_WORLD_IDS = [
   'fridge',
 ] as const satisfies readonly MemoryWorldId[];
 
-/** Capabilities the catalogue marks as new (Pro showcase, #2310). */
-const NEW_FEATURES: ReadonlySet<string> = new Set([
-  'recaps',
-  'games',
-  'memoryWorlds',
-  'storage',
-]);
-
 const FEATURE_GROUPS = [
   {
     id: 'memories',
@@ -85,16 +77,7 @@ export function ProFeatureCatalogue() {
           <dl>
             {features.map((feature) => (
               <div key={feature}>
-                <dt>
-                  <span>
-                    {t(`proPaywall.catalogue.features.${feature}.title`)}
-                  </span>
-                  {NEW_FEATURES.has(feature) ? (
-                    <span className="pro-feature-new">
-                      {t('proPaywall.catalogue.new')}
-                    </span>
-                  ) : null}
-                </dt>
+                <dt>{t(`proPaywall.catalogue.features.${feature}.title`)}</dt>
                 <dd>
                   {t(`proPaywall.catalogue.features.${feature}.body`, {
                     worlds,

@@ -377,7 +377,7 @@ export function WirNewForYouModule({
           {t('wirNotices.title')}
         </h2>
       </div>
-      <ul className="wir-lists-row wir-notice-tiles">
+      <ul className="wir-lists-row wir-tile-reel wir-notice-tiles">
         {tiles.map((tile) => (
           <li
             key={tile.key}

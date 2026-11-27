@@ -108,7 +108,7 @@ const serverAdmin = {
     pushSaveFailed:
       'Die Änderung wurde nicht gespeichert. Versuche es noch einmal.',
     pushBody:
-      'Dieselben Warnungen als Push-Nachricht auf die Geräte der ServerAdmins. Auf dem Sperrbildschirm steht nur ein neutraler Hinweis.',
+      'Dieselben Warnungen als Push-Nachricht auf die Geräte der ServerAdmins. Die Nachricht nennt das Thema; was der Sperrbildschirm zeigt, entscheidet die Einstellung des Geräts.',
   },
   sheet: {
     close: 'Schließen',

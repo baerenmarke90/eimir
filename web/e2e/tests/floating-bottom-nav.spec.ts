@@ -6,6 +6,7 @@ import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { showMemoryDetails } from '../support/memoryDiary';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { fulfillGameNoticesRead } from '../support/gameNotices';
 import { expectToday } from '../support/today';
 import AxeBuilder from '../support/axe';
 import { expect, test, type Page } from '@playwright/test';
@@ -31,6 +32,7 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
 
 async function installApiMocks(page: Page): Promise<void> {
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillGameNoticesRead(route)) return;
     if (await fulfillDefaultAppIcon(route)) return;
     if (await fulfillEmptyPlanComments(route)) return;
     if (await fulfillUnconfiguredPhotoSources(route)) return;

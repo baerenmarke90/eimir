@@ -5,6 +5,7 @@ import de from '../../src/i18n/locales/de';
 import games from '../../src/i18n/locales/games';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '../support/axe';
+import { fulfillGameNoticesRead } from '../support/gameNotices';
 import { fulfillNoOccasionSources } from '../support/occasionSources';
 import { expectTitleOnlyContentGap } from '../support/pageHeader';
 import { CAPABILITIES } from '../support/storyTimelineFixture';
@@ -145,6 +146,7 @@ async function installMocks(
     };
   }
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillGameNoticesRead(route)) return;
     if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
     const pathname = new URL(request.url()).pathname;

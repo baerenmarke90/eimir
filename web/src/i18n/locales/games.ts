@@ -42,14 +42,15 @@ const games = {
   waiting: {
     settingsLabel: 'Spiele, die auf dich warten',
     title: 'Du bist dran',
+    // #2345 B: tile lines name no one; in a couple's Space it is always the partner.
     reasons: {
-      WHO_OF_US: '{{name}} wartet auf deine Antworten.',
-      WISH_DETECTIVE: '{{name}} wartet auf deinen Zug.',
-      OUR_MOMENTS: '{{name}} wartet auf deinen Zug.',
-      PICTURE_PING_PONG: '{{name}} hat weitergemalt. Jetzt du.',
-      HEART_HUNT: '{{name}} hat ein Herz für dich versteckt.',
-      GARDEN_SEED: 'Saatgut von {{name}} wartet aufs Einpflanzen.',
-      GARDEN_BOUQUET: '{{name}} hat dir einen Strauß gebunden.',
+      WHO_OF_US: 'Deine Antworten fehlen noch.',
+      WISH_DETECTIVE: 'Dein Zug.',
+      OUR_MOMENTS: 'Dein Zug.',
+      PICTURE_PING_PONG: 'Jetzt malst du weiter.',
+      HEART_HUNT: 'Ein Herz wartet aufs Finden.',
+      GARDEN_SEED: 'Saatgut wartet aufs Einpflanzen.',
+      GARDEN_BOUQUET: 'Ein Strauß für dich.',
     },
   },
   heartHunt: {

@@ -21,6 +21,7 @@ public final class NativePushNotifications {
     private static final String CATEGORY = "de.eimir.app.push.activation.";
     private static final String CHANNEL = "eimir_notifications";
     private static final int NOTIFICATION = 1;
+    private static final String EXTRA_NOTIFICATION_ID = "de.eimir.app.notificationId";
 
     public static void cancel(Context context) {
         NotificationManager manager = context.getSystemService(NotificationManager.class);
@@ -40,6 +41,41 @@ public final class NativePushNotifications {
         if (manager == null) return;
         if (notificationId != null) manager.cancel(notificationId, NOTIFICATION);
         else manager.cancel(NOTIFICATION);
+    }
+
+    /**
+     * The notification ids of every eimir. notice still in the tray (#2345). The
+     * shared neutral slot carries its id as an extra, so it is listed too; a
+     * notice without an id (a plain wake) is not.
+     */
+    public static java.util.List<String> delivered(Context context) {
+        java.util.List<String> ids = new java.util.ArrayList<>();
+        NotificationManager manager = context.getSystemService(NotificationManager.class);
+        if (manager == null) return ids;
+        for (android.service.notification.StatusBarNotification notice : manager.getActiveNotifications()) {
+            String id = deliveredId(notice);
+            if (id != null && !ids.contains(id)) ids.add(id);
+        }
+        return ids;
+    }
+
+    /**
+     * Removes the tray notices of these notification ids (#2345): they were read,
+     * expired or are no longer current, wherever that happened.
+     */
+    public static void withdraw(Context context, java.util.Collection<String> notificationIds) {
+        NotificationManager manager = context.getSystemService(NotificationManager.class);
+        if (manager == null || notificationIds.isEmpty()) return;
+        for (android.service.notification.StatusBarNotification notice : manager.getActiveNotifications()) {
+            String id = deliveredId(notice);
+            if (id != null && notificationIds.contains(id)) manager.cancel(notice.getTag(), notice.getId());
+        }
+    }
+
+    private static String deliveredId(android.service.notification.StatusBarNotification notice) {
+        if (!CHANNEL.equals(notice.getNotification().getChannelId())) return null;
+        String id = notice.getNotification().extras.getString(EXTRA_NOTIFICATION_ID);
+        return id != null ? id : notice.getTag();
     }
 
     public static Intent notificationIntent(Context context, PushActivation activation) {
@@ -144,6 +180,12 @@ public final class NativePushNotifications {
                 .setContentText(context.getString(R.string.push_notification_body)).setContentIntent(tap)
                 .setAutoCancel(true).setCategory(NotificationCompat.CATEGORY_MESSAGE)
                 .setVisibility(NotificationCompat.VISIBILITY_PRIVATE);
+            if (notificationId != null) {
+                // Lets the app withdraw the notice once it was handled elsewhere (#2345).
+                android.os.Bundle extras = new android.os.Bundle();
+                extras.putString(EXTRA_NOTIFICATION_ID, notificationId);
+                notification.addExtras(extras);
+            }
             if (wishDate != null) {
                 String detail = wishDate.detail(context);
                 // A Wish date notice no longer overrides the setting with VISIBILITY_PUBLIC.

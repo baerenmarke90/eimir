@@ -54,7 +54,6 @@ function renderModule({
           entitlementApi={entitlementApi}
           accountId={ME}
           spaceId={SPACE}
-          partnerName="Alex"
           visible={visible}
         />
       </MemoryRouter>
@@ -90,7 +89,7 @@ describe('WirWaitingGamesModule', () => {
     expect(container.innerHTML).toBe('');
   });
 
-  it('shows one row per waiting game, each a single way into its game', async () => {
+  it('shows one tile per waiting game in a swipeable Wir track, each a single way into its game', async () => {
     renderModule({
       waiting: {
         items: [
@@ -113,11 +112,16 @@ describe('WirWaitingGamesModule', () => {
       name: new RegExp(i18n.t('games.entries.heartHunt.title')),
     });
     expect(heartHunt.textContent).toContain(
-      i18n.t('games.waiting.reasons.HEART_HUNT', { name: 'Alex' }),
+      i18n.t('games.waiting.reasons.HEART_HUNT'),
     );
     expect(section.textContent).toContain(
-      i18n.t('games.waiting.reasons.GARDEN_BOUQUET', { name: 'Alex' }),
+      i18n.t('games.waiting.reasons.GARDEN_BOUQUET'),
     );
+    // #2345 B: the shared Wir track (reset with the root swipe), and the tile
+    // lines never name the partner; the picture is decorative.
+    expect(section.querySelector('ul')?.className).toContain('wir-lists-row');
+    expect(section.textContent).not.toContain('{{name}}');
+    expect(section.querySelectorAll('svg[aria-hidden="true"]').length).toBe(3);
   });
 
   it('refreshes with every Wir refresh because it lives under the Dashboard key', async () => {

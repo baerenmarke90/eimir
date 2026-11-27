@@ -23,6 +23,7 @@ import {
 } from './partnerGestureReceipt';
 import { MORE_NOTIFICATIONS_ROUTE } from './routes';
 import { postSnackbar } from './snackbar';
+import type { NotificationTray } from './trayNoticeSync';
 import {
   isDocumentLeaveBlocked,
   useDocumentLeaveBlocked,
@@ -91,6 +92,9 @@ type NativePushPlugin = {
   refresh(options: RegistrationOptions): Promise<{ enabled: boolean }>;
   disable(): Promise<void>;
   openNotificationSettings(): Promise<void>;
+  /** Android only (#2345); other platforms reject. */
+  deliveredNotifications(): Promise<{ notificationIds: string[] }>;
+  withdrawNotifications(options: { notificationIds: string[] }): Promise<void>;
   addListener(
     event: 'endpoint',
     callback: (event: EndpointEvent) => void,
@@ -1199,6 +1203,17 @@ export async function revokeDevicePushBeforeSignOut(
     // Retried after the next sign-in of this Account on this device.
   }
 }
+
+/**
+ * The Android notification tray, for the read-state sync (#2345). It lists and
+ * withdraws only eimir. notices; it never presents one.
+ */
+export const androidNotificationTray: NotificationTray = {
+  delivered: async () =>
+    (await nativePush.deliveredNotifications()).notificationIds,
+  withdraw: (notificationIds) =>
+    nativePush.withdrawNotifications({ notificationIds }),
+};
 
 export function stopNativePushForSignedOutAccount(): void {
   if (isCapacitorNative()) {

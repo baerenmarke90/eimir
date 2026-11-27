@@ -4252,6 +4252,19 @@
         "title": "GameMemoryCandidateSet",
         "type": "object"
       },
+      "GameNoticeSurface": {
+        "description": "A game page that presents its own notices.",
+        "enum": [
+          "WHO_OF_US",
+          "WISH_DETECTIVE",
+          "OUR_MOMENTS",
+          "PICTURE_PING_PONG",
+          "HEART_HUNT",
+          "GARDEN"
+        ],
+        "title": "GameNoticeSurface",
+        "type": "string"
+      },
       "GameWishCandidate": {
         "description": "Minimal authorized OPEN Wish context required by Wunschdetektiv.",
         "properties": {
@@ -17390,6 +17403,44 @@
         "title": "SessionView",
         "type": "object"
       },
+      "SettledNotifications": {
+        "properties": {
+          "settledIds": {
+            "description": "The requested notices that need no attention any more (read, expired, deleted or no longer current), so the device withdraws them. Notices of the reader's other Spaces are never listed.",
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Settledids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "settledIds"
+        ],
+        "title": "SettledNotifications",
+        "type": "object"
+      },
+      "SettledNotificationsQuery": {
+        "additionalProperties": false,
+        "properties": {
+          "notificationIds": {
+            "description": "Notices the device still shows in its notification tray.",
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Notificationids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "notificationIds"
+        ],
+        "title": "SettledNotificationsQuery",
+        "type": "object"
+      },
       "SharedHeartMomentSummary": {
         "description": "A heart moment as it appears in the caller's own Story.\n\nDespite the name, this is not shared-only (#1021 superseded M2-D22): a\nHeartMoment the caller marked ``PRIVATE`` is projected here too, at its\nordinary Timeline position, with ``visibility`` reporting its actual\ndomain visibility rather than an assumed ``SHARED``. The type keeps its\nestablished name — renaming it would force every generated client\n(including hand-written Android test fixtures out of #1021's scope) to\nfollow along for no behavioral gain; the real contract fix is the\n``visibility`` field, not the type name.",
         "properties": {
@@ -20316,6 +20367,214 @@
           "version"
         ],
         "title": "WirDesignPreferenceView",
+        "type": "object"
+      },
+      "WirNotice": {
+        "properties": {
+          "actor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AuthorSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "actorId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actorid"
+          },
+          "appointmentStart": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Appointmentstart"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/NotificationKind"
+          },
+          "operatorRoute": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The ServerAdmin page a tapped operator notice opens (#2314); set only for OPERATOR_ALERT, without any identifier.",
+            "title": "Operatorroute"
+          },
+          "preview": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WirNoticePreview"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "readAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Readat"
+          },
+          "selectionSize": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Ideas in the shared round a wish-selection invitation refers to (#1907 J1).",
+            "title": "Selectionsize"
+          },
+          "sourceEventId": {
+            "format": "uuid",
+            "title": "Sourceeventid",
+            "type": "string"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ActivityTargetPresentation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "targetId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targetid"
+          },
+          "targetType": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EngagementTarget"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "sourceEventId",
+          "kind",
+          "actorId",
+          "targetType",
+          "targetId",
+          "createdAt",
+          "readAt"
+        ],
+        "title": "WirNotice",
+        "type": "object"
+      },
+      "WirNoticePreview": {
+        "description": "Authorized content for a Wir tile, read afresh; never stored in the notice.",
+        "properties": {
+          "items": {
+            "description": "The first open items of a sent list.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "moreItems": {
+            "default": 0,
+            "description": "Further open items of that list.",
+            "title": "Moreitems",
+            "type": "integer"
+          },
+          "reaction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The photo reaction preset the partner chose.",
+            "title": "Reaction"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A comment's text or a shared note's opening, bounded.",
+            "title": "Text"
+          }
+        },
+        "title": "WirNoticePreview",
+        "type": "object"
+      },
+      "WirNotices": {
+        "properties": {
+          "items": {
+            "description": "The reader's unread, current Wir notices, newest first (#2345 B).",
+            "items": {
+              "$ref": "#/components/schemas/WirNotice"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "WirNotices",
         "type": "object"
       },
       "WishCreate": {
@@ -38570,6 +38829,70 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/games/{surface}/notices/read": {
+      "post": {
+        "description": "The reader opened a game page; its notices are handled everywhere (#2345).\n\nMarks only the reader's own notices read. It reveals nothing and is not\ngameplay, so it needs no Premium capability: after a downgrade the reader can\nstill clear what was announced before.",
+        "operationId": "markGameNoticesRead",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "surface",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/GameNoticeSurface"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Mark Game Notices Read",
+        "tags": [
+          "games"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/gentle-prompts/memories/{memoryId}/exclusion": {
       "put": {
         "operationId": "excludeGentleMemory",
@@ -43613,6 +43936,79 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/notifications/settled": {
+      "post": {
+        "description": "Tell a device which tray notices it can withdraw (#2345); changes nothing.",
+        "operationId": "findSettledNotifications",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettledNotificationsQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettledNotifications"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Find Settled Notifications",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/notifications/unread-count": {
       "get": {
         "operationId": "getNotificationUnreadCount",
@@ -43670,6 +44066,69 @@
           }
         },
         "summary": "Get Notification Unread Count",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/notifications/wir": {
+      "get": {
+        "description": "What is new for the reader, as Wir tiles (#2345 B); reading it changes nothing.",
+        "operationId": "getWirNotices",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WirNotices"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Get Wir Notices",
         "tags": [
           "notifications"
         ]

@@ -1,0 +1,9 @@
+{
+  "activationId": "c8e50c10-35fb-4ee9-94bf-e313ab128122",
+  "issuedAt": 1000,
+  "notificationIds": [
+    "3f8a7f84-6a4e-4d43-9a3f-1d2c5b6e7a80",
+    "9c1b2d3e-4f50-4617-8a9b-0c1d2e3f4a5b"
+  ],
+  "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC13aXRoZHJhdytqd2UiLCJraWQiOiJjOGU1MGMxMC0zNWZiLTRlZTktOTRiZi1lMzEzYWIxMjgxMjIifQ..gjMxkwVX8Beu-RT9.JKiPGgQffJmrgykSF0TYW4pYLviwTq6NnZ5sOhF1dAYSQ0uwrUJgxtZQyWXFJ4FLXQN4tqt_PtmeI-YqOqJQk2jkroCbWv37BxFo0QuSUnbcxGXR1HMx9F7pknY9EoDqIDnFV6jbIf36iogMc0yIip7_I2g7inPXKaQYFtqh6D5hepVPR_jLIbuNtw.GQQ0zOt6ZXA-3Eq_WzsXtg"
+}

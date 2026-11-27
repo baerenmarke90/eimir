@@ -2,8 +2,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useId, useMemo } from 'react';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { GamesApi } from '../api/generated/apis/GamesApi';
-import type { WaitingGameView } from '../api/generated/models/WaitingGameView';
 import type { WaitingGameKind } from '../api/generated/models/WaitingGameKind';
+import type { WaitingGameView } from '../api/generated/models/WaitingGameView';
 import { dashboardQueryKey } from '../client/dashboardQueries';
 import {
   ClientProblemError,
@@ -22,10 +22,13 @@ import {
   useSpaceCapability,
   withdrawSpaceCapability,
 } from '../client/spaceEntitlement';
+import { cardArrivalClass, useCardArrivals } from '../client/useCardArrivals';
 import { useTranslation } from '../i18n';
-import { EimirIcon, type EimirIconName } from './EimirIcon';
 import { GAMES_COUPLE_CAPABILITY } from './GamesProductArea';
 import { TodayDestinationLink } from './TodayDestinationLink';
+import { WirGameTileArt } from './WirGameTileArt';
+import './WirCardArrival.css';
+import './WirLists.css';
 import './WirWaitingGamesModule.css';
 
 /**
@@ -36,37 +39,40 @@ export function waitingGamesQueryKey(accountId: string, spaceId: string) {
   return [...dashboardQueryKey(spaceId), 'waiting-games', accountId] as const;
 }
 
-/** Each game opens its own page; its title reuses the Games overview entry. */
+/**
+ * Each game opens its own page; its title reuses the Games overview entry.
+ * The tone picks the tile's tint so neighbouring games read apart (#2345 B).
+ */
 const GAME_PRESENTATION: Record<
   WaitingGameKind,
-  { route: string; icon: EimirIconName; entry: string }
+  { route: string; entry: string; tone: 'shared' | 'cool' | 'warm' | 'garden' }
 > = {
   WHO_OF_US: {
     route: GAMES_WHO_OF_US_ROUTE,
-    icon: 'gemeinsam',
     entry: 'perspective',
+    tone: 'shared',
   },
   WISH_DETECTIVE: {
     route: GAMES_WISH_DETECTIVE_ROUTE,
-    icon: 'wuensche',
     entry: 'wishes',
+    tone: 'warm',
   },
-  OUR_MOMENTS: { route: GAMES_MOMENTS_ROUTE, icon: 'foto', entry: 'moments' },
+  OUR_MOMENTS: { route: GAMES_MOMENTS_ROUTE, entry: 'moments', tone: 'cool' },
   PICTURE_PING_PONG: {
     route: GAMES_PICTURE_PING_PONG_ROUTE,
-    icon: 'pen',
     entry: 'pingPong',
+    tone: 'cool',
   },
   HEART_HUNT: {
     route: GAMES_HEART_HUNT_ROUTE,
-    icon: 'momente',
     entry: 'heartHunt',
+    tone: 'warm',
   },
-  GARDEN_SEED: { route: GAMES_GARDEN_ROUTE, icon: 'spiele', entry: 'garden' },
+  GARDEN_SEED: { route: GAMES_GARDEN_ROUTE, entry: 'garden', tone: 'garden' },
   GARDEN_BOUQUET: {
     route: GAMES_GARDEN_ROUTE,
-    icon: 'geschenk',
     entry: 'garden',
+    tone: 'garden',
   },
 };
 
@@ -89,14 +95,12 @@ export function WirWaitingGamesModule({
   entitlementApi,
   accountId,
   spaceId,
-  partnerName,
   visible,
 }: {
   gamesApi: Pick<GamesApi, 'getWaitingGames'>;
   entitlementApi: EntitlementsApi;
   accountId: string;
   spaceId: string;
-  partnerName: string;
   visible: boolean;
 }) {
   const { t } = useTranslation();
@@ -139,6 +143,13 @@ export function WirWaitingGamesModule({
   }, [accountId, denied, queryClient, spaceId]);
 
   const items = waitingQuery.data?.items ?? [];
+  // A game that waits again later (a new turn) arrives again.
+  const turnKey = (item: WaitingGameView) =>
+    `${item.game}:${item.since.toISOString()}`;
+  const arrivals = useCardArrivals(
+    `${accountId}:${spaceId}:games`,
+    items.map(turnKey),
+  );
   if (!allowed || items.length === 0) return null;
   return (
     <section
@@ -150,30 +161,26 @@ export function WirWaitingGamesModule({
           {t('games.waiting.title')}
         </h2>
       </div>
-      <ul className="wir-waiting-games">
+      <ul className="wir-lists-row wir-waiting-games">
         {items.map((item: WaitingGameView) => {
           const game = GAME_PRESENTATION[item.game];
           return (
-            <li key={item.game}>
+            <li
+              key={item.game}
+              className={`wir-game-tile-item${cardArrivalClass(arrivals.get(turnKey(item)))}`}
+            >
               <TodayDestinationLink
                 to={game.route}
-                className="today-agenda-row today-agenda-row-link wir-waiting-game"
+                className={`wir-game-tile wir-game-tile-${game.tone}`}
                 selectedKey={`wir-waiting-${item.game}`}
               >
-                <span className="today-agenda-icon" aria-hidden="true">
-                  <EimirIcon name={game.icon} />
+                <WirGameTileArt game={item.game} />
+                <span className="wir-game-tile-title">
+                  {t(`games.entries.${game.entry}.title`)}
                 </span>
-                <span className="today-agenda-copy">
-                  <span className="today-agenda-title">
-                    {t(`games.entries.${game.entry}.title`)}
-                  </span>
-                  <span className="wir-waiting-game-reason">
-                    {t(`games.waiting.reasons.${item.game}`, {
-                      name: partnerName,
-                    })}
-                  </span>
+                <span className="wir-game-tile-line">
+                  {t(`games.waiting.reasons.${item.game}`)}
                 </span>
-                <EimirIcon name="chevron-right" />
               </TodayDestinationLink>
             </li>
           );

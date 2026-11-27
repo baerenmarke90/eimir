@@ -7,6 +7,7 @@ import json
 import os
 import socket
 from typing import Any
+from uuid import uuid4
 
 import pytest
 import requests
@@ -277,3 +278,44 @@ def test_transport_rejects_private_dns_and_pins_public_address(
     assert observed["address"] == "8.8.8.8"
     assert observed["path"] == "/send?token=opaque"
     assert observed["read_size"] == 1025
+
+
+def test_withdraw_sends_only_ids_to_a_reference_capable_android_device(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """#2345: the removal names the notices and nothing else."""
+    subscription = json.loads(_subscription())
+    subscription["notificationReferenceVersion"] = 1
+    captured: dict[str, Any] = {}
+    monkeypatch.setattr(unified_push, "webpush", lambda **kwargs: captured.update(kwargs))
+    ids = [uuid4(), uuid4()]
+    _provider().send_withdraw(
+        idempotency_key="withdraw:endpoint:ids",
+        endpoint=json.dumps(subscription),
+        notification_ids=ids,
+        ttl=86400,
+    )
+    assert json.loads(captured["data"]) == {
+        "type": "withdraw",
+        "notificationIds": [str(identifier) for identifier in ids],
+    }
+    assert captured["ttl"] == 86400
+
+
+def test_withdraw_skips_browsers_old_devices_and_bad_batches() -> None:
+    reference_capable = json.loads(_subscription())
+    reference_capable["notificationReferenceVersion"] = 1
+    browser_settings = _provider()
+    browser = unified_push.UnifiedPushProvider.__new__(unified_push.UnifiedPushProvider)
+    browser.__dict__.update(browser_settings.__dict__)
+    browser._browser = True
+    cases = [
+        (_provider(), _subscription(), [uuid4()]),
+        (_provider(), json.dumps(reference_capable), []),
+        (_provider(), json.dumps(reference_capable), [uuid4() for _ in range(21)]),
+        (browser, json.dumps({**reference_capable, "activationId": str(uuid4())}), [uuid4()]),
+    ]
+    for provider, endpoint, ids in cases:
+        with pytest.raises(push.PushProviderError) as failure:
+            provider.send_withdraw(
+                idempotency_key="withdraw", endpoint=endpoint, notification_ids=ids, ttl=60
+            )
+        assert failure.value.code == "PUSH_WITHDRAW_INVALID"

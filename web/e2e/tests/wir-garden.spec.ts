@@ -2,6 +2,7 @@ import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import games from '../../src/i18n/locales/games';
 import AxeBuilder from '../support/axe';
+import { fulfillGameNoticesRead } from '../support/gameNotices';
 import {
   ACCOUNT_ID,
   captureScreenshot,
@@ -89,6 +90,7 @@ async function gardenMocks(
     preferenceWrites: [],
   };
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillGameNoticesRead(route)) return;
     const request = route.request();
     const url = new URL(request.url());
     const method = request.method();

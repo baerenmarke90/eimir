@@ -271,6 +271,7 @@ jobs:
             --build-arg "EIMIR_BUILD_REVISION=$GITHUB_SHA" \
             --build-arg "EIMIR_APP_VERSION=$RELEASE_VERSION" \
             --build-arg "EIMIR_REQUIRE_BUILD_IDENTITY=true" \
+            --build-arg "VITE_EIMIR_DEMO_URL=https://demo.eimir.de" \
             --label "org.opencontainers.image.title=eimir web runtime" \
             --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
             --label "org.opencontainers.image.revision=$GITHUB_SHA" \

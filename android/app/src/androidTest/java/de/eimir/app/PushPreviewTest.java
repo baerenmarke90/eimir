@@ -154,6 +154,39 @@ public class PushPreviewTest {
         assertFalse(gesture.body(context).contains("Never display"));
     }
 
+    @Test public void onlyAV4OperatorNoticeNamesItsTopicAndMayLiveForAnHour() throws Exception {
+        JSONObject value = new JSONObject()
+            .put("v", 4).put("notificationId", "01a19706-45b8-741d-a0d2-3687565a6789")
+            .put("kind", "OPERATOR_ALERT").put("name", "").put("title", "")
+            .put("targetType", "SUPPORT_REPORTS").put("digest", false).put("issuedAt", 1000).put("expiresAt", 4600)
+            .put("body", "").put("when", "").put("place", "");
+        PushActivation active = activation(fixture().getString("activationId"));
+        PushPreview operator = PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100);
+        assertNotNull(operator);
+        assertEquals("SUPPORT_REPORTS", operator.operatorTopic());
+        assertEquals(context.getString(R.string.push_operator_support_reports), operator.body(context));
+        // A stalled push connection may deliver it late, within the hour.
+        assertNotNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 4500));
+        value.put("expiresAt", 4601);
+        assertNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
+        // Below v4 an operator notice keeps the five-minute window and no topic.
+        value.put("v", 3).put("expiresAt", 4600);
+        assertNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
+        value.put("expiresAt", 1300).put("targetType", "");
+        PushPreview neutral = PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100);
+        assertNotNull(neutral);
+        assertNull(neutral.operatorTopic());
+        // A couple notice never gets the longer window, also on v4.
+        value.put("v", 4).put("kind", "THINKING_OF_YOU").put("name", "Alex").put("expiresAt", 4600);
+        assertNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
+        // A topic code outside the closed shape never reaches the tap.
+        value.put("kind", "OPERATOR_ALERT").put("name", "").put("targetType", "support reports");
+        PushPreview odd = PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100);
+        assertNotNull(odd);
+        assertNull(odd.operatorTopic());
+        assertEquals(context.getString(R.string.push_operator_alert), odd.body(context));
+    }
+
     @Test public void detailedPreviewIsStrictlyVersionedAndNamesWhenAndWhere() throws Exception {
         JSONObject value = new JSONObject()
             .put("v", 3).put("notificationId", "01a19706-45b8-741d-a0d2-3687565a6789")

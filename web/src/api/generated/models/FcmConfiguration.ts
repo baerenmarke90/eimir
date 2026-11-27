@@ -39,6 +39,12 @@ export interface FcmConfiguration {
     encryptedPreviewMaxVersion?: FcmConfigurationEncryptedPreviewMaxVersionEnum;
     /**
      * 
+     * @type {FcmConfigurationEncryptedPreviewOperatorVersionEnum}
+     * @memberof FcmConfiguration
+     */
+    encryptedPreviewOperatorVersion?: FcmConfigurationEncryptedPreviewOperatorVersionEnum;
+    /**
+     * 
      * @type {FcmConfigurationEncryptedPreviewVersionEnum}
      * @memberof FcmConfiguration
      */
@@ -89,6 +95,14 @@ export type FcmConfigurationEncryptedPreviewMaxVersionEnum = typeof FcmConfigura
 /**
  * @export
  */
+export const FcmConfigurationEncryptedPreviewOperatorVersionEnum = {
+    NUMBER_4: 4
+} as const;
+export type FcmConfigurationEncryptedPreviewOperatorVersionEnum = typeof FcmConfigurationEncryptedPreviewOperatorVersionEnum[keyof typeof FcmConfigurationEncryptedPreviewOperatorVersionEnum];
+
+/**
+ * @export
+ */
 export const FcmConfigurationEncryptedPreviewVersionEnum = {
     NUMBER_1: 1
 } as const;
@@ -134,6 +148,7 @@ export function FcmConfigurationFromJSONTyped(json: any, ignoreDiscriminator: bo
         'androidPackage': json['androidPackage'],
         'encryptedPreviewDetailVersion': json['encryptedPreviewDetailVersion'] == null ? undefined : json['encryptedPreviewDetailVersion'],
         'encryptedPreviewMaxVersion': json['encryptedPreviewMaxVersion'] == null ? undefined : json['encryptedPreviewMaxVersion'],
+        'encryptedPreviewOperatorVersion': json['encryptedPreviewOperatorVersion'] == null ? undefined : json['encryptedPreviewOperatorVersion'],
         'encryptedPreviewVersion': json['encryptedPreviewVersion'] == null ? undefined : json['encryptedPreviewVersion'],
         'localeVersion': json['localeVersion'] == null ? undefined : json['localeVersion'],
         'neutralReferenceVersion': json['neutralReferenceVersion'] === undefined ? undefined : json['neutralReferenceVersion'] === null ? null : json['neutralReferenceVersion'],
@@ -156,6 +171,7 @@ export function FcmConfigurationToJSONTyped(value?: FcmConfiguration | null, ign
         'androidPackage': value['androidPackage'],
         'encryptedPreviewDetailVersion': value['encryptedPreviewDetailVersion'],
         'encryptedPreviewMaxVersion': value['encryptedPreviewMaxVersion'],
+        'encryptedPreviewOperatorVersion': value['encryptedPreviewOperatorVersion'],
         'encryptedPreviewVersion': value['encryptedPreviewVersion'],
         'localeVersion': value['localeVersion'],
         'neutralReferenceVersion': value['neutralReferenceVersion'],

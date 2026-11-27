@@ -624,7 +624,7 @@ class PushPreviewSecret(IdMixin, Base):
     )
     __table_args__ = (
         CheckConstraint("crypto_version >= 0", name="preview_secret_crypto_valid"),
-        CheckConstraint("preview_version IN (1, 2, 3)", name="preview_protocol_version_valid"),
+        CheckConstraint("preview_version IN (1, 2, 3, 4)", name="preview_protocol_version_valid"),
     )
 
 

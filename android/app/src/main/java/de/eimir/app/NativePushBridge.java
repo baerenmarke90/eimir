@@ -72,7 +72,9 @@ public final class NativePushBridge extends Plugin {
                     } catch (IllegalArgumentException invalid) { notificationId = null; }
                 }
                 NativePushNotifications.cancelOpened(getContext(), notificationId);
-                emit("notificationOpen", PushActivation.read(getContext()), notificationId, true);
+                String topic = intent.getStringExtra("operatorTopic");
+                emit("notificationOpen", PushActivation.read(getContext()), notificationId,
+                    topic != null && topic.matches("[A-Z_]{1,32}") ? topic : null, true);
             }
         }
     }
@@ -315,9 +317,14 @@ public final class NativePushBridge extends Plugin {
     }
 
     private static void emit(String event, PushActivation activation, String value, boolean retain) {
+        emit(event, activation, value, null, retain);
+    }
+
+    private static void emit(String event, PushActivation activation, String value, String operatorTopic, boolean retain) {
         NativePushBridge plugin = current.get();
         if (plugin == null) return;
         JSObject data = scope(activation);
+        if ("notificationOpen".equals(event) && operatorTopic != null) data.put("operatorTopic", operatorTopic);
         if ("endpoint".equals(event)) data.put("endpointValue", value);
         if ("unavailable".equals(event)) data.put("reason", value);
         if ("notificationOpen".equals(event) && value != null) data.put("notificationId", value);
@@ -357,7 +364,7 @@ public final class NativePushBridge extends Plugin {
                 // Only this transient authenticated-registration event carries it.
                 if (active.apiBaseUrl.startsWith("https://")) {
                     value = new JSONObject(value).put("neutralReferenceVersion", 1).put("previewVersion", 1)
-                        .put("previewMaxVersion", 3)
+                        .put("previewMaxVersion", 4)
                         .put("previewKey", PushPreviewKeys.registrationKey(context, active)).toString();
                 }
                 emit("endpoint", updated, value, true);

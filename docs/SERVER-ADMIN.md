@@ -158,17 +158,21 @@ and one push.
 - **Push** goes once to each such account's registered devices, as an operator
   notice of kind `OPERATOR_ALERT`: it belongs to no Space, never appears in a
   couple's Notification Center, unread count or notification settings, and
-  names only the condition. Every device shows the neutral eimir. notice; the
-  topic appears after the tap, which opens the matching ServerAdmin page
+  names only the condition. On Android apps with encrypted preview v4 (#2337)
+  the notice names its topic (for example "ServerAdmin: new support report");
+  older apps and other platforms show the neutral eimir. notice and the topic
+  appears after the tap. The tap opens the matching ServerAdmin page
   (failed jobs: System › Jobs; new reports: the new reports; a Space near its
-  quota: the Situation; otherwise System › Monitoring). The tap is resolved
-  through the account's current Space, so an account in no Space lands on its
-  notification list and opens ServerAdmin itself. The account's Quiet Hours
+  quota: the Situation; otherwise System › Monitoring). It is resolved through
+  the account's current Space; if that fails (or the account is in no Space),
+  a v4 app still opens the topic's ServerAdmin page from the topic code on the
+  device instead of the notification list. The account's Quiet Hours
   apply; alerts held overnight arrive as one notice that opens the latest
   topic, while the mails name each one. Delivery and the tap re-check that the
   account is still a verified allow-listed ServerAdmin. Notices expire after 24 hours and are
-  deleted a day later. Topic text on the Android lock screen needs a later
-  native release.
+  deleted a day later. On v4 an operator notice stays deliverable for up to an
+  hour (provider TTL and device preview window), so a device whose push
+  connection stalls briefly still receives it; couple notices keep five minutes.
 
 | Code | Active when |
 | --- | --- |

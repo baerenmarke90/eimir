@@ -98,6 +98,14 @@
     <string name="push_shared_note_created_title">%1$s hat die gemeinsame Notiz „%2$s“ angelegt.</string>
     <string name="push_shared_note_changed_title">%1$s hat die gemeinsame Notiz „%2$s“ geändert.</string>
     <string name="push_video_processing_failed_title">Dein Video in „%2$s“ konnte nicht verarbeitet werden.</string>
+    <!-- ServerAdmin notices name only their topic (#2337). -->
+    <string name="push_operator_alert">Neue Warnung in der Serververwaltung.</string>
+    <string name="push_operator_failed_jobs">Serververwaltung: Hintergrundjobs sind fehlgeschlagen.</string>
+    <string name="push_operator_space_quota_pressure">Serververwaltung: Ein Space ist fast voll.</string>
+    <string name="push_operator_disk_pressure">Serververwaltung: Der Medienspeicher ist fast voll.</string>
+    <string name="push_operator_delivery_failures">Serververwaltung: Mails oder Pushes schlagen fehl.</string>
+    <string name="push_operator_backup_not_configured">Serververwaltung: Es ist keine Sicherung eingerichtet.</string>
+    <string name="push_operator_support_reports">Serververwaltung: Neue Support-Meldung.</string>
     <string name="push_photo_reaction_symbol">%1$s hat mit %3$s auf ein Foto reagiert.</string>
     <string name="push_photo_reaction_title_symbol">%1$s hat mit %3$s auf ein Foto in „%2$s“ reagiert.</string>
     <string name="push_garden_seed_species">%1$s hat dir %2$s zum Einpflanzen geschickt.</string>

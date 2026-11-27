@@ -101,7 +101,20 @@ projection including available signals for:
 - `emailFailuresLastHour` / `pushFailuresLastHour` (counts only);
 - `backupStatus`: `not_configured` until a backup job reports a signal; on Cloud
   this adds the `backup_not_configured` warning;
-- privacy-safe warning codes for actionable configuration/runtime conditions.
+- privacy-safe warning codes for actionable configuration/runtime conditions;
+- `jobsFailedUnseen`: failed jobs that finished after an operator last marked
+  them as seen (all failed jobs while nobody has). The Situation page's "Needs
+  you" list and the `failed_jobs_present` warning use it; `jobsFailed` and
+  System › Jobs keep counting every failed job.
+
+**Marking as seen (#2342).** The "Needs you" rows for failed jobs and new
+reports carry a "Seen" button. `POST /api/v1/server-admin/failed-jobs/seen`
+stores the time on the instance settings for every ServerAdmin and records the
+content-free action `failed_jobs_seen` with the number of hidden jobs; the row
+returns as soon as a new job fails. Alert mails and pushes are unaffected. The
+reports button moves the reports that were new when the page loaded to
+`IN_PROGRESS` (see [Routes](#routes)). Other rows have no button; they leave
+when their condition is resolved.
 
 Where no authoritative runtime primitive exists yet, the API reports that the
 signal is not available instead of fabricating health. In particular, the
@@ -440,6 +453,7 @@ while `EIMIR_SUPPORT_REPORTS_ENABLED` is off.
 | `GET /` | List, optional `state` (`NEW`, `IN_PROGRESS`, `CLOSED`), `archived` (default `false`: unarchived reports; `true`: the archive), keyset `cursor`, `limit`; items carry kind, state, time, `archivedAt`, app version and build, `platform` and `os`, failure reference, whether a reply and a ticket exist and a `notePreview` (the note's first 160 characters on one line, Product Owner decision 2026-11-26, [#2327](https://github.com/baerenmarke90/eimir/issues/2327)), plus the `newCount` of unarchived `NEW` reports and the `stateCounts` of unarchived reports per state; never the full note |
 | `GET /{reportId}` | The report: note, technical client context, failure reference, request id, the opaque reporter account id (no name or email), the reply if any, the ticket link if any and `ticketAvailable` |
 | `PUT /{reportId}/state` | Set `NEW`, `IN_PROGRESS` or `CLOSED` |
+| `POST /seen` | Move the unarchived `NEW` reports created up to `through` to `IN_PROGRESS` (the Situation page's "Seen" button, #2342); returns `moved`, each report is audited like a single state change |
 | `PUT /{reportId}/archive` | Archive (`{"archived": true}`) or unarchive a report |
 | `DELETE /{reportId}` | Delete the report permanently (`204`), with its reply and ticket link |
 | `POST /{reportId}/reply` | The one reply, plain text of at most 500 characters |

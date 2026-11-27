@@ -6,6 +6,7 @@ import {
   useSearchParams,
 } from 'react-router-dom';
 import type { ServerAdminApi } from '../api/generated/apis/ServerAdminApi';
+import type { ServerAdminSupportReportsApi } from '../api/generated/apis/ServerAdminSupportReportsApi';
 import type { ServerAdminOverview } from '../api/generated/models/ServerAdminOverview';
 import type { ServerAdminPrivilegedAuditItem } from '../api/generated/models/ServerAdminPrivilegedAuditItem';
 import type { ServerAdminSettings } from '../api/generated/models/ServerAdminSettings';
@@ -534,9 +535,13 @@ export function ServerAdminActivityPanel({
 function OverviewContent({
   overview,
   section,
+  api,
+  reportsApi,
 }: {
   overview: ServerAdminOverview;
   section: Extract<ServerAdminSection, 'overview' | 'jobs' | 'security'>;
+  api: ServerAdminApi;
+  reportsApi: ServerAdminSupportReportsApi;
 }) {
   const { t } = useTranslation();
   const lastSuccessfulJob = formatDate(overview.lastSuccessfulJobAt);
@@ -545,7 +550,11 @@ function OverviewContent({
   return (
     <>
       {section === 'overview' ? (
-        <ServerAdminSituation overview={overview} />
+        <ServerAdminSituation
+          overview={overview}
+          api={api}
+          reportsApi={reportsApi}
+        />
       ) : null}
 
       {section === 'overview' ? (
@@ -1144,6 +1153,8 @@ export function ServerAdminPage({
               ) : overviewQuery.data ? (
                 <OverviewContent
                   overview={overviewQuery.data}
+                  api={apis.serverAdmin}
+                  reportsApi={apis.supportReports}
                   section={
                     section as Extract<
                       ServerAdminSection,

@@ -1,6 +1,11 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import type { ServerAdminApi } from '../api/generated/apis/ServerAdminApi';
+import type { ServerAdminSupportReportsApi } from '../api/generated/apis/ServerAdminSupportReportsApi';
 import type { ServerAdminOverview } from '../api/generated/models/ServerAdminOverview';
 import { formatBytes } from '../client/formatBytes';
+import { SUPPORT_REPORTS_QUERY_KEY } from '../client/supportReportsAdmin';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
 import {
@@ -63,11 +68,47 @@ function Service({
  */
 export function ServerAdminSituation({
   overview,
+  api,
+  reportsApi,
 }: {
   overview: ServerAdminOverview;
+  api: ServerAdminApi;
+  reportsApi: ServerAdminSupportReportsApi;
 }) {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const items = buildNeedsYouItems(overview);
+  // "Seen" (#2342): failed jobs are hidden until a new one fails; the reports
+  // that were new when the page loaded move to in progress.
+  const [seenNotice, setSeenNotice] = useState<'saved' | 'failed' | null>(null);
+  const seen = useMutation({
+    mutationFn: async (kind: 'reports' | 'failedJobs'): Promise<void> => {
+      if (kind === 'failedJobs') {
+        await api.markFailedJobsSeenApiV1ServerAdminFailedJobsSeenPost();
+        return;
+      }
+      const loadedAt = queryClient.getQueryState([
+        'server-admin',
+        'overview',
+      ])?.dataUpdatedAt;
+      await reportsApi.markSupportReportsSeen({
+        supportReportsSeen: {
+          through: loadedAt ? new Date(loadedAt) : new Date(),
+        },
+      });
+    },
+    onMutate: () => setSeenNotice(null),
+    onSuccess: () => {
+      setSeenNotice('saved');
+      void queryClient.invalidateQueries({
+        queryKey: ['server-admin', 'overview'],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: SUPPORT_REPORTS_QUERY_KEY,
+      });
+    },
+    onError: () => setSeenNotice('failed'),
+  });
   const tone = summaryTone(overview);
   const number = new Intl.NumberFormat(resolvedLocale());
   const summary =
@@ -145,7 +186,7 @@ export function ServerAdminSituation({
         ) : (
           <ul className="server-admin-needs-you">
             {items.map((item) => (
-              <li key={item.id}>
+              <li key={item.id} className="server-admin-needs-you-item">
                 <Link
                   className={`server-admin-needs-you-row is-${item.tone}`}
                   to={item.href}
@@ -171,10 +212,34 @@ export function ServerAdminSituation({
                   </span>
                   <EimirIcon name="chevron-right" />
                 </Link>
+                {item.seen ? (
+                  <button
+                    type="button"
+                    className="secondary server-admin-needs-you-seen"
+                    aria-label={t(
+                      item.seen === 'failedJobs'
+                        ? 'serverAdmin.situation.seenFailedJobs'
+                        : 'serverAdmin.situation.seenReports',
+                    )}
+                    disabled={seen.isPending}
+                    onClick={() =>
+                      seen.mutate(item.seen as 'reports' | 'failedJobs')
+                    }
+                  >
+                    {t('serverAdmin.situation.seen')}
+                  </button>
+                ) : null}
               </li>
             ))}
           </ul>
         )}
+        <p className="server-admin-muted" role="status">
+          {seenNotice === 'saved'
+            ? t('serverAdmin.situation.seenSaved')
+            : seenNotice === 'failed'
+              ? t('serverAdmin.situation.seenFailed')
+              : null}
+        </p>
       </section>
 
       <section

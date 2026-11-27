@@ -1,4 +1,11 @@
 .server-admin-shell {
+  /* ServerAdmin renders outside the product shell, so it keeps the native
+     status bar clear itself: its back control sat under the clock (#2342). */
+  --server-admin-safe-top: var(
+    --safe-area-inset-top,
+    env(safe-area-inset-top, 0px)
+  );
+
   min-height: 100vh;
   background: var(--color-background);
   color: var(--color-text);
@@ -11,8 +18,13 @@
   justify-content: space-between;
   gap: var(--space-4);
   padding: var(--space-3) clamp(var(--space-4), 4vw, var(--space-8));
+  padding-block-start: calc(var(--space-3) + var(--server-admin-safe-top));
   border-bottom: 1px solid var(--color-border-subtle);
   background: var(--color-surface);
+}
+
+#root:has(> .demo-instance-banner) .server-admin-shell {
+  --server-admin-safe-top: 0px;
 }
 
 .server-admin-topbar-actions {
@@ -273,6 +285,28 @@
 
 .server-admin-needs-you li + li {
   border-top: var(--border-surface-width) solid var(--color-border-subtle);
+}
+
+/* A row that can be marked as seen keeps its full link and adds the button
+   at its end (#2342); the button is never inside the link. */
+.server-admin-needs-you-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--space-2);
+}
+
+/* With large text the button moves below the row instead of squeezing the
+   title into a narrow column. */
+.server-admin-needs-you-item > .server-admin-needs-you-row {
+  flex: 1 1 13rem;
+  min-width: 0;
+}
+
+.server-admin-needs-you-seen {
+  flex: none;
+  margin-inline-start: auto;
+  min-height: var(--touch-target-comfortable);
 }
 
 .server-admin-needs-you-row {

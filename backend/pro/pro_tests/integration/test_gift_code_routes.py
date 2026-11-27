@@ -34,15 +34,24 @@ _CODE = re.compile(r"^EIMIR-[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{4}$")
 _UNKNOWN_CODE = "EIMIR-ABCD-EFGH"
 
 
-def _admin_operations() -> list[tuple[str, str, dict[str, Any] | None]]:
-    some = str(uuid4())
+def _admin_operations() -> list[Any]:
+    # A fixed id keeps the parametrized test ids stable between collection and
+    # execution (CI collects in one process and runs the selected ids in another).
+    some = str(UUID(int=1))
     return [
-        ("GET", f"{_PRO}/overview", None),
-        ("POST", f"{_PRO}/gift-code-batches", {"count": 1, "durationMonths": 3}),
-        ("GET", f"{_PRO}/gift-code-batches/{some}", None),
-        ("POST", f"{_PRO}/gift-code-batches/{some}/revoke", None),
-        ("PUT", f"{_PRO}/gift-codes/{some}/handed-out", {"handedOut": True}),
-        ("POST", f"{_PRO}/gift-codes/{some}/revoke", None),
+        pytest.param("GET", f"{_PRO}/overview", None, id="overview"),
+        pytest.param(
+            "POST",
+            f"{_PRO}/gift-code-batches",
+            {"count": 1, "durationMonths": 3},
+            id="create-batch",
+        ),
+        pytest.param("GET", f"{_PRO}/gift-code-batches/{some}", None, id="get-batch"),
+        pytest.param("POST", f"{_PRO}/gift-code-batches/{some}/revoke", None, id="revoke-batch"),
+        pytest.param(
+            "PUT", f"{_PRO}/gift-codes/{some}/handed-out", {"handedOut": True}, id="handed-out"
+        ),
+        pytest.param("POST", f"{_PRO}/gift-codes/{some}/revoke", None, id="revoke-code"),
     ]
 
 
@@ -296,7 +305,7 @@ def test_get_batch_shows_its_codes(client, cloud, admin) -> None:  # type: ignor
     assert response.json() == created
 
 
-@pytest.mark.parametrize("batch_id", [str(uuid4()), "not-an-id"])
+@pytest.mark.parametrize("batch_id", [str(UUID(int=2)), "not-an-id"], ids=["unknown", "malformed"])
 def test_unknown_batch_is_404(client, cloud, admin, batch_id: str) -> None:  # type: ignore[no-untyped-def]
     for method, path in (
         ("GET", f"{_PRO}/gift-code-batches/{batch_id}"),
@@ -307,7 +316,7 @@ def test_unknown_batch_is_404(client, cloud, admin, batch_id: str) -> None:  # t
         assert response.json()["code"] == service.GiftCodeErrorCode.BATCH_NOT_FOUND
 
 
-@pytest.mark.parametrize("code_id", [str(uuid4()), "not-an-id"])
+@pytest.mark.parametrize("code_id", [str(UUID(int=3)), "not-an-id"], ids=["unknown", "malformed"])
 def test_unknown_code_is_404(client, cloud, admin, code_id: str) -> None:  # type: ignore[no-untyped-def]
     for method, path, body in (
         ("PUT", f"{_PRO}/gift-codes/{code_id}/handed-out", {"handedOut": True}),

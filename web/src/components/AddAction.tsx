@@ -58,17 +58,20 @@ function FloatingActionPlacement({ children }: { children: ReactElement }) {
     });
     return () => observer.disconnect();
   }, [panel]);
-  const origin = <span hidden ref={locatePanel} data-floating-create-origin />;
   if (compact)
     return (
       <>
-        {origin}
+        <span hidden ref={locatePanel} data-floating-create-origin />
         {panel ? createPortal(children, panel) : children}
       </>
     );
   return (
     <>
-      {origin}
+      <span
+        style={{ display: 'none' }}
+        ref={locatePanel}
+        data-floating-create-origin
+      />
       {slot && panelShown ? createPortal(children, slot) : children}
     </>
   );

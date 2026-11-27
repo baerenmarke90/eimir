@@ -4252,6 +4252,19 @@
         "title": "GameMemoryCandidateSet",
         "type": "object"
       },
+      "GameNoticeSurface": {
+        "description": "A game page that presents its own notices.",
+        "enum": [
+          "WHO_OF_US",
+          "WISH_DETECTIVE",
+          "OUR_MOMENTS",
+          "PICTURE_PING_PONG",
+          "HEART_HUNT",
+          "GARDEN"
+        ],
+        "title": "GameNoticeSurface",
+        "type": "string"
+      },
       "GameWishCandidate": {
         "description": "Minimal authorized OPEN Wish context required by Wunschdetektiv.",
         "properties": {
@@ -17388,6 +17401,44 @@
           "tokens"
         ],
         "title": "SessionView",
+        "type": "object"
+      },
+      "SettledNotifications": {
+        "properties": {
+          "settledIds": {
+            "description": "The requested notices that need no attention any more (read, expired, deleted or no longer current), so the device withdraws them. Notices of the reader's other Spaces are never listed.",
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Settledids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "settledIds"
+        ],
+        "title": "SettledNotifications",
+        "type": "object"
+      },
+      "SettledNotificationsQuery": {
+        "additionalProperties": false,
+        "properties": {
+          "notificationIds": {
+            "description": "Notices the device still shows in its notification tray.",
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Notificationids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "notificationIds"
+        ],
+        "title": "SettledNotificationsQuery",
         "type": "object"
       },
       "SharedHeartMomentSummary": {
@@ -38570,6 +38621,70 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/games/{surface}/notices/read": {
+      "post": {
+        "description": "The reader opened a game page; its notices are handled everywhere (#2345).\n\nMarks only the reader's own notices read. It reveals nothing and is not\ngameplay, so it needs no Premium capability: after a downgrade the reader can\nstill clear what was announced before.",
+        "operationId": "markGameNoticesRead",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "surface",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/GameNoticeSurface"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Mark Game Notices Read",
+        "tags": [
+          "games"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/gentle-prompts/memories/{memoryId}/exclusion": {
       "put": {
         "operationId": "excludeGentleMemory",
@@ -43608,6 +43723,79 @@
           }
         },
         "summary": "Mark All Notifications Read",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/notifications/settled": {
+      "post": {
+        "description": "Tell a device which tray notices it can withdraw (#2345); changes nothing.",
+        "operationId": "findSettledNotifications",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettledNotificationsQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettledNotifications"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Find Settled Notifications",
         "tags": [
           "notifications"
         ]

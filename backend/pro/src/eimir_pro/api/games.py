@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from datetime import date, datetime, time, timedelta
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Path, Response
+from fastapi import status as http_status
 from pydantic import Field
 
 from eimir.api.deps import Authorization, DbSession, ensure_capability
@@ -17,7 +19,8 @@ from eimir.entitlements.models import Capability
 from eimir.games.questions import select_questions
 from eimir.memories import experiences
 from eimir.recaps.service import calendar_context
-from eimir_pro.games import service, waiting
+from eimir_pro.games import notices, service, waiting
+from eimir_pro.games.notices import GameNoticeSurface
 from eimir_pro.games.waiting import WaitingGameKind, WaitingGameReason
 
 router = APIRouter(tags=["games"])
@@ -214,3 +217,24 @@ def get_waiting_games(
             for item in waiting.waiting_games(session, authorization)
         ]
     )
+
+
+@router.post(
+    "/spaces/{spaceId}/games/{surface}/notices/read",
+    status_code=http_status.HTTP_204_NO_CONTENT,
+    operation_id="markGameNoticesRead",
+    responses=problem_responses(401, 404, 422),
+)
+def mark_game_notices_read(
+    surface: Annotated[GameNoticeSurface, Path()],
+    authorization: Authorization,
+    session: DbSession,
+) -> Response:
+    """The reader opened a game page; its notices are handled everywhere (#2345).
+
+    Marks only the reader's own notices read. It reveals nothing and is not
+    gameplay, so it needs no Premium capability: after a downgrade the reader can
+    still clear what was announced before.
+    """
+    notices.mark_surface_notices_read(session, authorization, surface)
+    return Response(status_code=http_status.HTTP_204_NO_CONTENT)

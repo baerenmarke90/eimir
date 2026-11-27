@@ -90,6 +90,9 @@ NON_PAYWALLABLE: dict[tuple[str, str], str] = {
         f"Revoking a device, {_EXIT}"
     ),
     ("POST", f"{_S}/gift-codes/redeem"): "Redeeming a gift code is how a Free Space gets Pro",
+    ("POST", f"{_S}/games/{{surface}}/notices/read"): (
+        f"Clearing one's own game notices (#2345), {_EXIT}"
+    ),
     ("GET", "/api/v1/server-admin/pro/overview"): _OPERATOR,
     ("POST", "/api/v1/server-admin/pro/gift-code-batches"): _OPERATOR,
     ("GET", "/api/v1/server-admin/pro/gift-code-batches/{batchId}"): _OPERATOR,
@@ -107,7 +110,12 @@ _BODIES = {
 }
 _PARAMETER = re.compile(r"\{([^}]*)\}")
 # Path values that must be valid before a route reaches its capability check.
-_PATH_VALUES = {"animal": "SNAIL", "kind": "HAPPINESS", "imageId": "eimir-date-001"}
+_PATH_VALUES = {
+    "animal": "SNAIL",
+    "kind": "HAPPINESS",
+    "imageId": "eimir-date-001",
+    "surface": "HEART_HUNT",
+}
 
 
 def _path(template: str, space_id: str) -> str:

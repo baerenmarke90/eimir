@@ -4,6 +4,7 @@ import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import games from '../../src/i18n/locales/games';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { fulfillGameNoticesRead } from '../support/gameNotices';
 import { fulfillNoOccasionSources } from '../support/occasionSources';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
@@ -136,6 +137,7 @@ async function installMocks(page: Page, initial: Round[]) {
     };
   }
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillGameNoticesRead(route)) return;
     if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
     const method = request.method();

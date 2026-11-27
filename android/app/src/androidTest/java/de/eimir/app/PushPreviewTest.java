@@ -275,6 +275,45 @@ public class PushPreviewTest {
         return encrypted.serialize();
     }
 
+    private JSONObject withdrawFixture() throws Exception {
+        try (java.io.InputStream input = InstrumentationRegistry.getInstrumentation().getContext()
+                .getAssets().open("push-withdraw-v1.json")) {
+            return new JSONObject(new String(readAsset(input), StandardCharsets.UTF_8));
+        }
+    }
+
+    /** #2345: a tray removal sealed by the Python sender opens to exactly its ids. */
+    @Test public void pythonWithdrawalDecryptsToItsIds() throws Exception {
+        JSONObject fixture = withdrawFixture();
+        PushActivation active = activation(fixture.getString("activationId"));
+        java.util.Set<String> ids = PushWithdrawal.decrypt(active, fixture.getString("jwe"), fixtureKey(), 1100);
+        java.util.Set<String> expected = new java.util.LinkedHashSet<>();
+        JSONArray listed = fixture.getJSONArray("notificationIds");
+        for (int index = 0; index < listed.length(); index++) expected.add(listed.getString(index));
+        assertEquals(expected, ids);
+    }
+
+    @Test public void withdrawalRejectsWrongKeyActivationKindExpiryAndBadIds() throws Exception {
+        JSONObject fixture = withdrawFixture();
+        PushActivation active = activation(fixture.getString("activationId"));
+        String compact = fixture.getString("jwe");
+        byte[] wrong = fixtureKey();
+        wrong[0] ^= 1;
+        assertNull(PushWithdrawal.decrypt(active, compact, wrong, 1100));
+        assertNull(PushWithdrawal.decrypt(activation("0f94bddd-bede-4676-a343-7202f117fef9"), compact, fixtureKey(), 1100));
+        assertNull(PushWithdrawal.decrypt(active, compact, fixtureKey(), 1000 + PushWithdrawal.VALIDITY + 1));
+        // A preview envelope is never read as a removal.
+        JSONObject preview = fixture();
+        assertNull(PushWithdrawal.decrypt(activation(preview.getString("activationId")),
+            preview.getJSONArray("cases").getJSONObject(0).getString("jwe"), fixtureKey(), 1100));
+        assertNull(PushWithdrawal.ids(new JSONArray()));
+        assertNull(PushWithdrawal.ids(new JSONArray().put("3F8A7F84-6A4E-4D43-9A3F-1D2C5B6E7A80")));
+        assertNull(PushWithdrawal.ids(new JSONArray().put("not-an-id")));
+        JSONArray many = new JSONArray();
+        for (int index = 0; index <= PushWithdrawal.MAX_IDS; index++) many.put(java.util.UUID.randomUUID().toString());
+        assertNull(PushWithdrawal.ids(many));
+    }
+
     private PushActivation activation(String id) {
         return new PushActivation("17b4a730-e98c-4af3-b19e-5fae9485200c", "https://api.example.invalid", "fcm", id, null);
     }

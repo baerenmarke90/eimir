@@ -3,6 +3,7 @@ import de from '../../src/i18n/locales/de';
 import games from '../../src/i18n/locales/games';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '../support/axe';
+import { fulfillGameNoticesRead } from '../support/gameNotices';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
@@ -58,6 +59,7 @@ async function installApiMocks(
   turnRequests.length = 0;
   startRequests.length = 0;
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillGameNoticesRead(route)) return;
     if (await fulfillDefaultAppIcon(route)) return;
     if (await fulfillEmptyPlanComments(route)) return;
     const request = route.request();

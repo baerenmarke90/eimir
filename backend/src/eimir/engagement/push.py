@@ -54,6 +54,8 @@ ACCOUNT_UNAVAILABLE_CODE = "ACCOUNT_UNAVAILABLE"
 POLICY_BLOCKED_CODE = "PUSH_POLICY_BLOCKED"
 MAX_PUSH_ATTEMPTS = 5
 MAX_ACTIVE_ENDPOINTS = 10
+# Notice ids one tray removal carries (#2345); fits every provider's payload limit.
+WITHDRAW_BATCH = 20
 SESSION_BOUND_PROVIDERS = frozenset({"webpush", "apns"})
 QUIET_HOURS_RECHECK = timedelta(minutes=15)
 _TECHNICAL_CODE = re.compile(r"[A-Z0-9_-]{1,64}\Z")
@@ -162,6 +164,9 @@ def register_handlers() -> None:
         from eimir.engagement.gentle_delivery import prepare
 
         registry.register(JOB_KIND, handle_delivery, prepare=prepare)
+    from eimir.engagement import push_withdraw
+
+    push_withdraw.register_handler()
 
 
 def _lock_live_device_family(session: Session, *, account_id: UUID, family_id: UUID | None) -> bool:

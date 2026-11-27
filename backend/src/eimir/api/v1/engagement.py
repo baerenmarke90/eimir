@@ -96,6 +96,25 @@ class NotificationsReadAllResult(ApiModel):
     updated: int
 
 
+class SettledNotificationsQuery(ApiModel):
+    model_config = ConfigDict(extra="forbid")
+
+    notification_ids: list[UUID] = Field(
+        max_length=service.SETTLED_LOOKUP_LIMIT,
+        description="Notices the device still shows in its notification tray.",
+    )
+
+
+class SettledNotifications(ApiModel):
+    settled_ids: list[UUID] = Field(
+        description=(
+            "The requested notices that need no attention any more (read, expired, deleted "
+            "or no longer current), so the device withdraws them. Notices of the reader's "
+            "other Spaces are never listed."
+        )
+    )
+
+
 class ThinkingOfYouCreate(ApiModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -297,6 +316,26 @@ def mark_all_notifications_read(
     return NotificationsReadAllResult(
         read_through=result.read_through,
         updated=result.updated,
+    )
+
+
+@router.post(
+    "/spaces/{spaceId}/notifications/settled",
+    response_model=SettledNotifications,
+    operation_id="findSettledNotifications",
+    responses=problem_responses(401, 404, 422),
+    tags=["notifications"],
+)
+def find_settled_notifications(
+    body: SettledNotificationsQuery,
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+) -> SettledNotifications:
+    """Tell a device which tray notices it can withdraw (#2345); changes nothing."""
+    response.headers["Cache-Control"] = "private, no-store"
+    return SettledNotifications(
+        settled_ids=service.settled_notification_ids(session, authorization, body.notification_ids)
     )
 
 

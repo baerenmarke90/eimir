@@ -31,6 +31,12 @@ public final class EimirPushService extends PushService {
         WishDatePush wishDate;
         try {
             JSONObject payload = new JSONObject(new String(message.getContent(), StandardCharsets.UTF_8));
+            if ("withdraw".equals(payload.optString("type"))) {
+                // A silent tray removal (#2345): exactly the type and the ids.
+                if (payload.length() == 2 && payload.has("notificationIds"))
+                    PushWithdrawal.apply(this, active, PushWithdrawal.ids(payload.optJSONArray("notificationIds")));
+                return;
+            }
             if (!"wake".equals(payload.optString("type"))) return;
             HashSet<String> allowed = new HashSet<>(Arrays.asList("type", "notificationId", "locale", "wishDatePreview"));
             Iterator<String> keys = payload.keys();

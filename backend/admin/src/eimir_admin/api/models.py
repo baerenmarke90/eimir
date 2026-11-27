@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import ConfigDict, StringConstraints
+from pydantic import AwareDatetime, ConfigDict, StringConstraints
 
 from eimir.api.errors import ProblemDetails
 from eimir.api.schema import ApiModel
@@ -101,6 +101,20 @@ class SupportReportStateUpdate(ApiModel):
     model_config = ConfigDict(extra="forbid")
 
     state: SupportReportState
+
+
+class SupportReportsSeen(ApiModel):
+    """Strict request: the reports that were new up to ``through`` (#2342)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    through: AwareDatetime
+
+
+class SupportReportsSeenResult(ApiModel):
+    """How many reports moved from new to in progress."""
+
+    moved: int
 
 
 class SupportReportArchiveUpdate(ApiModel):

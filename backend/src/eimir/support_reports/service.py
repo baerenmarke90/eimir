@@ -317,6 +317,31 @@ def set_state(session: Session, report_id: UUID, state: SupportReportState) -> S
     return report
 
 
+def mark_new_seen(session: Session, through: datetime) -> list[SupportReport]:
+    """Move the unarchived reports that were new up to ``through`` to ``IN_PROGRESS`` (#2342).
+
+    The operator saw them on the Situation page; a report that arrived after
+    ``through`` stays new. The reports stay in the list with their new state.
+    """
+    reports = list(
+        session.execute(
+            select(SupportReport)
+            .where(
+                SupportReport.state == SupportReportState.NEW.value,
+                SupportReport.archived_at.is_(None),
+                SupportReport.created_at <= through,
+            )
+            .order_by(SupportReport.created_at)
+            .with_for_update()
+        ).scalars()
+    )
+    for report in reports:
+        report.state = SupportReportState.IN_PROGRESS.value
+        report.closed_at = None
+    session.flush()
+    return reports
+
+
 def set_archived(session: Session, report_id: UUID, archived: bool) -> SupportReport:
     """Archive or unarchive a report; the triage state and ``closed_at`` stay as they are.
 

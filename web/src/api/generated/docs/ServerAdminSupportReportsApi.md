@@ -12,6 +12,7 @@ All URIs are relative to *http://localhost*
 | [**getSupportReport**](ServerAdminSupportReportsApi.md#getsupportreport) | **GET** /api/v1/server-admin/support-reports/{reportId} | Get Support Report |
 | [**listSupportReplyTemplates**](ServerAdminSupportReportsApi.md#listsupportreplytemplates) | **GET** /api/v1/server-admin/support-reports/templates | List Support Reply Templates |
 | [**listSupportReports**](ServerAdminSupportReportsApi.md#listsupportreports) | **GET** /api/v1/server-admin/support-reports | List Support Reports |
+| [**markSupportReportsSeen**](ServerAdminSupportReportsApi.md#marksupportreportsseen) | **POST** /api/v1/server-admin/support-reports/seen | Mark Support Reports Seen |
 | [**replyToSupportReport**](ServerAdminSupportReportsApi.md#replytosupportreport) | **POST** /api/v1/server-admin/support-reports/{reportId}/reply | Reply To Support Report |
 | [**setSupportReportArchived**](ServerAdminSupportReportsApi.md#setsupportreportarchived) | **PUT** /api/v1/server-admin/support-reports/{reportId}/archive | Set Support Report Archived |
 | [**setSupportReportState**](ServerAdminSupportReportsApi.md#setsupportreportstate) | **PUT** /api/v1/server-admin/support-reports/{reportId}/state | Set Support Report State |
@@ -582,6 +583,77 @@ No authorization required
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
 | **400** | The request is syntactically valid but cannot be processed in this form. |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## markSupportReportsSeen
+
+> SupportReportsSeenResult markSupportReportsSeen(supportReportsSeen)
+
+Mark Support Reports Seen
+
+Move the reports that were new up to &#x60;&#x60;through&#x60;&#x60; to in progress (#2342).  The Situation page\&#39;s \&quot;Seen\&quot; button; each report is audited like a single state change. A report that arrived later stays new.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  ServerAdminSupportReportsApi,
+} from '';
+import type { MarkSupportReportsSeenRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new ServerAdminSupportReportsApi();
+
+  const body = {
+    // SupportReportsSeen
+    supportReportsSeen: ...,
+  } satisfies MarkSupportReportsSeenRequest;
+
+  try {
+    const data = await api.markSupportReportsSeen(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **supportReportsSeen** | [SupportReportsSeen](SupportReportsSeen.md) |  | |
+
+### Return type
+
+[**SupportReportsSeenResult**](SupportReportsSeenResult.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **403** | The caller is authenticated but is not authorized for this operation. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |

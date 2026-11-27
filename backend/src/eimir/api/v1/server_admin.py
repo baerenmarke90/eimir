@@ -144,6 +144,9 @@ class ServerAdminOverview(ApiModel):
     jobs_pending: int
     jobs_running: int
     jobs_failed: int
+    # Failed jobs since an operator last marked them as seen (#2342); every
+    # failed job while nobody has. Needs-you lists only these.
+    jobs_failed_unseen: int
     oldest_pending_job_at: datetime | None
     last_successful_job_at: datetime | None
     recent_failed_jobs: list[ServerAdminFailedJob]
@@ -196,6 +199,12 @@ class ServerAdminSettings(ApiModel):
 
 class ServerAdminSettingUpdate(ApiModel):
     enabled: bool
+
+
+class ServerAdminFailedJobsSeen(ApiModel):
+    """How many failed jobs left the Situation page."""
+
+    hidden: int
 
 
 class ServerAdminActivityItem(ApiModel):
@@ -400,6 +409,14 @@ def _job_count(session: Session, job_status: JobStatus) -> int:
     return session.execute(
         select(func.count()).select_from(Job).where(Job.status == job_status.value)
     ).scalar_one()
+
+
+def _failed_jobs_since(session: Session, seen_at: datetime | None) -> int:
+    """Failed jobs that finished after ``seen_at``; all of them when it is unset."""
+    statement = select(func.count()).select_from(Job).where(Job.status == JobStatus.FAILED.value)
+    if seen_at is not None:
+        statement = statement.where(func.coalesce(Job.finished_at, Job.created_at) > seen_at)
+    return int(session.execute(statement).scalar_one())
 
 
 def _active_session_filters(current_time: datetime) -> tuple[Any, ...]:
@@ -774,6 +791,9 @@ def get_server_admin_overview(
         .all()
     )
     jobs_failed = _job_count(session, JobStatus.FAILED)
+    jobs_failed_unseen = _failed_jobs_since(
+        session, administration.get_settings(session).failed_jobs_seen_at
+    )
 
     # Counts only: the overview never carries report content or ids. The count
     # is 0 while the feature is off, as no report can be created then.
@@ -853,7 +873,7 @@ def get_server_admin_overview(
         warning_codes.append("server_admin_allowlist_unmatched")
     if settings.mail_transport is MailTransport.NONE and unverified_primary_email_count:
         warning_codes.append("mail_disabled_with_unverified_accounts")
-    if jobs_failed:
+    if jobs_failed_unseen:
         warning_codes.append("failed_jobs_present")
     if unread_reports_warning:
         warning_codes.append("support_reports_unread")
@@ -900,6 +920,7 @@ def get_server_admin_overview(
         jobs_pending=_job_count(session, JobStatus.PENDING),
         jobs_running=_job_count(session, JobStatus.RUNNING),
         jobs_failed=jobs_failed,
+        jobs_failed_unseen=jobs_failed_unseen,
         oldest_pending_job_at=oldest_pending_job_at,
         last_successful_job_at=last_successful_job_at,
         recent_failed_jobs=[
@@ -1581,6 +1602,31 @@ def update_monitoring_push_setting(
         enabled=body.enabled,
     )
     return _settings_view(settings)
+
+
+@router.post(
+    "/failed-jobs/seen",
+    response_model=ServerAdminFailedJobsSeen,
+    responses=problem_responses(401, 403),
+)
+def mark_failed_jobs_seen(
+    admin: CurrentServerAdmin,
+    session: DbSession,
+) -> ServerAdminFailedJobsSeen:
+    """Hide the current failed jobs from the Situation page until a new job fails (#2342).
+
+    System > Jobs, alert mails and pushes are unaffected. Shared by every ServerAdmin.
+    """
+    settings = administration.get_settings(session, for_update=True)
+    hidden = _failed_jobs_since(session, settings.failed_jobs_seen_at)
+    settings.failed_jobs_seen_at = now()
+    administration.record_action(
+        session,
+        actor_id=admin.id,
+        action=AdministrationAction.FAILED_JOBS_SEEN,
+        effect_count=hidden,
+    )
+    return ServerAdminFailedJobsSeen(hidden=hidden)
 
 
 @router.get(

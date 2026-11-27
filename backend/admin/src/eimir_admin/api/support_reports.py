@@ -47,6 +47,8 @@ from eimir_admin.api.models import (
     SupportReportListView,
     SupportReportOperatorReply,
     SupportReportReplyCreate,
+    SupportReportsSeen,
+    SupportReportsSeenResult,
     SupportReportStateCounts,
     SupportReportStateUpdate,
     SupportReportTicketCreate,
@@ -277,6 +279,33 @@ def get_support_report(
     if report is None:
         raise NotFoundError("Support report not found.", service.REPORT_NOT_FOUND)
     return _detail(session, report)
+
+
+@router.post(
+    "/seen",
+    response_model=SupportReportsSeenResult,
+    operation_id="markSupportReportsSeen",
+    responses=problem_responses(401, 403, 404, 422),
+)
+def mark_support_reports_seen(
+    body: SupportReportsSeen,
+    admin: Operator,
+    session: DbSession,
+) -> SupportReportsSeenResult:
+    """Move the reports that were new up to ``through`` to in progress (#2342).
+
+    The Situation page's "Seen" button; each report is audited like a single
+    state change. A report that arrived later stays new.
+    """
+    reports = service.mark_new_seen(session, body.through)
+    for report in reports:
+        administration.record_action(
+            session,
+            actor_id=admin.id,
+            action=AdministrationAction.SUPPORT_REPORT_STATE_SET,
+            target_account_id=report.account_id,
+        )
+    return SupportReportsSeenResult(moved=len(reports))
 
 
 @router.put(

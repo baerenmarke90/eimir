@@ -78,6 +78,16 @@ import {
     SupportReportTicketSummaryFromJSON,
     SupportReportTicketSummaryToJSON,
 } from '../models/SupportReportTicketSummary';
+import {
+    type SupportReportsSeen,
+    SupportReportsSeenFromJSON,
+    SupportReportsSeenToJSON,
+} from '../models/SupportReportsSeen';
+import {
+    type SupportReportsSeenResult,
+    SupportReportsSeenResultFromJSON,
+    SupportReportsSeenResultToJSON,
+} from '../models/SupportReportsSeenResult';
 
 export interface ClearSupportReportTicketRequest {
     reportId: string;
@@ -109,6 +119,10 @@ export interface ListSupportReportsRequest {
     archived?: boolean;
     limit?: number;
     cursor?: string | null;
+}
+
+export interface MarkSupportReportsSeenRequest {
+    supportReportsSeen: SupportReportsSeen;
 }
 
 export interface ReplyToSupportReportRequest {
@@ -518,6 +532,55 @@ export class ServerAdminSupportReportsApi extends runtime.BaseAPI {
      */
     async listSupportReports(requestParameters: ListSupportReportsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SupportReportListView> {
         const response = await this.listSupportReportsRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for markSupportReportsSeen without sending the request
+     */
+    async markSupportReportsSeenRequestOpts(requestParameters: MarkSupportReportsSeenRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['supportReportsSeen'] == null) {
+            throw new runtime.RequiredError(
+                'supportReportsSeen',
+                'Required parameter "supportReportsSeen" was null or undefined when calling markSupportReportsSeen().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/server-admin/support-reports/seen`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: SupportReportsSeenToJSON(requestParameters['supportReportsSeen']),
+        };
+    }
+
+    /**
+     * Move the reports that were new up to ``through`` to in progress (#2342).  The Situation page\'s \"Seen\" button; each report is audited like a single state change. A report that arrived later stays new.
+     * Mark Support Reports Seen
+     */
+    async markSupportReportsSeenRaw(requestParameters: MarkSupportReportsSeenRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SupportReportsSeenResult>> {
+        const requestOptions = await this.markSupportReportsSeenRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => SupportReportsSeenResultFromJSON(jsonValue));
+    }
+
+    /**
+     * Move the reports that were new up to ``through`` to in progress (#2342).  The Situation page\'s \"Seen\" button; each report is audited like a single state change. A report that arrived later stays new.
+     * Mark Support Reports Seen
+     */
+    async markSupportReportsSeen(requestParameters: MarkSupportReportsSeenRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SupportReportsSeenResult> {
+        const response = await this.markSupportReportsSeenRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

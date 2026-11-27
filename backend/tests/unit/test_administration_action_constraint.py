@@ -43,10 +43,10 @@ def test_the_table_constraint_admits_every_action() -> None:
 
 
 def test_the_latest_action_migration_admits_every_action() -> None:
-    # 0182 (#2324) is the latest migration that widens the action constraint.
-    script = ScriptDirectory.from_config(Config("alembic.ini")).get_revision("0182")
+    # 0183 (#2342) is the latest migration that widens the action constraint.
+    script = ScriptDirectory.from_config(Config("alembic.ini")).get_revision("0183")
     migration = script.module
 
-    assert script.down_revision == "0181"
+    assert script.down_revision == "0182"
     assert set(migration.ACTIONS) == {action.value for action in AdministrationAction}
     assert len(migration.ACTIONS) == len(set(migration.ACTIONS))

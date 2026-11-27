@@ -41,7 +41,12 @@ from tests.support.plugins import (
 )
 
 BACKEND = Path(__file__).resolve().parents[2]
-ADMIN_TABLES = set(CHAIN_PLUGIN_TABLES)
+# The operator plugin's tables; the Pro chain's gift code tables are chain tables too.
+ADMIN_TABLES = {
+    row.table
+    for row in PLUGIN_TABLES
+    if row.table in CHAIN_PLUGIN_TABLES and row.capability.value in ADMIN_CAPABILITIES
+}
 
 
 def _plugin_model_modules() -> set[str]:
@@ -176,6 +181,9 @@ def capture(revisions, context):
             table('gardens'), 'gardens', 'table', True, table('gardens')
         ),
         'absent_core_table': include(table('accounts'), 'accounts', 'table', True, None),
+        'plugin_version_table': include(
+            table('alembic_version_pro'), 'alembic_version_pro', 'table', True, None
+        ),
     }))
     return []
 with EnvironmentContext(cfg, script, as_sql=True, fn=capture, destination_rev='head'):
@@ -210,6 +218,8 @@ def test_autogenerate_keeps_plugin_tables_whose_plugin_is_not_loaded() -> None:
         "absent_plugin_table": False,
         "present_plugin_table": True,
         "absent_core_table": True,
+        # A plugin chain's version table is migration state, never a Core table to drop.
+        "plugin_version_table": False,
     }
 
 
@@ -260,4 +270,13 @@ def test_support_operator_is_plugin_owned_and_not_premium() -> None:
     assert {operator} == ADMIN_CAPABILITIES
     assert PLUGIN_CAPABILITIES == PRO_CAPABILITIES | ADMIN_CAPABILITIES
     assert not PRO_CAPABILITIES & ADMIN_CAPABILITIES
+    assert operator not in ALL_PREMIUM_CAPABILITIES
+
+
+def test_pro_capabilities_include_gift_codes_operator() -> None:
+    operator = Capability.GIFT_CODES_OPERATOR.value
+
+    assert operator == "gift_codes.operator"
+    assert operator in PRO_CAPABILITIES
+    assert operator in PLUGIN_CAPABILITIES
     assert operator not in ALL_PREMIUM_CAPABILITIES

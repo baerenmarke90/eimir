@@ -10,10 +10,11 @@ plugin imports no Pro module before a hook runs.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
-from sqlalchemy import and_, delete, or_, select
+from sqlalchemy import and_, delete, inspect, or_, select
 
 from eimir.deployment.revision import build_revision
 from eimir.engagement.models import EngagementTarget, NotificationKind
@@ -46,6 +47,7 @@ _MODEL_MODULES = (
     "eimir_pro.calendar_sync.models",
     "eimir_pro.couple_games.models",
     "eimir_pro.garden.models",
+    "eimir_pro.gift_codes.models",
     "eimir_pro.heart_hunt.models",
     "eimir_pro.once_messages.models",
     "eimir_pro.partner_quick_actions.models",
@@ -358,6 +360,7 @@ class InTreeProPlugin:
             date_ideas,
             games,
             garden,
+            gift_codes,
             heart_hunt,
             memory_map,
             once_messages,
@@ -385,6 +388,8 @@ class InTreeProPlugin:
             partner_quick_actions.router,
             relationship_passport.router,
             recap_composition.router,
+            gift_codes.admin_router,
+            gift_codes.router,
         )
 
     def register_jobs(self, registry: JobRegistry) -> None:
@@ -416,9 +421,17 @@ class InTreeProPlugin:
         recap_jobs.ensure_scheduled(session)
 
     def prune_expired(self, session: Session) -> None:
+        from eimir.core import clock
+        from eimir_pro.gift_codes.models import GiftCodeBatch
+        from eimir_pro.gift_codes.service import prune_batches
         from eimir_pro.once_messages.service import prune_expired
 
         prune_expired(session)
+        # The gift code tables come from the Pro chain, which ``migrate`` runs
+        # before any runtime starts. The shared Core test database keeps no chain
+        # tables (tests/conftest.py), so the Core suite runs this hook without them.
+        if inspect(session.connection()).has_table(GiftCodeBatch.__tablename__):
+            prune_batches(session, clock.now())
 
     def on_outbox_event(self, session: Session, event: OutboxEvent, event_type: EventType) -> None:
         # Calendar sync (#1895) reads the current Plan later in its own job, so it
@@ -496,9 +509,13 @@ class InTreeProPlugin:
         return _DATE_IDEAS
 
     def migrations(self) -> MigrationSpec | None:
-        # The existing Pro tables stay in the Core chain (Decision 0017,
-        # decision 6); a plugin chain starts with the first new Pro table.
-        return None
+        # The older Pro tables stay in the Core chain (Decision 0017, decision
+        # 6); the Pro chain starts with the gift code tables (ServerAdmin part
+        # 5). It runs after the Core chain and references Core tables only.
+        return MigrationSpec(
+            script_location=str(Path(__file__).resolve().parent / "alembic"),
+            version_table="alembic_version_pro",
+        )
 
     def validate(self, settings: Settings) -> None:
         # The integration settings are still Core settings and Core validates them.

@@ -17,11 +17,17 @@ export const SERVER_ADMIN_SECTIONS = [
   'monitoring',
   'replyTemplates',
   'search',
+  'pro',
 ] as const;
 
 export type ServerAdminSection = (typeof SERVER_ADMIN_SECTIONS)[number];
 
-export type ServerAdminArea = 'situation' | 'people' | 'help' | 'system';
+export type ServerAdminArea =
+  | 'situation'
+  | 'people'
+  | 'help'
+  | 'pro'
+  | 'system';
 
 /** Each area's pages; the first one is where the area entry leads. */
 export const AREA_SECTIONS: Record<
@@ -31,6 +37,7 @@ export const AREA_SECTIONS: Record<
   situation: ['overview'],
   people: ['search', 'accounts', 'spaces'],
   help: ['reports', 'replyTemplates'],
+  pro: ['pro'],
   system: ['monitoring', 'jobs', 'storage', 'security', 'activity', 'settings'],
 };
 
@@ -49,15 +56,30 @@ export function areaForSection(section: ServerAdminSection): ServerAdminArea {
   );
 }
 
-/** Help exists only while the operator plugin serves support reports. */
+/**
+ * Help exists only while the operator plugin serves support reports; Pro only
+ * with the Pro plugin on eimir. Cloud (the overview's `proAreaAvailable`).
+ */
 export function visibleAreas({
   supportReportsAvailable,
+  proAreaAvailable = false,
 }: {
   supportReportsAvailable: boolean;
+  proAreaAvailable?: boolean;
 }): ServerAdminArea[] {
-  return supportReportsAvailable
-    ? ['situation', 'people', 'help', 'system']
-    : ['situation', 'people', 'system'];
+  const areas: ServerAdminArea[] = ['situation', 'people'];
+  if (supportReportsAvailable) areas.push('help');
+  if (proAreaAvailable) areas.push('pro');
+  areas.push('system');
+  return areas;
+}
+
+/** A link to an absent area (`?section=pro` on Self-Hosted) opens the overview. */
+export function availableSection(
+  section: ServerAdminSection,
+  { proAreaAvailable }: { proAreaAvailable: boolean },
+): ServerAdminSection {
+  return section === 'pro' && !proAreaAvailable ? 'overview' : section;
 }
 
 export function sectionHref(

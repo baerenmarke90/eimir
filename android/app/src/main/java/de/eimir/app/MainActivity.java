@@ -12,6 +12,7 @@ import android.webkit.RenderProcessGoneDetail;
 import android.webkit.WebView;
 import androidx.core.splashscreen.SplashScreen;
 import com.getcapacitor.Bridge;
+import com.getcapacitor.PluginHandle;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.WebViewListener;
 
@@ -92,7 +93,17 @@ public class MainActivity extends BridgeActivity {
         super.onConfigurationChanged(newConfig);
         // uiMode is handled here, so the night startup color is reapplied
         // instead of recreating the activity and reloading the WebView.
-        if (getBridge() != null) applyStartupBackground();
+        if (getBridge() != null) {
+            applyStartupBackground();
+            reportSystemTheme(newConfig);
+        }
+    }
+
+    private void reportSystemTheme(Configuration newConfig) {
+        PluginHandle handle = getBridge().getPlugin("SystemTheme");
+        if (handle != null && handle.getInstance() instanceof SystemThemePlugin) {
+            ((SystemThemePlugin) handle.getInstance()).onSystemConfiguration(newConfig);
+        }
     }
 
     private void logRuntimeVersion() {

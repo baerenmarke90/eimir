@@ -174,22 +174,22 @@ section ids to the new area + sub-page.
 
 ### 5.5 Part 5: Pro & vouchers
 
+Designed in its own [part 5 design](2026-11-26-server-admin-part5-pro-gifts-design.md)
+(#2328), approved by the Product Owner on 2026-11-26.
+
 - Pro/Free counts, cancellations (30 d), Google Play subscription states from the existing
   Play billing backend (#1525), list of gifts with expiry.
 - **eimir gift codes:** the operator creates N single-use codes with a duration; redeeming
   creates an operator-style entitlement grant with `effective_until`. Redemption on the web
   first. In-app redemption on Android only after a Google Play payments-policy check.
-- **Gift semantics left to part 5's own design:** new source type vs. `ADMIN_GRANT`, per-Space
-  redemption, and behaviour when the Space already has a Play subscription or grant
-  (extend, stack or refuse). These shape the one couple-facing screen of this project and need
-  the Product Owner in that part.
-- **Google Play promo codes:** created in the Play Console (no API found), downloaded as CSV,
-  uploaded into ServerAdmin. "Hand out and track" means (agent's call) the operator copies a
-  code and marks it as handed out with an optional private note; eimir. sends nothing and
-  stores no recipient address. Redemption tracking is not promised (the CSV cannot show it). The UI states that these give a 3–90 day
-  trial that auto-renews into a paid subscription. Limit: 10,000 one-time codes per quarter per
-  product. Prerequisite: Play Console set up (open).
-- Freemium matrix: a new row for gift codes (classification decided in that part).
+- **Gift semantics:** decided in the part 5 design (section 5.1): an `ADMIN_GRANT` per
+  redeemed code, not bound to a Space, appended after running gifts, refused for a renewing
+  Play subscription or Premium without an end.
+- **Google Play promo codes: left out** (Product Owner, 2026-11-26). No CSV upload, no
+  hand-out tracking; the step is not part of the Pro area. The earlier plan (codes created in
+  the Play Console, downloaded as CSV, uploaded into ServerAdmin and marked as handed out) is
+  not built.
+- Freemium matrix: the new row "eimir. gift codes (Cloud)" (matrix version 1.54).
 
 ## 6. Reuse review placeholders
 

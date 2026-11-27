@@ -311,21 +311,7 @@
 }
 
 .pro-feature-catalogue dt {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-1) var(--space-2);
   font: var(--font-action-label);
-}
-
-/* Same tinted pill as the yearly saving: a quiet tag, no date, no urgency. */
-.pro-feature-new {
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-pill);
-  background: var(--color-discovery-surface-soft);
-  color: var(--color-brand-text);
-  font: var(--font-supporting-copy);
-  font-weight: 600;
 }
 
 .pro-feature-catalogue dd {

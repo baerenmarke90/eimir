@@ -563,6 +563,7 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         body={"gameId": "00000000-0000-0000-0000-000000000001"},
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/waiting"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/games/{surface}/notices/read"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/garden"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/garden/history"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/games/garden/seeds", body={"species": "POPPY"}),
@@ -1909,6 +1910,8 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
             "bouquetId": str(uuid4()),
             # A closed visitor code, not a database row.
             "animal": "SNAIL",
+            # A closed game page code (#2345), not a database row.
+            "surface": "HEART_HUNT",
             "attachmentId": attachment["attachment"]["id"],
         },
     }

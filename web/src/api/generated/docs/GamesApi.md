@@ -28,6 +28,7 @@ All URIs are relative to *http://localhost*
 | [**handOverPicturePingPongTurn**](GamesApi.md#handoverpicturepingpongturn) | **POST** /api/v1/spaces/{spaceId}/games/picture-ping-pong/turns | Hand Over Picture Ping Pong Turn |
 | [**keepHeartHuntRound**](GamesApi.md#keephearthuntround) | **POST** /api/v1/spaces/{spaceId}/games/heart-hunt/rounds/{roundId}/kept | Keep Round |
 | [**listGardenHistory**](GamesApi.md#listgardenhistory) | **GET** /api/v1/spaces/{spaceId}/games/garden/history | List Garden History |
+| [**markGameNoticesRead**](GamesApi.md#markgamenoticesread) | **POST** /api/v1/spaces/{spaceId}/games/{surface}/notices/read | Mark Game Notices Read |
 | [**markPicturePingPongSaved**](GamesApi.md#markpicturepingpongsaved) | **POST** /api/v1/spaces/{spaceId}/games/picture-ping-pong/saved | Mark Picture Ping Pong Saved |
 | [**nameGardenVisitor**](GamesApi.md#namegardenvisitor) | **PUT** /api/v1/spaces/{spaceId}/games/garden/visitors/{animal}/name | Name Garden Visitor |
 | [**plantGardenSeed**](GamesApi.md#plantgardenseed) | **POST** /api/v1/spaces/{spaceId}/games/garden/seeds/{seedId}/plant | Plant Garden Seed |
@@ -1795,6 +1796,79 @@ No authorization required
 | **403** | The caller is authenticated but is not authorized for this operation. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## markGameNoticesRead
+
+> markGameNoticesRead(surface, spaceId)
+
+Mark Game Notices Read
+
+The reader opened a game page; its notices are handled everywhere (#2345).  Marks only the reader\&#39;s own notices read. It reveals nothing and is not gameplay, so it needs no Premium capability: after a downgrade the reader can still clear what was announced before.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  GamesApi,
+} from '';
+import type { MarkGameNoticesReadRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new GamesApi();
+
+  const body = {
+    // GameNoticeSurface
+    surface: ...,
+    // string
+    spaceId: spaceId_example,
+  } satisfies MarkGameNoticesReadRequest;
+
+  try {
+    const data = await api.markGameNoticesRead(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **surface** | `GameNoticeSurface` |  | [Defaults to `undefined`] [Enum: WHO_OF_US, WISH_DETECTIVE, OUR_MOMENTS, PICTURE_PING_PONG, HEART_HUNT, GARDEN] |
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+`void` (Empty response body)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **204** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)

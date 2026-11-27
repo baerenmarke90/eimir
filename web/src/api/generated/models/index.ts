@@ -129,6 +129,7 @@ export * from './FcmConfiguration';
 export * from './FcmPreviewRegistration';
 export * from './GameMemoryCandidate';
 export * from './GameMemoryCandidateSet';
+export * from './GameNoticeSurface';
 export * from './GameWishCandidate';
 export * from './GameWishCandidateSet';
 export * from './GardenBouquetCloseInput';

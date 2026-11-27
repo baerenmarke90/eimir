@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Collection as AbstractCollection
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
@@ -1338,3 +1339,38 @@ def mark_all_notifications_read(
     result = session.execute(statement)
     updated = getattr(result, "rowcount", 0)
     return MarkAllResult(read_through=cutoff, updated=int(updated or 0))
+
+
+def mark_notifications_read_for(
+    session: Session,
+    context: AuthorizationContext,
+    *,
+    kinds: AbstractCollection[NotificationKind],
+    target_types: AbstractCollection[EngagementTarget] | None = None,
+) -> int:
+    """Mark the reader's unread notices of a surface read once it was opened (#2345).
+
+    Opening a destination by any way (Wir, its own tab, a push) handles what its
+    notices announced, so the inbox and the device trays must not keep them.
+    Only the reader's own rows in this Space change; hidden or no-longer-current
+    rows are included so a later currency change never revives them as unread.
+    ``target_types`` narrows kinds shared by several destinations; ``None``
+    matches every target, including target-less notices.
+    """
+    if not kinds:
+        return 0
+    conditions = [
+        Notification.space_id == context.space_id,
+        Notification.recipient_account_id == context.account_id,
+        Notification.read_at.is_(None),
+        Notification.kind.in_([kind.value for kind in kinds]),
+    ]
+    if target_types is not None:
+        conditions.append(Notification.target_type.in_([target.value for target in target_types]))
+    result = session.execute(
+        update(Notification)
+        .where(*conditions)
+        .values(read_at=clock.now())
+        .execution_options(synchronize_session=False)
+    )
+    return int(getattr(result, "rowcount", 0) or 0)

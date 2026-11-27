@@ -4252,6 +4252,19 @@
         "title": "GameMemoryCandidateSet",
         "type": "object"
       },
+      "GameNoticeSurface": {
+        "description": "A game page that presents its own notices.",
+        "enum": [
+          "WHO_OF_US",
+          "WISH_DETECTIVE",
+          "OUR_MOMENTS",
+          "PICTURE_PING_PONG",
+          "HEART_HUNT",
+          "GARDEN"
+        ],
+        "title": "GameNoticeSurface",
+        "type": "string"
+      },
       "GameWishCandidate": {
         "description": "Minimal authorized OPEN Wish context required by Wunschdetektiv.",
         "properties": {
@@ -38565,6 +38578,70 @@
           }
         },
         "summary": "Get Game Wish Candidates",
+        "tags": [
+          "games"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/games/{surface}/notices/read": {
+      "post": {
+        "description": "The reader opened a game page; its notices are handled everywhere (#2345).\n\nMarks only the reader's own notices read. It reveals nothing and is not\ngameplay, so it needs no Premium capability: after a downgrade the reader can\nstill clear what was announced before.",
+        "operationId": "markGameNoticesRead",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "surface",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/GameNoticeSurface"
+            }
+          },
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Mark Game Notices Read",
         "tags": [
           "games"
         ]

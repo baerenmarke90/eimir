@@ -182,6 +182,7 @@ import { CollectionProductPage } from './components/CollectionProductPage';
 import { DemoEntry } from './components/DemoEntry';
 import { DevicePushOnboarding } from './components/DevicePushOnboarding';
 import { FirstSpaceGate } from './components/FirstSpaceGate';
+import { GameNoticesRead } from './components/GameNoticesRead';
 import { IdentityEntry } from './components/IdentityEntry';
 import { LegacyPathRedirect } from './components/LegacyPathRedirect';
 import { LegalDocumentPage } from './components/LegalDocumentPage';
@@ -1186,67 +1187,109 @@ function AuthenticatedApp({
             <Route
               path={GAMES_MOMENTS_ROUTE}
               element={
-                <OurMomentsGamePage
-                  apiBaseUrl={apiBaseUrl}
-                  accessToken={tokens.accessToken}
-                  spaceId={spaceId}
-                  currentAccountId={account.id}
-                />
+                <>
+                  <GameNoticesRead
+                    gamesApi={gamesApi}
+                    spaceId={spaceId}
+                    surface="OUR_MOMENTS"
+                  />
+                  <OurMomentsGamePage
+                    apiBaseUrl={apiBaseUrl}
+                    accessToken={tokens.accessToken}
+                    spaceId={spaceId}
+                    currentAccountId={account.id}
+                  />
+                </>
               }
             />
             <Route
               path={GAMES_PICTURE_PING_PONG_ROUTE}
               element={
-                <PicturePingPongPage
-                  apiBaseUrl={apiBaseUrl}
-                  accessToken={tokens.accessToken}
-                  spaceId={spaceId}
-                  currentAccountId={account.id}
-                />
+                <>
+                  <GameNoticesRead
+                    gamesApi={gamesApi}
+                    spaceId={spaceId}
+                    surface="PICTURE_PING_PONG"
+                  />
+                  <PicturePingPongPage
+                    apiBaseUrl={apiBaseUrl}
+                    accessToken={tokens.accessToken}
+                    spaceId={spaceId}
+                    currentAccountId={account.id}
+                  />
+                </>
               }
             />
             <Route
               path={GAMES_GARDEN_ROUTE}
               element={
-                <GardenGamePage
-                  apiBaseUrl={apiBaseUrl}
-                  accessToken={tokens.accessToken}
-                  spaceId={spaceId}
-                  currentAccountId={account.id}
-                />
+                <>
+                  <GameNoticesRead
+                    gamesApi={gamesApi}
+                    spaceId={spaceId}
+                    surface="GARDEN"
+                  />
+                  <GardenGamePage
+                    apiBaseUrl={apiBaseUrl}
+                    accessToken={tokens.accessToken}
+                    spaceId={spaceId}
+                    currentAccountId={account.id}
+                  />
+                </>
               }
             />
             <Route
               path={GAMES_WHO_OF_US_ROUTE}
               element={
-                <WhoOfUsGamePage
-                  apiBaseUrl={apiBaseUrl}
-                  accessToken={tokens.accessToken}
-                  spaceId={spaceId}
-                  currentAccountId={account.id}
-                />
+                <>
+                  <GameNoticesRead
+                    gamesApi={gamesApi}
+                    spaceId={spaceId}
+                    surface="WHO_OF_US"
+                  />
+                  <WhoOfUsGamePage
+                    apiBaseUrl={apiBaseUrl}
+                    accessToken={tokens.accessToken}
+                    spaceId={spaceId}
+                    currentAccountId={account.id}
+                  />
+                </>
               }
             />
             <Route
               path={GAMES_WISH_DETECTIVE_ROUTE}
               element={
-                <WishDetectiveGamePage
-                  apiBaseUrl={apiBaseUrl}
-                  accessToken={tokens.accessToken}
-                  spaceId={spaceId}
-                  currentAccountId={account.id}
-                />
+                <>
+                  <GameNoticesRead
+                    gamesApi={gamesApi}
+                    spaceId={spaceId}
+                    surface="WISH_DETECTIVE"
+                  />
+                  <WishDetectiveGamePage
+                    apiBaseUrl={apiBaseUrl}
+                    accessToken={tokens.accessToken}
+                    spaceId={spaceId}
+                    currentAccountId={account.id}
+                  />
+                </>
               }
             />
             <Route
               path={GAMES_HEART_HUNT_ROUTE}
               element={
-                <HeartHuntGamePage
-                  apiBaseUrl={apiBaseUrl}
-                  accessToken={tokens.accessToken}
-                  spaceId={spaceId}
-                  currentAccountId={account.id}
-                />
+                <>
+                  <GameNoticesRead
+                    gamesApi={gamesApi}
+                    spaceId={spaceId}
+                    surface="HEART_HUNT"
+                  />
+                  <HeartHuntGamePage
+                    apiBaseUrl={apiBaseUrl}
+                    accessToken={tokens.accessToken}
+                    spaceId={spaceId}
+                    currentAccountId={account.id}
+                  />
+                </>
               }
             />
             <Route path={appRoutePath('more')} element={null} />

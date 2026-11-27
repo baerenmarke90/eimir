@@ -6,7 +6,8 @@
  * `--wir-game-*` roles with Light and Dark values (docs/DESIGN-TOKEN-POLICY.md).
  */
 .wir-waiting-games {
-  --wir-game-tile-width: 9.25rem;
+  --wir-game-face: 4rem;
+  --wir-game-tile-width: 4.5rem;
   --wir-game-stem: #4f8a4a;
   --wir-game-leaf: #7fb98f;
   --wir-game-soil: #9a7b5f;
@@ -24,6 +25,8 @@
   --wir-game-fog: #ffffff40;
   --wir-game-tint-garden: #263a31;
   --wir-game-tint-garden-end: #1f3029;
+  /* Without a ring, the dark circles are lifted off the dark page. */
+  --wir-game-lift: #ffffff1f;
 }
 
 /* The reel is Wir's existing lists track (`.wir-lists-row`); tiles keep a
@@ -39,15 +42,24 @@
 .wir-game-tile {
   box-sizing: border-box;
   width: var(--wir-game-tile-width);
-  min-height: 11.75rem;
-  padding: var(--space-3);
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: var(--space-2);
-  border-radius: var(--radius-card);
+  border-radius: var(--radius-medium);
   color: var(--color-text);
   text-decoration: none;
-  box-shadow: var(--shadow-soft);
+}
+
+/* A round face like the new-for-you circles, with the game's own picture. */
+.wir-game-face {
+  box-sizing: border-box;
+  width: var(--wir-game-face);
+  height: var(--wir-game-face);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
   background: linear-gradient(
     160deg,
     var(--color-surface-raised),
@@ -55,7 +67,7 @@
   );
 }
 
-.wir-game-tile-cool {
+.wir-game-tile-cool .wir-game-face {
   background: linear-gradient(
     160deg,
     var(--color-surface-raised),
@@ -63,7 +75,7 @@
   );
 }
 
-.wir-game-tile-warm {
+.wir-game-tile-warm .wir-game-face {
   background: linear-gradient(
     160deg,
     var(--color-surface-raised),
@@ -71,7 +83,7 @@
   );
 }
 
-.wir-game-tile-shared {
+.wir-game-tile-shared .wir-game-face {
   background: linear-gradient(
     160deg,
     var(--color-person-rose-surface),
@@ -79,12 +91,16 @@
   );
 }
 
-.wir-game-tile-garden {
+.wir-game-tile-garden .wir-game-face {
   background: linear-gradient(
     160deg,
     var(--wir-game-tint-garden),
     var(--wir-game-tint-garden-end)
   );
+}
+
+:root[data-theme="dark"] .wir-game-face {
+  box-shadow: inset 0 0 0 var(--wir-game-face) var(--wir-game-lift);
 }
 
 .wir-game-tile:focus-visible {
@@ -93,29 +109,25 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .wir-game-tile {
+  .wir-game-face {
     transition: transform var(--duration-feedback) var(--easing-standard);
   }
 
-  .wir-game-tile:active {
-    transform: scale(0.97);
+  .wir-game-tile:active .wir-game-face {
+    transform: scale(0.94);
   }
 }
 
 .wir-game-art {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 5.25rem;
-  border-radius: var(--radius-large);
-  background: color-mix(in srgb, var(--color-surface-raised) 72%, transparent);
+  display: grid;
+  place-items: center;
 }
 
 .wir-game-art svg {
-  width: 6.5rem;
-  height: 4rem;
+  width: 2.9rem;
+  height: 1.8rem;
   fill: none;
-  stroke-width: 3;
+  stroke-width: 4;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -191,26 +203,17 @@
   stroke-width: 2;
 }
 
-.wir-game-tile-title {
-  font-family: var(--font-ui);
-  font-size: 0.95rem;
-  font-weight: 700;
-  line-height: 1.25;
-  overflow-wrap: break-word;
-}
-
-.wir-game-tile-line {
-  margin-top: auto;
+.wir-game-label {
+  display: -webkit-box;
+  max-width: 100%;
+  overflow: hidden;
   color: var(--color-text-secondary);
   font-family: var(--font-ui);
-  font-size: 0.82rem;
-  line-height: 1.35;
-  overflow-wrap: break-word;
-}
-
-/* Large text: the tile grows taller instead of clipping its words. */
-@media (min-width: 840px) {
-  .wir-waiting-games {
-    --wir-game-tile-width: 10.5rem;
-  }
+  font-size: 0.74rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }

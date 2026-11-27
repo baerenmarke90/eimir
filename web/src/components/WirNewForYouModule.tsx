@@ -55,9 +55,13 @@ interface Tile {
   day?: string;
   items?: string[];
   moreItems?: string;
+  moreCount?: number;
   quote?: string;
   reaction?: string;
 }
+
+/** Entries a list circle previews; more would outgrow the small circle. */
+const LIST_PREVIEW_ITEMS = 1;
 
 const FOLDED_KINDS = new Set(['COMMENT_CREATED', 'PHOTO_REACTION']);
 
@@ -211,7 +215,11 @@ export function noticeTiles(
         });
         break;
       case 'COLLECTION_SENT': {
-        const more = notice.preview?.moreItems ?? 0;
+        // The small circle shows one entry; the rest joins the count.
+        const previewItems = notice.preview?.items ?? [];
+        const items = previewItems.slice(0, LIST_PREVIEW_ITEMS);
+        const more =
+          (notice.preview?.moreItems ?? 0) + previewItems.length - items.length;
         tiles.push({
           ...base,
           tone: 'cool',
@@ -219,7 +227,8 @@ export function noticeTiles(
           kind: t('wirNotices.kinds.list'),
           title: title ?? t('wirNotices.titles.list'),
           line: t('wirNotices.lines.shared'),
-          items: notice.preview?.items ?? [],
+          items,
+          moreCount: more,
           moreItems:
             more > 0
               ? t('wirNotices.lines.moreItems', { count: more })
@@ -271,7 +280,8 @@ export function noticeTiles(
 
 /**
  * The `wirNotices` reel (#2345 B): today's plans first, then what is new, newest
- * first, as one swipeable reel of tiles with real content. Opening a tile
+ * first, as one swipeable reel of small circles that show real content (Product
+ * Owner 2026-11-27). Opening a circle
  * marks its notices read, so they leave Wir, the inbox, the badge and every
  * device tray. It renders nothing while nothing is new and nothing is planned
  * today, and nothing at all while hidden in Settings.
@@ -385,134 +395,120 @@ export function WirNewForYouModule({
           >
             <TodayDestinationLink
               to={tile.path}
-              className={`wir-notice-tile wir-notice-tile-${tile.tone}`}
+              className={`wir-notice-tile wir-notice-tone-${tile.tone}`}
               selectedKey={`wir-notice-${tile.key}`}
               onFollow={() => open(tile)}
             >
-              <span className="wir-notice-kind">{tile.kind}</span>
-              <TileBody tile={tile} />
-              <span className="wir-notice-line">{tile.line}</span>
+              <span className="wir-notice-face" aria-hidden="true">
+                <TileFace tile={tile} />
+              </span>
+              <span className="wir-notice-label">{tile.title}</span>
+              <span className="sr-only">
+                {[tile.kind, tile.quote, tile.line, tile.moreItems]
+                  .filter(Boolean)
+                  .join(': ')}
+              </span>
             </TodayDestinationLink>
           </li>
         ))}
-        <li className="wir-notice-item">
-          <TodayDestinationLink
-            to={MORE_NOTIFICATIONS_ROUTE}
-            className="wir-notice-tile wir-notice-tile-all"
-            selectedKey="wir-notice-all"
-          >
-            <span className="wir-notice-title">{t('wirNotices.all')}</span>
-            <span className="wir-notice-line">{t('wirNotices.allLine')}</span>
-          </TodayDestinationLink>
-        </li>
       </ul>
     </section>
   );
 }
 
-function TileBody({ tile }: { tile: Tile }) {
+/**
+ * What a circle shows: a real piece of the content, never only a symbol
+ * (Product Owner 2026-11-27). Decorative; the link reads the full text.
+ */
+function TileFace({ tile }: { tile: Tile }) {
   switch (tile.art) {
     case 'today':
-      return (
-        <span className="wir-notice-body">
-          {tile.time ? (
-            <span className="wir-notice-time">{tile.time}</span>
-          ) : null}
-          <span className="wir-notice-title">{tile.title}</span>
-        </span>
+      return tile.time ? (
+        <span className="wir-notice-face-time">{tile.time}</span>
+      ) : (
+        <span className="wir-notice-face-word">{tile.kind}</span>
       );
     case 'date':
-      return (
-        <span className="wir-notice-body">
-          {tile.day ? (
-            <span className="wir-notice-leaf" aria-hidden="true">
-              <span className="wir-notice-leaf-weekday">{tile.weekday}</span>
-              <span className="wir-notice-leaf-day">{tile.day}</span>
-              <span className="wir-notice-leaf-time">{tile.time}</span>
-            </span>
-          ) : null}
-          <span className="wir-notice-title">{tile.title}</span>
+      return tile.day ? (
+        <span className="wir-notice-leaf">
+          <span className="wir-notice-leaf-weekday">{tile.weekday}</span>
+          <span className="wir-notice-leaf-day">{tile.day}</span>
         </span>
+      ) : (
+        <span className="wir-notice-face-word">{tile.kind}</span>
       );
     case 'list':
       return (
-        <span className="wir-notice-body">
-          <span className="wir-notice-title">{tile.title}</span>
-          {tile.items && tile.items.length > 0 ? (
-            <span className="wir-notice-paper">
-              {tile.items.map((item) => (
-                <span key={item} className="wir-notice-check">
-                  <span className="wir-notice-box" aria-hidden="true" />
-                  {item}
-                </span>
-              ))}
-              {tile.moreItems ? (
-                <span className="wir-notice-more">{tile.moreItems}</span>
-              ) : null}
+        <span className="wir-notice-paper">
+          {tile.items?.map((item) => (
+            <span key={item} className="wir-notice-check">
+              <span className="wir-notice-box" />
+              <span className="wir-notice-check-text">{item}</span>
             </span>
+          ))}
+          {tile.moreCount ? (
+            <span className="wir-notice-more">{`+${tile.moreCount}`}</span>
           ) : null}
         </span>
       );
     case 'note':
-    case 'bubble':
-      return (
-        <span className="wir-notice-body">
-          {tile.art === 'note' ? (
-            <span className="wir-notice-title">{tile.title}</span>
-          ) : null}
-          {tile.quote ? (
-            <span className="wir-notice-bubble">{tile.quote}</span>
-          ) : null}
+      return tile.quote ? (
+        <span className="wir-notice-paper wir-notice-paper-note">
+          {tile.quote}
         </span>
+      ) : (
+        <span className="wir-notice-face-word">{tile.kind}</span>
       );
+    case 'bubble':
+      return <span className="wir-notice-bubble">{tile.quote}</span>;
     case 'reaction':
-      return (
-        <span className="wir-notice-body">
-          {tile.reaction ? (
-            <span className="wir-notice-reaction" aria-hidden="true">
-              {tile.reaction}
-            </span>
-          ) : null}
-          <span className="wir-notice-title">{tile.title}</span>
-        </span>
+      return tile.reaction ? (
+        <span className="wir-notice-reaction">{tile.reaction}</span>
+      ) : (
+        <span className="wir-notice-face-word">{tile.kind}</span>
       );
     case 'heart':
       return (
-        <span className="wir-notice-body">
-          <svg
-            className="wir-notice-heart"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-            focusable="false"
-          >
-            <path d="M12 20.5s-8-4.9-8-10.6A4.5 4.5 0 0 1 12 7.3a4.5 4.5 0 0 1 8 2.6c0 5.7-8 10.6-8 10.6z" />
-          </svg>
-          <span className="wir-notice-title">{tile.title}</span>
-        </span>
+        <svg
+          aria-hidden="true"
+          className="wir-notice-heart"
+          viewBox="0 0 24 24"
+          focusable="false"
+        >
+          <path d="M12 20.5s-8-4.9-8-10.6A4.5 4.5 0 0 1 12 7.3a4.5 4.5 0 0 1 8 2.6c0 5.7-8 10.6-8 10.6z" />
+        </svg>
       );
     case 'picture':
       return (
-        <span className="wir-notice-body">
-          <span className="wir-notice-canvas">
-            <svg viewBox="0 0 104 64" aria-hidden="true" focusable="false">
-              <path
-                className="wir-notice-stroke-cool"
-                d="M12 46c10-24 22-28 28-13s13 17 21 2"
-              />
-              <path
-                className="wir-notice-stroke-accent"
-                d="M58 37c6-15 15-22 25-18s8 17-2 23"
-              />
-            </svg>
-          </span>
-          <span className="wir-notice-title">{tile.title}</span>
-        </span>
+        <svg
+          className="wir-notice-canvas"
+          viewBox="0 0 104 64"
+          focusable="false"
+          aria-hidden="true"
+        >
+          <path
+            className="wir-notice-stroke-cool"
+            d="M12 46c10-24 22-28 28-13s13 17 21 2"
+          />
+          <path
+            className="wir-notice-stroke-accent"
+            d="M58 37c6-15 15-22 25-18s8 17-2 23"
+          />
+        </svg>
+      );
+    case 'selection':
+      return (
+        <svg
+          aria-hidden="true"
+          className="wir-notice-cards"
+          viewBox="0 0 40 40"
+          focusable="false"
+        >
+          <rect x="6" y="10" width="18" height="24" rx="4" />
+          <rect x="16" y="6" width="18" height="24" rx="4" />
+        </svg>
       );
     default:
-      return (
-        <span className="wir-notice-body">
-          <span className="wir-notice-title">{tile.title}</span>
-        </span>
-      );
+      return <span className="wir-notice-face-word">{tile.kind}</span>;
   }
 }

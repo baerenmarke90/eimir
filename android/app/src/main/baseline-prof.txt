@@ -1,0 +1,20 @@
+# Baseline profile for the native shell (the Capacitor bridge and our plugins).
+#
+# It tells Android which native code the app runs at start, so the first launch
+# after an install or an update does not interpret it before Android has
+# optimized it. androidx libraries ship their own profiles; the Capacitor
+# library does not. The web product runs in the system WebView and is not
+# covered here.
+#
+# This file is hand-written with wildcards, not recorded: the release build does
+# not shrink or rename classes, so these names are stable. A recorded profile
+# (macrobenchmark) would be narrower; replace this file with one when the app
+# has a benchmark module.
+
+# Capacitor bridge, plugin loading and the WebView host.
+HSPLcom/getcapacitor/**;->**(**)**
+Lcom/getcapacitor/**;
+
+# The launcher, the WebView host and the plugins registered at start.
+HSPLde/eimir/app/*;->**(**)**
+Lde/eimir/app/*;

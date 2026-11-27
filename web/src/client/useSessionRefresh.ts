@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { TokenView } from '../api/generated/models/TokenView';
 import {
   captureSessionOwner,
@@ -16,6 +16,23 @@ import {
  */
 const MAX_TIMER_DELAY_MS = 2 ** 31 - 1;
 
+/**
+ * Refresh ahead while the app is in use. An access token lasts 24 hours; when
+ * less than this is left, a quiet background refresh gives the device a fresh
+ * one, so the next app start finds a valid token and does not wait for a
+ * refresh round trip before any data loads.
+ */
+const REFRESH_AHEAD_WINDOW_MS = 12 * 60 * 60 * 1000;
+/**
+ * Below this, the normal timer just before expiry refreshes an open app. The
+ * floor also keeps a short-lived token from an older server out of this path.
+ */
+const REFRESH_AHEAD_FLOOR_MS = 30 * 60 * 1000;
+/** At most one refresh ahead per device in this time. */
+const REFRESH_AHEAD_MIN_INTERVAL_MS = 30 * 60 * 1000;
+/** The app has settled by then, so the request does not compete with startup. */
+const REFRESH_AHEAD_IDLE_DELAY_MS = 5_000;
+
 /** Resume and transport retry must not turn access expiry into manual login. */
 export function useSessionRefresh(
   apiBaseUrl: string,
@@ -24,6 +41,7 @@ export function useSessionRefresh(
   onTokens: (tokens: TokenView) => void,
   onRejected: () => void,
 ): void {
+  const lastRefreshAheadAt = useRef(0);
   useEffect(() => {
     if (!tokens || restoring) return;
     const owner = captureSessionOwner(tokens.accessToken);
@@ -32,6 +50,7 @@ export function useSessionRefresh(
     let refreshing = false;
     let rejected = false;
     let timer: ReturnType<typeof setTimeout>;
+    let idleTimer: ReturnType<typeof setTimeout> | undefined;
     const refreshToken = tokens.refreshToken;
     const rejectSession = () => {
       if (!cancelled && !rejected) {
@@ -54,12 +73,12 @@ export function useSessionRefresh(
       },
     );
 
-    const refresh = () => {
+    const refresh = (ahead = false) => {
       if (cancelled || refreshing) return;
       clearTimeout(timer);
       const currentTokens = currentSessionTokens(owner);
       if (!currentTokens) return;
-      if (isAccessTokenValid(currentTokens)) {
+      if (!ahead && isAccessTokenValid(currentTokens)) {
         schedule(currentTokens);
         return;
       }
@@ -86,8 +105,27 @@ export function useSessionRefresh(
           refreshing = false;
         });
     };
+    // A token that has half a day or less left gets a fresh one in the
+    // background. A failure leaves the valid token in place and retries
+    // through the normal path.
+    const refreshAhead = () => {
+      if (cancelled || refreshing) return;
+      const current = currentSessionTokens(owner);
+      if (!current) return;
+      const remaining =
+        new Date(current.accessExpiresAt).getTime() - Date.now();
+      if (
+        remaining <= REFRESH_AHEAD_FLOOR_MS ||
+        remaining >= REFRESH_AHEAD_WINDOW_MS ||
+        Date.now() - lastRefreshAheadAt.current < REFRESH_AHEAD_MIN_INTERVAL_MS
+      )
+        return;
+      lastRefreshAheadAt.current = Date.now();
+      refresh(true);
+    };
     const resume = () => {
       refresh();
+      refreshAhead();
     };
     const visibility = () => {
       if (document.visibilityState === 'visible') resume();
@@ -107,6 +145,7 @@ export function useSessionRefresh(
       );
     }
     schedule(currentSessionTokens(owner) ?? tokens);
+    idleTimer = setTimeout(refreshAhead, REFRESH_AHEAD_IDLE_DELAY_MS);
     window.addEventListener('focus', resume);
     window.addEventListener('online', resume);
     document.addEventListener('visibilitychange', visibility);
@@ -114,6 +153,7 @@ export function useSessionRefresh(
       cancelled = true;
       unsubscribe();
       clearTimeout(timer);
+      clearTimeout(idleTimer);
       window.removeEventListener('focus', resume);
       window.removeEventListener('online', resume);
       document.removeEventListener('visibilitychange', visibility);

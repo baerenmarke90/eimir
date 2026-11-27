@@ -27,7 +27,15 @@ from datetime import timedelta
 ACCESS_TOKEN_BYTES = 32
 REFRESH_TOKEN_BYTES = 32
 
-ACCESS_TOKEN_LIFETIME = timedelta(minutes=15)
+# Product Owner decision 2026-11-27: 24 hours instead of 15 minutes. With the
+# earlier 15 minutes almost every app start after a pause began with a refresh
+# round trip before any data could load. Tokens are opaque and every request
+# looks the session up, so revocation, account disabling and the family limits
+# below still take effect at once; only the window in which a stolen access
+# token works until revoked is longer. The refresh token stays the long-lived
+# secret and is unchanged. Clients refresh ahead of expiry while the app is in
+# use, so an active device normally always holds a valid token.
+ACCESS_TOKEN_LIFETIME = timedelta(hours=24)
 
 # Sliding window: every rotation resets it. It limits how long an unused device
 # may remain idle before requiring a new sign-in.

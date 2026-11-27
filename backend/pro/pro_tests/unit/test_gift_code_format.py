@@ -70,10 +70,10 @@ def test_lookup_hash_is_deterministic_hex_and_code_specific() -> None:
 def test_lookup_hash_changes_with_signing_secret(
     monkeypatch: pytest.MonkeyPatch, fresh_settings: None
 ) -> None:
-    monkeypatch.setenv("EIMIR_CURSOR_SIGNING_KEY", "secret-one-with-at-least-32-characters")
+    monkeypatch.setenv("EIMIR_CURSOR_SIGNING_KEY", "a" * 48)
     get_settings.cache_clear()
     one = lookup_hash("EIMIR-ABCD-EFGH")
-    monkeypatch.setenv("EIMIR_CURSOR_SIGNING_KEY", "secret-two-with-at-least-32-characters")
+    monkeypatch.setenv("EIMIR_CURSOR_SIGNING_KEY", "b" * 48)
     get_settings.cache_clear()
     two = lookup_hash("EIMIR-ABCD-EFGH")
     assert one != two

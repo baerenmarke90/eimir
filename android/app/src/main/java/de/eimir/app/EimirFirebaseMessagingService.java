@@ -21,9 +21,21 @@ public final class EimirFirebaseMessagingService extends FirebaseMessagingServic
             && active.activationId.equals(data.get("activationId"));
     }
 
+    /** A silent tray removal (#2345): exactly the type, the activation and the sealed ids. */
+    public static boolean acceptsWithdraw(RemoteMessage message, PushActivation active) {
+        if (active == null || !"fcm".equals(active.providerKey) || message.getNotification() != null) return false;
+        Map<String, String> data = message.getData();
+        return data.keySet().equals(new HashSet<>(Arrays.asList("type", "activationId", "withdraw")))
+            && "withdraw".equals(data.get("type")) && active.activationId.equals(data.get("activationId"));
+    }
+
     @Override
     public void onMessageReceived(RemoteMessage message) {
         PushActivation active = PushActivation.read(this);
+        if (!PushActivation.cleanupPending(this) && acceptsWithdraw(message, active)) {
+            PushWithdrawal.apply(this, active, PushWithdrawal.decrypt(this, active, message.getData().get("withdraw")));
+            return;
+        }
         if (!PushActivation.cleanupPending(this) && acceptsWake(message, active)) {
             Context localized = message.getData().containsKey("locale")
                 ? RecipientLanguage.context(this, message.getData().get("locale")) : this;

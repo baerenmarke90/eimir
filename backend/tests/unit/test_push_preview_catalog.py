@@ -147,3 +147,27 @@ def test_largest_detailed_envelope_is_shortened_to_fit_provider_and_native_limit
 )
 def test_plugin_preview_codes_are_closed_tokens_only(value: str, expected: str) -> None:
     assert push_preview._codes(value) == expected
+
+
+WITHDRAW_FIXTURE = CATALOG.with_name("push-withdraw-v1.json")
+
+
+def test_installed_withdraw_fixture_matches_the_sender_envelope() -> None:
+    """#2345: PushPreviewTest opens exactly what the Python sender seals."""
+    fixture = json.loads(WITHDRAW_FIXTURE.read_text())
+    key = OctKey.import_key(
+        {"kty": "oct", "k": base64.urlsafe_b64encode(bytes(range(32))).decode().rstrip("=")}
+    )
+    decoded = jwe.decrypt_compact(fixture["jwe"], key, algorithms=["dir", "A256GCM"])
+    assert decoded.protected == {
+        "alg": "dir",
+        "enc": "A256GCM",
+        "typ": fcm_push.WITHDRAW_TYPE,
+        "kid": fixture["activationId"],
+    }
+    assert json.loads(decoded.plaintext or b"") == {
+        "v": 1,
+        "notificationIds": fixture["notificationIds"],
+        "issuedAt": fixture["issuedAt"],
+        "expiresAt": fixture["issuedAt"] + 86400,
+    }

@@ -12,6 +12,7 @@ import json
 import re
 import socket
 import ssl
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import cast
 from urllib.parse import SplitResult, urlsplit
@@ -323,17 +324,65 @@ class UnifiedPushProvider:
             ):
                 raise push.PushProviderError("PUSH_PREVIEW_INVALID", retryable=False)
             wake["wishDatePreview"] = preview
+        return self._deliver(
+            registration,
+            wake,
+            idempotency_key=idempotency_key,
+            ttl=int(notification_reference.get("ttl", str(_PUSH_TTL_SECONDS))),
+        )
+
+    def send_withdraw(
+        self,
+        *,
+        idempotency_key: str,
+        endpoint: str,
+        notification_ids: Sequence[UUID],
+        ttl: int,
+    ) -> push.PushSendResult:
+        """Ask a UnifiedPush device to remove these tray notices (#2345).
+
+        Only Android UnifiedPush activations that receive notice references take
+        it; an older app drops the unknown ``withdraw`` type silently. Browsers
+        are excluded: a subscription with ``userVisibleOnly`` must show something
+        for every push, so the open page withdraws its notices itself.
+        """
+        registration = self._parse(endpoint)
+        if (
+            registration is None
+            or self._browser
+            or registration.notification_reference_version != 1
+            or not 0 < len(notification_ids) <= push.WITHDRAW_BATCH
+        ):
+            raise push.PushProviderError("PUSH_WITHDRAW_INVALID", retryable=False)
+        return self._deliver(
+            registration,
+            {
+                "type": "withdraw",
+                "notificationIds": [str(identifier) for identifier in notification_ids],
+            },
+            idempotency_key=idempotency_key,
+            ttl=ttl,
+        )
+
+    def _deliver(
+        self,
+        registration: Subscription,
+        data: dict[str, object],
+        *,
+        idempotency_key: str,
+        ttl: int,
+    ) -> push.PushSendResult:
         topic = base64.urlsafe_b64encode(hashlib.sha256(idempotency_key.encode()).digest())[
             :32
         ].decode("ascii")
         try:
             webpush(
                 subscription_info=registration.as_webpush(),
-                data=json.dumps(wake, separators=(",", ":")),
+                data=json.dumps(data, separators=(",", ":")),
                 vapid_private_key=self._private_key,
                 vapid_claims={"sub": self._subject},
                 content_encoding="aes128gcm",
-                ttl=int(notification_reference.get("ttl", str(_PUSH_TTL_SECONDS))),
+                ttl=ttl,
                 timeout=_CONNECT_TIMEOUT_SECONDS,
                 headers={"Topic": topic},
                 requests_session=_PinnedPushSession(self._allowed_origins),

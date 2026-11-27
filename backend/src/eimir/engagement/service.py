@@ -1284,7 +1284,17 @@ def mark_notification_read(
     if notification.read_at is None:
         notification.read_at = clock.now()
         session.flush()
+        _withdraw_from_devices(session, [notification.id])
     return notification
+
+
+def _withdraw_from_devices(session: Session, notification_ids: list[UUID]) -> None:
+    """A notice read here leaves the trays of the recipient's other devices (#2345)."""
+    if not notification_ids:
+        return
+    from eimir.engagement import push_withdraw
+
+    push_withdraw.enqueue_withdrawals(session, notification_ids)
 
 
 def _operator_notification_for_update(
@@ -1335,10 +1345,12 @@ def mark_all_notifications_read(
             _current_notification_predicate(session, context),
         )
         .values(read_at=cutoff)
+        .returning(Notification.id)
+        .execution_options(synchronize_session=False)
     )
-    result = session.execute(statement)
-    updated = getattr(result, "rowcount", 0)
-    return MarkAllResult(read_through=cutoff, updated=int(updated or 0))
+    read = list(session.scalars(statement))
+    _withdraw_from_devices(session, read)
+    return MarkAllResult(read_through=cutoff, updated=len(read))
 
 
 def mark_notifications_read_for(
@@ -1367,13 +1379,17 @@ def mark_notifications_read_for(
     ]
     if target_types is not None:
         conditions.append(Notification.target_type.in_([target.value for target in target_types]))
-    result = session.execute(
-        update(Notification)
-        .where(*conditions)
-        .values(read_at=clock.now())
-        .execution_options(synchronize_session=False)
+    read = list(
+        session.scalars(
+            update(Notification)
+            .where(*conditions)
+            .values(read_at=clock.now())
+            .returning(Notification.id)
+            .execution_options(synchronize_session=False)
+        )
     )
-    return int(getattr(result, "rowcount", 0) or 0)
+    _withdraw_from_devices(session, read)
+    return len(read)
 
 
 SETTLED_LOOKUP_LIMIT = 50

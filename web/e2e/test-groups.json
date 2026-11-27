@@ -672,6 +672,11 @@
       "baselineTests": 6,
       "reason": "Feature-owned #1907 F2 acceptance: the occasion line on Timeline cards and the Memory detail for the anniversary and a partner birthday, its accessible description, exclusion of private and person-linked dates, open/return, the one-shot reveal and its reduced-motion variant, and readability at 390 Dark, 360 with 200 % text and Expanded 1280."
     },
+    "wir-new-for-you.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 6,
+      "reason": "Feature-owned acceptance for the Wir new-for-you reel and the waiting-games tiles (#2345 B, Product Owner 2026-11-27): today's plan first, then unread notices newest first with real previews, games as tiles, at 360/390 Light and 390/430 Dark with axe and no page overflow; a card arrives once per device (after the opening, or at once while Wir is open), opening a tile reads it and a return replays nothing; reduced motion shows cards at once. Evidence screenshots. No always-run expansion."
+    },
     "wir-garden.spec.ts": {
       "disposition": "FULL_REGRESSION",
       "baselineTests": 7,

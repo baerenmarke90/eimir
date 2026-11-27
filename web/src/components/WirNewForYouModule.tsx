@@ -268,7 +268,7 @@ export function noticeTiles(
 }
 
 /**
- * "Neu für dich" (#2345 B): today's plans first, then what is new, newest
+ * The `wirNotices` reel (#2345 B): today's plans first, then what is new, newest
  * first, as one swipeable reel of tiles with real content. Opening a tile
  * marks its notices read, so they leave Wir, the inbox, the badge and every
  * device tray. It renders nothing while nothing is new and nothing is planned

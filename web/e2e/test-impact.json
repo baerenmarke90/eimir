@@ -1038,6 +1038,13 @@
         "web/src/components/M4ProductPages.tsx"
       ]
     },
+    "wir-new-for-you.spec.ts": {
+      "roots": [
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/WirNewForYouModule.tsx",
+        "web/src/components/WirWaitingGamesModule.tsx"
+      ]
+    },
     "video-attachments.spec.ts": {
       "roots": [
         "web/src/components/MemoryProductPage.tsx",

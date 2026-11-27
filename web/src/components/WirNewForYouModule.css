@@ -1,5 +1,5 @@
 /*
- * "Neu für dich" on Wir (#2345 B): a swipeable reel of tiles in Wir's lists
+ * The `wirNotices` reel on Wir (#2345 B): a swipeable reel of tiles in Wir's lists
  * track. Each kind has its own tint and a real content preview. The two
  * deep tints are local roles at the token boundary (white text on both in
  * Light and Dark, docs/DESIGN-TOKEN-POLICY.md); every other value is a token.

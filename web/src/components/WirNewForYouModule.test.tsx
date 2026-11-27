@@ -126,7 +126,7 @@ describe('WirNewForYouModule (#2345 B)', () => {
         {
           type: 'PLAN',
           id: 'plan-1',
-          titleOrText: 'Abendessen bei Lena',
+          titleOrText: 'Dinner with Lena',
           occurredOn: null,
           scheduledOn: new Date('2026-11-27T00:00:00Z'),
           scheduledAt: null,
@@ -142,22 +142,22 @@ describe('WirNewForYouModule (#2345 B)', () => {
           target: {
             targetType: 'COLLECTION',
             targetId: 'list-1',
-            title: 'Einkauf',
+            title: 'Groceries',
           },
-          preview: { items: ['Erdbeeren', 'Baguette'], moreItems: 5 },
+          preview: { items: ['Strawberries', 'Baguette'], moreItems: 5 },
         }),
       ],
     });
-    await screen.findByText('Einkauf');
+    await screen.findByText('Groceries');
     const section = await screen.findByRole('region', {
       name: i18n.t('wirNotices.title'),
     });
     const tiles = [...section.querySelectorAll('li')];
     expect(section.querySelector('ul')?.className).toContain('wir-lists-row');
-    expect(tiles[0].textContent).toContain('Abendessen bei Lena');
+    expect(tiles[0].textContent).toContain('Dinner with Lena');
     expect(tiles[0].textContent).toContain(i18n.t('wirNotices.lines.allDay'));
-    expect(tiles[1].textContent).toContain('Einkauf');
-    expect(tiles[1].textContent).toContain('Erdbeeren');
+    expect(tiles[1].textContent).toContain('Groceries');
+    expect(tiles[1].textContent).toContain('Strawberries');
     expect(tiles[1].textContent).toContain(
       i18n.t('wirNotices.lines.moreItems', { count: 5 }),
     );
@@ -180,10 +180,10 @@ describe('WirNewForYouModule (#2345 B)', () => {
           target: {
             targetType: 'MEMORY',
             targetId: 'memory-1',
-            title: 'Sonntag am Meer',
+            title: 'Sunday by the sea',
           },
           preview: {
-            text: 'Da will ich nochmal hin.',
+            text: 'I want to go back there.',
             items: [],
             moreItems: 0,
           },
@@ -200,7 +200,7 @@ describe('WirNewForYouModule (#2345 B)', () => {
     client.setQueryData(notificationUnreadCountQueryKey(SPACE), {
       unreadCount: 2,
     });
-    const quote = await screen.findByText('Da will ich nochmal hin.');
+    const quote = await screen.findByText('I want to go back there.');
     const tile = quote.closest('a');
     expect(tile?.textContent).toContain(
       i18n.t('wirNotices.lines.more', { count: 1 }),
@@ -218,7 +218,7 @@ describe('WirNewForYouModule (#2345 B)', () => {
       notificationId: 'n-reaction',
     });
     await waitFor(() =>
-      expect(screen.queryByText('Da will ich nochmal hin.')).toBeNull(),
+      expect(screen.queryByText('I want to go back there.')).toBeNull(),
     );
   });
 

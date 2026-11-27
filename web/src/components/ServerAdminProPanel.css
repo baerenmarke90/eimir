@@ -256,6 +256,12 @@ a.server-admin-pro-row {
   color: var(--color-text-secondary);
 }
 
+/* The Space-file link of a redeemed code sits on the subtle surface; the
+   default link colour misses 4.5:1 there in Dark, the brand text token does not. */
+.server-admin-pro-code a {
+  color: var(--color-brand-text);
+}
+
 button.server-admin-pro-quiet,
 button.server-admin-pro-toggle,
 button.server-admin-pro-danger,

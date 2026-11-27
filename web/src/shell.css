@@ -1181,7 +1181,8 @@
 }
 
 @media (min-width: 840px) {
-  .product-shell:has(> .product-topbar .topbar-create) .topbar-duplicate-create {
+  .product-shell:has(> .product-topbar .topbar-create)
+    .topbar-duplicate-create {
     display: none;
   }
 
@@ -1196,8 +1197,12 @@
     inset-inline-end: var(--topbar-create-inset-end);
     inset-block-start: calc(
       var(--shell-header-safe-top, 0px) +
-        (var(--shell-topbar-min-height) - var(--shell-header-safe-top, 0px) -
-          var(--touch-target-floating-create)) / 2
+      (
+        var(--shell-topbar-min-height) -
+        var(--shell-header-safe-top, 0px) -
+        var(--touch-target-floating-create)
+      ) /
+      2
     );
     box-sizing: border-box;
     inline-size: var(--touch-target-floating-create);

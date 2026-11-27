@@ -7,6 +7,7 @@ import json
 import re
 import stat
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from email.utils import parsedate_to_datetime
@@ -109,6 +110,36 @@ def encrypt_preview(endpoint: str, key: str, plaintext: str) -> str:
     if len(encoded) > 3000:
         raise push.PushProviderError("PUSH_PREVIEW_OVERSIZED", retryable=False)
     return encoded
+
+
+WITHDRAW_TYPE = "eimir-push-withdraw+jwe"
+
+
+def encrypt_withdrawal(endpoint: str, key: str, notification_ids: Sequence[UUID], ttl: int) -> str:
+    """The notice ids a device removes, readable only by that activation (#2345)."""
+    registration = _parse(endpoint)
+    if (
+        registration is None
+        or not valid_preview_key(key)
+        or not 0 < len(notification_ids) <= push.WITHDRAW_BATCH
+    ):
+        raise push.PushProviderError("PUSH_WITHDRAW_INVALID", retryable=False)
+    issued = int(clock.now().timestamp())
+    plaintext = json.dumps(
+        {
+            "v": 1,
+            "notificationIds": [str(identifier) for identifier in notification_ids],
+            "issuedAt": issued,
+            "expiresAt": issued + ttl,
+        },
+        separators=(",", ":"),
+    )
+    return jwe.encrypt_compact(
+        {"alg": "dir", "enc": "A256GCM", "typ": WITHDRAW_TYPE, "kid": registration.activation_id},
+        plaintext.encode(),
+        OctKey.import_key({"kty": "oct", "k": key}),
+        algorithms=["dir", "A256GCM"],
+    )
 
 
 def _wake(registration: Registration, reference: dict[str, str]) -> dict[str, str]:
@@ -314,6 +345,52 @@ class FcmPushProvider:
             raise push.PushProviderError("PUSH_SUBSCRIPTION_INVALID", retryable=False)
         if generic_presentation_key != push.GENERIC_PRESENTATION_KEY:
             raise push.PushProviderError("PUSH_PRESENTATION_BLOCKED", retryable=False)
+        return self._post(
+            {
+                "fid": registration.fid,
+                "data": _wake(registration, notification_reference),
+                "android": {
+                    "ttl": f"{notification_reference.get('ttl', '300')}s",
+                    "restricted_package_name": self.android_package,
+                    **(
+                        {"collapse_key": "eimir-wake"}
+                        if "encryptedPreview" not in notification_reference
+                        else {}
+                    ),
+                    "priority": "high",
+                },
+            }
+        )
+
+    def send_withdraw(
+        self, *, endpoint: str, preview_key: str, notification_ids: Sequence[UUID], ttl: int
+    ) -> push.PushSendResult:
+        """Ask the device to remove these tray notices; it presents nothing (#2345).
+
+        The ids travel encrypted under the activation's preview key. Normal
+        priority: a removal may wait for the device instead of waking it, and an
+        older app drops the unknown ``withdraw`` type silently.
+        """
+        registration = _parse(endpoint)
+        if registration is None:
+            raise push.PushProviderError("PUSH_SUBSCRIPTION_INVALID", retryable=False)
+        return self._post(
+            {
+                "fid": registration.fid,
+                "data": {
+                    "type": "withdraw",
+                    "activationId": registration.activation_id,
+                    "withdraw": encrypt_withdrawal(endpoint, preview_key, notification_ids, ttl),
+                },
+                "android": {
+                    "ttl": f"{ttl}s",
+                    "restricted_package_name": self.android_package,
+                    "priority": "normal",
+                },
+            }
+        )
+
+    def _post(self, message: dict[str, Any]) -> push.PushSendResult:
         headers: dict[str, str] = {}
         try:
             # Public SDK primitives keep token expiry/refresh in google-auth.
@@ -322,22 +399,7 @@ class FcmPushProvider:
             if self._credentials.token_state is not TokenState.FRESH:
                 self._credentials.refresh(_AuthRequest(self._auth_session))  # type: ignore[no-untyped-call]
             self._credentials.apply(headers)  # type: ignore[no-untyped-call]
-            payload = {
-                "message": {
-                    "fid": registration.fid,
-                    "data": _wake(registration, notification_reference),
-                    "android": {
-                        "ttl": f"{notification_reference.get('ttl', '300')}s",
-                        "restricted_package_name": self.android_package,
-                        **(
-                            {"collapse_key": "eimir-wake"}
-                            if "encryptedPreview" not in notification_reference
-                            else {}
-                        ),
-                        "priority": "high",
-                    },
-                }
-            }
+            payload = {"message": message}
             deadline = time.monotonic() + 2 * _TIMEOUT_SECONDS
             with self._client.stream(
                 "POST",

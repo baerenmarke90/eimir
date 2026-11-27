@@ -1,0 +1,48 @@
+// #2345 B: what is new for the reader, as tiles on Wir. The lines never name
+// the partner: in a couple's Space everything comes from them.
+const wirNotices = {
+  title: 'Neu für dich',
+  all: 'Alle ansehen',
+  allLine: 'Alle Benachrichtigungen',
+  kinds: {
+    today: 'Heute',
+    date: 'Terminvorschlag',
+    counter: 'Neuer Vorschlag',
+    selection: 'Wunschauswahl',
+    list: 'Liste',
+    note: 'Notiz',
+    picture: 'Bild-Pingpong',
+    heart: 'Herzversteck',
+    comment: 'Kommentar',
+    reaction: 'Reaktion',
+  },
+  titles: {
+    wish: 'Euer Wunsch',
+    selection: 'Eure Wunschauswahl',
+    list: 'Eine Liste',
+    note: 'Neue Notiz',
+    picture: 'Euer Bild ist fertig',
+    heart: 'Gefunden!',
+    moment: 'Euer Moment',
+  },
+  lines: {
+    date: 'Wartet auf deine Antwort',
+    selectionShared_one: '{{count}} Idee zum Aussuchen',
+    selectionShared_other: '{{count}} Ideen zum Aussuchen',
+    selectionShared: 'Sucht gemeinsam aus',
+    selectionReady: 'Euer Ergebnis ist da',
+    selectionRandom: 'Den Zufall entscheiden lassen?',
+    shared: 'Neu geteilt',
+    picture: 'Gebt ihm einen Namen',
+    heart: 'Jetzt versteckst du eins.',
+    on: 'zu „{{title}}“',
+    more_one: 'und {{count}} weiterer',
+    more_other: 'und {{count}} weitere',
+    moreItems_one: '+ {{count}} weiterer',
+    moreItems_other: '+ {{count}} weitere',
+    allDay: 'Den ganzen Tag',
+    plan: 'Euer Plan für heute',
+  },
+};
+
+export default wirNotices;

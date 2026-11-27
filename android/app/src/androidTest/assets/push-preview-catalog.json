@@ -5357,6 +5357,240 @@
         "de": "Kommentare ansehen",
         "en": "View comments"
       }
+    },
+    {
+      "id": "v4-OPERATOR_ALERT-FAILED_JOBS",
+      "payload": {
+        "v": 4,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756560000",
+        "kind": "OPERATOR_ALERT",
+        "name": "",
+        "title": "",
+        "targetType": "FAILED_JOBS",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 4600,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..4yLpS6DCiVGUmj-I.5kGG7qLld2aC7hL6lnvmyA-NB0LTM203zUfXlQsPcH5z174IhX3AVRh6OKaarK3HNK7EQjABLDe1kQde-WFuiuzM7y2j2YoiCFNeyGZqcyXOVGNFKrnpj5dXxpohNOdf1KmKROmL43e2tQb_qug7ejUBQ70EfbaT978liYt-uj8HGHI8tu_lEJQE0SI4_lQB42_Lf9H63AkdlJai1LNmtDMdHDBcKEpcCj9fKly9in5TklvGWJGGjd5t-NUwvtcQKbq_z6cEbNjEsSKuPZ6Ep4zlwK6ESg.0Ee-rIGx-33tBS217z4QlQ",
+      "expectedBody": {
+        "de": "Serververwaltung: Hintergrundjobs sind fehlgeschlagen.",
+        "en": "ServerAdmin: background jobs failed."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "v4-OPERATOR_ALERT-SPACE_QUOTA_PRESSURE",
+      "payload": {
+        "v": 4,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756560001",
+        "kind": "OPERATOR_ALERT",
+        "name": "",
+        "title": "",
+        "targetType": "SPACE_QUOTA_PRESSURE",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 4600,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..FqCzpc93-KAvs8bi.de6KCKbDLVQsO4sKPOeE-bgFOQcHbpXTlH7S-kh5j1COJZk1cAlnRoG3aF10bcC2XNSCxXhbR2ea_3cnToyHvauQ-fVuC2rU-DL40rbL7cD9TYxe91kZCZeLDus8CELwQJF2D0DfkDg6IWDad5GfPqs0JVMShQ6eexM9P7pDefxlg7uDb1xBECUwXYmBXqQ9VIDLOr1w9YE6b6Z_rqqOM1OLxy0nSZsxSAjnh3XeQYz0Z8jraxcI2TJUrQWQB1JnuQuewRlHmD0NkkFDH6rTpI1WS5dwuT3bGEUvwIIXeg.r88Lp8YkZpWdRAjjUMC95w",
+      "expectedBody": {
+        "de": "Serververwaltung: Ein Space ist fast voll.",
+        "en": "ServerAdmin: a Space is almost full."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "v4-OPERATOR_ALERT-DISK_PRESSURE",
+      "payload": {
+        "v": 4,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756560002",
+        "kind": "OPERATOR_ALERT",
+        "name": "",
+        "title": "",
+        "targetType": "DISK_PRESSURE",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 4600,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..-M1uUE6bSYeCN_Nn.Ar8YOF8dk-ZNS8KeWVq_ZOTn1dtbTWMdkD-iEnuajE3rxfxyNDhYzrcNWvB3qdi0bJ6WHiG-THbaR-apLAqcOSLdbL5l60ELGqeUIaNSQ7Ov8x-ZGDEQm37wnfVhHp36lNuXwQNXCbcMmIi_S9ckjx7ar_xnC9emVm0L4q0fqS-9Yfs-IH10PL_VNT-cO5C6xLSralJmifwAJKUahxefYJ3K5W6NPksGGUmuBuaaLkYaL0iN7y7-jqpcWvWDW4XuUJoY4USnHbwOq5eAxKSLvf9xFjxTzRq0.fxP-DJHpiS9E6h-gV4TjYQ",
+      "expectedBody": {
+        "de": "Serververwaltung: Der Medienspeicher ist fast voll.",
+        "en": "ServerAdmin: media storage is almost full."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "v4-OPERATOR_ALERT-DELIVERY_FAILURES",
+      "payload": {
+        "v": 4,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756560003",
+        "kind": "OPERATOR_ALERT",
+        "name": "",
+        "title": "",
+        "targetType": "DELIVERY_FAILURES",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 4600,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..FSSaSWQbrMrP4JQ_.bgM0t73oJHFuIBd37mbsdkbi5XfwpK697RkcwPdT4FFNCMF5m-k_-Xx2mqsk8j9WCuP_ScDzJYqERjgot8nh4DfE1fFoygXMDKQHxufAeFGH8gwPhGtIp6j9Bd27K0yj6Mb0Edibh-OrEZvAHL71GoPEn_doWInu7SMJARR6wT02V2w3Z8ALPQ1pTFRv-q3rXI_SddpDDFKEFGVhWKiFhp-u2DCp6x3A2GpU9anO8aavWYPgIs0J4uLb-WQT_7kwAwZNdpYXMAbKetNjOTkqGl1D2g6Vg8kyfEg_Qg.eJebFU1OYxW6gtb_4hAnYw",
+      "expectedBody": {
+        "de": "Serververwaltung: Mails oder Pushes schlagen fehl.",
+        "en": "ServerAdmin: emails or push notices are failing."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "v4-OPERATOR_ALERT-BACKUP_NOT_CONFIGURED",
+      "payload": {
+        "v": 4,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756560004",
+        "kind": "OPERATOR_ALERT",
+        "name": "",
+        "title": "",
+        "targetType": "BACKUP_NOT_CONFIGURED",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 4600,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..fnKaYe_S4xtDSyLb.-b6PLU5VN5axMcrye6fnPGp36YT0jhgs09P5YF6nLkX0SIhXS_liuaZyxKt67Y3d_bivDuTfup5TCoUDAZms3Vn6Upp_7z2Z03cu-kZNaW9vew281_M33LPIa8Xuj4wog5Brr_4YBSfNDeCr48nCTf5J3cYqFqg5dReE1rPqJPJi5EB9ccx2QmyzL-0fcoPT_Pb-YMKIZIlDr7_oaIN2EKD_PC8RSv33Oh-oSboqm3urAzg1SVAeMzNCjSBBsosXGNnH2nS-bpxqTLdis-fBdOblhpW3vc7_WaEk5xFne4w.jbYrL2x5sG9aivKTICxKsg",
+      "expectedBody": {
+        "de": "Serververwaltung: Es ist keine Sicherung eingerichtet.",
+        "en": "ServerAdmin: no backup is set up."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "v4-OPERATOR_ALERT-SUPPORT_REPORTS",
+      "payload": {
+        "v": 4,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756560005",
+        "kind": "OPERATOR_ALERT",
+        "name": "",
+        "title": "",
+        "targetType": "SUPPORT_REPORTS",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 4600,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..YG7jP-TE87ANe8Ri.CyQquITJYTOZP76QYPZhGFwrpaWXff7NLCT9Fwv7fKZ_Jy4qi4MyzjhWNX1-PhYRPfTsT0XbE6IXPax1_A4kp7PIYJCmNSAFXrKMNAO4KTQxinOAkivoY9A983mtieqfL1_gn_NWBf3_NgSVWT0XVJJuCxWOAbiZbURjIPIWvAU8JYSZD5q3lWIp5WRjTjL4hSXW2iQMSTbqOJ1BxTMi4dEGhPRpsH2HYKaSHOpEyJP8wft2j_Ppq_HCDd6rSr6IXg0mcyWef_84Gm2DsPcLvQGmW4YI7MjKr1U.BQ2QOiBN4dQLOswTHzpTGA",
+      "expectedBody": {
+        "de": "Serververwaltung: Neue Support-Meldung.",
+        "en": "ServerAdmin: new support report."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "v4-OPERATOR_ALERT-FUTURE_TOPIC",
+      "payload": {
+        "v": 4,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756560006",
+        "kind": "OPERATOR_ALERT",
+        "name": "",
+        "title": "",
+        "targetType": "FUTURE_TOPIC",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 4600,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..5deVtX5znnSIZ3Nj.CO-zhL8kpf0GO97Tpzouc7eHrpkrGhKTsjK2LFEGKvP76Ja95ky21mpig5LwyNSumm8Xxp_t4BH47iN7raUacWvtbcepbew3LU7j1dDcDKjLWtLqSTDOWlymhYCgPe1DNW0cxsXE4Oe1THYc7IefJYduV-MARod9P8ZB6avzfBfUzeG8WXehLU8WTHjf-t5-ZuVzWF-SEaqV-oIBwnPCSRznPLW0mcBSEKkIcLrolIou0eWbpfklkzV4Ie90DC2VlhHxDY-B_1LKEgncWwqYIaMZub7xJH0.VuxQ6fSY-qV2usShAjnyFg",
+      "expectedBody": {
+        "de": "Neue Warnung in der Serververwaltung.",
+        "en": "New ServerAdmin alert."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "v4-GENTLE_PROMPT-empty",
+      "payload": {
+        "v": 4,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756564444",
+        "kind": "GENTLE_PROMPT",
+        "name": "Alex",
+        "title": "",
+        "targetType": "",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..4K3FTNUz9KZFJLRC.tyc_fWeKwnd20OzSPEdH-TuHfog6rRep00SDe70-2AHM99buMr-wiJwfkwQWMEBuWVVCuGugrfXet2JGcVojFNlYMRCVBMvhMgysPpVKZG5MYLtAM8SYKZstq5AIeeDzlxAQAj7UtTK6S4b3ScjfJKGcwcY9NcXmQGBiW7rMRz9-GwlCKRYHywVSIDQglKjsVemj6bfc7x1hPoMMA-Oyr9xXkT-MnanYBXGq3HORldF1MGXULRljdcGpFI9M6qVhZUo7jMT3B8MNOihRqF0.ABmYaZhoVmzAF6Ug0ydSyQ",
+      "expectedBody": {
+        "de": "Wenn du magst: Halte einen Moment fest.",
+        "en": "If you feel like it, capture a moment."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
+    },
+    {
+      "id": "v4-GENTLE_PROMPT-title",
+      "payload": {
+        "v": 4,
+        "notificationId": "01a19706-45b8-741d-a0d2-368756564444",
+        "kind": "GENTLE_PROMPT",
+        "name": "Alex",
+        "title": "Unser Spaziergang",
+        "targetType": "",
+        "digest": false,
+        "issuedAt": 1000,
+        "expiresAt": 1300,
+        "body": "",
+        "when": "",
+        "place": ""
+      },
+      "jwe": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIiwidHlwIjoiZWltaXItcHVzaC1wcmV2aWV3K2p3ZSIsImtpZCI6ImEwNTZhZjU3LWU4MDktNDY1Zi04MTczLWUxN2MyM2NkNDA4YSJ9..TUig7LlTUiuu8DXS.Pb_Eje_d-bEtmnwh-ZoXF_8E6eynbckAAsvRMBrZ6ddPme4Iv235cltNggkwarXQL6NmcNeaixnQKuhmX3N-4DjvG813h5egASO_UKCYDDP-L0CPVW3HTgCmsA1loEh5dZV5_TPjnRTEWGjN_Ks5R_PZ7MCxK9gDC8TUNjS2O5PSnhrdhv_jiRZzyefRvVsrdRzaGqe1K0k6nfKTw3ebO0kl9pUFz0z5KBiUmc9XqhYghdkbqM9caGOV4ZCsyivNupoanB_rd6rN0b7jfZ4cWyOaH29gakZqWY1UlDKkxQ.syfy3nU3QDmbecuL7uKH4Q",
+      "expectedBody": {
+        "de": "Wenn du magst: Halte einen Moment fest.",
+        "en": "If you feel like it, capture a moment."
+      },
+      "expectedAction": {
+        "de": null,
+        "en": null
+      }
     }
   ]
 }

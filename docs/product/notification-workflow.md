@@ -66,9 +66,13 @@ foundation. It does not introduce the previously rejected daily summary.
    source-free due notices; a digest remains explicitly plural. Preview v3
    (#2158) is negotiated the same way through the additive
    `encryptedPreviewDetailVersion` field, so installed apps keep v2 and v1 with
-   their exact fields and meaning.
+   their exact fields and meaning. Preview v4 (#2337, additive
+   `encryptedPreviewOperatorVersion`) keeps every v3 field and meaning; only a
+   ServerAdmin notice then carries its closed topic code and a validity of up to
+   an hour.
 6. A tap resolves current authenticated recipient state and opens its canonical
-   destination. An unavailable target falls back to the Center. Account/Space
+   destination. An unavailable target falls back to the Center; an unavailable
+   ServerAdmin notice falls back to its topic's ServerAdmin page. Account/Space
    changes invalidate pending navigation, and an active editor defers navigation
    through the existing document-leave guard. Dismissing/receiving is not reading.
 7. A wake from the current native activation or a bound browser Wish date
@@ -128,7 +132,7 @@ foundation. It does not introduce the previously rejected daily summary.
 | Account / connection / security | Account-critical action | Existing dedicated transactional/account workflow; never a relationship-content banner or marketing message. |
 | Import / export | Validation ready, export ready, import complete or domain/terminal storage failure | Owner-only neutral outcome Notification/Push; opens the exact authenticated job in Data. Progress and retries stay in context. Expired/deleted/wrong-owner jobs are unavailable. Imported historical objects never replay relationship messages. |
 | Support reply (#2189) | The operator deliberately answers a person's own support report (one reply per report) | `SUPPORT_REPLY`, projected to the reporter only: no actor, attributed to the team, never to an operator account. The Center item targets `SUPPORT_REPORT` and lives in the Space of the reporter's most recent active Membership; a reporter without one keeps the stored reply and gets no notice. The notice carries no text: the app fetches the reply from `GET /api/v1/support-reports/{id}/reply` (reporter-only, plain text, at most 500 characters) and shows it with the report's date. Neutral immediate Push only (the reply never enters a device preview); never Email. Inherits the reminder choice (`REMINDER_DUE`) and Quiet Hours, with no settings surface of its own. Not coalesced: one notice per reply. A tap only marks it read; there is no destination. |
-| ServerAdmin alert (#2314) | A monitoring alert or new support reports for the operator (see `docs/SERVER-ADMIN.md`) | `OPERATOR_ALERT`, recipient-scoped to a verified allow-listed ServerAdmin account, with **no Space** and an `operator_topic`. Never in a Notification Center, unread count, Wir or notification settings; push only, neutral on every device; the instance switch on System › Monitoring and the account's Quiet Hours decide delivery. The tap opens the ServerAdmin page the server names (`operatorRoute`), never a couple route. |
+| ServerAdmin alert (#2314) | A monitoring alert or new support reports for the operator (see `docs/SERVER-ADMIN.md`) | `OPERATOR_ALERT`, recipient-scoped to a verified allow-listed ServerAdmin account, with **no Space** and an `operator_topic`. Never in a Notification Center, unread count, Wir or notification settings; push only; neutral below encrypted preview v4, on v4 Android names its closed topic code and may live up to an hour (#2337); the instance switch on System › Monitoring and the account's Quiet Hours decide delivery. The tap opens the ServerAdmin page the server names (`operatorRoute`), never a couple route. |
 | Pro information / app information / operator diagnostics | Viewing information or operational changes | No couple-facing promotional/diagnostic Push; existing operator/account boundaries remain. |
 
 ## Detailed device content (#2158)

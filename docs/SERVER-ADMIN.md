@@ -101,7 +101,20 @@ projection including available signals for:
 - `emailFailuresLastHour` / `pushFailuresLastHour` (counts only);
 - `backupStatus`: `not_configured` until a backup job reports a signal; on Cloud
   this adds the `backup_not_configured` warning;
-- privacy-safe warning codes for actionable configuration/runtime conditions.
+- privacy-safe warning codes for actionable configuration/runtime conditions;
+- `jobsFailedUnseen`: failed jobs that finished after an operator last marked
+  them as seen (all failed jobs while nobody has). The Situation page's "Needs
+  you" list and the `failed_jobs_present` warning use it; `jobsFailed` and
+  System › Jobs keep counting every failed job.
+
+**Marking as seen (#2342).** The "Needs you" rows for failed jobs and new
+reports carry a "Seen" button. `POST /api/v1/server-admin/failed-jobs/seen`
+stores the time on the instance settings for every ServerAdmin and records the
+content-free action `failed_jobs_seen` with the number of hidden jobs; the row
+returns as soon as a new job fails. Alert mails and pushes are unaffected. The
+reports button moves the reports that were new when the page loaded to
+`IN_PROGRESS` (see [Routes](#routes)). Other rows have no button; they leave
+when their condition is resolved.
 
 Where no authoritative runtime primitive exists yet, the API reports that the
 signal is not available instead of fabricating health. In particular, the
@@ -158,17 +171,21 @@ and one push.
 - **Push** goes once to each such account's registered devices, as an operator
   notice of kind `OPERATOR_ALERT`: it belongs to no Space, never appears in a
   couple's Notification Center, unread count or notification settings, and
-  names only the condition. Every device shows the neutral eimir. notice; the
-  topic appears after the tap, which opens the matching ServerAdmin page
+  names only the condition. On Android apps with encrypted preview v4 (#2337)
+  the notice names its topic (for example "ServerAdmin: new support report");
+  older apps and other platforms show the neutral eimir. notice and the topic
+  appears after the tap. The tap opens the matching ServerAdmin page
   (failed jobs: System › Jobs; new reports: the new reports; a Space near its
-  quota: the Situation; otherwise System › Monitoring). The tap is resolved
-  through the account's current Space, so an account in no Space lands on its
-  notification list and opens ServerAdmin itself. The account's Quiet Hours
+  quota: the Situation; otherwise System › Monitoring). It is resolved through
+  the account's current Space; if that fails (or the account is in no Space),
+  a v4 app still opens the topic's ServerAdmin page from the topic code on the
+  device instead of the notification list. The account's Quiet Hours
   apply; alerts held overnight arrive as one notice that opens the latest
   topic, while the mails name each one. Delivery and the tap re-check that the
   account is still a verified allow-listed ServerAdmin. Notices expire after 24 hours and are
-  deleted a day later. Topic text on the Android lock screen needs a later
-  native release.
+  deleted a day later. On v4 an operator notice stays deliverable for up to an
+  hour (provider TTL and device preview window), so a device whose push
+  connection stalls briefly still receives it; couple notices keep five minutes.
 
 | Code | Active when |
 | --- | --- |
@@ -440,6 +457,7 @@ while `EIMIR_SUPPORT_REPORTS_ENABLED` is off.
 | `GET /` | List, optional `state` (`NEW`, `IN_PROGRESS`, `CLOSED`), `archived` (default `false`: unarchived reports; `true`: the archive), keyset `cursor`, `limit`; items carry kind, state, time, `archivedAt`, app version and build, `platform` and `os`, failure reference, whether a reply and a ticket exist and a `notePreview` (the note's first 160 characters on one line, Product Owner decision 2026-11-26, [#2327](https://github.com/baerenmarke90/eimir/issues/2327)), plus the `newCount` of unarchived `NEW` reports and the `stateCounts` of unarchived reports per state; never the full note |
 | `GET /{reportId}` | The report: note, technical client context, failure reference, request id, the opaque reporter account id (no name or email), the reply if any, the ticket link if any and `ticketAvailable` |
 | `PUT /{reportId}/state` | Set `NEW`, `IN_PROGRESS` or `CLOSED` |
+| `POST /seen` | Move the unarchived `NEW` reports created up to `through` to `IN_PROGRESS` (the Situation page's "Seen" button, #2342); returns `moved`, each report is audited like a single state change |
 | `PUT /{reportId}/archive` | Archive (`{"archived": true}`) or unarchive a report |
 | `DELETE /{reportId}` | Delete the report permanently (`204`), with its reply and ticket link |
 | `POST /{reportId}/reply` | The one reply, plain text of at most 500 characters |
@@ -609,6 +627,141 @@ DELETE /api/v1/server-admin/spaces/{spaceId}/storage-quota
   it through `attachments.quota.space_quota`.
 - Set and clear are recorded as `space_storage_quota_set` and
   `space_storage_quota_cleared`.
+
+## Pro and gift codes
+
+ServerAdmin part 5 ([#2328](https://github.com/baerenmarke90/eimir/issues/2328),
+[design](superpowers/specs/2026-11-26-server-admin-part5-pro-gifts-design.md))
+adds a **Pro** area: Premium figures, Google Play subscription states, eimir.
+gift codes and the running gifts. Google Play promo codes are left out
+(Product Owner, 2026-11-26).
+
+### Availability
+
+The area, its routes and the couple redemption exist only on eimir. Cloud
+(`EIMIR_DEPLOYMENT=cloud`) **and** with the Pro plugin loaded. Core computes
+the ServerAdmin overview field `proAreaAvailable` and the public instance
+status field `giftCodesAvailable` from the deployment and the loaded plugin
+names, without importing Pro. Otherwise the navigation entry and the redeem
+entry are absent, a `?section=pro` link opens the overview, and the routes
+answer `404`. Self-Hosted uses the offline licence instead of gift codes. The
+redeem entry is also hidden in the native app, decided by platform, until a
+Google Play payments-policy check.
+
+### Routes
+
+The operator routes live under `/api/v1/server-admin/pro`, require the
+ServerAdmin guard and answer `Cache-Control: private, no-store`.
+
+| Route | Purpose |
+| --- | --- |
+| `GET /overview` | Figures, Google Play states, batch summaries and running gifts |
+| `POST /gift-code-batches` | `{count, durationMonths, redeemableUntil?, note?}`: 1 to 100 codes of 1, 3, 6 or 12 months; returns the batch with its codes |
+| `GET /gift-code-batches/{batchId}` | One batch with each code and its state |
+| `POST /gift-code-batches/{batchId}/revoke` | Revokes every unredeemed code of the batch |
+| `PUT /gift-codes/{codeId}/handed-out` | `{handedOut}`: marks a code as given away, or back |
+| `POST /gift-codes/{codeId}/revoke` | Revokes one unredeemed code |
+
+A member of a Space redeems with
+`POST /api/v1/spaces/{spaceId}/gift-codes/redeem` and `{code}`; the answer is
+`{effectiveUntil, extended}` or a problem with one of the codes
+`GIFT_CODE_INVALID` (unknown, malformed, revoked or expired, one shape for
+all), `GIFT_CODE_USED`, `GIFT_CODE_SUBSCRIPTION_ACTIVE`,
+`GIFT_CODE_UNLIMITED` or `RATE_LIMITED`.
+
+### Figures
+
+All figures are aggregates; the overview shows no names:
+
+- **Spaces:** all Spaces, those with an effective Premium grant now, and of
+  those how many by Google Play and how many by gift (manual or code). A Space
+  with both counts once, under Google Play.
+- **Google Play states** of each Space's latest Google Play grant: active and
+  renewing, cancelled but still running, payment problem (grace period) and
+  ended in the last 30 days.
+- **Cancellations (30 days) are an approximation.** eimir. keeps no
+  cancellation history, so the figure counts the currently cancelled or
+  revoked subscriptions whose latest store event falls in the last 30 days.
+  A subscription cancelled and resumed within the window does not count; the
+  label says "approximately".
+- **Running gifts:** one row per Space with its real end (the latest end of
+  its running gifts), the origin (manual, or code with the batch note)
+  and a link to the Space file, sorted by end date with unlimited gifts last,
+  capped at 50 with a total.
+
+The Google Play billing backend is mock-tested only and the Play Console is not
+set up yet; without store data the Google Play card shows a calm empty state.
+
+### Gift code lifecycle
+
+- A batch holds 1 to 100 single-use codes `EIMIR-XXXX-XXXX` (8 characters
+  from a 31-character alphabet without 0, O, 1, I and L, about 40 bits, from
+  `secrets`). Input is normalized: case, spaces and hyphens are ignored and
+  the `EIMIR` prefix is optional.
+- A batch is redeemable for 12 months by default; another deadline must lie
+  between tomorrow and 24 months ahead. The private note (at most 120
+  characters) is operator-only and never shown to couples.
+- A code is **open**, **handed out** (the operator's mark, reversible),
+  **redeemed**, **revoked** or **expired**; the state derives from the
+  timestamps and the batch. A redeemed code links to the redeeming Space's
+  file until that Space is deleted.
+- Revoking a batch or a code affects only unredeemed codes; gifts already
+  redeemed keep running. Batches and codes record who created and who revoked
+  them (`created_by`, `revoked_by`, set to null when that Account is deleted).
+- A batch whose codes are all redeemed, revoked or expired is pruned 24 months
+  after its last change.
+
+### Redemption rules
+
+Codes are not bound to a Space: the first redeeming Space gets the gift, any
+active member may redeem, also before the partner joined. The new grant is an
+`ADMIN_GRANT` with `external_reference = "gift-code:<code id>"` and the batch
+in its metadata; it starts now and ends `duration` months after the latest end
+of the Space's valid Premium grants, or after now. So a code never costs a Space
+Pro time it already has:
+
+| Space state | Result |
+| --- | --- |
+| No Premium | Pro from now for the duration |
+| A running gift with an end, or a cancelled Google Play subscription that still runs | Appended after the latest end |
+| A renewing Google Play subscription, a grace period or a renewing trial | Refused (`GIFT_CODE_SUBSCRIPTION_ACTIVE`); the code stays unused and can be passed on |
+| Premium without an end date | Refused (`GIFT_CODE_UNLIMITED`); the code stays unused |
+| Google Play on hold or paused (stored as expired) | Treated like no subscription |
+
+Redemption takes a per-Space lock, then locks the code row, so two codes
+redeemed at once cannot read the same end and lose months, and one code
+cannot be redeemed twice. A replay by the Space that redeemed the code returns
+the stored end without touching the grant, but only while that grant still
+runs; otherwise the code reads as used.
+
+### Rate limits
+
+Redemption uses the existing rate-limit table: **5 attempts per Account and
+hour** and **20 attempts per Space and day**. Every attempt counts, successes
+and replays included, and nothing clears the counters. This deliberately
+departs from the design's first wording ("only failures count"): clearing the
+counters after a success let any member replay a code the Space had already
+redeemed to wipe the counted guesses and guess without limit.
+
+### Privacy and storage
+
+- The overview shows aggregates and Space short ids only; no names, no
+  recipient. eimir. stores no recipient of a code and sends no codes itself.
+- Each code is stored encrypted at rest (protected payload), so the operator
+  can show and copy it later, plus a keyed lookup hash (HMAC with a server
+  secret) as the unique lookup column; a database dump alone reveals no
+  redeemable code. The plain code never appears in logs, problem details,
+  audit metadata, alert mails or the grant row.
+- The lookup hash is keyed by `EIMIR_CURSOR_SIGNING_KEY`: changing that key
+  makes every outstanding unredeemed code invalid (couples then get
+  `GIFT_CODE_INVALID`); redeemed gifts keep running.
+- Revoking a single code is API-only
+  (`POST /api/v1/server-admin/pro/gift-codes/{codeId}/revoke`); the batch
+  sheet in the UI revokes all unredeemed codes of a batch at once.
+- The tables `gift_code_batches` and `gift_codes` belong to the first Pro
+  migration chain. They are operator data, not couple content, and are
+  excluded from every portability bundle (`EXCLUDED_TABLES`). Deleting a Space keeps its
+  redeemed code row (counts stay right) and drops the link.
 
 ## Business model
 

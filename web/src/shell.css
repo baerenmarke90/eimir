@@ -1153,7 +1153,35 @@
   }
 }
 
+/* The create entry lives in the top bar (Expanded, web): one labelled pill at
+   the bar's end on every page, instead of a pill dropped into each page's
+   content. Compact keeps its floating/dock entries, so the bar one stays hidden
+   there. */
+.topbar-create {
+  display: flex;
+}
+
+.topbar-create-slot {
+  display: contents;
+}
+
+.topbar-duplicate-create {
+  display: contents;
+}
+
 @media (min-width: 840px) {
+  .product-shell:has(> .product-topbar .topbar-create)
+    .topbar-duplicate-create {
+    display: none;
+  }
+
+  /* A page's own create action (note, place, person, plan, list, moment…)
+     is moved into the slot by AddAction while its tab is the visible one. The
+     everything-menu steps aside only while the slot holds one. */
+  .topbar-create:has(> .topbar-create-slot > *) > .topbar-create-global {
+    display: none;
+  }
+
   .product-shell {
     --shell-content-top-inset: var(--shell-topbar-min-height);
   }

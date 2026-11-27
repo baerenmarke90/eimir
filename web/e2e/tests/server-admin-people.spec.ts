@@ -57,6 +57,7 @@ function overview(): Record<string, unknown> {
     expiringAdminGrantCount: 0,
     expiringAdminGrants: [],
     jobsFailed: 0,
+    jobsFailedUnseen: 0,
     jobsPending: 0,
     jobsRunning: 0,
     lastSuccessfulJobAt: null,
@@ -338,7 +339,7 @@ test('the operator finds a Space, sets an individual quota and removes it again'
   await expect(page.getByText(people.hint)).toBeVisible();
 
   // Interact: an email part finds the Space; no name is shown.
-  await page.getByRole('searchbox').fill('lena');
+  await page.getByRole('searchbox', { name: people.label }).fill('lena');
   await expect.poll(() => recorded.searches).toContain('lena');
   await page.getByRole('link', { name: /Space 019b…9ab/ }).click();
   await expect(page).toHaveURL(/[?&]space=019b2e1a/);
@@ -436,7 +437,7 @@ test('People search and Space file layout in Compact and Expanded, Light and Dar
   await capture(page, info, 'space-file-compact-360-large-text.png');
 
   await areaNavigation(page).getByRole('link', { name: areas.people }).click();
-  await page.getByRole('searchbox').fill('lena');
+  await page.getByRole('searchbox', { name: people.label }).fill('lena');
   await expect(
     page.getByRole('link', { name: /lena@example.com/ }),
   ).toBeVisible();

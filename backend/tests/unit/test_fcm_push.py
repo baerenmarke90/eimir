@@ -676,3 +676,59 @@ def test_invalid_preview_registration_is_rejected(provider, version, key):
         separators=(",", ":"),
     )
     assert not provider.accepts_endpoint(value)
+
+
+def test_withdraw_sends_only_encrypted_ids_at_normal_priority(
+    fake_credentials: FakeCredentials, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#2345: a tray removal carries the ids sealed for the activation, nothing else."""
+    monkeypatch.setattr(fcm_push.clock, "now", lambda: NOW)
+    observed: list[httpx.Request] = []
+
+    def capture(request: httpx.Request) -> httpx.Response:
+        observed.append(request)
+        return httpx.Response(200, json={"name": "projects/eimir-test/messages/accepted-9"})
+
+    key = base64.urlsafe_b64encode(bytes(range(32))).decode().rstrip("=")
+    ids = [uuid4(), uuid4()]
+    client = httpx.Client(transport=httpx.MockTransport(capture))
+    provider = fcm_push.FcmPushProvider(configuration(), client=client)
+    try:
+        provider.send_withdraw(endpoint=endpoint(), preview_key=key, notification_ids=ids, ttl=600)
+    finally:
+        provider.close()
+
+    message = json.loads(observed[0].content)["message"]
+    assert message["android"] == {
+        "ttl": "600s",
+        "restricted_package_name": "de.eimir.app",
+        "priority": "normal",
+    }
+    data = message["data"]
+    assert set(data) == {"type", "activationId", "withdraw"}
+    assert data["type"] == "withdraw" and data["activationId"] == ACTIVATION
+    assert all(str(identifier).encode() not in observed[0].content for identifier in ids)
+    opened = jwe.decrypt_compact(
+        data["withdraw"], OctKey.import_key({"kty": "oct", "k": key}), algorithms=["dir", "A256GCM"]
+    )
+    assert opened.protected == {
+        "alg": "dir",
+        "enc": "A256GCM",
+        "typ": "eimir-push-withdraw+jwe",
+        "kid": ACTIVATION,
+    }
+    issued = int(NOW.timestamp())
+    assert json.loads(opened.plaintext or b"") == {
+        "v": 1,
+        "notificationIds": [str(identifier) for identifier in ids],
+        "issuedAt": issued,
+        "expiresAt": issued + 600,
+    }
+
+
+@pytest.mark.parametrize("count", [0, push.WITHDRAW_BATCH + 1])
+def test_withdraw_rejects_an_empty_or_oversized_batch(count: int) -> None:
+    key = base64.urlsafe_b64encode(bytes(range(32))).decode().rstrip("=")
+    with pytest.raises(push.PushProviderError) as failure:
+        fcm_push.encrypt_withdrawal(endpoint(), key, [uuid4() for _ in range(count)], 600)
+    assert failure.value.code == "PUSH_WITHDRAW_INVALID"

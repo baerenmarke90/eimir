@@ -56,6 +56,12 @@ export interface InstanceAccessStatus {
      */
     auth?: AuthCapabilities;
     /**
+     * Whether a Space member can redeem an eimir. gift code here: eimir. Cloud with the gift code plugin loaded. Clients show the redeem entry only when true.
+     * @type {boolean}
+     * @memberof InstanceAccessStatus
+     */
+    giftCodesAvailable?: boolean;
+    /**
      * 
      * @type {boolean}
      * @memberof InstanceAccessStatus
@@ -147,6 +153,7 @@ export function InstanceAccessStatusFromJSONTyped(json: any, ignoreDiscriminator
         
         'accountCreation': json['accountCreation'] == null ? undefined : json['accountCreation'],
         'auth': json['auth'] == null ? undefined : AuthCapabilitiesFromJSON(json['auth']),
+        'giftCodesAvailable': json['giftCodesAvailable'] == null ? undefined : json['giftCodesAvailable'],
         'maintenanceMode': json['maintenanceMode'],
         'oidcConnections': json['oidcConnections'] == null ? undefined : ((json['oidcConnections'] as Array<any>).map(OidcConnectionViewFromJSON)),
         'oidcSignupAvailable': json['oidcSignupAvailable'] == null ? undefined : json['oidcSignupAvailable'],
@@ -171,6 +178,7 @@ export function InstanceAccessStatusToJSONTyped(value?: InstanceAccessStatus | n
         
         'accountCreation': value['accountCreation'],
         'auth': AuthCapabilitiesToJSON(value['auth']),
+        'giftCodesAvailable': value['giftCodesAvailable'],
         'maintenanceMode': value['maintenanceMode'],
         'oidcConnections': value['oidcConnections'] == null ? undefined : ((value['oidcConnections'] as Array<any>).map(OidcConnectionViewToJSON)),
         'oidcSignupAvailable': value['oidcSignupAvailable'],

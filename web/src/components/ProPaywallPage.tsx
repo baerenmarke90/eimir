@@ -23,6 +23,7 @@ import { useBillingChannel } from '../client/storeBilling';
 import { resolvedLocale, Trans, useTranslation } from '../i18n';
 import { haptic } from '../motion/haptics';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
+import { GiftCodeRedeemEntry } from './GiftCodeRedeemSheet';
 import { ProFeatureCatalogue } from './ProFeatureCatalogue';
 import { ProScene, type ProSceneId } from './proShowcase/ProScene';
 import { ProShowcase } from './proShowcase/ProShowcase';
@@ -359,6 +360,12 @@ export function ProPaywallPage({
           ) : null}
         </>
       )}
+      {/*
+        One position for both states, below the plans or the unavailable note
+        and below the active state, so a redeemed code that turns the page
+        active keeps its open sheet (#2328).
+      */}
+      <GiftCodeRedeemEntry />
 
       {context === 'general' ? <ProFeatureCatalogue /> : null}
       <p className="pro-paywall-free">{t('proPaywall.free')}</p>

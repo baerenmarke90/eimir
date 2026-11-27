@@ -6,6 +6,7 @@ import {
   useSearchParams,
 } from 'react-router-dom';
 import type { ServerAdminApi } from '../api/generated/apis/ServerAdminApi';
+import type { ServerAdminSupportReportsApi } from '../api/generated/apis/ServerAdminSupportReportsApi';
 import type { ServerAdminOverview } from '../api/generated/models/ServerAdminOverview';
 import type { ServerAdminPrivilegedAuditItem } from '../api/generated/models/ServerAdminPrivilegedAuditItem';
 import type { ServerAdminSettings } from '../api/generated/models/ServerAdminSettings';
@@ -26,7 +27,9 @@ import { ServerAdminPeopleSearch } from './ServerAdminPeopleSearch';
 import { ServerAdminSituation } from './ServerAdminSituation';
 import { ServerAdminSpacesPanel } from './ServerAdminSpacesPanel';
 import { ServerAdminStoragePanel } from './ServerAdminStoragePanel';
+import { Snackbar } from './Snackbar';
 import {
+  availableSection,
   resolveServerAdminSection,
   type ServerAdminSection,
   sectionHref,
@@ -51,6 +54,13 @@ const ServerAdminReplyTemplatesPanel = lazy(() =>
       default: ServerAdminReplyTemplatesPanel,
     }),
   ),
+);
+
+// Pro exists only on eimir. Cloud with the Pro plugin (part 5).
+const ServerAdminProPanel = lazy(() =>
+  import('./ServerAdminProPanel').then(({ ServerAdminProPanel }) => ({
+    default: ServerAdminProPanel,
+  })),
 );
 
 export {
@@ -525,9 +535,13 @@ export function ServerAdminActivityPanel({
 function OverviewContent({
   overview,
   section,
+  api,
+  reportsApi,
 }: {
   overview: ServerAdminOverview;
   section: Extract<ServerAdminSection, 'overview' | 'jobs' | 'security'>;
+  api: ServerAdminApi;
+  reportsApi: ServerAdminSupportReportsApi;
 }) {
   const { t } = useTranslation();
   const lastSuccessfulJob = formatDate(overview.lastSuccessfulJobAt);
@@ -536,7 +550,11 @@ function OverviewContent({
   return (
     <>
       {section === 'overview' ? (
-        <ServerAdminSituation overview={overview} />
+        <ServerAdminSituation
+          overview={overview}
+          api={api}
+          reportsApi={reportsApi}
+        />
       ) : null}
 
       {section === 'overview' ? (
@@ -769,9 +787,9 @@ export function ServerAdminPage({
   useEffect(() => {
     if (navigationType !== 'POP') window.scrollTo(0, 0);
   }, []);
-  const section = resolveServerAdminSection(searchParams.get('section'));
-  const overviewSection =
-    section === 'overview' || section === 'jobs' || section === 'security';
+  const requestedSection = resolveServerAdminSection(
+    searchParams.get('section'),
+  );
   const queryClient = useQueryClient();
   const apis = useMemo(
     () => createServerAdminApis(apiBaseUrl, accessToken),
@@ -787,6 +805,13 @@ export function ServerAdminPage({
   });
   const supportReportsAvailable =
     overviewQuery.data?.supportReportsOperatorAvailable === true;
+  const proAreaAvailable = overviewQuery.data?.proAreaAvailable === true;
+  // A Pro link without the Pro area opens the overview once that is known.
+  const section = overviewQuery.isPending
+    ? requestedSection
+    : availableSection(requestedSection, { proAreaAvailable });
+  const overviewSection =
+    section === 'overview' || section === 'jobs' || section === 'security';
   // An unsent reply or ticket text in an open report; leaving the section asks.
   const [reportsDraftDirty, setReportsDraftDirty] = useState(false);
   const confirmLeaveReports = () =>
@@ -890,6 +915,12 @@ export function ServerAdminPage({
       void settingsQuery.refetch();
       return;
     }
+    if (section === 'pro') {
+      void queryClient.invalidateQueries({
+        queryKey: ['server-admin', 'pro'],
+      });
+      return;
+    }
     if (section === 'activity') {
       void queryClient.invalidateQueries({
         queryKey: ['server-admin', 'privileged-activity'],
@@ -980,6 +1011,7 @@ export function ServerAdminPage({
           <ServerAdminAreaNavigation
             activeSection={section}
             supportReportsAvailable={supportReportsAvailable}
+            proAreaAvailable={proAreaAvailable}
             supportReportsNew={overviewQuery.data?.supportReportsNew ?? 0}
             confirmLeave={
               section === 'reports' ? confirmLeaveReports : undefined
@@ -1121,6 +1153,8 @@ export function ServerAdminPage({
               ) : overviewQuery.data ? (
                 <OverviewContent
                   overview={overviewQuery.data}
+                  api={apis.serverAdmin}
+                  reportsApi={apis.supportReports}
                   section={
                     section as Extract<
                       ServerAdminSection,
@@ -1166,6 +1200,35 @@ export function ServerAdminPage({
               />
             ) : null}
 
+            {section === 'pro' ? (
+              proAreaAvailable ? (
+                <Suspense
+                  fallback={
+                    <section className="server-admin-panel server-admin-panel-wide">
+                      <UiState
+                        kind="loading"
+                        title={t('serverAdmin.states.loadingTitle')}
+                        body={t('serverAdmin.states.loadingBody')}
+                      />
+                    </section>
+                  }
+                >
+                  <ServerAdminProPanel
+                    api={apis.pro}
+                    publicBaseUrl={overviewQuery.data?.publicBaseUrl}
+                  />
+                </Suspense>
+              ) : (
+                <section className="server-admin-panel server-admin-panel-wide">
+                  <UiState
+                    kind="loading"
+                    title={t('serverAdmin.states.loadingTitle')}
+                    body={t('serverAdmin.states.loadingBody')}
+                  />
+                </section>
+              )
+            ) : null}
+
             {section === 'activity' ? (
               <ServerAdminActivityPanel
                 api={apis.serverAdmin}
@@ -1189,6 +1252,8 @@ export function ServerAdminPage({
           {t('serverAdmin.privacyNote')}
         </p>
       </main>
+      {/* Copy feedback of the Pro area; the app shell's snackbar is not mounted here. */}
+      <Snackbar />
     </div>
   );
 }

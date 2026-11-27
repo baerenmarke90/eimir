@@ -407,7 +407,8 @@ weakening credential storage. Product data, read-cache records and owner-only
 content are never added to this slot. The legacy cache cleanup uses another key
 alias and does not erase these current session credentials.
 
-Access tokens still expire after 15 minutes and are refreshed automatically.
+Access tokens expire after 24 hours and are refreshed automatically, ahead of
+expiry while the app is in use.
 Refresh is retried after temporary transport failures and checked on foreground,
 visibility and reconnect events. A temporary restore outage keeps the credential
 available; a definitive 401/403 ends the session. The backend's 60-day sliding

@@ -12,7 +12,7 @@ import {
   reportNotificationOpened,
   reportNotificationWake,
 } from './foregroundNotifications';
-import { notificationPath } from './m4Product';
+import { notificationPath, operatorTopicPath } from './m4Product';
 import {
   notificationsListQueryKey,
   notificationUnreadCountQueryKey,
@@ -23,6 +23,7 @@ import {
 } from './partnerGestureReceipt';
 import { MORE_NOTIFICATIONS_ROUTE } from './routes';
 import { postSnackbar } from './snackbar';
+import type { NotificationTray } from './trayNoticeSync';
 import {
   isDocumentLeaveBlocked,
   useDocumentLeaveBlocked,
@@ -36,6 +37,8 @@ type ActivationEvent = {
   providerKey: ProviderKey;
   activationId: string;
   notificationId?: string;
+  /** The closed topic code of a tapped ServerAdmin notice (#2337). */
+  operatorTopic?: string;
 };
 
 type EndpointEvent = ActivationEvent & {
@@ -68,7 +71,7 @@ type SelectedConfiguration =
       providerKey: 'fcm';
       firebaseProjectId: string;
       androidPackage: string;
-      encryptedPreviewVersion?: 1 | 2 | 3;
+      encryptedPreviewVersion?: 1 | 2 | 3 | 4;
       neutralReferenceVersion?: 1;
       localeVersion?: 1;
     }
@@ -89,6 +92,9 @@ type NativePushPlugin = {
   refresh(options: RegistrationOptions): Promise<{ enabled: boolean }>;
   disable(): Promise<void>;
   openNotificationSettings(): Promise<void>;
+  /** Android only (#2345); other platforms reject. */
+  deliveredNotifications(): Promise<{ notificationIds: string[] }>;
+  withdrawNotifications(options: { notificationIds: string[] }): Promise<void>;
   addListener(
     event: 'endpoint',
     callback: (event: EndpointEvent) => void,
@@ -345,14 +351,17 @@ function selectConfiguration(
             : {}),
           ...(available.fcm.encryptedPreviewVersion === 1
             ? {
-                // v3 (#2158) is advertised by its own additive field, so that
-                // installed apps expecting exactly 2 keep negotiating v2.
+                // v3 (#2158) and v4 (#2337) are advertised by their own
+                // additive fields, so that installed apps keep their version.
                 encryptedPreviewVersion:
-                  available.fcm.encryptedPreviewDetailVersion === 3
-                    ? (3 as const)
-                    : available.fcm.encryptedPreviewMaxVersion === 2
-                      ? (2 as const)
-                      : (1 as const),
+                  available.fcm.encryptedPreviewDetailVersion === 3 &&
+                  available.fcm.encryptedPreviewOperatorVersion === 4
+                    ? (4 as const)
+                    : available.fcm.encryptedPreviewDetailVersion === 3
+                      ? (3 as const)
+                      : available.fcm.encryptedPreviewMaxVersion === 2
+                        ? (2 as const)
+                        : (1 as const),
               }
             : {}),
         }
@@ -406,6 +415,7 @@ export function useDevicePush({
     | {
         id?: string;
         sourceEventId?: string;
+        operatorTopic?: string;
       }
     | undefined
   >(undefined);
@@ -442,9 +452,21 @@ export function useDevicePush({
   errorRef.current = error;
 
   const openInbox = useCallback(
-    (notificationId?: string, sourceEventId?: string) => {
+    (
+      notificationId?: string,
+      sourceEventId?: string,
+      operatorTopic?: string,
+    ) => {
+      // A ServerAdmin notice that cannot be resolved still opens its
+      // ServerAdmin page, never the couple's Notifications list (#2337).
+      const fallback =
+        operatorTopicPath(operatorTopic) ?? MORE_NOTIFICATIONS_ROUTE;
       if (isDocumentLeaveBlocked()) {
-        pendingNotification.current = { id: notificationId, sourceEventId };
+        pendingNotification.current = {
+          id: notificationId,
+          sourceEventId,
+          operatorTopic,
+        };
         setPendingInbox(`${key}:${currentSpaceId.current}`);
         postSnackbar('snackbar.notificationWaiting');
         return;
@@ -454,7 +476,7 @@ export function useDevicePush({
         !notificationId ||
         !/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(notificationId)
       ) {
-        navigateRef.current(MORE_NOTIFICATIONS_ROUTE);
+        navigateRef.current(fallback);
         return;
       }
       const hintKey = `${key}:${notificationId}:${sourceEventId ?? ''}`;
@@ -498,14 +520,16 @@ export function useDevicePush({
           });
           if (isDocumentLeaveBlocked()) {
             openedHints.current.delete(hintKey);
-            pendingNotification.current = { id: notificationId, sourceEventId };
+            pendingNotification.current = {
+              id: notificationId,
+              sourceEventId,
+              operatorTopic,
+            };
             setPendingInbox(`${key}:${currentSpaceId.current}`);
             postSnackbar('snackbar.notificationWaiting');
             return;
           }
-          navigateRef.current(
-            notificationPath(item) ?? MORE_NOTIFICATIONS_ROUTE,
-          );
+          navigateRef.current(notificationPath(item) ?? fallback);
           // A deliberately opened gesture may show its calm receipt once.
           requestPartnerGestureReceipt({
             scope: receiptScope(accountId, requestedSpace),
@@ -522,7 +546,7 @@ export function useDevicePush({
             if (isDocumentLeaveBlocked()) {
               pendingNotification.current = undefined;
               setPendingInbox(`${key}:${currentSpaceId.current}`);
-            } else navigateRef.current(MORE_NOTIFICATIONS_ROUTE);
+            } else navigateRef.current(fallback);
           }
         });
     },
@@ -540,7 +564,11 @@ export function useDevicePush({
     setPendingInbox(null);
     const notification = pendingNotification.current;
     pendingNotification.current = undefined;
-    openInbox(notification?.id, notification?.sourceEventId);
+    openInbox(
+      notification?.id,
+      notification?.sourceEventId,
+      notification?.operatorTopic,
+    );
   }, [blocked, key, spaceId, pendingInbox, openInbox]);
 
   const syncRegistered = useCallback(async () => {
@@ -628,14 +656,22 @@ export function useDevicePush({
               fcmSubscription?.previewVersion === 1
                 ? {
                     version:
-                      configuration.current.encryptedPreviewVersion === 3 &&
-                      fcmSubscription.previewMaxVersion === 3
-                        ? (3 as const)
+                      configuration.current.encryptedPreviewVersion === 4 &&
+                      fcmSubscription.previewMaxVersion === 4
+                        ? (4 as const)
                         : configuration.current.encryptedPreviewVersion !== 1 &&
-                            (fcmSubscription.previewMaxVersion === 2 ||
-                              fcmSubscription.previewMaxVersion === 3)
-                          ? (2 as const)
-                          : (1 as const),
+                            configuration.current.encryptedPreviewVersion !==
+                              2 &&
+                            (fcmSubscription.previewMaxVersion === 3 ||
+                              fcmSubscription.previewMaxVersion === 4)
+                          ? (3 as const)
+                          : configuration.current.encryptedPreviewVersion !==
+                                1 &&
+                              (fcmSubscription.previewMaxVersion === 2 ||
+                                fcmSubscription.previewMaxVersion === 3 ||
+                                fcmSubscription.previewMaxVersion === 4)
+                            ? (2 as const)
+                            : (1 as const),
                     key: fcmSubscription.previewKey as string,
                     ...(configuration.current.neutralReferenceVersion === 1 &&
                     fcmSubscription.neutralReferenceVersion === 1
@@ -840,7 +876,7 @@ export function useDevicePush({
         const generation = registrationGeneration;
         void (async () => {
           if (await currentEvent(event, generation))
-            openInbox(event.notificationId);
+            openInbox(event.notificationId, undefined, event.operatorTopic);
         })().catch(() => undefined);
       }),
       App.addListener('resume', () => {
@@ -1167,6 +1203,17 @@ export async function revokeDevicePushBeforeSignOut(
     // Retried after the next sign-in of this Account on this device.
   }
 }
+
+/**
+ * The Android notification tray, for the read-state sync (#2345). It lists and
+ * withdraws only eimir. notices; it never presents one.
+ */
+export const androidNotificationTray: NotificationTray = {
+  delivered: async () =>
+    (await nativePush.deliveredNotifications()).notificationIds,
+  withdraw: (notificationIds) =>
+    nativePush.withdrawNotifications({ notificationIds }),
+};
 
 export function stopNativePushForSignedOutAccount(): void {
   if (isCapacitorNative()) {

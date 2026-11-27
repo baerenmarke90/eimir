@@ -83,3 +83,8 @@
     --motion-surface-from-opacity: 0;
   }
 }
+
+/* The shared snackbar (copy feedback) stays visible above an open sheet. */
+.server-admin-shell .snackbar {
+  z-index: 1101;
+}

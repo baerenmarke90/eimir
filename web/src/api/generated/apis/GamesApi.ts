@@ -34,6 +34,11 @@ import {
     GameMemoryCandidateSetToJSON,
 } from '../models/GameMemoryCandidateSet';
 import {
+    type GameNoticeSurface,
+    GameNoticeSurfaceFromJSON,
+    GameNoticeSurfaceToJSON,
+} from '../models/GameNoticeSurface';
+import {
     type GameWishCandidateSet,
     GameWishCandidateSetFromJSON,
     GameWishCandidateSetToJSON,
@@ -300,6 +305,11 @@ export interface ListGardenHistoryRequest {
     spaceId: string;
     cursor?: string | null;
     limit?: number;
+}
+
+export interface MarkGameNoticesReadRequest {
+    surface: GameNoticeSurface;
+    spaceId: string;
 }
 
 export interface MarkPicturePingPongSavedRequest {
@@ -1649,6 +1659,60 @@ export class GamesApi extends runtime.BaseAPI {
     async listGardenHistory(requestParameters: ListGardenHistoryRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GardenHistoryPage> {
         const response = await this.listGardenHistoryRaw(requestParameters, initOverrides);
         return await response.value();
+    }
+
+    /**
+     * Creates request options for markGameNoticesRead without sending the request
+     */
+    async markGameNoticesReadRequestOpts(requestParameters: MarkGameNoticesReadRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['surface'] == null) {
+            throw new runtime.RequiredError(
+                'surface',
+                'Required parameter "surface" was null or undefined when calling markGameNoticesRead().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling markGameNoticesRead().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/games/{surface}/notices/read`;
+        urlPath = urlPath.replace('{surface}', encodeURIComponent(String(requestParameters['surface'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * The reader opened a game page; its notices are handled everywhere (#2345).  Marks only the reader\'s own notices read. It reveals nothing and is not gameplay, so it needs no Premium capability: after a downgrade the reader can still clear what was announced before.
+     * Mark Game Notices Read
+     */
+    async markGameNoticesReadRaw(requestParameters: MarkGameNoticesReadRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.markGameNoticesReadRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * The reader opened a game page; its notices are handled everywhere (#2345).  Marks only the reader\'s own notices read. It reveals nothing and is not gameplay, so it needs no Premium capability: after a downgrade the reader can still clear what was announced before.
+     * Mark Game Notices Read
+     */
+    async markGameNoticesRead(requestParameters: MarkGameNoticesReadRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.markGameNoticesReadRaw(requestParameters, initOverrides);
     }
 
     /**

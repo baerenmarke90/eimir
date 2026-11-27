@@ -154,6 +154,39 @@ public class PushPreviewTest {
         assertFalse(gesture.body(context).contains("Never display"));
     }
 
+    @Test public void onlyAV4OperatorNoticeNamesItsTopicAndMayLiveForAnHour() throws Exception {
+        JSONObject value = new JSONObject()
+            .put("v", 4).put("notificationId", "01a19706-45b8-741d-a0d2-3687565a6789")
+            .put("kind", "OPERATOR_ALERT").put("name", "").put("title", "")
+            .put("targetType", "SUPPORT_REPORTS").put("digest", false).put("issuedAt", 1000).put("expiresAt", 4600)
+            .put("body", "").put("when", "").put("place", "");
+        PushActivation active = activation(fixture().getString("activationId"));
+        PushPreview operator = PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100);
+        assertNotNull(operator);
+        assertEquals("SUPPORT_REPORTS", operator.operatorTopic());
+        assertEquals(context.getString(R.string.push_operator_support_reports), operator.body(context));
+        // A stalled push connection may deliver it late, within the hour.
+        assertNotNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 4500));
+        value.put("expiresAt", 4601);
+        assertNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
+        // Below v4 an operator notice keeps the five-minute window and no topic.
+        value.put("v", 3).put("expiresAt", 4600);
+        assertNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
+        value.put("expiresAt", 1300).put("targetType", "");
+        PushPreview neutral = PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100);
+        assertNotNull(neutral);
+        assertNull(neutral.operatorTopic());
+        // A couple notice never gets the longer window, also on v4.
+        value.put("v", 4).put("kind", "THINKING_OF_YOU").put("name", "Alex").put("expiresAt", 4600);
+        assertNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
+        // A topic code outside the closed shape never reaches the tap.
+        value.put("kind", "OPERATOR_ALERT").put("name", "").put("targetType", "support reports");
+        PushPreview odd = PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100);
+        assertNotNull(odd);
+        assertNull(odd.operatorTopic());
+        assertEquals(context.getString(R.string.push_operator_alert), odd.body(context));
+    }
+
     @Test public void detailedPreviewIsStrictlyVersionedAndNamesWhenAndWhere() throws Exception {
         JSONObject value = new JSONObject()
             .put("v", 3).put("notificationId", "01a19706-45b8-741d-a0d2-3687565a6789")
@@ -195,7 +228,8 @@ public class PushPreviewTest {
         value.remove("place");
         value.remove("when");
         assertNotNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
-        value.put("v", 4).put("when", "").put("place", "");
+        // v4 (#2337) is known; the next unknown version is rejected.
+        value.put("v", 5).put("when", "").put("place", "");
         assertNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
     }
 
@@ -239,6 +273,45 @@ public class PushPreviewTest {
             .type(new JOSEObjectType("eimir-push-preview+jwe")).keyID(active.activationId).build(), new Payload(value.toString()));
         encrypted.encrypt(new DirectEncrypter(fixtureKey()));
         return encrypted.serialize();
+    }
+
+    private JSONObject withdrawFixture() throws Exception {
+        try (java.io.InputStream input = InstrumentationRegistry.getInstrumentation().getContext()
+                .getAssets().open("push-withdraw-v1.json")) {
+            return new JSONObject(new String(readAsset(input), StandardCharsets.UTF_8));
+        }
+    }
+
+    /** #2345: a tray removal sealed by the Python sender opens to exactly its ids. */
+    @Test public void pythonWithdrawalDecryptsToItsIds() throws Exception {
+        JSONObject fixture = withdrawFixture();
+        PushActivation active = activation(fixture.getString("activationId"));
+        java.util.Set<String> ids = PushWithdrawal.decrypt(active, fixture.getString("jwe"), fixtureKey(), 1100);
+        java.util.Set<String> expected = new java.util.LinkedHashSet<>();
+        JSONArray listed = fixture.getJSONArray("notificationIds");
+        for (int index = 0; index < listed.length(); index++) expected.add(listed.getString(index));
+        assertEquals(expected, ids);
+    }
+
+    @Test public void withdrawalRejectsWrongKeyActivationKindExpiryAndBadIds() throws Exception {
+        JSONObject fixture = withdrawFixture();
+        PushActivation active = activation(fixture.getString("activationId"));
+        String compact = fixture.getString("jwe");
+        byte[] wrong = fixtureKey();
+        wrong[0] ^= 1;
+        assertNull(PushWithdrawal.decrypt(active, compact, wrong, 1100));
+        assertNull(PushWithdrawal.decrypt(activation("0f94bddd-bede-4676-a343-7202f117fef9"), compact, fixtureKey(), 1100));
+        assertNull(PushWithdrawal.decrypt(active, compact, fixtureKey(), 1000 + PushWithdrawal.VALIDITY + 1));
+        // A preview envelope is never read as a removal.
+        JSONObject preview = fixture();
+        assertNull(PushWithdrawal.decrypt(activation(preview.getString("activationId")),
+            preview.getJSONArray("cases").getJSONObject(0).getString("jwe"), fixtureKey(), 1100));
+        assertNull(PushWithdrawal.ids(new JSONArray()));
+        assertNull(PushWithdrawal.ids(new JSONArray().put("3F8A7F84-6A4E-4D43-9A3F-1D2C5B6E7A80")));
+        assertNull(PushWithdrawal.ids(new JSONArray().put("not-an-id")));
+        JSONArray many = new JSONArray();
+        for (int index = 0; index <= PushWithdrawal.MAX_IDS; index++) many.put(java.util.UUID.randomUUID().toString());
+        assertNull(PushWithdrawal.ids(many));
     }
 
     private PushActivation activation(String id) {

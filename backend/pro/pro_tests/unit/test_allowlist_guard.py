@@ -124,3 +124,12 @@ def test_support_reports_travel_in_the_personal_copy_but_the_ticket_link_does_no
     assert "support_report_tickets" in EXCLUDED_TABLES
     assert "support_report_tickets" not in ACCOUNT_DOCUMENT_TABLES
     assert "support_report_tickets" not in EXPORTED_TABLES
+
+
+def test_the_gift_code_tables_are_operator_data_and_never_exported() -> None:
+    """ServerAdmin part 5: gift code batches and codes are operator-side, not couple content."""
+    for name in ("gift_code_batches", "gift_codes"):
+        assert name in EXCLUDED_TABLES
+        assert name not in ACCOUNT_DOCUMENT_TABLES
+        assert name not in EXPORTED_TABLES
+        assert name not in INSERT_ORDER

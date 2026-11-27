@@ -59,6 +59,7 @@ class AdministrationAction(StrEnum):
     SPACE_STORAGE_QUOTA_SET = "space_storage_quota_set"
     SPACE_STORAGE_QUOTA_CLEARED = "space_storage_quota_cleared"
     SPACE_FILE_VIEWED = "space_file_viewed"
+    FAILED_JOBS_SEEN = "failed_jobs_seen"
 
 
 class InstanceAdministrationSettings(TimestampMixin, VersionMixin, Base):
@@ -81,6 +82,9 @@ class InstanceAdministrationSettings(TimestampMixin, VersionMixin, Base):
     monitoring_push_enabled: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default=true()
     )
+    # When an operator last marked the failed jobs as seen (#2342); the
+    # Situation page lists only jobs that failed afterwards.
+    failed_jobs_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     __table_args__ = (
         CheckConstraint(
@@ -168,7 +172,8 @@ class InstanceAdministrationActionEvent(IdMixin, Base):
             "'support_report.deleted', "
             "'space_storage_quota_set', "
             "'space_storage_quota_cleared', "
-            "'space_file_viewed'"
+            "'space_file_viewed', "
+            "'failed_jobs_seen'"
             ")",
             name="action_valid",
         ),

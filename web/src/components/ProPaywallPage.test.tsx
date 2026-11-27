@@ -9,8 +9,9 @@ import {
   within,
 } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryWorldId } from '../api/generated/models/MemoryWorldId';
+import { ApiRuntimeProvider } from '../client/apiRuntimeContext';
 import {
   type BillingChannel,
   currentBillingChannel,
@@ -19,6 +20,7 @@ import {
   unlocksFeature,
   yearlySavingPercent,
 } from '../client/proBilling';
+import { instanceStatusQueryOptions } from '../client/supportReportsAvailability';
 import memoryWorldSettings from '../i18n/locales/memoryWorldSettings';
 import proPaywall from '../i18n/locales/proPaywall';
 import { PRO_MEMORY_WORLD_IDS } from './ProFeatureCatalogue';
@@ -45,20 +47,43 @@ vi.mock('../client/proPresentation', () => ({
   useHideProFeatureMarks: () => false,
 }));
 
-function renderPaywall(path: string, billingChannel?: BillingChannel) {
+const platform = vi.hoisted(() => ({ native: false }));
+vi.mock('../pwa', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../pwa')>()),
+  isCapacitorNative: () => platform.native,
+}));
+
+const API_BASE = 'http://api.example.test';
+
+function renderPaywall(
+  path: string,
+  billingChannel?: BillingChannel,
+  { giftCodesAvailable = false }: { giftCodesAvailable?: boolean } = {},
+) {
   const client = new QueryClient();
+  // The shared instance status says whether gift codes can be redeemed here.
+  client.setQueryData(instanceStatusQueryOptions(API_BASE).queryKey, {
+    giftCodesAvailable,
+  });
   render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={[path]}>
-        <Routes>
-          <Route
-            path="/more/pro"
-            element={<ProPaywallPage billingChannel={billingChannel} />}
-          />
-          <Route path="/plan" element={<p>Planning home</p>} />
-          <Route path="/more" element={<p>More home</p>} />
-        </Routes>
-      </MemoryRouter>
+      <ApiRuntimeProvider
+        apiBaseUrl={API_BASE}
+        accessToken="token"
+        accountId="account-1"
+        spaceId="space-1"
+      >
+        <MemoryRouter initialEntries={[path]}>
+          <Routes>
+            <Route
+              path="/more/pro"
+              element={<ProPaywallPage billingChannel={billingChannel} />}
+            />
+            <Route path="/plan" element={<p>Planning home</p>} />
+            <Route path="/more" element={<p>More home</p>} />
+          </Routes>
+        </MemoryRouter>
+      </ApiRuntimeProvider>
     </QueryClientProvider>,
   );
   return client;
@@ -79,7 +104,17 @@ function channel(result: ProPurchaseOutcome) {
   };
 }
 
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+});
+
 beforeEach(() => {
+  platform.native = false;
   session.data = { tier: 'FREE' };
   session.error = null;
   session.refetch.mockReset();
@@ -180,21 +215,6 @@ describe('ProPaywallPage', () => {
     expect(screen.getByText(storage.body)).toBeTruthy();
   });
 
-  it('marks the newest Pro capabilities as new', () => {
-    renderPaywall('/more/pro');
-    const marked = screen
-      .getAllByText(proPaywall.catalogue.new)
-      .map((mark) => mark.closest('dt')?.firstChild?.textContent);
-    expect(marked.sort()).toEqual(
-      [
-        proPaywall.catalogue.features.games.title,
-        proPaywall.catalogue.features.memoryWorlds.title,
-        proPaywall.catalogue.features.recaps.title,
-        proPaywall.catalogue.features.storage.title,
-      ].sort(),
-    );
-  });
-
   it('preselects the yearly plan and lets the monthly plan be chosen', () => {
     renderPaywall('/more/pro?context=dateIdeas');
     const yearly = screen.getByRole('radio', { name: /Jährlich/ });
@@ -234,6 +254,57 @@ describe('ProPaywallPage', () => {
       screen.getByRole('button', { name: proPaywall.active.continue }),
     );
     expect(screen.getByText('Planning home')).toBeTruthy();
+  });
+
+  it('offers gift code redemption quietly below the web unavailable note', () => {
+    renderPaywall('/more/pro', undefined, { giftCodesAvailable: true });
+    const entry = screen.getByRole('button', {
+      name: proPaywall.giftCode.title,
+    });
+    expect(entry.className).toContain('tertiary');
+    const note = screen.getByRole('note');
+    expect(
+      note.compareDocumentPosition(entry) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    fireEvent.click(entry);
+    expect(
+      screen.getByRole('dialog', { name: proPaywall.giftCode.title }),
+    ).toBeTruthy();
+  });
+
+  it('offers gift code redemption below the active state', () => {
+    session.data = { tier: 'PREMIUM' };
+    renderPaywall('/more/pro', undefined, { giftCodesAvailable: true });
+    const active = screen
+      .getByText(proPaywall.active.title)
+      .closest('section') as HTMLElement;
+    const entry = screen.getByRole('button', {
+      name: proPaywall.giftCode.title,
+    });
+    expect(
+      active.compareDocumentPosition(entry) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('shows no gift code entry where redemption is unavailable', () => {
+    renderPaywall('/more/pro');
+    expect(
+      screen.queryByRole('button', { name: proPaywall.giftCode.title }),
+    ).toBeNull();
+  });
+
+  it('shows no gift code entry in the native app', () => {
+    platform.native = true;
+    renderPaywall('/more/pro', channel('confirmed').channel, {
+      giftCodesAvailable: true,
+    });
+    expect(
+      screen.queryByRole('button', { name: proPaywall.giftCode.title }),
+    ).toBeNull();
+    // The store purchase stays the only filled action.
+    expect(
+      screen.getByRole('button', { name: proPaywall.purchase.yearly }),
+    ).toBeTruthy();
   });
 
   it('keeps an unknown entitlement status neutral and retryable', () => {

@@ -1,0 +1,270 @@
+/*
+ * The `wirNotices` reel on Wir (#2345 B): a swipeable reel of tiles in Wir's lists
+ * track. Each kind has its own tint and a real content preview. The two
+ * deep tints are local roles at the token boundary (white text on both in
+ * Light and Dark, docs/DESIGN-TOKEN-POLICY.md); every other value is a token.
+ */
+.wir-notice-tiles {
+  --wir-notice-width: 10.75rem;
+  --wir-notice-deep-warm: #8f3f74;
+  --wir-notice-deep-warm-end: #6f2f5a;
+  --wir-notice-ink-inverse: #ffffff;
+}
+
+:root[data-theme="dark"] .wir-notice-tiles {
+  --wir-notice-deep-warm: #7a3462;
+  --wir-notice-deep-warm-end: #5c2549;
+}
+
+.wir-lists-row > .wir-notice-item {
+  --wir-card-arrival-width: var(--wir-notice-width);
+
+  flex: 0 0 auto;
+  display: flex;
+  scroll-snap-align: start;
+}
+
+.wir-notice-tile {
+  box-sizing: border-box;
+  width: var(--wir-notice-width);
+  min-height: 14rem;
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border-radius: var(--radius-card);
+  color: var(--color-text);
+  text-decoration: none;
+  box-shadow: var(--shadow-soft);
+  background: var(--color-surface-raised);
+}
+
+.wir-notice-tile:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .wir-notice-tile {
+    transition: transform var(--duration-feedback) var(--easing-standard);
+  }
+
+  .wir-notice-tile:active {
+    transform: scale(0.97);
+  }
+}
+
+.wir-notice-tile-warm {
+  background: linear-gradient(
+    160deg,
+    var(--color-person-rose-surface),
+    var(--color-surface-raised)
+  );
+}
+
+.wir-notice-tile-cool {
+  background: linear-gradient(
+    160deg,
+    var(--color-surface-raised),
+    var(--color-person-blue-surface)
+  );
+}
+
+.wir-notice-tile-paper {
+  background: linear-gradient(
+    160deg,
+    var(--color-surface-raised),
+    var(--color-surface)
+  );
+}
+
+.wir-notice-tile-deep-warm {
+  color: var(--wir-notice-ink-inverse);
+}
+
+/* The action pair keeps its contrast in every app design and theme: some
+   designs use a light action colour in Dark, with dark text on it. */
+.wir-notice-tile-brand,
+.wir-notice-tile-deep-cool {
+  background: var(--color-action-primary);
+  color: var(--color-on-action-primary);
+}
+
+.wir-notice-tile-deep-warm {
+  background: linear-gradient(
+    160deg,
+    var(--wir-notice-deep-warm),
+    var(--wir-notice-deep-warm-end)
+  );
+}
+
+.wir-notice-tile-all {
+  justify-content: flex-end;
+  min-height: 14rem;
+  background: color-mix(in srgb, var(--color-surface-raised) 60%, transparent);
+  box-shadow: none;
+}
+
+.wir-notice-kind {
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.86;
+}
+
+.wir-notice-body {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.wir-notice-title {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 650;
+  line-height: 1.2;
+  overflow-wrap: break-word;
+}
+
+.wir-notice-time {
+  font-family: var(--font-display);
+  font-size: 2.3rem;
+  font-weight: 650;
+  line-height: 1;
+}
+
+.wir-notice-line {
+  margin-top: auto;
+  font-family: var(--font-ui);
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: break-word;
+}
+
+.wir-notice-tile-warm .wir-notice-line,
+.wir-notice-tile-cool .wir-notice-line,
+.wir-notice-tile-paper .wir-notice-line,
+.wir-notice-tile-all .wir-notice-line {
+  color: var(--color-text-secondary);
+}
+
+.wir-notice-leaf {
+  display: grid;
+  justify-items: center;
+  width: 4rem;
+  overflow: hidden;
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  box-shadow: var(--shadow-soft);
+}
+
+.wir-notice-leaf-weekday {
+  justify-self: stretch;
+  padding: 0.15rem 0;
+  background: var(--color-person-rose);
+  /* Dark rosé in Light, light rosé in Dark: the raised surface reads on both. */
+  color: var(--color-surface-raised);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.wir-notice-leaf-day {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  font-weight: 650;
+  line-height: 1.15;
+}
+
+.wir-notice-leaf-time {
+  padding-bottom: 0.35rem;
+  color: var(--color-text-secondary);
+  font-size: 0.7rem;
+  font-weight: 650;
+}
+
+.wir-notice-paper {
+  display: grid;
+  gap: 0.35rem;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-medium);
+  background: color-mix(in srgb, var(--color-surface-raised) 85%, transparent);
+  color: var(--color-text);
+  font-size: 0.84rem;
+}
+
+.wir-notice-check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.wir-notice-box {
+  flex: 0 0 auto;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 0.3rem;
+  background: var(--color-person-blue-surface);
+}
+
+.wir-notice-more {
+  color: var(--color-text-secondary);
+}
+
+.wir-notice-bubble {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-large) var(--radius-large) var(--radius-large)
+    0.35rem;
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.wir-notice-reaction {
+  font-size: 2.4rem;
+  line-height: 1;
+}
+
+.wir-notice-heart {
+  width: 3.6rem;
+  height: 3.6rem;
+  fill: var(--wir-notice-ink-inverse);
+}
+
+.wir-notice-canvas {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 4.5rem;
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-raised);
+}
+
+.wir-notice-canvas svg {
+  width: 6rem;
+  height: 3.6rem;
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.wir-notice-stroke-cool {
+  stroke: var(--identity-icon-cool);
+}
+
+.wir-notice-stroke-accent {
+  stroke: var(--identity-icon-accent);
+}

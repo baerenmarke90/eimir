@@ -71,6 +71,7 @@ import voiceNotes from './locales/voiceNotes';
 import webViewNotice from './locales/webViewNotice';
 import wirCheckIn from './locales/wirCheckIn';
 import wirDesign from './locales/wirDesign';
+import wirNotices from './locales/wirNotices';
 import wishDateProposal from './locales/wishDateProposal';
 import wishJourney from './locales/wishJourney';
 import wishConcealment from './locales/wishConcealment';
@@ -96,6 +97,7 @@ export const germanResources = {
   appUpdates,
   wirCheckIn,
   wirDesign,
+  wirNotices,
   wishSelection,
   wishJourney,
   wishDateProposal,

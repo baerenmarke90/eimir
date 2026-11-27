@@ -56,10 +56,12 @@ import { ChapterNavigation } from './ChapterNavigationLayout';
 import { RoomDock, RoomHeader } from './RoomNavigationLayout';
 import { scheduleDeferredPrefetch } from '../deferredModules';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { TopbarCreateSlotContext } from './AddAction';
 import { AppSurfacePullToRefresh } from './AppSurfacePullToRefresh';
 import { DestinationIcon } from './DestinationIcon';
 import { GamesProductArea } from './GamesProductArea';
 import { LogoutDeviceDataSheet } from './LogoutDeviceDataSheet';
+import { MomentCreateMenu } from './MomentCreateMenu';
 import { ForegroundNotificationHost } from './PartnerGestureReceipt';
 import { PresenceHeartbeat } from './PresenceHeartbeat';
 import { RouteEntryHandoff } from './RouteEntryHandoff';
@@ -312,6 +314,9 @@ function AuthenticatedAppShell({
   const [bottomNavigation, setBottomNavigation] = useState<HTMLElement | null>(
     null,
   );
+  const [topbarCreateSlot, setTopbarCreateSlot] = useState<HTMLElement | null>(
+    null,
+  );
   useLayoutEffect(() => {
     if (isFocusedTask) return;
     const navigation = bottomNavigation;
@@ -372,140 +377,157 @@ function AuthenticatedAppShell({
       value={{ unreadCount, serverAdmin, onLogout: requestLogout }}
     >
       <ActiveNavigationAreaContext.Provider value={activeArea}>
-        <LogoutDeviceDataSheet
-          open={confirmingLogout}
-          onCancel={() => setConfirmingLogout(false)}
-          onConfirm={() => {
-            setConfirmingLogout(false);
-            logout();
-          }}
-        />
-        <div
-          className="product-shell"
-          data-wir-layout={layout}
-          data-focused-task={isFocusedTask}
-          data-top-surface={
-            !customNavigation && location.pathname === DEFAULT_APP_ROUTE
-              ? 'today'
-              : undefined
-          }
-        >
-          <ThemeControl />
-          <RouteEntryHandoff />
-          <PresenceHeartbeat accountId={account.id} spaceId={spaceId} />
-          <a className="skip-link" href="#main-content">
-            {t('navigation.skipToContent')}
-          </a>
+        <TopbarCreateSlotContext.Provider value={topbarCreateSlot}>
+          <LogoutDeviceDataSheet
+            open={confirmingLogout}
+            onCancel={() => setConfirmingLogout(false)}
+            onConfirm={() => {
+              setConfirmingLogout(false);
+              logout();
+            }}
+          />
+          <div
+            className="product-shell"
+            data-wir-layout={layout}
+            data-focused-task={isFocusedTask}
+            data-top-surface={
+              !customNavigation && location.pathname === DEFAULT_APP_ROUTE
+                ? 'today'
+                : undefined
+            }
+          >
+            <ThemeControl />
+            <RouteEntryHandoff />
+            <PresenceHeartbeat accountId={account.id} spaceId={spaceId} />
+            <a className="skip-link" href="#main-content">
+              {t('navigation.skipToContent')}
+            </a>
 
-          {!isFocusedTask && chapters ? (
-            <Suspense fallback={null}>
-              <ChapterNavigation privateArea={isPrivateArea} />
-            </Suspense>
-          ) : !isFocusedTask && rooms ? (
-            <Suspense fallback={null}>
-              <RoomHeader privateArea={isPrivateArea} />
-            </Suspense>
-          ) : !isFocusedTask ? (
-            <header className="app-header product-topbar">
-              <nav className="shell-nav" aria-label={t('navigation.primary')}>
-                <PrimaryNavigationLinks />
-              </nav>
-              <div className="header-actions">
-                <span
-                  className={`shared-context ${isPrivateArea ? 'private-context' : ''}`}
-                >
-                  {isPrivateArea ? (
-                    <>
-                      <span aria-hidden="true">🔒</span>{' '}
-                      {t('privateArea.privacyLabel')}
-                    </>
-                  ) : (
-                    <>
-                      <span aria-hidden="true">♥</span> {t('header.sharedArea')}
-                    </>
-                  )}
+            {!isFocusedTask && chapters ? (
+              <Suspense fallback={null}>
+                <ChapterNavigation privateArea={isPrivateArea} />
+              </Suspense>
+            ) : !isFocusedTask && rooms ? (
+              <Suspense fallback={null}>
+                <RoomHeader privateArea={isPrivateArea} />
+              </Suspense>
+            ) : !isFocusedTask ? (
+              <header className="app-header product-topbar">
+                <nav className="shell-nav" aria-label={t('navigation.primary')}>
+                  <PrimaryNavigationLinks />
+                </nav>
+                <div className="header-actions">
+                  <span
+                    className={`shared-context ${isPrivateArea ? 'private-context' : ''}`}
+                  >
+                    {isPrivateArea ? (
+                      <>
+                        <span aria-hidden="true">🔒</span>{' '}
+                        {t('privateArea.privacyLabel')}
+                      </>
+                    ) : (
+                      <>
+                        <span aria-hidden="true">♥</span>{' '}
+                        {t('header.sharedArea')}
+                      </>
+                    )}
+                  </span>
+                  <span className="topbar-create">
+                    <span
+                      className="topbar-create-slot"
+                      ref={setTopbarCreateSlot}
+                    />
+                    {isPrivateArea ? null : (
+                      <span className="topbar-create-global">
+                        <MomentCreateMenu
+                          everything
+                          taskItemKey="topbar-create"
+                        />
+                      </span>
+                    )}
+                  </span>
+                </div>
+              </header>
+            ) : null}
+
+            {cachedAtLabel ? (
+              <div className="offline-banner" role="status">
+                <span aria-hidden="true">↯</span>
+                <span>
+                  {t('cacheRuntime.cachedBanner', { timestamp: cachedAtLabel })}
                 </span>
               </div>
-            </header>
-          ) : null}
+            ) : !online ? (
+              <div className="offline-banner" role="status">
+                <span aria-hidden="true">↯</span>
+                <span>{t('states.offline.banner')}</span>
+              </div>
+            ) : null}
 
-          {cachedAtLabel ? (
-            <div className="offline-banner" role="status">
-              <span aria-hidden="true">↯</span>
-              <span>
-                {t('cacheRuntime.cachedBanner', { timestamp: cachedAtLabel })}
-              </span>
-            </div>
-          ) : !online ? (
-            <div className="offline-banner" role="status">
-              <span aria-hidden="true">↯</span>
-              <span>{t('states.offline.banner')}</span>
-            </div>
-          ) : null}
-
-          <div className="product-shell-body">
-            <main
-              ref={mainRef}
-              id="main-content"
-              className="product-main"
-              data-area={
-                activeArea === 'more' && location.pathname.startsWith('/more')
-                  ? 'more'
-                  : undefined
-              }
-              tabIndex={-1}
-            >
-              <AppSurfacePullToRefresh pathname={location.pathname} />
-              {primaryTabs}
-              <SubpageNavigation>
-                {isGamesHub ? (
-                  <GamesProductArea
-                    apiBaseUrl={apiBaseUrl}
-                    accessToken={accessToken}
-                    accountId={account.id}
-                    spaceId={spaceId}
-                  />
-                ) : (
-                  children
-                )}
-              </SubpageNavigation>
-            </main>
-          </div>
-
-          {!isFocusedTask && rooms ? (
-            <Suspense fallback={null}>
-              <RoomDock
-                canCreate={!isPrivateArea}
-                navigationRef={setBottomNavigation}
-              />
-            </Suspense>
-          ) : !isFocusedTask && !chapters ? (
-            <div className="mobile-bottom-shell" ref={setBottomNavigation}>
-              <nav
-                className="mobile-bottom-nav"
-                aria-label={t('navigation.primary')}
+            <div className="product-shell-body">
+              <main
+                ref={mainRef}
+                id="main-content"
+                className="product-main"
+                data-area={
+                  activeArea === 'more' && location.pathname.startsWith('/more')
+                    ? 'more'
+                    : undefined
+                }
+                tabIndex={-1}
               >
-                <PrimaryNavigationLinks />
-              </nav>
+                <AppSurfacePullToRefresh pathname={location.pathname} />
+                {primaryTabs}
+                <SubpageNavigation>
+                  {isGamesHub ? (
+                    <GamesProductArea
+                      apiBaseUrl={apiBaseUrl}
+                      accessToken={accessToken}
+                      accountId={account.id}
+                      spaceId={spaceId}
+                    />
+                  ) : (
+                    children
+                  )}
+                </SubpageNavigation>
+              </main>
             </div>
-          ) : null}
 
-          {spaceId && accessToken ? (
-            <ForegroundNotificationHost
-              key={JSON.stringify([apiBaseUrl, account.id, spaceId])}
-              apiBaseUrl={apiBaseUrl}
-              accessToken={accessToken}
-              accountId={account.id}
-              spaceId={spaceId}
-              unreadCount={unreadCount}
-              suppressed={isFocusedTask}
-              openNotification={openNotification}
-            />
-          ) : null}
-          <Snackbar />
-          {/* The one support report sheet; it outlives the screen opening it. */}
-          <SupportReportHost />
-        </div>
+            {!isFocusedTask && rooms ? (
+              <Suspense fallback={null}>
+                <RoomDock
+                  canCreate={!isPrivateArea}
+                  navigationRef={setBottomNavigation}
+                />
+              </Suspense>
+            ) : !isFocusedTask && !chapters ? (
+              <div className="mobile-bottom-shell" ref={setBottomNavigation}>
+                <nav
+                  className="mobile-bottom-nav"
+                  aria-label={t('navigation.primary')}
+                >
+                  <PrimaryNavigationLinks />
+                </nav>
+              </div>
+            ) : null}
+
+            {spaceId && accessToken ? (
+              <ForegroundNotificationHost
+                key={JSON.stringify([apiBaseUrl, account.id, spaceId])}
+                apiBaseUrl={apiBaseUrl}
+                accessToken={accessToken}
+                accountId={account.id}
+                spaceId={spaceId}
+                unreadCount={unreadCount}
+                suppressed={isFocusedTask}
+                openNotification={openNotification}
+              />
+            ) : null}
+            <Snackbar />
+            {/* The one support report sheet; it outlives the screen opening it. */}
+            <SupportReportHost />
+          </div>
+        </TopbarCreateSlotContext.Provider>
       </ActiveNavigationAreaContext.Provider>
     </ShellUtilitiesContext.Provider>
   );

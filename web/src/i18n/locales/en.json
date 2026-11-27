@@ -1776,6 +1776,50 @@
       }
     }
   },
+  "wirNotices": {
+    "title": "New for you",
+    "all": "See all",
+    "allLine": "All notifications",
+    "kinds": {
+      "today": "Today",
+      "date": "Date suggestion",
+      "counter": "New suggestion",
+      "selection": "Wish selection",
+      "list": "List",
+      "note": "Note",
+      "picture": "Picture ping-pong",
+      "heart": "Heart hunt",
+      "comment": "Comment",
+      "reaction": "Reaction"
+    },
+    "titles": {
+      "wish": "Your wish",
+      "selection": "Your wish selection",
+      "list": "A list",
+      "note": "New note",
+      "picture": "Your picture is finished",
+      "heart": "Found!",
+      "moment": "Your moment"
+    },
+    "lines": {
+      "date": "Waiting for your answer",
+      "selectionShared_one": "{{count}} idea to choose from",
+      "selectionShared_other": "{{count}} ideas to choose from",
+      "selectionShared": "Choose together",
+      "selectionReady": "Your result is here",
+      "selectionRandom": "Let chance decide?",
+      "shared": "Newly shared",
+      "picture": "Give it a name",
+      "heart": "Now you hide one.",
+      "on": "on “{{title}}”",
+      "more_one": "and {{count}} more",
+      "more_other": "and {{count}} more",
+      "moreItems_one": "+ {{count}} more",
+      "moreItems_other": "+ {{count}} more",
+      "allDay": "All day",
+      "plan": "Your plan for today"
+    }
+  },
   "wirDesign": {
     "title": "App design",
     "intro": "How eimir. feels for you. Only your view changes.",
@@ -3125,13 +3169,13 @@
       "settingsLabel": "Games waiting for you",
       "title": "Your turn",
       "reasons": {
-        "WHO_OF_US": "{{name}} is waiting for your answers.",
-        "WISH_DETECTIVE": "{{name}} is waiting for your move.",
-        "OUR_MOMENTS": "{{name}} is waiting for your move.",
-        "PICTURE_PING_PONG": "{{name}} drew on. Your turn.",
-        "HEART_HUNT": "{{name}} hid a heart for you.",
-        "GARDEN_SEED": "A seed from {{name}} is waiting to be planted.",
-        "GARDEN_BOUQUET": "{{name}} tied a bouquet for you."
+        "WHO_OF_US": "Your answers are still missing.",
+        "WISH_DETECTIVE": "Your move.",
+        "OUR_MOMENTS": "Your move.",
+        "PICTURE_PING_PONG": "Your turn to draw.",
+        "HEART_HUNT": "A heart is waiting to be found.",
+        "GARDEN_SEED": "A seed is waiting to be planted.",
+        "GARDEN_BOUQUET": "A bouquet for you."
       }
     },
     "heartHunt": {
@@ -4935,13 +4979,15 @@
       "reports": "Reports",
       "replyTemplates": "Reply templates",
       "monitoring": "Monitoring",
-      "search": "Search"
+      "search": "Search",
+      "pro": "Pro & gift codes"
     },
     "areas": {
       "aria": "Areas",
       "situation": "Situation",
       "people": "People",
       "help": "Help",
+      "pro": "Pro",
       "system": "System",
       "helpUnread_one": "Help, {{count, number}} new report",
       "helpUnread_other": "Help, {{count, number}} new reports"
@@ -4953,6 +4999,11 @@
       "serviceProblem": "A service is not answering",
       "needsYouTitle": "Needs you",
       "nothingNeedsYou": "Nothing needs you right now.",
+      "seen": "Seen",
+      "seenFailedJobs": "Mark failed jobs as seen",
+      "seenReports": "Mark new reports as seen",
+      "seenSaved": "Marked as seen.",
+      "seenFailed": "That did not work. Please try again.",
       "servicesTitle": "Services",
       "noSignalYet": "no signal yet",
       "mail": "Mail",
@@ -5016,7 +5067,7 @@
       "alertsBody": "To the ServerAdmins on new failures, full storage, failed deliveries, a missing backup and new reports.",
       "pushLabel": "Send alerts as push",
       "pushSaveFailed": "The change was not saved. Please try again.",
-      "pushBody": "The same alerts as push messages on the ServerAdmins' devices. The lock screen shows only a neutral notice."
+      "pushBody": "The same alerts as push messages on the ServerAdmins' devices. The notice names its topic; the device's own setting decides what the lock screen shows."
     },
     "sheet": {
       "close": "Close"
@@ -5125,6 +5176,78 @@
       "reasonHint": "Only visible to the server administration, for example “beta test”.",
       "failed": "That did not work. Try again.",
       "give": "Give Premium"
+    },
+    "pro": {
+      "eyebrow": "eimir. Cloud",
+      "title": "Pro & gift codes",
+      "figures": {
+        "spaces": "Spaces",
+        "premium": "of which Pro",
+        "premiumSplit": "{{play, number}} Google Play · {{gift, number}} gifted",
+        "cancellations": "Cancellations 30 d (approx.)"
+      },
+      "play": {
+        "title": "Google Play subscriptions",
+        "active": "active",
+        "paymentProblem": "payment issue",
+        "cancelledRunning": "cancelled, running out",
+        "ended30d": "ended (30 d)",
+        "empty": "No data from Google Play yet – the Play Console is not set up yet."
+      },
+      "codes": {
+        "title": "eimir. gift codes",
+        "body": "unlock Pro, no payment details",
+        "duration": "Duration",
+        "count": "Number",
+        "countInvalid": "Enter a number from 1 to 100.",
+        "redeemableUntil": "Redeemable until",
+        "redeemableUntilHint": "Leave empty: 12 months.",
+        "note": "Note (only for you)",
+        "create": "Create codes",
+        "creating": "Creating codes …",
+        "createFailed": "That did not work. Try again.",
+        "totals": "{{handedOut, number}} handed out · {{redeemed, number}} redeemed",
+        "redeemAt": "Redeem at {{host}}",
+        "batchesTitle": "Created codes",
+        "empty": "No codes created yet.",
+        "batchTitle_one": "{{count, number}} code · {{duration}}",
+        "batchTitle_other": "{{count, number}} codes · {{duration}}",
+        "batchCounts": "{{open, number}} open · {{handedOut, number}} handed out · {{redeemed, number}} redeemed",
+        "revoked": "revoked",
+        "expired": "expired"
+      },
+      "gifts": {
+        "title": "Running gifts",
+        "empty": "No gift is running right now.",
+        "fromCode": "Gift code",
+        "fromCodeNote": "Gift code · {{note}}",
+        "manual": "given by hand",
+        "until": "until {{date}}",
+        "noEnd": "no end date",
+        "openSpace": "Open Space {{id}}",
+        "more": "The next {{shown, number}} of {{total, number}}"
+      },
+      "batch": {
+        "fallbackTitle": "eimir. gift codes",
+        "redeemableUntil": "redeemable until {{date}}",
+        "codesAria": "Codes",
+        "copy": "Copy",
+        "copyAll": "Copy all open",
+        "copied": "Code copied",
+        "copiedAll_one": "{{count, number}} code copied",
+        "copiedAll_other": "{{count, number}} codes copied",
+        "copyFailed": "Copying did not work.",
+        "handedOut": "handed out",
+        "redeemed": "redeemed",
+        "redeemedOn": "redeemed on {{date}}",
+        "revoked": "revoked",
+        "expired": "expired",
+        "revokeOpen": "Revoke open codes",
+        "revokeConfirm": "Every code not yet redeemed stops working. Redeemed gifts keep running.",
+        "revokeConfirmAction": "Revoke",
+        "revokeCancel": "Cancel",
+        "failed": "That did not work. Try again."
+      }
     },
     "subNavigation": {
       "aria": "Pages"
@@ -5863,7 +5986,7 @@
     "joinAlex": "Join as Alex",
     "joining": "Opening demo …",
     "assurance": "The demo contains only fictional data and is technically separate from the main instance.",
-    "launch": "Try the demo",
+    "launch": "Try eimir. first?",
     "bannerAria": "Demo instance notice",
     "bannerTitle": "Demo instance",
     "bannerReset": "All changes are temporary. This demo automatically resets every {{interval}}.",
@@ -6012,7 +6135,6 @@
   "quietHints": {
     "tipLabel": "Tip",
     "newLabel": "New in eimir.",
-    "newTag": "New",
     "gotIt": "Got it",
     "hide": "Hide",
     "firstPlan": "Create your first plan",
@@ -6949,7 +7071,6 @@
     },
     "catalogue": {
       "title": "What’s included in Pro",
-      "new": "New",
       "groups": {
         "memories": "Memories & recaps",
         "timeTogether": "Time together",
@@ -7105,6 +7226,33 @@
       "partnerActive": "Pro is already active for your shared space.",
       "expired": "Your Pro access has expired. Your content stays fully intact.",
       "nothingToRestore": "We found no Pro purchase to restore. Nothing was charged."
+    },
+    "giftCode": {
+      "title": "Redeem a gift code",
+      "hint": "Did you receive a gift code for eimir. Pro? Enter it here – it counts for both of you.",
+      "fieldLabel": "Code",
+      "placeholder": "EIMIR-XXXX-XXXX",
+      "redeem": "Redeem",
+      "redeeming": "Redeeming …",
+      "success": {
+        "new": {
+          "title": "Pro is unlocked.",
+          "body": "You have eimir. Pro until {{date}}. Enjoy!"
+        },
+        "extended": {
+          "title": "Pro is extended.",
+          "body": "You now have eimir. Pro until {{date}}."
+        }
+      },
+      "done": "Done",
+      "errors": {
+        "invalid": "This code is invalid or has expired. Please check the spelling.",
+        "used": "This code has already been redeemed.",
+        "subscriptionActive": "You already have Pro through your subscription. Feel free to pass the code on.",
+        "unlimited": "You already have Pro without an end date. Feel free to pass the code on.",
+        "rateLimited": "Too many attempts. Please try again in an hour.",
+        "network": "That didn't work just now. Please try again."
+      }
     },
     "settingsAction": "View plans",
     "contextAction": "Discover with eimir. Pro"

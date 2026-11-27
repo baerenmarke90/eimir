@@ -14,7 +14,7 @@ from uuid import UUID
 from fastapi import APIRouter, Path, Query, Response
 from pydantic import Field
 from sqlalchemy import case, distinct, exists, func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
 from eimir.administration import account_operations
 from eimir.administration import service as administration
@@ -29,7 +29,7 @@ from eimir.api.schema import ApiModel
 from eimir.attachments import quota as storage_quota
 from eimir.attachments.models import Attachment, AttachmentStatus
 from eimir.auth import cloud
-from eimir.config import Deployment, MailTransport
+from eimir.config import Deployment, MailTransport, Settings
 from eimir.config import get_settings as get_runtime_settings
 from eimir.core.clock import ensure_utc, now
 from eimir.core.errors import NotFoundError, ValidationError
@@ -144,11 +144,15 @@ class ServerAdminOverview(ApiModel):
     jobs_pending: int
     jobs_running: int
     jobs_failed: int
+    # Failed jobs since an operator last marked them as seen (#2342); every
+    # failed job while nobody has. Needs-you lists only these.
+    jobs_failed_unseen: int
     oldest_pending_job_at: datetime | None
     last_successful_job_at: datetime | None
     recent_failed_jobs: list[ServerAdminFailedJob]
     support_reports_new: int
     support_reports_operator_available: bool
+    pro_area_available: bool
     worker_last_seen_at: datetime | None
     video_worker_status: str
     email_failures_last_hour: int
@@ -171,6 +175,19 @@ def support_reports_operator_available(*, enabled: bool) -> bool:
     return enabled and Capability.SUPPORT_OPERATOR.value in loaded_plugins().capabilities()
 
 
+def pro_area_available(settings: Settings) -> bool:
+    """Whether the Pro overview and gift-code routes exist on this server.
+
+    True only on the Cloud deployment while a loaded plugin provides the gift
+    code operator capability, so the web client shows the area exactly when its
+    routes exist.
+    """
+    return (
+        settings.deployment is Deployment.CLOUD
+        and Capability.GIFT_CODES_OPERATOR.value in loaded_plugins().capabilities()
+    )
+
+
 class ServerAdminSettings(ApiModel):
     registration_enabled: bool
     maintenance_mode: bool
@@ -182,6 +199,12 @@ class ServerAdminSettings(ApiModel):
 
 class ServerAdminSettingUpdate(ApiModel):
     enabled: bool
+
+
+class ServerAdminFailedJobsSeen(ApiModel):
+    """How many failed jobs left the Situation page."""
+
+    hidden: int
 
 
 class ServerAdminActivityItem(ApiModel):
@@ -386,6 +409,14 @@ def _job_count(session: Session, job_status: JobStatus) -> int:
     return session.execute(
         select(func.count()).select_from(Job).where(Job.status == job_status.value)
     ).scalar_one()
+
+
+def _failed_jobs_since(session: Session, seen_at: datetime | None) -> int:
+    """Failed jobs that finished after ``seen_at``; all of them when it is unset."""
+    statement = select(func.count()).select_from(Job).where(Job.status == JobStatus.FAILED.value)
+    if seen_at is not None:
+        statement = statement.where(func.coalesce(Job.finished_at, Job.created_at) > seen_at)
+    return int(session.execute(statement).scalar_one())
 
 
 def _active_session_filters(current_time: datetime) -> tuple[Any, ...]:
@@ -760,6 +791,9 @@ def get_server_admin_overview(
         .all()
     )
     jobs_failed = _job_count(session, JobStatus.FAILED)
+    jobs_failed_unseen = _failed_jobs_since(
+        session, administration.get_settings(session).failed_jobs_seen_at
+    )
 
     # Counts only: the overview never carries report content or ids. The count
     # is 0 while the feature is off, as no report can be created then.
@@ -779,11 +813,31 @@ def get_server_admin_overview(
         limit=_ATTENTION_LIMIT,
         settings=settings,
     )
+    # A Space whose Premium access is extended by another valid grant is not
+    # about to lose it, so it is neither listed nor counted.
+    later_grant = aliased(EntitlementGrant)
+    extended_by_later_grant = exists().where(
+        later_grant.space_id == EntitlementGrant.space_id,
+        later_grant.tier == EntitlementTier.PREMIUM.value,
+        later_grant.status.in_(
+            (
+                EntitlementStatus.ACTIVE.value,
+                EntitlementStatus.TRIAL.value,
+                EntitlementStatus.GRACE_PERIOD.value,
+                EntitlementStatus.GRANDFATHERED.value,
+            )
+        ),
+        or_(
+            later_grant.effective_until.is_(None),
+            later_grant.effective_until > EntitlementGrant.effective_until,
+        ),
+    )
     expiring_filters = (
         EntitlementGrant.source_type == EntitlementSourceType.ADMIN_GRANT.value,
         EntitlementGrant.status == EntitlementStatus.ACTIVE.value,
         EntitlementGrant.effective_until > current_time,
         EntitlementGrant.effective_until <= current_time + _EXPIRING_GRANT_WINDOW,
+        ~extended_by_later_grant,
     )
     expiring_admin_grant_count = session.execute(
         select(func.count()).select_from(EntitlementGrant).where(*expiring_filters)
@@ -819,7 +873,7 @@ def get_server_admin_overview(
         warning_codes.append("server_admin_allowlist_unmatched")
     if settings.mail_transport is MailTransport.NONE and unverified_primary_email_count:
         warning_codes.append("mail_disabled_with_unverified_accounts")
-    if jobs_failed:
+    if jobs_failed_unseen:
         warning_codes.append("failed_jobs_present")
     if unread_reports_warning:
         warning_codes.append("support_reports_unread")
@@ -866,6 +920,7 @@ def get_server_admin_overview(
         jobs_pending=_job_count(session, JobStatus.PENDING),
         jobs_running=_job_count(session, JobStatus.RUNNING),
         jobs_failed=jobs_failed,
+        jobs_failed_unseen=jobs_failed_unseen,
         oldest_pending_job_at=oldest_pending_job_at,
         last_successful_job_at=last_successful_job_at,
         recent_failed_jobs=[
@@ -882,6 +937,7 @@ def get_server_admin_overview(
         support_reports_operator_available=support_reports_operator_available(
             enabled=settings.support_reports_enabled
         ),
+        pro_area_available=pro_area_available(settings),
         worker_last_seen_at=worker_last_seen_at,
         video_worker_status=video_worker_status,
         email_failures_last_hour=email_failures,
@@ -1546,6 +1602,31 @@ def update_monitoring_push_setting(
         enabled=body.enabled,
     )
     return _settings_view(settings)
+
+
+@router.post(
+    "/failed-jobs/seen",
+    response_model=ServerAdminFailedJobsSeen,
+    responses=problem_responses(401, 403),
+)
+def mark_failed_jobs_seen(
+    admin: CurrentServerAdmin,
+    session: DbSession,
+) -> ServerAdminFailedJobsSeen:
+    """Hide the current failed jobs from the Situation page until a new job fails (#2342).
+
+    System > Jobs, alert mails and pushes are unaffected. Shared by every ServerAdmin.
+    """
+    settings = administration.get_settings(session, for_update=True)
+    hidden = _failed_jobs_since(session, settings.failed_jobs_seen_at)
+    settings.failed_jobs_seen_at = now()
+    administration.record_action(
+        session,
+        actor_id=admin.id,
+        action=AdministrationAction.FAILED_JOBS_SEEN,
+        effect_count=hidden,
+    )
+    return ServerAdminFailedJobsSeen(hidden=hidden)
 
 
 @router.get(

@@ -160,6 +160,12 @@ export interface ServerAdminOverview {
      * @type {number}
      * @memberof ServerAdminOverview
      */
+    jobsFailedUnseen: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof ServerAdminOverview
+     */
     jobsPending: number;
     /**
      * 
@@ -233,6 +239,12 @@ export interface ServerAdminOverview {
      * @memberof ServerAdminOverview
      */
     passkeyAccountCount: number;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof ServerAdminOverview
+     */
+    proAreaAvailable: boolean;
     /**
      * 
      * @type {Date}
@@ -372,6 +384,7 @@ export function instanceOfServerAdminOverview(value: object): value is ServerAdm
     if (!('expiringAdminGrantCount' in value) || value['expiringAdminGrantCount'] === undefined) return false;
     if (!('expiringAdminGrants' in value) || value['expiringAdminGrants'] === undefined) return false;
     if (!('jobsFailed' in value) || value['jobsFailed'] === undefined) return false;
+    if (!('jobsFailedUnseen' in value) || value['jobsFailedUnseen'] === undefined) return false;
     if (!('jobsPending' in value) || value['jobsPending'] === undefined) return false;
     if (!('jobsRunning' in value) || value['jobsRunning'] === undefined) return false;
     if (!('lastSuccessfulJobAt' in value) || value['lastSuccessfulJobAt'] === undefined) return false;
@@ -385,6 +398,7 @@ export function instanceOfServerAdminOverview(value: object): value is ServerAdm
     if (!('oidcConnectionCount' in value) || value['oidcConnectionCount'] === undefined) return false;
     if (!('oldestPendingJobAt' in value) || value['oldestPendingJobAt'] === undefined) return false;
     if (!('passkeyAccountCount' in value) || value['passkeyAccountCount'] === undefined) return false;
+    if (!('proAreaAvailable' in value) || value['proAreaAvailable'] === undefined) return false;
     if (!('processStartedAt' in value) || value['processStartedAt'] === undefined) return false;
     if (!('publicBaseUrl' in value) || value['publicBaseUrl'] === undefined) return false;
     if (!('pushFailuresLastHour' in value) || value['pushFailuresLastHour'] === undefined) return false;
@@ -434,6 +448,7 @@ export function ServerAdminOverviewFromJSONTyped(json: any, ignoreDiscriminator:
         'expiringAdminGrantCount': json['expiringAdminGrantCount'],
         'expiringAdminGrants': ((json['expiringAdminGrants'] as Array<any>).map(ServerAdminExpiringGrantItemFromJSON)),
         'jobsFailed': json['jobsFailed'],
+        'jobsFailedUnseen': json['jobsFailedUnseen'],
         'jobsPending': json['jobsPending'],
         'jobsRunning': json['jobsRunning'],
         'lastSuccessfulJobAt': (json['lastSuccessfulJobAt'] == null ? null : new Date(json['lastSuccessfulJobAt'])),
@@ -447,6 +462,7 @@ export function ServerAdminOverviewFromJSONTyped(json: any, ignoreDiscriminator:
         'oidcConnectionCount': json['oidcConnectionCount'],
         'oldestPendingJobAt': (json['oldestPendingJobAt'] == null ? null : new Date(json['oldestPendingJobAt'])),
         'passkeyAccountCount': json['passkeyAccountCount'],
+        'proAreaAvailable': json['proAreaAvailable'],
         'processStartedAt': (new Date(json['processStartedAt'])),
         'publicBaseUrl': json['publicBaseUrl'],
         'pushFailuresLastHour': json['pushFailuresLastHour'],
@@ -497,6 +513,7 @@ export function ServerAdminOverviewToJSONTyped(value?: ServerAdminOverview | nul
         'expiringAdminGrantCount': value['expiringAdminGrantCount'],
         'expiringAdminGrants': ((value['expiringAdminGrants'] as Array<any>).map(ServerAdminExpiringGrantItemToJSON)),
         'jobsFailed': value['jobsFailed'],
+        'jobsFailedUnseen': value['jobsFailedUnseen'],
         'jobsPending': value['jobsPending'],
         'jobsRunning': value['jobsRunning'],
         'lastSuccessfulJobAt': value['lastSuccessfulJobAt'] == null ? value['lastSuccessfulJobAt'] : value['lastSuccessfulJobAt'].toISOString(),
@@ -510,6 +527,7 @@ export function ServerAdminOverviewToJSONTyped(value?: ServerAdminOverview | nul
         'oidcConnectionCount': value['oidcConnectionCount'],
         'oldestPendingJobAt': value['oldestPendingJobAt'] == null ? value['oldestPendingJobAt'] : value['oldestPendingJobAt'].toISOString(),
         'passkeyAccountCount': value['passkeyAccountCount'],
+        'proAreaAvailable': value['proAreaAvailable'],
         'processStartedAt': value['processStartedAt'].toISOString(),
         'publicBaseUrl': value['publicBaseUrl'],
         'pushFailuresLastHour': value['pushFailuresLastHour'],

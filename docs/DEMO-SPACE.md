@@ -208,9 +208,13 @@ EIMIR_DEMO_MODE=false
 EIMIR_DEMO_PUBLIC_URL=https://demo.eimir.example
 ```
 
-`EIMIR_DEMO_PUBLIC_URL` is a Web build input. When present, the login screen shows the configured demo
-launch action (`demo.launch`) and links to the separate demo deployment. Changing the value therefore
-requires rebuilding the Web image.
+`EIMIR_DEMO_PUBLIC_URL` is a Web build input. When present, the login card shows a quiet link
+(`demo.launch`) above the assurance text and links to the separate demo
+deployment. Changing the value therefore requires rebuilding the Web image.
+
+The Android app build (`web/scripts/capacitor-build-environment.mjs`) offers the same link with the
+default `https://demo.eimir.de` (override: `VITE_EIMIR_DEMO_URL`, HTTPS only). In the native shell the
+link opens the system browser; the Demo bundle itself never shows it.
 
 On the demo deployment, `EIMIR_DEMO_MODE=true` replaces the normal unauthenticated entry screen with
 the Lea/Alex selection page.

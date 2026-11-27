@@ -8,6 +8,7 @@ re-authentication.
 from __future__ import annotations
 
 from collections.abc import Iterator
+from datetime import timedelta
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -664,3 +665,55 @@ def test_overview_hides_the_operator_plugin_when_only_pro_is_loaded(
         assert _operator_available(client, token) is False
     finally:
         loader._loaded = admin_loaded
+
+
+def test_seen_moves_the_new_reports_up_to_then_to_in_progress(client, session) -> None:  # type: ignore[no-untyped-def]
+    operator, token = _operator(session)
+    earlier = _report(session)
+    already = _report(session, state=SupportReportState.IN_PROGRESS)
+    archived = _report(session)
+    service.set_archived(session, archived.id, True)
+    seen_at = now()
+    later = _report(session)
+    later.created_at = seen_at + timedelta(seconds=5)
+    session.flush()
+
+    response = client.post(
+        f"{BASE}/seen", json={"through": seen_at.isoformat()}, headers=auth(token)
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json() == {"moved": 1}
+    session.expire_all()
+    assert session.get(SupportReport, earlier.id).state == SupportReportState.IN_PROGRESS.value
+    assert session.get(SupportReport, already.id).state == SupportReportState.IN_PROGRESS.value
+    # A report the operator had not seen yet stays new, so does an archived one.
+    assert session.get(SupportReport, later.id).state == SupportReportState.NEW.value
+    assert session.get(SupportReport, archived.id).state == SupportReportState.NEW.value
+    audit = [
+        event
+        for event in _audit(session)
+        if event.action == AdministrationAction.SUPPORT_REPORT_STATE_SET.value
+    ]
+    assert [(event.actor_id, event.target_account_id) for event in audit][-1] == (
+        operator.id,
+        earlier.account_id,
+    )
+    assert SECRET_NOTE not in response.text
+
+
+def test_seen_needs_an_operator_and_the_feature(client, session, reports_disabled) -> None:  # type: ignore[no-untyped-def]
+    _, token = _operator(session)
+    body = {"through": now().isoformat()}
+    assert client.post(f"{BASE}/seen", json=body).status_code == 401
+    assert client.post(f"{BASE}/seen", json=body, headers=auth(token)).status_code == 404
+
+
+def test_seen_rejects_unknown_fields(client, session) -> None:  # type: ignore[no-untyped-def]
+    _, token = _operator(session)
+    response = client.post(
+        f"{BASE}/seen",
+        json={"through": now().isoformat(), "state": "CLOSED"},
+        headers=auth(token),
+    )
+    assert response.status_code == 422

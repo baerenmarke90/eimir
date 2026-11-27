@@ -52,6 +52,10 @@ EIMIR_RELEASE_KEY_PASSWORD="key-password" \
   :app:assembleRelease :app:bundleRelease
 ```
 
+### Baseline Profile
+
+`app/src/main/baseline-prof.txt` lists the native code that runs at start (the Capacitor bridge and our plugins). The Android Gradle Plugin compiles it into `assets/dexopt/baseline.prof`, and `androidx.profileinstaller` (already a transitive dependency) installs it at first launch, including for sideloaded test APKs. It shortens the native part of a cold start right after an install or update. It is hand-written with wildcards because the release build does not rename classes; replace it with a recorded profile if the project gets a macrobenchmark module. It does not cover the Web product, which runs in the system WebView.
+
 ### Release Properties & Signing Configuration
 
 `app/build.gradle` evaluates:

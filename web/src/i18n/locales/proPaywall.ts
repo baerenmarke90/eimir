@@ -172,7 +172,6 @@ const proPaywall = {
   },
   catalogue: {
     title: 'Was in Pro steckt',
-    new: 'Neu',
     groups: {
       memories: 'Erinnerungen & Rückblicke',
       timeTogether: 'Zeit zu zweit',
@@ -337,6 +336,37 @@ const proPaywall = {
       'Wir haben keinen Pro-Kauf zum Wiederherstellen gefunden. Es wurde nichts berechnet.',
     expired:
       'Euer Pro-Zugang ist abgelaufen. Eure Inhalte bleiben vollständig erhalten.',
+  },
+  // Copy approved by the Product Owner in #2328 (part 5).
+  giftCode: {
+    title: 'Geschenkcode einlösen',
+    hint: 'Ihr habt einen Geschenkcode für eimir. Pro bekommen? Gebt ihn hier ein – er gilt für euch beide.',
+    fieldLabel: 'Code',
+    placeholder: 'EIMIR-XXXX-XXXX',
+    redeem: 'Einlösen',
+    redeeming: 'Wird eingelöst …',
+    success: {
+      new: {
+        title: 'Pro ist freigeschaltet.',
+        body: 'Ihr habt eimir. Pro bis {{date}}. Viel Freude damit!',
+      },
+      extended: {
+        title: 'Pro ist verlängert.',
+        body: 'Ihr habt eimir. Pro jetzt bis {{date}}.',
+      },
+    },
+    done: 'Fertig',
+    errors: {
+      invalid:
+        'Dieser Code ist ungültig oder abgelaufen. Prüft bitte die Schreibweise.',
+      used: 'Dieser Code wurde schon eingelöst.',
+      subscriptionActive:
+        'Ihr habt schon Pro über euer Abo. Gebt den Code gern weiter.',
+      unlimited: 'Ihr habt Pro schon ohne Enddatum. Gebt den Code gern weiter.',
+      rateLimited:
+        'Zu viele Versuche. Versucht es bitte in einer Stunde noch einmal.',
+      network: 'Das hat gerade nicht geklappt. Versucht es noch einmal.',
+    },
   },
   settingsAction: 'Tarife ansehen',
   contextAction: 'Mit eimir. Pro entdecken',

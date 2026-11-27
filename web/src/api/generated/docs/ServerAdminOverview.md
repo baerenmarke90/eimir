@@ -26,6 +26,7 @@ Name | Type
 `expiringAdminGrantCount` | number
 `expiringAdminGrants` | [Array&lt;ServerAdminExpiringGrantItem&gt;](ServerAdminExpiringGrantItem.md)
 `jobsFailed` | number
+`jobsFailedUnseen` | number
 `jobsPending` | number
 `jobsRunning` | number
 `lastSuccessfulJobAt` | Date
@@ -39,6 +40,7 @@ Name | Type
 `oidcConnectionCount` | number
 `oldestPendingJobAt` | Date
 `passkeyAccountCount` | number
+`proAreaAvailable` | boolean
 `processStartedAt` | Date
 `publicBaseUrl` | string
 `pushFailuresLastHour` | number
@@ -83,6 +85,7 @@ const example = {
   "expiringAdminGrantCount": null,
   "expiringAdminGrants": null,
   "jobsFailed": null,
+  "jobsFailedUnseen": null,
   "jobsPending": null,
   "jobsRunning": null,
   "lastSuccessfulJobAt": null,
@@ -96,6 +99,7 @@ const example = {
   "oidcConnectionCount": null,
   "oldestPendingJobAt": null,
   "passkeyAccountCount": null,
+  "proAreaAvailable": null,
   "processStartedAt": null,
   "publicBaseUrl": null,
   "pushFailuresLastHour": null,

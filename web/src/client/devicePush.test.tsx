@@ -120,7 +120,12 @@ const stored = new Map<string, string>();
 
 function CurrentRoute() {
   const location = useLocation();
-  return <span data-testid="route">{location.pathname}</span>;
+  return (
+    <>
+      <span data-testid="route">{location.pathname}</span>
+      <span data-testid="route-search">{location.search}</span>
+    </>
+  );
 }
 
 function wrapper({ children }: PropsWithChildren) {
@@ -1290,6 +1295,59 @@ it('falls back to the safe inbox when a tapped source is no longer authorized', 
   expect(api.openNotification).toHaveBeenCalledOnce();
 });
 
+it('opens the topic page of an operator notice that can no longer be resolved', async () => {
+  native.state = statusFixture({
+    accountId,
+    enabled: true,
+    permissionGranted: true,
+  });
+  const { api } = setup('space-a', (api) =>
+    api.openNotification.mockRejectedValue(new Error('Unavailable')),
+  );
+  await waitFor(() =>
+    expect(native.listeners.has('notificationOpen')).toBe(true),
+  );
+  act(() =>
+    native.listeners.get('notificationOpen')?.(
+      activationEvent({
+        notificationId: 'ed0ca1ae-ad80-4876-8a39-1d909b18f8e8',
+        operatorTopic: 'SUPPORT_REPORTS',
+      }),
+    ),
+  );
+  await waitFor(() =>
+    expect(screen.getByTestId('route').textContent).toBe('/server-admin'),
+  );
+  expect(screen.getByTestId('route-search').textContent).toBe(
+    '?section=reports&state=NEW',
+  );
+  expect(api.openNotification).toHaveBeenCalledOnce();
+});
+
+it('opens ServerAdmin for an operator notice that carries no notice id', async () => {
+  native.state = statusFixture({
+    accountId,
+    enabled: true,
+    permissionGranted: true,
+  });
+  const { api } = setup();
+  await waitFor(() =>
+    expect(native.listeners.has('notificationOpen')).toBe(true),
+  );
+  act(() =>
+    native.listeners.get('notificationOpen')?.(
+      activationEvent({ operatorTopic: 'BACKUP_NOT_CONFIGURED' }),
+    ),
+  );
+  await waitFor(() =>
+    expect(screen.getByTestId('route').textContent).toBe('/server-admin'),
+  );
+  expect(screen.getByTestId('route-search').textContent).toBe(
+    '?section=monitoring',
+  );
+  expect(api.openNotification).not.toHaveBeenCalled();
+});
+
 it('does not navigate from a pending tap after leaving and returning to the same Space', async () => {
   let finish!: (value: {
     kind: string;
@@ -1419,6 +1477,11 @@ it.each([
   [3, undefined, 1],
   [3, 2, 2],
   [3, 3, 3],
+  [3, 4, 3],
+  [4, undefined, 1],
+  [4, 2, 2],
+  [4, 3, 3],
+  [4, 4, 4],
 ] as const)(
   'negotiates FCM preview server max %s and native max %s as %s',
   async (serverMax, nativeMax, negotiated) => {
@@ -1436,8 +1499,11 @@ it.each([
           ...(serverMax && serverMax >= 2
             ? { encryptedPreviewMaxVersion: 2 as const }
             : {}),
-          ...(serverMax === 3
+          ...(serverMax && serverMax >= 3
             ? { encryptedPreviewDetailVersion: 3 as const }
+            : {}),
+          ...(serverMax === 4
+            ? { encryptedPreviewOperatorVersion: 4 as const }
             : {}),
         },
       });

@@ -54,6 +54,8 @@ ACCOUNT_UNAVAILABLE_CODE = "ACCOUNT_UNAVAILABLE"
 POLICY_BLOCKED_CODE = "PUSH_POLICY_BLOCKED"
 MAX_PUSH_ATTEMPTS = 5
 MAX_ACTIVE_ENDPOINTS = 10
+# Notice ids one tray removal carries (#2345); fits every provider's payload limit.
+WITHDRAW_BATCH = 20
 SESSION_BOUND_PROVIDERS = frozenset({"webpush", "apns"})
 QUIET_HOURS_RECHECK = timedelta(minutes=15)
 _TECHNICAL_CODE = re.compile(r"[A-Z0-9_-]{1,64}\Z")
@@ -162,6 +164,9 @@ def register_handlers() -> None:
         from eimir.engagement.gentle_delivery import prepare
 
         registry.register(JOB_KIND, handle_delivery, prepare=prepare)
+    from eimir.engagement import push_withdraw
+
+    push_withdraw.register_handler()
 
 
 def _lock_live_device_family(session: Session, *, account_id: UUID, family_id: UUID | None) -> bool:
@@ -220,7 +225,7 @@ def register_endpoint(
     endpoint = endpoint_value.strip()
     if not provider or not endpoint:
         raise ValueError("push endpoint and provider must not be blank")
-    if preview_version not in {1, 2, 3}:
+    if preview_version not in {1, 2, 3, 4}:
         raise ValueError("Unsupported preview protocol version.")
 
     with session.no_autoflush:
@@ -818,17 +823,19 @@ def _handle_delivery(session: Session, payload: dict[str, Any]) -> None:
             **presentation.reference,
             "locale": account_locale(accounts[notification.recipient_account_id]),
         }
+        remaining: int | None = None
         if expires_at is not None:
             remaining = int((clock.ensure_utc(expires_at) - checked_at).total_seconds())
             reference["ttl"] = str(max(0, min(300, remaining)))
         endpoint_value = secret.payload.value if secret is not None else endpoint.endpoint_value
         from eimir.engagement import fcm_push, push_preview, unified_push
 
-        neutral = notification.kind in push_preview.NEUTRAL_ONLY_KINDS
         if endpoint.provider_key == "fcm":
             preview_secret = session.scalar(
                 select(PushPreviewSecret).where(PushPreviewSecret.push_endpoint_id == endpoint.id)
             )
+            version = preview_secret.preview_version if preview_secret is not None else 1
+            neutral = push_preview.is_neutral(notification.kind, version)
             if (
                 preview_secret is not None
                 and (not neutral or preview_secret.neutral_reference)
@@ -854,6 +861,11 @@ def _handle_delivery(session: Session, payload: dict[str, Any]) -> None:
                         endpoint_value, preview_secret.payload.key, preview
                     ),
                 }
+                if remaining is not None:
+                    # The preview and the provider TTL share one validity: an
+                    # operator notice on v4 may wait up to an hour (#2337).
+                    limit = push_preview.validity(notification.kind, version)
+                    reference["ttl"] = str(max(0, min(int(limit.total_seconds()), remaining)))
             elif adaptive:
                 _finish_unavailable(delivery, "GENTLE_DESTINATION_UNAVAILABLE")
                 return

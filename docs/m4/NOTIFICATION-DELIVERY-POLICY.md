@@ -68,6 +68,22 @@ boundary. Fresh authenticated resolution and the editor/account/Space guards
 own navigation. The following v2 text is historical foundation for the unchanged
 gesture/comment/reminder semantics, not the complete current kind catalog.
 
+### One read state across devices (#2345)
+
+A notice that needs no attention any more leaves every place that still shows it. A notice needs no attention when it was read, expired, deleted or is no longer current.
+
+- **Reading.** Reading happens in More > Notifications, by opening a push, or with "mark all". Opening a game page also counts: `POST /spaces/{spaceId}/games/{surface}/notices/read` marks the reader's notices of that game read.
+- **Same device.** The open app asks `POST /spaces/{spaceId}/notifications/settled` which tray notices are settled and withdraws exactly those.
+  - The app asks at start and after every unread-count refresh.
+  - This covers the Android tray and the browser's service-worker notices.
+  - The lookup takes at most 50 ids. It answers a foreign id like a deleted one and leaves the reader's other Spaces alone.
+- **Other devices.** A read that changes `read_at` queues a `push-withdraw` job for every Android endpoint with a succeeded delivery of that notice. It sends at most 20 ids per message, for a day, at normal priority.
+  - FCM sends data type `withdraw` with the ids sealed under the activation's preview key (JWE `typ` `eimir-push-withdraw+jwe`).
+  - UnifiedPush sends an RFC 8291 encrypted `{"type":"withdraw","notificationIds":[…]}`.
+  - Neither presents anything, and older apps drop the unknown type silently.
+  - Browsers are excluded, because `userVisibleOnly` subscriptions must show something for every push.
+  - APNs has no silent path in this app yet, so the iOS tray is not synced.
+
 The closed v2 catalog began with #515's first runtime slices and covered five
 `NotificationKind` values. The current delivery-class catalog is
 `backend/src/eimir/engagement/notification_policy.py`.

@@ -19,6 +19,8 @@ export interface NeedsYouItem {
   detailKey?: string;
   /** A full Space: the bytes the item describes, formatted by the view. */
   storage?: { usedBytes: number; quotaBytes: number };
+  /** The item an operator can mark as seen from here (#2342). */
+  seen?: 'reports' | 'failedJobs';
 }
 
 const DAY_MS = 86_400_000;
@@ -84,16 +86,19 @@ export function buildNeedsYouItems(
       detailKey: overview.warningCodes.includes('support_reports_unread')
         ? 'serverAdmin.warnings.supportReportsUnread'
         : undefined,
+      seen: 'reports',
     });
   }
-  if (overview.jobsFailed > 0) {
+  // Only the failures since an operator last marked them as seen (#2342).
+  if (overview.jobsFailedUnseen > 0) {
     items.push({
       id: 'failed-jobs',
       kind: 'failedJobs',
       tone: 'danger',
       href: sectionHref('jobs'),
       titleKey: 'serverAdmin.situation.failedJobs',
-      titleValues: { count: overview.jobsFailed },
+      titleValues: { count: overview.jobsFailedUnseen },
+      seen: 'failedJobs',
     });
   }
   for (const space of overview.storagePressure) {

@@ -16,6 +16,7 @@ from eimir import config
 from eimir.administration import service as administration
 from eimir.api.deps import DbSession
 from eimir.api.schema import ApiModel
+from eimir.api.v1.server_admin import pro_area_available
 from eimir.auth.policy import (
     AuthCapabilities,
     AuthPolicy,
@@ -111,6 +112,13 @@ class InstanceAccessStatus(ApiModel):
             "entry points only when true."
         ),
     )
+    gift_codes_available: bool = Field(
+        default=False,
+        description=(
+            "Whether a Space member can redeem an eimir. gift code here: eimir. Cloud with the "
+            "gift code plugin loaded. Clients show the redeem entry only when true."
+        ),
+    )
 
 
 @router.get("/instance/status", response_model=InstanceAccessStatus)
@@ -147,4 +155,5 @@ def instance_status(
         oidc_signup_available=oidc_signup_supported() and state.effective_registration_enabled,
         terms_of_use_version=terms.required_terms_version(),
         support_reports_available=config.get_settings().support_reports_enabled,
+        gift_codes_available=pro_area_available(config.get_settings()),
     )

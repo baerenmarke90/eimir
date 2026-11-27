@@ -42,6 +42,7 @@ function overview(overrides: Overview = {}): Overview {
     expiringAdminGrantCount: 0,
     expiringAdminGrants: [],
     jobsFailed: 0,
+    jobsFailedUnseen: 0,
     jobsPending: 0,
     jobsRunning: 0,
     lastSuccessfulJobAt: null,
@@ -81,6 +82,7 @@ function overview(overrides: Overview = {}): Overview {
 /** Three things need the operator: reports, failed jobs and a full Space. */
 const BUSY = overview({
   jobsFailed: 2,
+  jobsFailedUnseen: 2,
   storagePressureCount: 1,
   storagePressure: [
     {

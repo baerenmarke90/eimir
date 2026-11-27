@@ -22,6 +22,7 @@ All URIs are relative to *http://localhost*
 | [**listServerAdminAccountsApiV1ServerAdminAccountsGet**](ServerAdminApi.md#listserveradminaccountsapiv1serveradminaccountsget) | **GET** /api/v1/server-admin/accounts | List Server Admin Accounts |
 | [**listServerAdminJobsApiV1ServerAdminJobsGet**](ServerAdminApi.md#listserveradminjobsapiv1serveradminjobsget) | **GET** /api/v1/server-admin/jobs | List Server Admin Jobs |
 | [**listServerAdminSpacesApiV1ServerAdminSpacesGet**](ServerAdminApi.md#listserveradminspacesapiv1serveradminspacesget) | **GET** /api/v1/server-admin/spaces | List Server Admin Spaces |
+| [**markFailedJobsSeenApiV1ServerAdminFailedJobsSeenPost**](ServerAdminApi.md#markfailedjobsseenapiv1serveradminfailedjobsseenpost) | **POST** /api/v1/server-admin/failed-jobs/seen | Mark Failed Jobs Seen |
 | [**reconcileServerAdminSpaceConfigurationManager**](ServerAdminApi.md#reconcileserveradminspaceconfigurationmanager) | **POST** /api/v1/server-admin/spaces/{space_id}/configuration-manager/reconcile | Reconcile Server Admin Space Configuration Manager |
 | [**requestServerAdminAccountEmailVerificationApiV1ServerAdminAccountsAccountIdEmailVerificationRequestPost**](ServerAdminApi.md#requestserveradminaccountemailverificationapiv1serveradminaccountsaccountidemailverificationrequestpost) | **POST** /api/v1/server-admin/accounts/{accountId}/email-verification/request | Request Server Admin Account Email Verification |
 | [**requestServerAdminAccountRecoveryEmailApiV1ServerAdminAccountsAccountIdRecoveryEmailPost**](ServerAdminApi.md#requestserveradminaccountrecoveryemailapiv1serveradminaccountsaccountidrecoveryemailpost) | **POST** /api/v1/server-admin/accounts/{accountId}/recovery/email | Request Server Admin Account Recovery Email |
@@ -1301,6 +1302,67 @@ No authorization required
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **403** | The caller is authenticated but is not authorized for this operation. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## markFailedJobsSeenApiV1ServerAdminFailedJobsSeenPost
+
+> ServerAdminFailedJobsSeen markFailedJobsSeenApiV1ServerAdminFailedJobsSeenPost()
+
+Mark Failed Jobs Seen
+
+Hide the current failed jobs from the Situation page until a new job fails (#2342).  System &gt; Jobs, alert mails and pushes are unaffected. Shared by every ServerAdmin.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  ServerAdminApi,
+} from '';
+import type { MarkFailedJobsSeenApiV1ServerAdminFailedJobsSeenPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new ServerAdminApi();
+
+  try {
+    const data = await api.markFailedJobsSeenApiV1ServerAdminFailedJobsSeenPost();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+[**ServerAdminFailedJobsSeen**](ServerAdminFailedJobsSeen.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

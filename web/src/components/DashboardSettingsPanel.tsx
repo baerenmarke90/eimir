@@ -40,6 +40,7 @@ import { ProMark } from './ProMark';
 const MODULE_ICONS: Record<DashboardModuleKey, EimirIconName> = {
   relationship_presence: 'wir',
   partner_distance: 'orte',
+  new_for_you: 'benachrichtigungen',
   shared_experience: 'nurfuer',
   games_waiting: 'spiele',
   daily_quote: 'quote',

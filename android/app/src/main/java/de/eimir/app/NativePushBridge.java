@@ -72,7 +72,9 @@ public final class NativePushBridge extends Plugin {
                     } catch (IllegalArgumentException invalid) { notificationId = null; }
                 }
                 NativePushNotifications.cancelOpened(getContext(), notificationId);
-                emit("notificationOpen", PushActivation.read(getContext()), notificationId, true);
+                String topic = intent.getStringExtra("operatorTopic");
+                emit("notificationOpen", PushActivation.read(getContext()), notificationId,
+                    topic != null && topic.matches("[A-Z_]{1,32}") ? topic : null, true);
             }
         }
     }
@@ -115,6 +117,31 @@ public final class NativePushBridge extends Plugin {
             .put("fcmAvailable", fcmAvailable(getContext()))
             .put("firebaseProjectId", project == null ? JSONObject.NULL : project)
             .put("androidPackage", getContext().getPackageName()));
+    }
+
+    /** The notification ids still in the tray, for the read-state sync (#2345). */
+    @PluginMethod public void deliveredNotifications(PluginCall call) {
+        com.getcapacitor.JSArray ids = new com.getcapacitor.JSArray();
+        for (String id : NativePushNotifications.delivered(getContext())) ids.put(id);
+        call.resolve(new JSObject().put("notificationIds", ids));
+    }
+
+    /** Removes tray notices the server reported as settled (#2345). */
+    @PluginMethod public void withdrawNotifications(PluginCall call) {
+        java.util.Set<String> ids = new java.util.HashSet<>();
+        com.getcapacitor.JSArray requested = call.getArray("notificationIds");
+        if (requested != null) {
+            for (int index = 0; index < requested.length(); index++) {
+                String id = requested.optString(index, null);
+                if (id == null) continue;
+                try {
+                    String canonical = UUID.fromString(id).toString();
+                    if (canonical.equals(id)) ids.add(canonical);
+                } catch (IllegalArgumentException invalid) { /* Never matches a delivered notice. */ }
+            }
+        }
+        NativePushNotifications.withdraw(getContext(), ids);
+        call.resolve();
     }
 
     @PluginMethod public void enable(PluginCall call) {
@@ -315,9 +342,14 @@ public final class NativePushBridge extends Plugin {
     }
 
     private static void emit(String event, PushActivation activation, String value, boolean retain) {
+        emit(event, activation, value, null, retain);
+    }
+
+    private static void emit(String event, PushActivation activation, String value, String operatorTopic, boolean retain) {
         NativePushBridge plugin = current.get();
         if (plugin == null) return;
         JSObject data = scope(activation);
+        if ("notificationOpen".equals(event) && operatorTopic != null) data.put("operatorTopic", operatorTopic);
         if ("endpoint".equals(event)) data.put("endpointValue", value);
         if ("unavailable".equals(event)) data.put("reason", value);
         if ("notificationOpen".equals(event) && value != null) data.put("notificationId", value);
@@ -357,7 +389,7 @@ public final class NativePushBridge extends Plugin {
                 // Only this transient authenticated-registration event carries it.
                 if (active.apiBaseUrl.startsWith("https://")) {
                     value = new JSONObject(value).put("neutralReferenceVersion", 1).put("previewVersion", 1)
-                        .put("previewMaxVersion", 3)
+                        .put("previewMaxVersion", 4)
                         .put("previewKey", PushPreviewKeys.registrationKey(context, active)).toString();
                 }
                 emit("endpoint", updated, value, true);

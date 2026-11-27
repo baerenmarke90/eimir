@@ -74,6 +74,11 @@ import {
     ServerAdminEntitlementRevokeRequestToJSON,
 } from '../models/ServerAdminEntitlementRevokeRequest';
 import {
+    type ServerAdminFailedJobsSeen,
+    ServerAdminFailedJobsSeenFromJSON,
+    ServerAdminFailedJobsSeenToJSON,
+} from '../models/ServerAdminFailedJobsSeen';
+import {
     type ServerAdminJobList,
     ServerAdminJobListFromJSON,
     ServerAdminJobListToJSON,
@@ -1170,6 +1175,45 @@ export class ServerAdminApi extends runtime.BaseAPI {
      */
     async listServerAdminSpacesApiV1ServerAdminSpacesGet(requestParameters: ListServerAdminSpacesApiV1ServerAdminSpacesGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminSpaceList> {
         const response = await this.listServerAdminSpacesApiV1ServerAdminSpacesGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for markFailedJobsSeenApiV1ServerAdminFailedJobsSeenPost without sending the request
+     */
+    async markFailedJobsSeenApiV1ServerAdminFailedJobsSeenPostRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/server-admin/failed-jobs/seen`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Hide the current failed jobs from the Situation page until a new job fails (#2342).  System > Jobs, alert mails and pushes are unaffected. Shared by every ServerAdmin.
+     * Mark Failed Jobs Seen
+     */
+    async markFailedJobsSeenApiV1ServerAdminFailedJobsSeenPostRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ServerAdminFailedJobsSeen>> {
+        const requestOptions = await this.markFailedJobsSeenApiV1ServerAdminFailedJobsSeenPostRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ServerAdminFailedJobsSeenFromJSON(jsonValue));
+    }
+
+    /**
+     * Hide the current failed jobs from the Situation page until a new job fails (#2342).  System > Jobs, alert mails and pushes are unaffected. Shared by every ServerAdmin.
+     * Mark Failed Jobs Seen
+     */
+    async markFailedJobsSeenApiV1ServerAdminFailedJobsSeenPost(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminFailedJobsSeen> {
+        const response = await this.markFailedJobsSeenApiV1ServerAdminFailedJobsSeenPostRaw(initOverrides);
         return await response.value();
     }
 

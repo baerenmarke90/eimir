@@ -4,42 +4,47 @@ import { proPaywallPath } from '../client/routes';
 import { useTranslation } from '../i18n';
 import './SettingsIndex.css';
 import { EimirIcon } from './EimirIcon';
+import { GiftCodeRedeemEntry } from './GiftCodeRedeemSheet';
 
 /**
  * One way into the Pro page from the account settings (#1907 D1). Features, prices,
  * purchase and subscription management live on the Pro page only; the row
- * reads the session's existing entitlement without an extra request.
+ * reads the session's existing entitlement without an extra request. Below
+ * it sits the same quiet gift code entry as on the Pro page (#2328).
  */
 export function ProSettingsRow() {
   const { t } = useTranslation();
   const { query } = useSessionSpaceEntitlement();
   const active = query.data?.tier === 'PREMIUM';
   return (
-    // Keeps the legacy `#eimir-pro` anchor (old profile links) working.
-    <nav
-      id="eimir-pro"
-      className="settings-index"
-      aria-label={t('profiles.premium.title')}
-    >
-      <ul className="settings-category-list">
-        <li>
-          <Link className="settings-category-link" to={proPaywallPath()}>
-            <span className="more-destination-icon" aria-hidden="true">
-              <EimirIcon name="pro" variant="duotone" />
-            </span>
-            <span className="settings-category-copy">
-              <strong>{t('profiles.premium.title')}</strong>
-              <span>
-                {t(
-                  active
-                    ? 'profiles.premium.rowActive'
-                    : 'profiles.premium.rowInactive',
-                )}
+    <div className="pro-settings-block">
+      {/* Keeps the legacy `#eimir-pro` anchor (old profile links) working. */}
+      <nav
+        id="eimir-pro"
+        className="settings-index"
+        aria-label={t('profiles.premium.title')}
+      >
+        <ul className="settings-category-list">
+          <li>
+            <Link className="settings-category-link" to={proPaywallPath()}>
+              <span className="more-destination-icon" aria-hidden="true">
+                <EimirIcon name="pro" variant="duotone" />
               </span>
-            </span>
-          </Link>
-        </li>
-      </ul>
-    </nav>
+              <span className="settings-category-copy">
+                <strong>{t('profiles.premium.title')}</strong>
+                <span>
+                  {t(
+                    active
+                      ? 'profiles.premium.rowActive'
+                      : 'profiles.premium.rowInactive',
+                  )}
+                </span>
+              </span>
+            </Link>
+          </li>
+        </ul>
+      </nav>
+      <GiftCodeRedeemEntry />
+    </div>
   );
 }

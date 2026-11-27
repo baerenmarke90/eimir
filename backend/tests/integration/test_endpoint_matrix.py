@@ -458,6 +458,13 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/date-ideas"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/date-ideas/images/{imageId}"),
+    # Redemption rules (Cloud-only 404, rate limits, refusals) live in the Pro
+    # test_gift_code_routes; membership answers before the deployment check.
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/gift-codes/redeem",
+        body={"code": "EIMIR-ABCD-EFGH"},
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/moments/candidates"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/wishes/candidates"),
     # Herzversteck owns its privacy, photo and unknown-round rules in test_heart_hunt; the
@@ -556,6 +563,7 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         body={"gameId": "00000000-0000-0000-0000-000000000001"},
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/waiting"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/games/{surface}/notices/read"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/garden"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/garden/history"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/games/garden/seeds", body={"species": "POPPY"}),
@@ -850,6 +858,12 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         resource_absence="NOTIFICATION_NOT_FOUND",
     ),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/notifications/read-all"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/notifications/wir"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/notifications/settled",
+        body={"notificationIds": ["00000000-0000-0000-0000-000000000001"]},
+    ),
     Endpoint(
         "POST",
         "/api/v1/spaces/{spaceId}/notifications/{notificationId}/open",
@@ -1650,6 +1664,7 @@ SERVER_ADMIN_ONLY: tuple[tuple[str, str], ...] = (
     ("PUT", "/api/v1/server-admin/settings/maintenance"),
     ("PUT", "/api/v1/server-admin/settings/monitoring-alerts"),
     ("PUT", "/api/v1/server-admin/settings/monitoring-push"),
+    ("POST", "/api/v1/server-admin/failed-jobs/seen"),
     ("GET", "/api/v1/server-admin/monitoring"),
     ("GET", "/api/v1/server-admin/activity"),
     ("GET", "/api/v1/server-admin/activity/actions"),
@@ -1665,6 +1680,13 @@ SERVER_ADMIN_ONLY: tuple[tuple[str, str], ...] = (
     ("POST", "/api/v1/server-admin/accounts/{accountId}/recovery/operator"),
     ("POST", "/api/v1/server-admin/accounts/{accountId}/emails/{accountEmailId}/verify"),
     ("POST", "/api/v1/server-admin/accounts/{accountId}/deletion"),
+    # The Pro area (ServerAdmin part 5): Pro plugin routes, 404 outside eimir. Cloud.
+    ("GET", "/api/v1/server-admin/pro/overview"),
+    ("POST", "/api/v1/server-admin/pro/gift-code-batches"),
+    ("GET", "/api/v1/server-admin/pro/gift-code-batches/{batchId}"),
+    ("POST", "/api/v1/server-admin/pro/gift-code-batches/{batchId}/revoke"),
+    ("PUT", "/api/v1/server-admin/pro/gift-codes/{codeId}/handed-out"),
+    ("POST", "/api/v1/server-admin/pro/gift-codes/{codeId}/revoke"),
 )
 """Instance-scoped operations that require authenticated ServerAdmin authority."""
 
@@ -1894,6 +1916,8 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
             "bouquetId": str(uuid4()),
             # A closed visitor code, not a database row.
             "animal": "SNAIL",
+            # A closed game page code (#2345), not a database row.
+            "surface": "HEART_HUNT",
             "attachmentId": attachment["attachment"]["id"],
         },
     }

@@ -21,6 +21,7 @@ from typing import Any
 import pytest
 
 from eimir.plugins import loader
+from eimir.plugins.manifest import PLUGIN_TABLES
 
 requires_pro = pytest.mark.requires_pro
 """The test needs the Pro plugin loaded; skipped in the Core-only configuration."""
@@ -74,11 +75,13 @@ def admin_plugin_object() -> Any:
     return import_module("eimir_admin.plugin").plugin
 
 
-CHAIN_PLUGIN_TABLES = frozenset({"support_report_tickets", "support_reply_templates"})
+CHAIN_PLUGIN_TABLES = frozenset(row.table for row in PLUGIN_TABLES if row.chain)
 """Manifest tables created by a plugin's own migration chain, never by the Core chain.
 
-The Pro tables are part of the Core chain; the operator plugin's are not
-(Decision 0017, decision 6). The test database gets them from the models when
+The older Pro tables are part of the Core chain; the operator plugin's table and
+the Pro gift code tables (ServerAdmin part 5) are not (Decision 0017, decision
+6); the manifest marks them with ``chain``. The shared test database does not
+keep them; each plugin's own tests create them from the models per module when
 that distribution is installed.
 """
 
@@ -111,6 +114,7 @@ ADMIN_OPERATIONS = frozenset(
         ("GET", "/api/v1/server-admin/support-reports"),
         ("GET", "/api/v1/server-admin/support-reports/{reportId}"),
         ("PUT", "/api/v1/server-admin/support-reports/{reportId}/state"),
+        ("POST", "/api/v1/server-admin/support-reports/seen"),
         ("PUT", "/api/v1/server-admin/support-reports/{reportId}/archive"),
         ("DELETE", "/api/v1/server-admin/support-reports/{reportId}"),
         ("POST", "/api/v1/server-admin/support-reports/{reportId}/reply"),

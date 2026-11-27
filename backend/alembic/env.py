@@ -81,6 +81,10 @@ def include_object(
     if type_ == "table" and reflected and compare_to is None and name in PLUGIN_TABLE_NAMES:
         # A plugin table without a model in this process: its plugin is not loaded.
         return False
+    if type_ == "table" and reflected and name is not None and name.startswith("alembic_version_"):
+        # A plugin chain's own version table (Decision 0017, decision 6): migration
+        # state, never a Core table that autogenerate may propose to drop.
+        return False
     if type_ != "check_constraint" or not reflected or name is None:
         return True
     table = getattr(object_, "table", None)

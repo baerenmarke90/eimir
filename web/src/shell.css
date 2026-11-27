@@ -1161,6 +1161,10 @@
   display: flex;
 }
 
+.topbar-create-slot {
+  display: contents;
+}
+
 .topbar-duplicate-create {
   display: contents;
 }
@@ -1172,34 +1176,14 @@
   }
 
   /* A page's own create action (note, place, person, plan, list, moment…)
-     takes the bar's position as the same labelled pill, so every page has
-     exactly one create entry there. It stays inside its tab panel, so a parked
-     tab still hides it. The everything-menu steps aside while one is present. */
-  .product-shell:has(> .product-topbar .topbar-create)
-    :is(button, a).add-action[data-floating-create] {
-    position: fixed;
-    z-index: 51;
-    inset-inline-end: var(--topbar-create-inset-end);
-    inset-block-start: calc(
-      var(--shell-header-safe-top, 0px) +
-      (
-        var(--shell-topbar-min-height) -
-        var(--shell-header-safe-top, 0px) -
-        var(--touch-target-comfortable)
-      ) /
-      2
-    );
-  }
-
-  .product-shell:has(.product-main [data-floating-create])
-    .topbar-create
-    > .topbar-create-global {
+     is moved into the slot by AddAction while its tab is the visible one. The
+     everything-menu steps aside only while the slot holds one. */
+  .topbar-create:has(> .topbar-create-slot > *) > .topbar-create-global {
     display: none;
   }
 
   .product-shell {
     --shell-content-top-inset: var(--shell-topbar-min-height);
-    --topbar-create-inset-end: var(--space-5);
   }
 
   .shell-nav {

@@ -310,6 +310,13 @@ ALLOWED_LOCALIZED_TEXTS = (
     "Auf dieser Offline-Seite werden keine privaten Inhalte gespeichert.",
     # Exact #1655 native outcome copy and its bilingual encrypted fixtures.
     "Dein Video konnte nicht verarbeitet werden.",
+    # Exact #2337 native ServerAdmin notice copy and its bilingual encrypted fixtures.
+    "Serververwaltung: Hintergrundjobs sind fehlgeschlagen.",
+    "Serververwaltung: Ein Space ist fast voll.",
+    "Serververwaltung: Der Medienspeicher ist fast voll.",
+    "Serververwaltung: Mails oder Pushes schlagen fehl.",
+    "Serververwaltung: Es ist keine Sicherung eingerichtet.",
+    "Neue Warnung in der Serververwaltung.",
     # Exact #1701 native upload notification copy; surrounding prose stays audited.
     "Video-Uploads",
     "Video wird hochgeladen",

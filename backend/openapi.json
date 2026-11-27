@@ -4124,6 +4124,12 @@
             "title": "Encryptedpreviewmaxversion",
             "type": "integer"
           },
+          "encryptedPreviewOperatorVersion": {
+            "const": 4,
+            "default": 4,
+            "title": "Encryptedpreviewoperatorversion",
+            "type": "integer"
+          },
           "encryptedPreviewVersion": {
             "const": 1,
             "default": 1,
@@ -4183,7 +4189,8 @@
             "enum": [
               1,
               2,
-              3
+              3,
+              4
             ],
             "title": "Version",
             "type": "integer"

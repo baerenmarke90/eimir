@@ -48,7 +48,7 @@ def test_installed_catalog_covers_every_sender_kind_and_both_envelope_versions()
             for case in cases
             if case["payload"]["title"] == title and case["payload"]["v"] == 3
         }
-    assert {case["payload"]["v"] for case in cases} == {1, 2, 3}
+    assert {case["payload"]["v"] for case in cases} == {1, 2, 3, 4}
     assert len({case["id"] for case in cases}) == len(cases)
     key = OctKey.import_key(
         {

@@ -98,6 +98,14 @@
     <string name="push_shared_note_created_title">%1$s created the shared note “%2$s”.</string>
     <string name="push_shared_note_changed_title">%1$s changed the shared note “%2$s”.</string>
     <string name="push_video_processing_failed_title">Your video in “%2$s” could not be processed.</string>
+    <!-- ServerAdmin notices name only their topic (#2337). -->
+    <string name="push_operator_alert">New ServerAdmin alert.</string>
+    <string name="push_operator_failed_jobs">ServerAdmin: background jobs failed.</string>
+    <string name="push_operator_space_quota_pressure">ServerAdmin: a Space is almost full.</string>
+    <string name="push_operator_disk_pressure">ServerAdmin: media storage is almost full.</string>
+    <string name="push_operator_delivery_failures">ServerAdmin: emails or push notices are failing.</string>
+    <string name="push_operator_backup_not_configured">ServerAdmin: no backup is set up.</string>
+    <string name="push_operator_support_reports">ServerAdmin: new support report.</string>
     <string name="push_photo_reaction_symbol">%1$s reacted to a photo with %3$s.</string>
     <string name="push_photo_reaction_title_symbol">%1$s reacted to a photo in “%2$s” with %3$s.</string>
     <string name="push_garden_seed_species">%1$s sent you a seed: %2$s.</string>

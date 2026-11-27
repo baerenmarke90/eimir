@@ -27,6 +27,7 @@ import type { AccountView } from './api/generated/models/AccountView';
 import { AttachmentReadRequestParentTypeEnum } from './api/generated/models/AttachmentReadRequest';
 import type { SpaceView } from './api/generated/models/SpaceView';
 import type { TokenView } from './api/generated/models/TokenView';
+import { accountReadsMayStart } from './client/accountReadGate';
 import { Configuration } from './client/apiConfiguration';
 import { AppIconProvider } from './client/appIconContext';
 import { clearPublicationMemory } from './client/approximateLocation';
@@ -1797,7 +1798,9 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
         throw await normalizeClientError(error);
       }
     },
-    enabled: !isRestoring && tokens !== null && account !== null,
+    // The stored account already names the owner, so this read does not wait
+    // for /me. It starts with the membership read once a usable token exists.
+    enabled: accountReadsMayStart(tokens, account, isRestoring),
     retry: false,
   });
 

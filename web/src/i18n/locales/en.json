@@ -5018,7 +5018,7 @@
       "alertsBody": "To the ServerAdmins on new failures, full storage, failed deliveries, a missing backup and new reports.",
       "pushLabel": "Send alerts as push",
       "pushSaveFailed": "The change was not saved. Please try again.",
-      "pushBody": "The same alerts as push messages on the ServerAdmins' devices. The lock screen shows only a neutral notice."
+      "pushBody": "The same alerts as push messages on the ServerAdmins' devices. The notice names its topic; the device's own setting decides what the lock screen shows."
     },
     "sheet": {
       "close": "Close"

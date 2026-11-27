@@ -30,6 +30,7 @@ public final class PushPreview {
     private final int version;
     private static final Set<String> FIELDS = new HashSet<>(Arrays.asList(
         "v", "notificationId", "kind", "name", "title", "targetType", "digest", "issuedAt", "expiresAt"));
+    static final String OPERATOR_KIND = "OPERATOR_ALERT";
     private static final Set<String> DETAIL_FIELDS = new HashSet<>(Arrays.asList("body", "when", "place"));
     private static final String[][] REACTIONS = {
         {"LOVE", "\u2764\ufe0f"}, {"LAUGH", "\ud83d\ude02"}, {"SURPRISE", "\ud83d\ude2e"},
@@ -43,8 +44,8 @@ public final class PushPreview {
         title = label(value.getString("title"), 140);
         version = value.getInt("v");
         text = version >= 2 ? label(value.getString("body"), 180) : "";
-        when = version == 3 ? when(value.getString("when")) : "";
-        place = version == 3 ? label(value.getString("place"), 80) : "";
+        when = version >= 3 ? when(value.getString("when")) : "";
+        place = version >= 3 ? label(value.getString("place"), 80) : "";
         targetType = value.getString("targetType");
         digest = value.getBoolean("digest");
         issuedAt = value.getLong("issuedAt");
@@ -96,15 +97,46 @@ public final class PushPreview {
             int version = value.getInt("v");
             Set<String> expected = new HashSet<>(FIELDS);
             if (version == 2) expected.add("body");
-            if (version == 3) expected.addAll(DETAIL_FIELDS);
-            if (!expected.equals(fields) || version < 1 || version > 3
+            if (version >= 3) expected.addAll(DETAIL_FIELDS);
+            long validity = validity(value.getString("kind"), version);
+            if (!expected.equals(fields) || version < 1 || version > 4
                     || value.getLong("issuedAt") > now + 60 || value.getLong("expiresAt") <= now
-                    || value.getLong("issuedAt") < now - 360
-                    || value.getLong("expiresAt") > now + 360
-                    || value.getLong("expiresAt") - value.getLong("issuedAt") > 300
+                    || value.getLong("issuedAt") < now - validity - 60
+                    || value.getLong("expiresAt") > now + validity + 60
+                    || value.getLong("expiresAt") - value.getLong("issuedAt") > validity
                     || value.getLong("expiresAt") <= value.getLong("issuedAt")) return null;
             return new PushPreview(value);
         } catch (Exception invalid) { return null; }
+    }
+
+    /**
+     * Seconds a preview may live in transit and on the device. Preview v4 (#2337)
+     * lets only a ServerAdmin notice wait up to an hour; every other kind keeps five minutes.
+     */
+    static long validity(String kind, int version) {
+        return version >= 4 && OPERATOR_KIND.equals(kind) ? 3600 : 300;
+    }
+
+    /** The localized topic of a v4 operator notice; a generic operator text for an unknown code. */
+    private int operatorResource() {
+        switch (targetType) {
+            case "FAILED_JOBS": return R.string.push_operator_failed_jobs;
+            case "SPACE_QUOTA_PRESSURE": return R.string.push_operator_space_quota_pressure;
+            case "DISK_PRESSURE": return R.string.push_operator_disk_pressure;
+            case "DELIVERY_FAILURES": return R.string.push_operator_delivery_failures;
+            case "BACKUP_NOT_CONFIGURED": return R.string.push_operator_backup_not_configured;
+            case "SUPPORT_REPORTS": return R.string.push_operator_support_reports;
+            default: return R.string.push_operator_alert;
+        }
+    }
+
+    /** The closed topic code of a v4 operator notice, or null; it only chooses a ServerAdmin page. */
+    String operatorTopic() {
+        return isOperatorNotice() && targetType.matches("[A-Z_]{1,32}") ? targetType : null;
+    }
+
+    boolean isOperatorNotice() {
+        return version >= 4 && OPERATOR_KIND.equals(kind);
     }
 
     private int bodyResource() {
@@ -306,6 +338,8 @@ public final class PushPreview {
 
     @VisibleForTesting(otherwise = VisibleForTesting.PACKAGE_PRIVATE)
     public String body(Context context) {
+        // A ServerAdmin notice names only its topic (#2337), never a name or text.
+        if (isOperatorNotice()) return context.getString(operatorResource());
         int resource = bodyResource();
         String sender = name.isEmpty() ? context.getString(R.string.push_partner) : name;
         int ideas = "WISH_SELECTION_SHARED".equals(kind) && !digest ? ideaCount() : 0;
@@ -313,7 +347,7 @@ public final class PushPreview {
             // The round invitation names only how many ideas are up for choice (#1907 J1).
             return context.getResources().getQuantityString(R.plurals.push_wish_selection_shared_count, ideas, sender, ideas);
         }
-        if (version == 3) return detailedBody(context, sender);
+        if (version >= 3) return detailedBody(context, sender);
         String summary = context.getString(resource == 0 ? R.string.push_notification_body : resource,
             sender, kind.startsWith("RECAP_") ? recapPeriod(context) : title);
         return !digest && !text.isEmpty()

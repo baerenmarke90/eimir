@@ -9776,7 +9776,7 @@
       },
       "constraints": {
         "ck_push_preview_secrets_preview_protocol_version_valid": {
-          "definition": "CHECK (preview_version = ANY (ARRAY[1, 2, 3]))",
+          "definition": "CHECK (preview_version = ANY (ARRAY[1, 2, 3, 4]))",
           "kind": "c"
         },
         "ck_push_preview_secrets_preview_secret_crypto_valid": {

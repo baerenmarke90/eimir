@@ -46,7 +46,8 @@ export interface FcmPreviewRegistration {
 export const FcmPreviewRegistrationVersionEnum = {
     NUMBER_1: 1,
     NUMBER_2: 2,
-    NUMBER_3: 3
+    NUMBER_3: 3,
+    NUMBER_4: 4
 } as const;
 export type FcmPreviewRegistrationVersionEnum = typeof FcmPreviewRegistrationVersionEnum[keyof typeof FcmPreviewRegistrationVersionEnum];
 

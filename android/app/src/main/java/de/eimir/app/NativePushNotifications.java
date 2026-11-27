@@ -53,8 +53,17 @@ public final class NativePushNotifications {
     }
 
     public static Intent notificationIntent(Context context, PushActivation activation, String notificationId) {
+        return notificationIntent(context, activation, notificationId, null);
+    }
+
+    /**
+     * A ServerAdmin notice also carries its closed topic code (#2337), so a tap can
+     * open ServerAdmin even when the notice itself can no longer be resolved.
+     */
+    public static Intent notificationIntent(Context context, PushActivation activation, String notificationId, String operatorTopic) {
         Intent intent = notificationIntent(context, activation).putExtra("notificationId", notificationId);
         if (notificationId != null) intent.addCategory("de.eimir.app.push.notification." + notificationId);
+        if (operatorTopic != null) intent.putExtra("operatorTopic", operatorTopic);
         return intent;
     }
 
@@ -121,7 +130,8 @@ public final class NativePushNotifications {
             if (manager == null) return;
             manager.createNotificationChannel(new NotificationChannel(CHANNEL,
                 context.getString(R.string.push_channel_name), NotificationManager.IMPORTANCE_DEFAULT));
-            PendingIntent tap = PendingIntent.getActivity(context, 0, notificationIntent(context, activation, notificationId),
+            PendingIntent tap = PendingIntent.getActivity(context, 0,
+                notificationIntent(context, activation, notificationId, preview != null ? preview.operatorTopic() : null),
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
             // Every notice is VISIBILITY_PRIVATE with a neutral public version, and the
             // channel sets no lock-screen override. Android's own lock-screen setting

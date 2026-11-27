@@ -9,6 +9,7 @@ Name | Type
 `androidPackage` | string
 `encryptedPreviewDetailVersion` | number
 `encryptedPreviewMaxVersion` | number
+`encryptedPreviewOperatorVersion` | number
 `encryptedPreviewVersion` | number
 `localeVersion` | number
 `neutralReferenceVersion` | number
@@ -25,6 +26,7 @@ const example = {
   "androidPackage": null,
   "encryptedPreviewDetailVersion": null,
   "encryptedPreviewMaxVersion": null,
+  "encryptedPreviewOperatorVersion": null,
   "encryptedPreviewVersion": null,
   "localeVersion": null,
   "neutralReferenceVersion": null,

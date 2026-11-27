@@ -35,7 +35,7 @@ from eimir.shared_notes.models import SharedNote
 # it never enters native content presentation, in any preview version. A support
 # reply (#2189) is operator text about the person's own report; it stays in the
 # app and never reaches a device preview either. A ServerAdmin alert (#2314)
-# stays neutral until the native clients can name its topic.
+# stays neutral below preview v4, whose clients name its topic (#2337).
 NEUTRAL_ONLY_KINDS = frozenset(
     {
         NotificationKind.ONCE_MESSAGE_RECEIVED.value,
@@ -47,11 +47,18 @@ NEUTRAL_ONLY_KINDS = frozenset(
 SHARED_NOTE_KINDS = frozenset(
     {NotificationKind.SHARED_NOTE_CREATED.value, NotificationKind.SHARED_NOTE_CHANGED.value}
 )
-SUPPORTED_VERSIONS = frozenset({1, 2, 3})
+SUPPORTED_VERSIONS = frozenset({1, 2, 3, 4})
 # Preview v3 (#2158, Product Owner 2026-11-21): every kind carries its real
 # content, and the device's own lock-screen setting for sensitive content decides
 # what a locked screen shows. v1 and v2 keep their exact fields and semantics.
 DETAIL_VERSION = 3
+# Preview v4 (#2337) keeps every v3 field and meaning. An operator notice then
+# names its closed topic code in ``targetType`` (never a name, title or body)
+# and may stay valid for up to an hour, so a device whose push connection
+# stalled for a while still shows it. Every other kind keeps five minutes.
+OPERATOR_VERSION = 4
+VALIDITY = timedelta(minutes=5)
+OPERATOR_VALIDITY = timedelta(hours=1)
 # UTF-8 plaintext bound that keeps the compact JWE within the 3000-character
 # provider and native limit (header, IV and tag included) and the native
 # 1600-unit plaintext limit. Longer free text is shortened, never dropped.
@@ -280,15 +287,18 @@ def for_notification(
 ) -> str | None:
     from eimir.engagement import service
 
-    neutral = notification.kind in NEUTRAL_ONLY_KINDS
+    neutral = is_neutral(notification.kind, version)
     if neutral and not neutral_reference:
         return None
     if version not in SUPPORTED_VERSIONS:
         return None
     if notification.kind in notification_policy.OPERATOR_KINDS:
         # A ServerAdmin alert (#2314) has no Space to authorize against; the
-        # delivery has just checked the recipient. It is always the neutral notice.
-        return _neutral(notification, digest=digest, version=version)
+        # delivery has just checked the recipient. Below v4 it is the neutral
+        # notice; v4 names its topic code and nothing else (#2337).
+        if neutral:
+            return _neutral(notification, digest=digest, version=version)
+        return _operator(notification, digest=digest, version=version)
     if notification.space_id is None:
         return None
     context = AuthorizationContext(
@@ -355,7 +365,7 @@ def for_notification(
     elif detailed and notification.kind == NotificationKind.PLAN_CANCELLED.value:
         title = _cancelled_plan_title(session, notification, context)
     now = clock.now()
-    expires = now + timedelta(minutes=5)
+    expires = now + VALIDITY
     if notification.expires_at is not None:
         expires = min(expires, clock.ensure_utc(notification.expires_at))
     if expires <= now:
@@ -390,10 +400,42 @@ def for_notification(
     return _encode(value)
 
 
-def _neutral(notification: Notification, *, digest: bool, version: int) -> str | None:
+def is_neutral(kind: str, version: int) -> bool:
+    """Whether ``kind`` reaches a device on this preview version as the neutral notice."""
+    if kind in notification_policy.OPERATOR_KINDS and version >= OPERATOR_VERSION:
+        return False
+    return kind in NEUTRAL_ONLY_KINDS
+
+
+def validity(kind: str, version: int) -> timedelta:
+    """How long a preview of ``kind`` may live in transit and on the device."""
+    if kind in notification_policy.OPERATOR_KINDS and version >= OPERATOR_VERSION:
+        return OPERATOR_VALIDITY
+    return VALIDITY
+
+
+def operator_topic_code(topic: str) -> str:
+    """The closed device code of an operator topic, for example ``SUPPORT_REPORTS``."""
+    return topic.upper()
+
+
+def _operator(notification: Notification, *, digest: bool, version: int) -> str | None:
+    """A v4 operator notice: its topic code and validity, no name, title or body."""
+    topic = notification.operator_topic
+    return _neutral(
+        notification,
+        digest=digest,
+        version=version,
+        target_type=operator_topic_code(topic) if topic else "",
+    )
+
+
+def _neutral(
+    notification: Notification, *, digest: bool, version: int, target_type: str = ""
+) -> str | None:
     """The neutral envelope: the kind and validity only, no name, title or body."""
     now = clock.now()
-    expires = now + timedelta(minutes=5)
+    expires = now + validity(notification.kind, version)
     if notification.expires_at is not None:
         expires = min(expires, clock.ensure_utc(notification.expires_at))
     if expires <= now:
@@ -404,7 +446,7 @@ def _neutral(notification: Notification, *, digest: bool, version: int) -> str |
         "kind": notification.kind,
         "name": "",
         "title": "",
-        "targetType": "",
+        "targetType": target_type,
         "digest": digest,
         "issuedAt": int(now.timestamp()),
         "expiresAt": int(expires.timestamp()),

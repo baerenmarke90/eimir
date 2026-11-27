@@ -6,6 +6,7 @@ All URIs are relative to *http://localhost*
 |------------- | ------------- | -------------|
 | [**dismissGentleSuggestion**](NotificationsApi.md#dismissgentlesuggestion) | **POST** /api/v1/spaces/{spaceId}/gentle-prompts/{occasionId}/dismiss | Dismiss Suggestion |
 | [**excludeGentleMemory**](NotificationsApi.md#excludegentlememory) | **PUT** /api/v1/spaces/{spaceId}/gentle-prompts/memories/{memoryId}/exclusion | Exclude Memory |
+| [**findSettledNotifications**](NotificationsApi.md#findsettlednotifications) | **POST** /api/v1/spaces/{spaceId}/notifications/settled | Find Settled Notifications |
 | [**getDevicePushConfiguration**](NotificationsApi.md#getdevicepushconfiguration) | **GET** /api/v1/push-endpoints/configuration | Get Device Push Configuration |
 | [**getGentleSuggestion**](NotificationsApi.md#getgentlesuggestion) | **GET** /api/v1/spaces/{spaceId}/gentle-prompts/suggestion | Get Suggestion |
 | [**getNotificationUnreadCount**](NotificationsApi.md#getnotificationunreadcount) | **GET** /api/v1/spaces/{spaceId}/notifications/unread-count | Get Notification Unread Count |
@@ -162,6 +163,79 @@ No authorization required
 | **204** | Successful Response |  -  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## findSettledNotifications
+
+> SettledNotifications findSettledNotifications(spaceId, settledNotificationsQuery)
+
+Find Settled Notifications
+
+Tell a device which tray notices it can withdraw (#2345); changes nothing.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  NotificationsApi,
+} from '';
+import type { FindSettledNotificationsRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new NotificationsApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+    // SettledNotificationsQuery
+    settledNotificationsQuery: ...,
+  } satisfies FindSettledNotificationsRequest;
+
+  try {
+    const data = await api.findSettledNotifications(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **settledNotificationsQuery** | [SettledNotificationsQuery](SettledNotificationsQuery.md) |  | |
+
+### Return type
+
+[**SettledNotifications**](SettledNotifications.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

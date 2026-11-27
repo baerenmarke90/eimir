@@ -119,6 +119,31 @@ public final class NativePushBridge extends Plugin {
             .put("androidPackage", getContext().getPackageName()));
     }
 
+    /** The notification ids still in the tray, for the read-state sync (#2345). */
+    @PluginMethod public void deliveredNotifications(PluginCall call) {
+        com.getcapacitor.JSArray ids = new com.getcapacitor.JSArray();
+        for (String id : NativePushNotifications.delivered(getContext())) ids.put(id);
+        call.resolve(new JSObject().put("notificationIds", ids));
+    }
+
+    /** Removes tray notices the server reported as settled (#2345). */
+    @PluginMethod public void withdrawNotifications(PluginCall call) {
+        java.util.Set<String> ids = new java.util.HashSet<>();
+        com.getcapacitor.JSArray requested = call.getArray("notificationIds");
+        if (requested != null) {
+            for (int index = 0; index < requested.length(); index++) {
+                String id = requested.optString(index, null);
+                if (id == null) continue;
+                try {
+                    String canonical = UUID.fromString(id).toString();
+                    if (canonical.equals(id)) ids.add(canonical);
+                } catch (IllegalArgumentException invalid) { /* Never matches a delivered notice. */ }
+            }
+        }
+        NativePushNotifications.withdraw(getContext(), ids);
+        call.resolve();
+    }
+
     @PluginMethod public void enable(PluginCall call) {
         int request = registrationRequests.incrementAndGet();
         pendingEnableCallId.set(call.getCallbackId());

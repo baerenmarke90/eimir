@@ -1374,3 +1374,53 @@ def mark_notifications_read_for(
         .execution_options(synchronize_session=False)
     )
     return int(getattr(result, "rowcount", 0) or 0)
+
+
+SETTLED_LOOKUP_LIMIT = 50
+
+
+def settled_notification_ids(
+    session: Session, context: AuthorizationContext, notification_ids: AbstractCollection[UUID]
+) -> list[UUID]:
+    """Which notices a device still shows that no longer need attention (#2345).
+
+    A device tray keeps a notice until something removes it. A notice is settled
+    when it was read, expired, deleted or is no longer current (the game moved
+    on, the plan was cancelled). Ids of another Space of the reader are left
+    alone: their currency is judged when that Space is active. An id that is not
+    the reader's own counts as settled exactly like a deleted one, so the answer
+    never tells whether a foreign id exists. A ServerAdmin notice belongs to no
+    Space and is settled once read.
+    """
+    requested = list(dict.fromkeys(notification_ids))[:SETTLED_LOOKUP_LIMIT]
+    if not requested:
+        return []
+    own = session.execute(
+        select(Notification.id, Notification.space_id, Notification.read_at).where(
+            Notification.id.in_(requested),
+            Notification.recipient_account_id == context.account_id,
+        )
+    ).all()
+    owned = {row.id: row for row in own}
+    pending = set(
+        session.scalars(
+            select(Notification.id).where(
+                Notification.id.in_([row.id for row in own if row.space_id == context.space_id]),
+                Notification.space_id == context.space_id,
+                Notification.recipient_account_id == context.account_id,
+                Notification.read_at.is_(None),
+                _current_notification_predicate(session, context),
+            )
+        )
+    )
+    settled: list[UUID] = []
+    for identifier in requested:
+        row = owned.get(identifier)
+        if row is None:
+            settled.append(identifier)
+        elif row.space_id is None:
+            if row.read_at is not None:
+                settled.append(identifier)
+        elif row.space_id == context.space_id and identifier not in pending:
+            settled.append(identifier)
+    return settled

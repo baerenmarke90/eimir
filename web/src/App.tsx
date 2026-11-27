@@ -33,16 +33,18 @@ import { AppIconProvider } from './client/appIconContext';
 import { clearPublicationMemory } from './client/approximateLocation';
 import { invalidateStoryProjections } from './client/authorSummaryConsumers';
 import {
+  browserNotificationTray,
   stopBrowserPushForSignedOutAccount,
   useBrowserPush,
 } from './client/browserPush';
-import { loadReferenceClientConfig } from './client/config';
+import { isAndroidApp, loadReferenceClientConfig } from './client/config';
 import { invalidateDashboard } from './client/dashboardQueries';
 import {
   rememberCurrentAuthReturnTarget,
   restoreAuthReturnTarget,
 } from './client/deepLinks';
 import {
+  androidNotificationTray,
   stopNativePushForSignedOutAccount,
   useDevicePush,
 } from './client/devicePush';
@@ -163,6 +165,7 @@ import {
 } from './client/storyDiscoverQuery';
 import { loadAuthorizedStoryImageResource } from './client/storyMediaLoader';
 import { type StoryStartupReads, startStoryReads } from './client/storyStartup';
+import { useTrayNoticeSync } from './client/trayNoticeSync';
 import { useAccountLanguage } from './client/useAccountLanguage';
 import { useAppShortcuts } from './client/useAppShortcuts';
 import { useCalendarGoogleAppReturn } from './client/useCalendarGoogleAppReturn';
@@ -585,6 +588,16 @@ function AuthenticatedApp({
   const devicePush = useDevicePush({
     accountId: account.id,
     apiBaseUrl,
+    notificationsApi: m4Apis.notifications,
+    queryClient,
+    spaceId,
+  });
+  useTrayNoticeSync({
+    tray: isAndroidApp()
+      ? androidNotificationTray
+      : isCapacitorNative()
+        ? null
+        : browserNotificationTray,
     notificationsApi: m4Apis.notifications,
     queryClient,
     spaceId,

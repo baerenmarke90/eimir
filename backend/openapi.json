@@ -17403,6 +17403,44 @@
         "title": "SessionView",
         "type": "object"
       },
+      "SettledNotifications": {
+        "properties": {
+          "settledIds": {
+            "description": "The requested notices that need no attention any more (read, expired, deleted or no longer current), so the device withdraws them. Notices of the reader's other Spaces are never listed.",
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Settledids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "settledIds"
+        ],
+        "title": "SettledNotifications",
+        "type": "object"
+      },
+      "SettledNotificationsQuery": {
+        "additionalProperties": false,
+        "properties": {
+          "notificationIds": {
+            "description": "Notices the device still shows in its notification tray.",
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Notificationids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "notificationIds"
+        ],
+        "title": "SettledNotificationsQuery",
+        "type": "object"
+      },
       "SharedHeartMomentSummary": {
         "description": "A heart moment as it appears in the caller's own Story.\n\nDespite the name, this is not shared-only (#1021 superseded M2-D22): a\nHeartMoment the caller marked ``PRIVATE`` is projected here too, at its\nordinary Timeline position, with ``visibility`` reporting its actual\ndomain visibility rather than an assumed ``SHARED``. The type keeps its\nestablished name — renaming it would force every generated client\n(including hand-written Android test fixtures out of #1021's scope) to\nfollow along for no behavioral gain; the real contract fix is the\n``visibility`` field, not the type name.",
         "properties": {
@@ -43685,6 +43723,79 @@
           }
         },
         "summary": "Mark All Notifications Read",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/notifications/settled": {
+      "post": {
+        "description": "Tell a device which tray notices it can withdraw (#2345); changes nothing.",
+        "operationId": "findSettledNotifications",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettledNotificationsQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettledNotifications"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Find Settled Notifications",
         "tags": [
           "notifications"
         ]

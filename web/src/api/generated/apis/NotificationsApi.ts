@@ -109,6 +109,16 @@ import {
     QuietHoursViewToJSON,
 } from '../models/QuietHoursView';
 import {
+    type SettledNotifications,
+    SettledNotificationsFromJSON,
+    SettledNotificationsToJSON,
+} from '../models/SettledNotifications';
+import {
+    type SettledNotificationsQuery,
+    SettledNotificationsQueryFromJSON,
+    SettledNotificationsQueryToJSON,
+} from '../models/SettledNotificationsQuery';
+import {
     type ThinkingOfYouAccepted,
     ThinkingOfYouAcceptedFromJSON,
     ThinkingOfYouAcceptedToJSON,
@@ -132,6 +142,11 @@ export interface DismissGentleSuggestionRequest {
 export interface ExcludeGentleMemoryRequest {
     memoryId: string;
     spaceId: string;
+}
+
+export interface FindSettledNotificationsRequest {
+    spaceId: string;
+    settledNotificationsQuery: SettledNotificationsQuery;
 }
 
 export interface GetGentleSuggestionRequest {
@@ -307,6 +322,63 @@ export class NotificationsApi extends runtime.BaseAPI {
      */
     async excludeGentleMemory(requestParameters: ExcludeGentleMemoryRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
         await this.excludeGentleMemoryRaw(requestParameters, initOverrides);
+    }
+
+    /**
+     * Creates request options for findSettledNotifications without sending the request
+     */
+    async findSettledNotificationsRequestOpts(requestParameters: FindSettledNotificationsRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling findSettledNotifications().'
+            );
+        }
+
+        if (requestParameters['settledNotificationsQuery'] == null) {
+            throw new runtime.RequiredError(
+                'settledNotificationsQuery',
+                'Required parameter "settledNotificationsQuery" was null or undefined when calling findSettledNotifications().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/notifications/settled`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: SettledNotificationsQueryToJSON(requestParameters['settledNotificationsQuery']),
+        };
+    }
+
+    /**
+     * Tell a device which tray notices it can withdraw (#2345); changes nothing.
+     * Find Settled Notifications
+     */
+    async findSettledNotificationsRaw(requestParameters: FindSettledNotificationsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SettledNotifications>> {
+        const requestOptions = await this.findSettledNotificationsRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => SettledNotificationsFromJSON(jsonValue));
+    }
+
+    /**
+     * Tell a device which tray notices it can withdraw (#2345); changes nothing.
+     * Find Settled Notifications
+     */
+    async findSettledNotifications(requestParameters: FindSettledNotificationsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SettledNotifications> {
+        const response = await this.findSettledNotificationsRaw(requestParameters, initOverrides);
+        return await response.value();
     }
 
     /**

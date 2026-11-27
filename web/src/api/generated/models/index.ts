@@ -468,6 +468,8 @@ export * from './ServerAdminStorageQuotaOverride';
 export * from './ServerAdminStorageQuotaRequest';
 export * from './ServerAdminStorageStatusCount';
 export * from './SessionView';
+export * from './SettledNotifications';
+export * from './SettledNotificationsQuery';
 export * from './SharedHeartMomentSummary';
 export * from './SharedNoteCreate';
 export * from './SharedNoteDetail';

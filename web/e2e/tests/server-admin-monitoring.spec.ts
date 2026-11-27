@@ -36,6 +36,7 @@ function overview(overrides: Overview = {}): Overview {
     expiringAdminGrantCount: 0,
     expiringAdminGrants: [],
     jobsFailed: 0,
+    jobsFailedUnseen: 0,
     jobsPending: 0,
     jobsRunning: 0,
     lastSuccessfulJobAt: null,

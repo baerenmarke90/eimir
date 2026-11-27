@@ -26,6 +26,7 @@ Name | Type
 `expiringAdminGrantCount` | number
 `expiringAdminGrants` | [Array&lt;ServerAdminExpiringGrantItem&gt;](ServerAdminExpiringGrantItem.md)
 `jobsFailed` | number
+`jobsFailedUnseen` | number
 `jobsPending` | number
 `jobsRunning` | number
 `lastSuccessfulJobAt` | Date
@@ -84,6 +85,7 @@ const example = {
   "expiringAdminGrantCount": null,
   "expiringAdminGrants": null,
   "jobsFailed": null,
+  "jobsFailedUnseen": null,
   "jobsPending": null,
   "jobsRunning": null,
   "lastSuccessfulJobAt": null,

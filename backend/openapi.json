@@ -15708,6 +15708,20 @@
         "title": "ServerAdminFailedJob",
         "type": "object"
       },
+      "ServerAdminFailedJobsSeen": {
+        "description": "How many failed jobs left the Situation page.",
+        "properties": {
+          "hidden": {
+            "title": "Hidden",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "hidden"
+        ],
+        "title": "ServerAdminFailedJobsSeen",
+        "type": "object"
+      },
       "ServerAdminJobItem": {
         "description": "Queue metadata safe for ServerAdmin responses.\n\nDeliberately absent: payload, last_error, locked_by, and payload-derived IDs.",
         "properties": {
@@ -16096,6 +16110,10 @@
             "title": "Jobsfailed",
             "type": "integer"
           },
+          "jobsFailedUnseen": {
+            "title": "Jobsfailedunseen",
+            "type": "integer"
+          },
           "jobsPending": {
             "title": "Jobspending",
             "type": "integer"
@@ -16290,6 +16308,7 @@
           "jobsPending",
           "jobsRunning",
           "jobsFailed",
+          "jobsFailedUnseen",
           "oldestPendingJobAt",
           "lastSuccessfulJobAt",
           "recentFailedJobs",
@@ -19732,6 +19751,36 @@
           "createdAt"
         ],
         "title": "SupportReportTicketSummary",
+        "type": "object"
+      },
+      "SupportReportsSeen": {
+        "additionalProperties": false,
+        "description": "Strict request: the reports that were new up to ``through`` (#2342).",
+        "properties": {
+          "through": {
+            "format": "date-time",
+            "title": "Through",
+            "type": "string"
+          }
+        },
+        "required": [
+          "through"
+        ],
+        "title": "SupportReportsSeen",
+        "type": "object"
+      },
+      "SupportReportsSeenResult": {
+        "description": "How many reports moved from new to in progress.",
+        "properties": {
+          "moved": {
+            "title": "Moved",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "moved"
+        ],
+        "title": "SupportReportsSeenResult",
         "type": "object"
       },
       "ThemePreference": {
@@ -25529,6 +25578,48 @@
         ]
       }
     },
+    "/api/v1/server-admin/failed-jobs/seen": {
+      "post": {
+        "description": "Hide the current failed jobs from the Situation page until a new job fails (#2342).\n\nSystem > Jobs, alert mails and pushes are unaffected. Shared by every ServerAdmin.",
+        "operationId": "mark_failed_jobs_seen_api_v1_server_admin_failed_jobs_seen_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerAdminFailedJobsSeen"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          }
+        },
+        "summary": "Mark Failed Jobs Seen",
+        "tags": [
+          "server-admin"
+        ]
+      }
+    },
     "/api/v1/server-admin/jobs": {
       "get": {
         "description": "List technical job state without selecting sensitive queue columns.",
@@ -27456,6 +27547,78 @@
           }
         },
         "summary": "List Support Reports",
+        "tags": [
+          "server-admin-support-reports"
+        ]
+      }
+    },
+    "/api/v1/server-admin/support-reports/seen": {
+      "post": {
+        "description": "Move the reports that were new up to ``through`` to in progress (#2342).\n\nThe Situation page's \"Seen\" button; each report is audited like a single\nstate change. A report that arrived later stays new.",
+        "operationId": "markSupportReportsSeen",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportReportsSeen"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportReportsSeenResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Mark Support Reports Seen",
         "tags": [
           "server-admin-support-reports"
         ]

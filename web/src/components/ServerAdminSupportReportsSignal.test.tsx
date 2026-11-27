@@ -43,6 +43,7 @@ function overview(
     enabledAccountCount: 4,
     environment: 'test',
     jobsFailed: 0,
+    jobsFailedUnseen: 0,
     jobsPending: 0,
     jobsRunning: 0,
     lastSuccessfulJobAt: null,

@@ -105,6 +105,22 @@ describe('native system theme', () => {
     expect(document.documentElement.dataset.theme).toBe('dark');
   });
 
+  it('asks for the device appearance again when the app becomes visible', async () => {
+    render(<ThemeControl />);
+    startNativeSystemTheme();
+    await flush();
+    expect(document.documentElement.dataset.theme).toBe('light');
+
+    native.current.mockResolvedValue({ dark: true });
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await flush();
+
+    expect(document.documentElement.dataset.theme).toBe('dark');
+  });
+
   it('keeps an explicit in-app choice and aligns the system bars with it', async () => {
     render(<ThemeControl />);
     startNativeSystemTheme();

@@ -286,7 +286,7 @@
   display: block;
   width: 44px;
   height: 26px;
-  border: var(--border-surface-width) solid var(--color-border);
+  border: var(--border-surface-width) solid var(--color-switch-outline);
   border-radius: 999px;
   background: var(--color-surface-subtle);
   transition:
@@ -311,13 +311,13 @@
    accent, so it uses the on-accent token and never a brand tone (the dark
    brand-strong thumb on a brand-surface track was unreadable). */
 .space-module-switch[aria-checked="true"] .space-module-switch-track {
-  border-color: var(--color-brand-strong);
-  background: var(--color-brand-strong);
+  border-color: var(--color-switch-track-on);
+  background: var(--color-switch-track-on);
 }
 
 .space-module-switch[aria-checked="true"] .space-module-switch-thumb {
   transform: translateX(18px);
-  background: var(--color-on-accent);
+  background: var(--color-switch-thumb-on);
 }
 
 .space-module-switch:focus-visible {
@@ -773,7 +773,7 @@
   width: 44px;
   height: 26px;
   margin: 0;
-  border: var(--border-surface-width) solid var(--color-border);
+  border: var(--border-surface-width) solid var(--color-switch-outline);
   border-radius: var(--radius-pill);
   background: var(--color-surface);
   cursor: pointer;
@@ -796,12 +796,12 @@
 }
 
 .dashboard-module-option input[type="checkbox"]:checked {
-  border-color: var(--color-brand-strong);
-  background: var(--color-brand-strong);
+  border-color: var(--color-switch-track-on);
+  background: var(--color-switch-track-on);
 }
 
 .dashboard-module-option input[type="checkbox"]:checked::after {
-  background: var(--color-on-accent);
+  background: var(--color-switch-thumb-on);
   transform: translate(18px, -50%);
 }
 

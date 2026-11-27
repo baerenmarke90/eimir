@@ -45,7 +45,7 @@
   display: block;
   width: 2.75rem;
   height: 1.6rem;
-  border: var(--border-surface-width) solid var(--color-border);
+  border: var(--border-surface-width) solid var(--color-switch-outline);
   border-radius: var(--radius-pill);
   background: var(--color-surface-subtle);
   transition:
@@ -66,12 +66,12 @@
 }
 
 .preference-switch-control[aria-checked="true"] .preference-switch-track {
-  border-color: var(--color-brand-strong);
-  background: var(--color-brand-strong);
+  border-color: var(--color-switch-track-on);
+  background: var(--color-switch-track-on);
 }
 
 .preference-switch-control[aria-checked="true"] .preference-switch-thumb {
-  background: var(--color-on-accent);
+  background: var(--color-switch-thumb-on);
   transform: translate(1.15rem, -50%);
 }
 

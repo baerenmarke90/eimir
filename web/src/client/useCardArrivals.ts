@@ -50,16 +50,20 @@ export function useCardArrivals(
 ): ReadonlyMap<string, CardArrival> {
   const seen = useRef<Set<string> | null>(null);
   if (seen.current === null) seen.current = readSeen(scope);
-  const mountedAt = useRef<number | null>(null);
-  if (mountedAt.current === null) mountedAt.current = Date.now();
+  // A timer, not the wall clock: a changed or frozen clock (a test's fixed
+  // time, a device clock correction) must not keep cards in the opening.
+  const openingOver = useRef(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      openingOver.current = true;
+    }, OPENING_WINDOW_MS);
+    return () => window.clearTimeout(timer);
+  }, []);
   const arrivals = useRef(new Map<string, CardArrival>());
 
   for (const id of ids) {
     if (seen.current.has(id) || arrivals.current.has(id)) continue;
-    arrivals.current.set(
-      id,
-      Date.now() - mountedAt.current < OPENING_WINDOW_MS ? 'opening' : 'live',
-    );
+    arrivals.current.set(id, openingOver.current ? 'live' : 'opening');
   }
 
   const key = ids.join('\n');

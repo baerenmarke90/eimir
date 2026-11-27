@@ -161,7 +161,7 @@ export function WirWaitingGamesModule({
           {t('games.waiting.title')}
         </h2>
       </div>
-      <ul className="wir-lists-row wir-waiting-games">
+      <ul className="wir-lists-row wir-tile-reel wir-waiting-games">
         {items.map((item: WaitingGameView) => {
           const game = GAME_PRESENTATION[item.game];
           return (

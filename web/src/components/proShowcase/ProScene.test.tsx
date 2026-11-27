@@ -125,4 +125,32 @@ describe('ProScene', () => {
     expect(ids.length).toBeGreaterThan(0);
     expect(new Set(ids).size).toBe(ids.length);
   });
+
+  it('shrinks a scene word that is wider than its field and keeps one that fits', () => {
+    // jsdom has no text layout: ten drawing units per character.
+    Object.defineProperty(SVGElement.prototype, 'getComputedTextLength', {
+      configurable: true,
+      value(this: SVGTextElement) {
+        return (this.textContent?.length ?? 0) * 10;
+      },
+    });
+    try {
+      const { container } = render(<ProScene id="mapCloseness" active />);
+      const sizes = new Map(
+        [...container.querySelectorAll('text')].map((node) => [
+          node.textContent,
+          Number(node.getAttribute('font-size')),
+        ]),
+      );
+      // "412 km" (6 characters, 60 units) is wider than its 46 unit field.
+      expect(sizes.get('412 km')).toBeCloseTo((10.5 * 46) / 60);
+      // The once-message word is shrunk until it fits its pill as well.
+      const message = [...container.querySelectorAll('text')].find(
+        (node) => (node.textContent?.length ?? 0) > 6,
+      );
+      expect(Number(message?.getAttribute('font-size'))).toBeLessThan(8.5);
+    } finally {
+      Reflect.deleteProperty(SVGElement.prototype, 'getComputedTextLength');
+    }
+  });
 });

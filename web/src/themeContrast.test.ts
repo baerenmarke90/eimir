@@ -159,6 +159,31 @@ describe('theme token contrast', () => {
     ).toBeGreaterThanOrEqual(4.5);
   });
 
+  it('keeps switch tracks and thumbs distinguishable from Dark surfaces (WCAG 1.4.11)', () => {
+    const resolve = (name: string): string => {
+      const reference = dark.match(
+        new RegExp(`--${name}:\\s*var\\(--([a-z-]+)\\);`),
+      );
+      if (!reference)
+        throw new Error(`Dark switch token is missing: --${name}`);
+      return cssVariable(dark, reference[1]);
+    };
+    const trackOn = resolve('color-switch-track-on');
+    const thumbOn = resolve('color-switch-thumb-on');
+    const outline = resolve('color-switch-outline');
+
+    for (const surface of [
+      'color-surface',
+      'color-surface-subtle',
+      'color-surface-raised',
+    ]) {
+      const ground = cssVariable(dark, surface);
+      expect(contrast(trackOn, ground)).toBeGreaterThanOrEqual(3);
+      expect(contrast(outline, ground)).toBeGreaterThanOrEqual(3);
+    }
+    expect(contrast(thumbOn, trackOn)).toBeGreaterThanOrEqual(3);
+  });
+
   it('keeps entry copy readable across every hero gradient stop', () => {
     for (const theme of [explicitLight, dark]) {
       const foreground = cssVariable(theme, 'color-on-accent');

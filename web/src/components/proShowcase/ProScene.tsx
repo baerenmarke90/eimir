@@ -15,7 +15,15 @@
  * `--motion-ambient-repeat` cycles. Keyframes and timing roles:
  * `src/motion/pro-showcase.css`.
  */
-import { useEffect, useId, useRef, useState } from 'react';
+import {
+  type ReactNode,
+  type SVGProps,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { useTranslation } from '../../i18n';
 import { useReducedMotion } from '../../motion/reducedMotion';
 import { observeVisibility } from '../../motion/visibility';
@@ -38,6 +46,25 @@ export const PRO_SCENE_IDS = [
 export type ProSceneId = (typeof PRO_SCENE_IDS)[number];
 
 type Ids = (name: string) => string;
+
+/*
+ * Widths, in drawing units (the 240 x 192 viewBox), that the localized scene
+ * words may use. Each is the field the word sits in minus its padding; see
+ * `FitText`.
+ */
+const LABEL_MAX_WIDTH = 200;
+const TITLE_MAX_WIDTH = 116;
+const FACT_MAX_WIDTH = 200;
+const PLACE_MAX_WIDTH = 50;
+const DISTANCE_MAX_WIDTH = 46;
+const GAME_CARD_X = 28;
+const GAME_CARD_WIDTH = 184;
+const GAME_CARD_TEXT_WIDTH = GAME_CARD_WIDTH - 16;
+const MESSAGE_PILL_X = 70;
+const MESSAGE_PILL_WIDTH = 112;
+const MESSAGE_TEXT_X = 98;
+const MESSAGE_TEXT_WIDTH =
+  MESSAGE_PILL_X + MESSAGE_PILL_WIDTH - 8 - MESSAGE_TEXT_X;
 
 const HEART_PATH =
   'M12 20.3 4.7 13a4.6 4.6 0 0 1 6.5-6.5l.8.8.8-.8a4.6 4.6 0 0 1 6.5 6.5Z';
@@ -161,6 +188,50 @@ function Mochi({
   );
 }
 
+/**
+ * Scene text that always fits its field. The artwork's pills and cards have a
+ * fixed size in the drawing, but the words are localized and a longer
+ * language must not stick out of them. The text keeps its drawn size when it
+ * fits `maxWidth` (in drawing units, independent of the rendered size) and
+ * shrinks just enough when it does not. It is measured again once the web
+ * fonts have loaded, so a late font swap cannot reintroduce the overflow.
+ */
+function FitText({
+  maxWidth,
+  fontSize,
+  children,
+  ...rest
+}: Omit<SVGProps<SVGTextElement>, 'fontSize' | 'children'> & {
+  maxWidth: number;
+  fontSize: number;
+  children: ReactNode;
+}) {
+  const ref = useRef<SVGTextElement>(null);
+  useLayoutEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    let cancelled = false;
+    const fitToField = () => {
+      if (cancelled || typeof node.getComputedTextLength !== 'function') return;
+      node.setAttribute('font-size', String(fontSize));
+      const length = node.getComputedTextLength();
+      if (length > maxWidth) {
+        node.setAttribute('font-size', String((fontSize * maxWidth) / length));
+      }
+    };
+    fitToField();
+    void document.fonts?.ready.then(fitToField);
+    return () => {
+      cancelled = true;
+    };
+  });
+  return (
+    <text ref={ref} fontSize={fontSize} {...rest}>
+      {children}
+    </text>
+  );
+}
+
 function Heart({ x, y, size }: { x: number; y: number; size: number }) {
   return (
     <svg
@@ -262,15 +333,16 @@ function MemoryWorldsScene({ ids }: { ids: Ids }) {
         {TOUR.map(({ world, className }) => (
           <g key={world} className={`ps-p ${className}`}>
             <WorldArt world={world} />
-            <text
-              x="120"
-              y="182"
+            <FitText
+              x={120}
+              y={182}
               textAnchor="middle"
               className="ps-label"
-              fontSize="11"
+              fontSize={11}
+              maxWidth={LABEL_MAX_WIDTH}
             >
               {t(`memoryWorldSettings.worlds.${world}.name`)}
-            </text>
+            </FitText>
           </g>
         ))}
         <g className="ps-p ps1-guide">
@@ -328,12 +400,25 @@ function RecapFilmScene({ ids }: { ids: Ids }) {
           />
           <rect {...fill} fill={`url(#${ids('shade')})`} />
           <g className="ps-p ps2-title">
-            <text x="76" y="150" className="ps-serif" fontSize="19" fill="#fff">
+            <FitText
+              x={76}
+              y={150}
+              className="ps-serif"
+              fontSize={19}
+              fill="#fff"
+              maxWidth={TITLE_MAX_WIDTH}
+            >
               {t('proPaywall.showcase.art.recapMonth')}
-            </text>
-            <text x="77" y="166" fontSize="8" fill="#ffffffcc">
+            </FitText>
+            <FitText
+              x={77}
+              y={166}
+              fontSize={8}
+              fill="#ffffffcc"
+              maxWidth={TITLE_MAX_WIDTH}
+            >
               {t('proPaywall.showcase.art.recapMoments')}
-            </text>
+            </FitText>
           </g>
         </g>
         <g className="ps-p ps2-part ps2-k2">
@@ -365,9 +450,16 @@ function RecapFilmScene({ ids }: { ids: Ids }) {
               3
             </text>
           </g>
-          <text x="120" y="118" textAnchor="middle" fontSize="9.5" fill="#fff">
+          <FitText
+            x={120}
+            y={118}
+            textAnchor="middle"
+            fontSize={9.5}
+            fill="#fff"
+            maxWidth={FACT_MAX_WIDTH}
+          >
             {t('proPaywall.showcase.art.recapFact')}
-          </text>
+          </FitText>
           <Heart x={110} y={130} size={20} />
         </g>
         <g className="ps-p ps2-part ps2-k4">
@@ -385,25 +477,33 @@ function RecapFilmScene({ ids }: { ids: Ids }) {
               d="M93 151 c-4 -5 -6 -7 -6 -9.5 a6 6 0 0 1 12 0 c0 2.5 -2 4.5 -6 9.5z"
               fill="#d13b65"
             />
-            <text x="104" y="150" fontSize="10" fontWeight="700" fill="#19233e">
+            <FitText
+              x={104}
+              y={150}
+              fontSize={10}
+              fontWeight="700"
+              fill="#19233e"
+              maxWidth={PLACE_MAX_WIDTH}
+            >
               {t('proPaywall.showcase.art.recapPlace')}
-            </text>
+            </FitText>
           </g>
         </g>
         <g className="ps-p ps2-part ps2-k5">
           <rect {...fill} fill="#e6f6ee" />
           <ellipse cx="120" cy="196" rx="80" ry="40" fill="#b8e3c4" />
           <Heart x={108} y={48} size={24} />
-          <text
-            x="120"
-            y="92"
+          <FitText
+            x={120}
+            y={92}
             textAnchor="middle"
             className="ps-serif"
-            fontSize="11.5"
+            fontSize={11.5}
             fill="#19233e"
+            maxWidth={FACT_MAX_WIDTH}
           >
             {t('proPaywall.showcase.art.recapGoodbye')}
-          </text>
+          </FitText>
           <g className="ps-p ps2-wave">
             <Mochi kind="a" x={78} y={120} width={40} height={32} />
           </g>
@@ -551,34 +651,36 @@ function GardenScene({ ids }: { ids: Ids }) {
       />
       <g className="ps-p ps3-game">
         <rect
-          x="46"
+          x={GAME_CARD_X}
           y="14"
-          width="148"
+          width={GAME_CARD_WIDTH}
           height="64"
           rx="12"
           fill="#fff"
           stroke="#19233e14"
         />
-        <text
-          x="120"
-          y="33"
+        <FitText
+          x={120}
+          y={33}
           textAnchor="middle"
-          fontSize="9"
+          fontSize={9}
           fontWeight="700"
           fill="#3055b8"
+          maxWidth={GAME_CARD_TEXT_WIDTH}
         >
           {t('proPaywall.showcase.art.gameEyebrow')}
-        </text>
-        <text
-          x="120"
-          y="48"
+        </FitText>
+        <FitText
+          x={120}
+          y={48}
           textAnchor="middle"
           className="ps-serif"
-          fontSize="11"
+          fontSize={11}
           fill="#19233e"
+          maxWidth={GAME_CARD_TEXT_WIDTH}
         >
           {t('proPaywall.showcase.art.gameQuestion')}
-        </text>
+        </FitText>
         <Mochi kind="a" x={86} y={54} width={20} height={16} />
         <Mochi kind="b" x={134} y={54} width={20} height={16} />
         <g className="ps-p ps3-tick">
@@ -672,40 +774,48 @@ function MapScene({ ids }: { ids: Ids }) {
       </g>
       <g className="ps-p ps4-km">
         <rect x="84" y="78" width="58" height="22" rx="11" fill="#19233e" />
-        <text
-          x="113"
-          y="93"
+        <FitText
+          x={113}
+          y={93}
           textAnchor="middle"
-          fontSize="10.5"
+          fontSize={10.5}
           fontWeight="700"
           fill="#fff"
+          maxWidth={DISTANCE_MAX_WIDTH}
         >
           {t('proPaywall.showcase.art.distance')}
-        </text>
+        </FitText>
       </g>
       <g className="ps-p ps4-heart">
         <Heart x={104} y={56} size={18} />
       </g>
       <g className="ps-p ps4-msg">
         <rect
-          x="92"
+          x={MESSAGE_PILL_X}
           y="4"
-          width="90"
+          width={MESSAGE_PILL_WIDTH}
           height="22"
           rx="11"
           fill="#fff"
           stroke="#19233e1f"
         />
-        <rect x="100" y="10" width="13" height="10" rx="2" fill="#f2668b" />
+        <rect x="80" y="10" width="13" height="10" rx="2" fill="#f2668b" />
         <path
-          d="M100 11 l6.5 5 l6.5 -5"
+          d="M80 11 l6.5 5 l6.5 -5"
           stroke="#fff"
           strokeWidth="1.3"
           fill="none"
         />
-        <text x="118" y="19" fontSize="8.5" fontWeight="700" fill="#19233e">
+        <FitText
+          x={MESSAGE_TEXT_X}
+          y={19}
+          fontSize={8.5}
+          fontWeight="700"
+          fill="#19233e"
+          maxWidth={MESSAGE_TEXT_WIDTH}
+        >
           {t('proPaywall.showcase.art.onceMessage')}
-        </text>
+        </FitText>
       </g>
     </>
   );

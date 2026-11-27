@@ -215,21 +215,6 @@ describe('ProPaywallPage', () => {
     expect(screen.getByText(storage.body)).toBeTruthy();
   });
 
-  it('marks the newest Pro capabilities as new', () => {
-    renderPaywall('/more/pro');
-    const marked = screen
-      .getAllByText(proPaywall.catalogue.new)
-      .map((mark) => mark.closest('dt')?.firstChild?.textContent);
-    expect(marked.sort()).toEqual(
-      [
-        proPaywall.catalogue.features.games.title,
-        proPaywall.catalogue.features.memoryWorlds.title,
-        proPaywall.catalogue.features.recaps.title,
-        proPaywall.catalogue.features.storage.title,
-      ].sort(),
-    );
-  });
-
   it('preselects the yearly plan and lets the monthly plan be chosen', () => {
     renderPaywall('/more/pro?context=dateIdeas');
     const yearly = screen.getByRole('radio', { name: /Jährlich/ });

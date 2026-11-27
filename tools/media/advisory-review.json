@@ -453,6 +453,11 @@
       "evidenceSha256": "8350a282e331977a3a5f81b853025b5752aff3b90d35da2d216a4c8407f3764a",
       "reviewedAt": "2026-11-24",
       "review": "The affected peak_init_writer() and the peak branch of wav_write_packet() in libavformat/wavenc.c are compiled because the wav muxer is enabled, but they are not reachable. In the pinned source peak_init_writer() runs only when the wav muxer option write_peak is non-zero, and that option defaults to 0 (off). It is a muxer option that exists only on the ffmpeg command line, and no command built by the application passes it: the only wav output in attachments/audios.py is a fixed '-c:a pcm_s16le -ac 1 -ar 48000 -f wav' command whose arguments are assembled by the application, never from media content. The zero-channel precondition is also closed independently: the probe step rejects every voice note whose stream does not have 1 or 2 channels before the conversion runs, and -ac 1 forces mono. The advisory therefore cannot be triggered by crafted input media. Debian lists the advisory as open in all releases and upstream fixed it only in 9.1, so this is a reviewed not-reachable record, not an upstream closure claim."
+    },
+    "CVE-2026-137076": {
+      "evidenceSha256": "affbbbe611d9bbb07881c1216bc1969650f8178f367e07f12ce95d50975d64f2",
+      "reviewedAt": "2026-11-27",
+      "review": "The affected avcodec_flush_buffers() in libavcodec/avcodec.c and the frame pool in libavcodec/decode.c are compiled, but the described exposure needs one decoder context reused across users. Every application job starts its own ffmpeg or ffprobe child process (media_process.py and videos.py, one input per process, stdin closed, -nostdin), so a decoder context and its buffer pool live for exactly one user's file and are discarded at process exit; nothing recycles buffers between users. Output is a stream copy for video and a bounded single-stream transcode for audio, never written from unwritten frame regions of another job. The advisory therefore cannot expose another user's picture content in this deployment. Debian lists it as open in all releases with no fixed version, so this is a reviewed not-reachable record, not an upstream closure claim."
     }
   },
   "dependencies": {

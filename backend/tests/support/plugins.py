@@ -114,6 +114,7 @@ ADMIN_OPERATIONS = frozenset(
         ("GET", "/api/v1/server-admin/support-reports"),
         ("GET", "/api/v1/server-admin/support-reports/{reportId}"),
         ("PUT", "/api/v1/server-admin/support-reports/{reportId}/state"),
+        ("POST", "/api/v1/server-admin/support-reports/seen"),
         ("PUT", "/api/v1/server-admin/support-reports/{reportId}/archive"),
         ("DELETE", "/api/v1/server-admin/support-reports/{reportId}"),
         ("POST", "/api/v1/server-admin/support-reports/{reportId}/reply"),

@@ -1,5 +1,6 @@
 from dataclasses import replace
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from itertools import pairwise
 from unittest.mock import MagicMock
 from uuid import UUID, uuid4
 
@@ -50,6 +51,25 @@ def test_resolver_is_deterministic_on_same_day() -> None:
     assert res1.quote.id == res2.quote.id
     assert res1.checked_on == res2.checked_on
     assert res1.enabled is True
+
+
+def test_resolver_partners_share_quote_and_it_changes_every_day() -> None:
+    space_id = uuid4()
+    session = _mock_session_with_preference(None)
+    first_day = datetime(2026, 9, 21, 10, 0, tzinfo=UTC)
+
+    def pick(account_id: UUID, at: datetime) -> str:
+        auth = AuthorizationContext(account_id=account_id, space_id=space_id)
+        quote = resolver.resolve_daily_quote(session, auth, at=at).quote
+        assert quote is not None
+        return quote.id
+
+    assert pick(uuid4(), first_day) == pick(uuid4(), first_day)
+
+    account_id = uuid4()
+    picks = [pick(account_id, first_day + timedelta(days=offset)) for offset in range(30)]
+    assert all(today != yesterday for yesterday, today in pairwise(picks))
+    assert len(set(picks)) > 20
 
 
 def test_resolver_different_accounts_receive_personalized_selection() -> None:
@@ -131,7 +151,7 @@ def test_resolver_considers_matching_categories_across_legacy_sources() -> None:
         custom_quote_pool=[classic, poetry, unrelated],
     )
 
-    assert result.quote == poetry
+    assert result.quote in (classic, poetry)
 
 
 def test_disabled_preference_returns_no_quote() -> None:

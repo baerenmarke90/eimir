@@ -95,9 +95,6 @@ const demoResetTimerEnabled =
 const demoResetInterval = String(
   identityBuildVariable('DEMO_RESET_INTERVAL') || '6h',
 ).trim();
-const demoUrl = String(identityBuildVariable('DEMO_URL'))
-  .trim()
-  .replace(/\/+$/, '');
 
 function RootApp() {
   const { t } = useTranslation();
@@ -119,11 +116,6 @@ function RootApp() {
         />
       ) : null}
       <App demoMode={demoMode} />
-      {!demoMode && demoUrl ? (
-        <a className="demo-launch" href={demoUrl}>
-          {t('demo.launch')}
-        </a>
-      ) : null}
     </NativeSessionGate>
   );
 }

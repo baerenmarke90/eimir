@@ -57,8 +57,11 @@ const everythingTargets = [
 export function MomentCreateMenu({
   floating = false,
   everything = false,
+  taskItemKey = 'moment-create',
 }: {
   floating?: boolean;
+  /** Distinguishes a second instance on the same screen (the top bar's). */
+  taskItemKey?: string;
   /** Also offer Plan, Wish and List (the Wir overview). */
   everything?: boolean;
 }) {
@@ -66,7 +69,7 @@ export function MomentCreateMenu({
     <ContextualCreateMenu
       labelKey={everything ? 'navigation.quickCreateTitle' : 'story.addMoment'}
       targets={everything ? everythingTargets : targets}
-      taskItemKey="moment-create"
+      taskItemKey={taskItemKey}
       floating={floating}
     />
   );

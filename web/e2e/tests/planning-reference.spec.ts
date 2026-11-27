@@ -7,6 +7,7 @@ import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '../support/axe';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import navigationCopy from '../../src/i18n/locales/navigation';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import wishJourney from '../../src/i18n/locales/wishJourney';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
@@ -868,7 +869,12 @@ test('Expanded: Wir, Planen, Momente and the text pages are centered', async ({
     await expectCentered(selector);
   }
 
-  await expect(page.getByRole('banner').getByRole('button')).toHaveCount(0);
+  // The bar carries exactly one control: the create entry at its end.
+  const barButtons = page.getByRole('banner').getByRole('button');
+  await expect(barButtons).toHaveCount(1);
+  await expect(barButtons).toHaveAccessibleName(
+    navigationCopy.quickCreateTitle,
+  );
   await expectNoHorizontalOverflow(page);
 });
 

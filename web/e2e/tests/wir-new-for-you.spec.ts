@@ -125,6 +125,51 @@ async function installMocks(page: Page): Promise<Server> {
           { id: PARTNER_ID, displayName: 'Ben' },
         ],
       });
+    if (method === 'GET' && pathname === `${SPACE}/appearance/wir-design`)
+      return json({ designId: 'connected', version: 1 });
+    if (method === 'GET' && pathname === `${SPACE}/dashboard/preferences`)
+      return json({ items: [] });
+    if (method === 'GET' && pathname === `${SPACE}/partner-nickname`)
+      return json({ partnerId: PARTNER_ID, nickname: null, version: 0 });
+    if (method === 'GET' && pathname === `${SPACE}/presence`)
+      return json({ state: 'UNKNOWN' });
+    if (method === 'GET' && pathname === `${SPACE}/recaps`)
+      return json({
+        canCompose: false,
+        editions: [],
+        periods: [],
+        hasMore: false,
+      });
+    if (method === 'GET' && pathname === `${SPACE}/configuration`)
+      return json({
+        canManageSpaceConfiguration: true,
+        dailyContextTimezone: 'Europe/Berlin',
+        dailyQuestionsEnabled: false,
+        energyCheckInEnabled: true,
+        energyVisibilityMode: 'IMMEDIATE',
+        loveNotesEnabled: false,
+        sharedAchievementsEnabled: false,
+        spaceId: SPACE_ID,
+        supportGesturesEnabled: true,
+        version: 7,
+        vibeCheckEnabled: true,
+        vibeVisibilityMode: 'IMMEDIATE',
+      });
+    if (method === 'GET' && pathname === `${SPACE}/daily-check-in/today`)
+      return json({
+        checkedOn: '2026-11-27',
+        dailyContextTimezone: 'Europe/Berlin',
+        own: { energyLevel: null, vibe: null, vibeNote: null, version: 0 },
+        energy: {
+          visibilityMode: 'IMMEDIATE',
+          partner: { state: 'NO_CHECK_IN' },
+        },
+        vibe: {
+          visibilityMode: 'IMMEDIATE',
+          partner: { state: 'NO_CHECK_IN' },
+          partnerNote: null,
+        },
+      });
     if (method === 'GET' && pathname === `${SPACE}/entitlements`)
       return json({ tier: 'PREMIUM', capabilities: ['games.couple'] });
     if (method === 'GET' && pathname === `${SPACE}/games/waiting`)
@@ -209,7 +254,11 @@ function reel(page: Page) {
 async function saveEvidence(page: Page, name: string) {
   const exportDir = process.env.VISUAL_EVIDENCE_DIR;
   const output = test.info().outputPath(`${name}.png`);
-  await reel(page).scrollIntoViewIfNeeded();
+  // The reel and the games below it, from the reel's heading down.
+  await reel(page).evaluate((element) =>
+    element.scrollIntoView({ block: 'start' }),
+  );
+  await waitForSettledMotion(page);
   await page.screenshot({ path: output, fullPage: false });
   if (exportDir) {
     fs.mkdirSync(exportDir, { recursive: true });

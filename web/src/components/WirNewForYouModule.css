@@ -78,19 +78,16 @@
   );
 }
 
-.wir-notice-tile-brand,
-.wir-notice-tile-deep-cool,
 .wir-notice-tile-deep-warm {
   color: var(--wir-notice-ink-inverse);
 }
 
+/* The action pair keeps its contrast in every app design and theme: some
+   designs use a light action colour in Dark, with dark text on it. */
 .wir-notice-tile-brand,
 .wir-notice-tile-deep-cool {
-  background: linear-gradient(
-    160deg,
-    var(--color-action-primary),
-    var(--color-brand-strong)
-  );
+  background: var(--color-action-primary);
+  color: var(--color-on-action-primary);
 }
 
 .wir-notice-tile-deep-warm {
@@ -169,7 +166,8 @@
   justify-self: stretch;
   padding: 0.15rem 0;
   background: var(--color-person-rose);
-  color: var(--wir-notice-ink-inverse);
+  /* Dark rosé in Light, light rosé in Dark: the raised surface reads on both. */
+  color: var(--color-surface-raised);
   font-size: 0.7rem;
   font-weight: 700;
   text-align: center;

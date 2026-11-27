@@ -167,6 +167,29 @@ def _detail_content(
     return ""
 
 
+def comment_text(
+    session: Session, notification: Notification, context: AuthorizationContext
+) -> str:
+    """The exact, reauthorized comment a COMMENT_CREATED notice refers to (#2345 B)."""
+    if notification.kind != NotificationKind.COMMENT_CREATED.value:
+        return ""
+    return _content(session, notification, context)
+
+
+def reaction_code(
+    session: Session, notification: Notification, context: AuthorizationContext
+) -> str:
+    """The closed reaction preset a PHOTO_REACTION notice refers to, or empty (#2345 B)."""
+    if notification.kind != NotificationKind.PHOTO_REACTION.value:
+        return ""
+    return _detail_content(session, notification, context)
+
+
+def label(value: str, limit: int) -> str:
+    """Bounded plain display text, as every preview field uses."""
+    return _label(value, limit)
+
+
 def _manual_reminder(
     session: Session, context: AuthorizationContext, reminder_id: object
 ) -> Reminder | None:

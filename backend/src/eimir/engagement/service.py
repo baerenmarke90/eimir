@@ -996,6 +996,11 @@ def _current_notification_predicate(session: Session, context: AuthorizationCont
     )
 
 
+def current_notification_predicate(session: Session, context: AuthorizationContext) -> Any:
+    """The centre's "still current" rule, for other reads of the same notices (#2345 B)."""
+    return _current_notification_predicate(session, context)
+
+
 def _current_random_predicate(
     current: wish_selections.SelectionProjection, context: AuthorizationContext
 ) -> Any:

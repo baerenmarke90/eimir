@@ -858,6 +858,7 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         resource_absence="NOTIFICATION_NOT_FOUND",
     ),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/notifications/read-all"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/notifications/wir"),
     Endpoint(
         "POST",
         "/api/v1/spaces/{spaceId}/notifications/settled",

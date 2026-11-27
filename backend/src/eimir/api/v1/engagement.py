@@ -87,6 +87,31 @@ class NotificationPage(ApiModel):
     has_more: bool
 
 
+class WirNoticePreview(ApiModel):
+    """Authorized content for a Wir tile, read afresh; never stored in the notice."""
+
+    text: str | None = Field(
+        default=None, description="A comment's text or a shared note's opening, bounded."
+    )
+    reaction: str | None = Field(
+        default=None, description="The photo reaction preset the partner chose."
+    )
+    items: list[str] = Field(
+        default_factory=list, description="The first open items of a sent list."
+    )
+    more_items: int = Field(default=0, description="Further open items of that list.")
+
+
+class WirNotice(NotificationItem):
+    preview: WirNoticePreview | None = None
+
+
+class WirNotices(ApiModel):
+    items: list[WirNotice] = Field(
+        description="The reader's unread, current Wir notices, newest first (#2345 B)."
+    )
+
+
 class NotificationUnreadCount(ApiModel):
     unread_count: int
 
@@ -200,6 +225,58 @@ def get_notifications(
         next_cursor=page.next_cursor,
         has_more=page.has_more,
     )
+
+
+@router.get(
+    "/spaces/{spaceId}/notifications/wir",
+    response_model=WirNotices,
+    operation_id="getWirNotices",
+    responses=problem_responses(401, 404, 422),
+    tags=["notifications"],
+)
+def get_wir_notices(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+) -> WirNotices:
+    """What is new for the reader, as Wir tiles (#2345 B); reading it changes nothing."""
+    from eimir.engagement import wir_notices
+
+    notices = wir_notices.read_wir_notices(session, authorization)
+    actors = _resolve_actors(
+        session, {item.actor_id for item in notices if item.actor_id is not None}
+    )
+    target_titles = _resolve_target_titles(
+        session,
+        authorization,
+        {
+            (EngagementTarget(item.target_type), item.target_id)
+            for item in notices
+            if item.target_type is not None and item.target_id is not None
+        },
+    )
+    previews = wir_notices.previews(session, authorization, notices)
+    response.headers["Cache-Control"] = "private, no-store"
+    items: list[WirNotice] = []
+    for notice in notices:
+        base = _notification_item(notice, actors, target_titles)
+        preview = previews.get(notice.id)
+        items.append(
+            WirNotice(
+                **base.model_dump(),
+                preview=(
+                    WirNoticePreview(
+                        text=preview.text,
+                        reaction=preview.reaction,
+                        items=preview.items,
+                        more_items=preview.more_items,
+                    )
+                    if preview is not None
+                    else None
+                ),
+            )
+        )
+    return WirNotices(items=items)
 
 
 @router.get(

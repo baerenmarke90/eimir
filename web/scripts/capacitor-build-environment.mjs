@@ -14,6 +14,7 @@ export class CapacitorBuildConfigurationError extends Error {}
 // can never announce an interval the backend would reject.
 const DEMO_RESET_INTERVAL_PATTERN = /^([1-9][0-9]*)([mhd])$/;
 const MINUTES_PER_UNIT = { m: 1, h: 60, d: 24 * 60 };
+const DEFAULT_DEMO_URL = 'https://demo.eimir.de';
 const MIN_DEMO_RESET_MINUTES = 5;
 const MAX_DEMO_RESET_MINUTES = 7 * 24 * 60;
 
@@ -95,6 +96,22 @@ function resolveResetInterval(env) {
   return value;
 }
 
+function resolveDemoUrl(env) {
+  const value = env.VITE_EIMIR_DEMO_URL?.trim() || DEFAULT_DEMO_URL;
+  let parsed;
+  try {
+    parsed = new URL(value);
+  } catch {
+    parsed = null;
+  }
+  if (!parsed || parsed.protocol !== 'https:') {
+    throw new CapacitorBuildConfigurationError(
+      `Invalid VITE_EIMIR_DEMO_URL "${value}". Must be a valid HTTPS URL.`,
+    );
+  }
+  return value.replace(/\/+$/, '');
+}
+
 /**
  * @param {Record<string, string | undefined>} env
  * @returns {{ apiBaseUrl: string, demoMode: boolean, buildEnv: Record<string, string> }}
@@ -126,10 +143,10 @@ export function resolveCapacitorBuildEnvironment(env) {
       // The reset timer is never inferred from the hostname.
       VITE_EIMIR_DEMO_RESET_TIMER: declaredResetTimer ?? 'false',
       VITE_EIMIR_DEMO_RESET_INTERVAL: resetInterval,
-      // The Web-demo launch link belongs to Web deployments. Inside the native
-      // wrapper it would hand the user to the system browser, so it is cleared
-      // here, which also shadows any legacy VITE_SBS_DEMO_URL.
-      VITE_EIMIR_DEMO_URL: '',
+      // The sign-in "try eimir. first?" link opens the public Demo in the
+      // system browser (Product Owner decision). The Demo bundle itself has no
+      // link, and a legacy VITE_SBS_DEMO_URL is never used.
+      VITE_EIMIR_DEMO_URL: demoMode ? '' : resolveDemoUrl(env),
       // Support reports carry the product version and source build.
       ...resolveBuildIdentityEnv(env),
     },

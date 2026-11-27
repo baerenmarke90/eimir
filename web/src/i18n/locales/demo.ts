@@ -10,7 +10,7 @@ const demo = {
   joining: 'Demo wird geöffnet …',
   assurance:
     'Die Demo enthält ausschließlich fiktive Daten und ist technisch von der Hauptinstanz getrennt.',
-  launch: 'Demo ausprobieren',
+  launch: 'eimir. erst ausprobieren?',
   bannerAria: 'Hinweis zur Demo-Instanz',
   bannerTitle: 'Demo-Instanz',
   bannerReset:

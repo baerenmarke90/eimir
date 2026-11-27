@@ -290,6 +290,9 @@ test('Today event trace keeps compact borderless composition and authoritative o
     'pending',
   );
   await waitForSettledMotion(page);
+  // The sign-in click leaves the pointer over the content; a hovered tile
+  // lifts by a few pixels and would skew the row measurement.
+  await page.mouse.move(0, 0);
 
   // Compact and bounded, not full-width rows: none should come close to the
   // 1920px viewport, and several must share the same line (2-4 per row is

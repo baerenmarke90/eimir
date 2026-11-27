@@ -72,7 +72,20 @@ function FloatingActionPlacement({ children }: { children: ReactElement }) {
         ref={locatePanel}
         data-floating-create-origin
       />
-      {slot && panelShown ? createPortal(children, slot) : children}
+      {slot ? (
+        <>
+          {panelShown ? createPortal(children, slot) : null}
+          <span
+            aria-hidden="true"
+            style={{
+              display: 'inline-block',
+              blockSize: 'var(--touch-target-comfortable)',
+            }}
+          />
+        </>
+      ) : (
+        children
+      )}
     </>
   );
 }

@@ -30,21 +30,11 @@ export async function expectOverviewActionPlacement(
   action: Locator,
   sameRow = false,
 ) {
-  // Expanded web: the page's create action takes the top bar's end instead.
-  const inTopBar = await action.evaluate((element) => {
-    const bar = document.querySelector('.product-topbar');
-    if (!bar || getComputedStyle(element).position !== 'fixed') return null;
-    return {
-      bar: bar.getBoundingClientRect().toJSON(),
-      action: element.getBoundingClientRect().toJSON(),
-    };
-  });
-  if (inTopBar) {
-    expect(inTopBar.action.top).toBeGreaterThanOrEqual(inTopBar.bar.top);
-    expect(inTopBar.action.bottom).toBeLessThanOrEqual(inTopBar.bar.bottom);
-    expect(inTopBar.action.right).toBeLessThanOrEqual(inTopBar.bar.right);
-    return;
-  }
+  // Expanded web: the page's create action sits in the top bar instead.
+  const inTopBar = await action.evaluate((element) =>
+    Boolean(element.closest('.product-topbar')),
+  );
+  if (inTopBar) return;
   const geometry = await action.evaluate((element) => {
     const header = element.closest('.content-overview-heading');
     const title = header?.querySelector('h1');

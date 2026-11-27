@@ -157,7 +157,6 @@ import { UiState } from './UiState';
 import { useKeepsakeSway } from './useKeepsakeSway';
 import { prefersReducedData, useMomentRotation } from './useMomentRotation';
 import { useWirDailyCheckIn } from './WirDailyCheckIn';
-import { WirGardenModule } from './WirGardenModule';
 import {
   WirBridgeHeart,
   WirDistanceLight,
@@ -1078,9 +1077,15 @@ export function TodayPage(props: TodayPageProps) {
 }
 
 /**
- * #2345 B: the new-for-you and waiting-games reels load after the entry; each
- * appears only once its own read is known, so nothing waits on them.
+ * #2345 B: Wir modules with their own read (new for you, waiting games, the
+ * opt-in garden) load after the entry; each appears only once its own read is
+ * known, so nothing waits on them and the entry stays within its budget.
  */
+const WirGardenModule = lazy(() =>
+  import('./WirGardenModule').then((module) => ({
+    default: module.WirGardenModule,
+  })),
+);
 const WirWaitingGamesModule = lazy(() =>
   import('./WirWaitingGamesModule').then((module) => ({
     default: module.WirWaitingGamesModule,
@@ -2645,17 +2650,19 @@ const TodayPageView = memo(function TodayPageView({
     // Opt-in and Premium; it renders nothing (and reads nothing) otherwise.
     shared_garden:
       account?.id && gamesApi && entitlementApi ? (
-        <WirGardenModule
-          gamesApi={gamesApi}
-          entitlementApi={entitlementApi}
-          accountId={account.id}
-          spaceId={spaceId}
-          partnerName={partnerName}
-          visible={isDashboardModuleVisible(
-            dashboardPreferences,
-            'shared_garden',
-          )}
-        />
+        <Suspense fallback={null}>
+          <WirGardenModule
+            gamesApi={gamesApi}
+            entitlementApi={entitlementApi}
+            accountId={account.id}
+            spaceId={spaceId}
+            partnerName={partnerName}
+            visible={isDashboardModuleVisible(
+              dashboardPreferences,
+              'shared_garden',
+            )}
+          />
+        </Suspense>
       ) : null,
   };
   const orderedModuleKeys = orderedDashboardModuleKeys(dashboardPreferences);

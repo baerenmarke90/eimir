@@ -10,12 +10,13 @@ import {
   notificationsListQueryKey,
   notificationUnreadCountQueryKey,
 } from '../client/notificationQueries';
-import { PHOTO_REACTIONS } from '../client/photoReactions';
+
 import { normalizeClientError } from '../client/problemDetails';
 import { MORE_NOTIFICATIONS_ROUTE } from '../client/routes';
 import { cardArrivalClass, useCardArrivals } from '../client/useCardArrivals';
 import { resolvedLocale, type TranslateText, useTranslation } from '../i18n';
 
+import { PHOTO_REACTIONS } from './MemoryPhotoGallery';
 import { TodayDestinationLink } from './TodayDestinationLink';
 import './WirCardArrival.css';
 import './WirLists.css';

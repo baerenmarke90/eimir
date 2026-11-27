@@ -94,7 +94,7 @@ function moduleLabel(moduleKey: string): string {
     return relationshipReflections.passport.wirStatisticsTitle;
   if (moduleKey === 'shared_garden') return games.garden.title;
   if (moduleKey === 'games_waiting') return games.waiting.settingsLabel;
-  if (moduleKey === 'new_for_you') return wirNotices.settingsLabel;
+  if (moduleKey === 'new_for_you') return wirNotices.title;
   const entry = DASHBOARD_MODULE_CATALOG.find((item) => item.key === moduleKey);
   if (!entry) throw new Error(`Unknown module key: ${moduleKey}`);
   const path = entry.labelKey.split('.').slice(1);

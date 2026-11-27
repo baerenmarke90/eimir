@@ -8,7 +8,6 @@ import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { assertOnlineWrite } from '../client/connectivity';
 import { isGalleryAttachment } from '../client/galleryMedia';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
-import { PHOTO_REACTIONS } from '../client/photoReactions';
 import { normalizeClientError } from '../client/problemDetails';
 import { saveProductReadCacheEntry } from '../client/productReadCache';
 import { captureAuthorizedQuery } from '../client/queryIdentity';
@@ -24,7 +23,14 @@ import { GalleryExpandAction, MediaGallery } from './MediaGallery';
 import { ProblemState } from './ProblemState';
 import './MemoryPhotoGallery.css';
 
-export { PHOTO_REACTIONS };
+export const PHOTO_REACTIONS = [
+  { value: 'LOVE', emoji: '❤️' },
+  { value: 'LAUGH', emoji: '😂' },
+  { value: 'SURPRISE', emoji: '😮' },
+  { value: 'SAD', emoji: '😢' },
+  { value: 'CELEBRATE', emoji: '🙌' },
+  { value: 'LIKE', emoji: '👍' },
+] as const;
 
 function PhotoActions({
   request,

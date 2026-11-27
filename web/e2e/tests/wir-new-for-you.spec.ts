@@ -102,7 +102,12 @@ async function installMocks(page: Page): Promise<Server> {
           oidc: false,
         },
       });
-    if (method === 'POST' && pathname === '/api/v1/auth/sign-in')
+    // Sign-in, and the session restore after a reload.
+    if (
+      method === 'POST' &&
+      (pathname === '/api/v1/auth/sign-in' ||
+        pathname === '/api/v1/auth/refresh')
+    )
       return json({
         account: { displayName: 'Anna', id: ACCOUNT_ID },
         tokens: {
@@ -112,6 +117,8 @@ async function installMocks(page: Page): Promise<Server> {
           refreshToken: 'wir-new-for-you-refresh',
         },
       });
+    if (method === 'GET' && pathname === '/api/v1/auth/me')
+      return json({ id: ACCOUNT_ID, displayName: 'Anna' });
     if (method === 'GET' && pathname === '/api/v1/auth/capabilities')
       return json({ serverAdmin: false });
     if (method === 'GET' && pathname === '/api/v1/auth/memberships')

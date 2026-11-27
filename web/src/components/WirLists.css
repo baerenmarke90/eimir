@@ -26,7 +26,7 @@
  * page gutter and the spacing around the reel is unchanged.
  */
 .wir-lists-row.wir-tile-reel {
-  margin-block: calc(-1 * var(--space-5)) calc(var(--space-2) - var(--space-12));
+  margin-block: calc(-1 * var(--space-5)) calc(-1 * var(--space-12));
   margin-inline: calc(-1 * var(--page-gutter));
   padding: var(--space-5) var(--page-gutter) var(--space-12);
 }

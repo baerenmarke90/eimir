@@ -228,7 +228,8 @@ public class PushPreviewTest {
         value.remove("place");
         value.remove("when");
         assertNotNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
-        value.put("v", 4).put("when", "").put("place", "");
+        // v4 (#2337) is known; the next unknown version is rejected.
+        value.put("v", 5).put("when", "").put("place", "");
         assertNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
     }
 

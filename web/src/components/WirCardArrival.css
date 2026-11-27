@@ -6,7 +6,8 @@
  * wait until the opening has finished. With reduced motion every duration
  * role is zero, so the card simply appears.
  *
- * The item sets `--wir-card-arrival-width` (its tile width). Only layout
+ * The keyframes live in the motion layer (src/motion/motion.css, Motion
+ * Contract M14). The item sets `--wir-card-arrival-width` (its tile width). Only layout
  * width animates on the item, never a transform, so the horizontal track is
  * not nudged. The sweep colour is a local role at the token boundary.
  */
@@ -14,8 +15,8 @@
   --wir-card-arrival-wait: calc(var(--duration-sequence-beat) * 0);
   --wir-card-sweep: #ffffffb3;
 
-  animation: wir-card-room var(--duration-module-enter) var(--easing-standard)
-    var(--wir-card-arrival-wait) backwards;
+  animation: eimir-motion-card-room var(--duration-module-enter)
+    var(--easing-standard) var(--wir-card-arrival-wait) backwards;
 }
 
 :root[data-theme="dark"] .wir-card-arrive {
@@ -28,7 +29,8 @@
 
 .wir-card-arrive > a {
   position: relative;
-  animation: wir-card-emerge var(--duration-card-arrival) var(--easing-standard)
+  animation: eimir-motion-card-emerge var(--duration-card-arrival)
+    var(--easing-standard)
     calc(var(--wir-card-arrival-wait) + var(--duration-module-enter)) backwards;
 }
 
@@ -47,7 +49,7 @@
     )
     no-repeat;
   background-size: 250% 100%;
-  animation: wir-card-sweep var(--duration-card-arrival-sweep)
+  animation: eimir-motion-card-sweep var(--duration-card-arrival-sweep)
     var(--easing-standard)
     calc(
       var(--wir-card-arrival-wait) +
@@ -56,54 +58,6 @@
       0.7
     )
     backwards;
-}
-
-@keyframes wir-card-room {
-  from {
-    max-width: 0;
-    margin-inline-end: calc(-1 * var(--space-3));
-  }
-
-  to {
-    max-width: var(--wir-card-arrival-width);
-    margin-inline-end: 0;
-  }
-}
-
-@keyframes wir-card-emerge {
-  0% {
-    opacity: 0;
-    filter: blur(1rem) saturate(0.5);
-    transform: translateY(1.4rem) scale(0.8);
-  }
-
-  60% {
-    opacity: 1;
-    filter: blur(0) saturate(1.1);
-    transform: translateY(-0.2rem) scale(1.025);
-  }
-
-  100% {
-    opacity: 1;
-    filter: none;
-    transform: none;
-  }
-}
-
-@keyframes wir-card-sweep {
-  0% {
-    opacity: 0;
-    background-position: 150% 0;
-  }
-
-  15% {
-    opacity: 1;
-  }
-
-  100% {
-    opacity: 0;
-    background-position: -50% 0;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -123,9 +123,6 @@ export function QuietHint({
           className="quiet-hint-icon"
         />
         <div className="quiet-hint-copy">
-          {tone === 'new' ? (
-            <span className="quiet-hint-tag">{t('quietHints.newTag')}</span>
-          ) : null}
           <p>{children}</p>
           <div className="quiet-hint-actions">
             {action && 'onClick' in action ? (

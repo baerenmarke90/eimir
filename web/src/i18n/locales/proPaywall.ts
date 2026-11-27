@@ -172,7 +172,6 @@ const proPaywall = {
   },
   catalogue: {
     title: 'Was in Pro steckt',
-    new: 'Neu',
     groups: {
       memories: 'Erinnerungen & Rückblicke',
       timeTogether: 'Zeit zu zweit',

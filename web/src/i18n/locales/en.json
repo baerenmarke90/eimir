@@ -6012,7 +6012,6 @@
   "quietHints": {
     "tipLabel": "Tip",
     "newLabel": "New in eimir.",
-    "newTag": "New",
     "gotIt": "Got it",
     "hide": "Hide",
     "firstPlan": "Create your first plan",
@@ -6911,7 +6910,6 @@
     },
     "catalogue": {
       "title": "What’s included in Pro",
-      "new": "New",
       "groups": {
         "memories": "Memories & recaps",
         "timeTogether": "Time together",

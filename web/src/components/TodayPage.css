@@ -244,32 +244,31 @@
   margin-bottom: var(--space-section);
 }
 
+/* Title and "see all" link share one line; the link ends at the right edge of
+   the content column in every Wir module. Long text wraps inside its own box
+   (zoom-safe) instead of pushing the link onto a second line. */
 .today-section-header {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
+  flex-wrap: nowrap;
+  align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  row-gap: var(--space-1);
   margin-bottom: var(--space-3);
-  padding-left: var(--space-1);
 }
 
 .today-section-header > * {
   min-width: 0;
 }
 
-/* On phones the floating create button sits at the inline end above the
-   navigation. Section links end before its column so it never covers them
-   (#2063: it hid the planning link on first open). */
-@media (max-width: 839px) {
-  .today-page:has([data-floating-create-origin], [data-floating-create])
-    .today-section-header {
-    padding-inline-end: calc(
-      var(--touch-target-floating-create) +
-      var(--space-2)
-    );
-  }
+.today-section-header > :first-child {
+  flex: 1 1 auto;
+}
+
+.today-section-action {
+  flex: 0 1 auto;
+  max-inline-size: 60%;
+  margin-inline-start: auto;
+  text-align: end;
 }
 
 /*
@@ -1067,6 +1066,11 @@
   overflow-wrap: anywhere;
 }
 
+/* In a section header it ends at the same right edge as the other links. */
+.today-section-action .today-retrospective-dismiss {
+  padding-inline: 0;
+}
+
 .today-retrospective-dismiss:hover {
   color: var(--color-brand-text);
   text-decoration: underline;
@@ -1265,10 +1269,6 @@
 @container product-content (min-width: 47.5rem) {
   .today-section {
     margin-bottom: var(--space-8);
-  }
-
-  .today-section-moment {
-    margin-bottom: var(--space-10);
   }
 
   .today-content:has(.today-section-living):has(.today-section-monthly) {

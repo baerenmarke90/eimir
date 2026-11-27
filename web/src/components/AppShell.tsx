@@ -60,6 +60,7 @@ import { AppSurfacePullToRefresh } from './AppSurfacePullToRefresh';
 import { DestinationIcon } from './DestinationIcon';
 import { GamesProductArea } from './GamesProductArea';
 import { LogoutDeviceDataSheet } from './LogoutDeviceDataSheet';
+import { MomentCreateMenu } from './MomentCreateMenu';
 import { ForegroundNotificationHost } from './PartnerGestureReceipt';
 import { PresenceHeartbeat } from './PresenceHeartbeat';
 import { RouteEntryHandoff } from './RouteEntryHandoff';
@@ -425,6 +426,13 @@ function AuthenticatedAppShell({
                     </>
                   )}
                 </span>
+                {isPrivateArea ? null : (
+                  <span className="topbar-create">
+                    <span className="topbar-create-global">
+                      <MomentCreateMenu everything />
+                    </span>
+                  </span>
+                )}
               </div>
             </header>
           ) : null}

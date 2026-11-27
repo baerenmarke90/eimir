@@ -2691,7 +2691,7 @@ const TodayPageView = memo(function TodayPageView({
           {sharedRhythm ? (
             <>
               {moduleContent.relationship_presence}
-              <div className="rhythm-today-create">
+              <div className="rhythm-today-create topbar-duplicate-create">
                 <MomentCreateMenu everything />
               </div>
             </>
@@ -2705,7 +2705,9 @@ const TodayPageView = memo(function TodayPageView({
                 (namesLayout &&
                   showMomentSection &&
                   keepsakeVisible) ? undefined : (
-                  <MomentCreateMenu floating={!sharedAlbum} everything />
+                  <span className="topbar-duplicate-create">
+                    <MomentCreateMenu floating={!sharedAlbum} everything />
+                  </span>
                 )
               }
             />

@@ -163,10 +163,11 @@ describe('WirNewForYouModule (#2345 B)', () => {
     expect(tiles[1].textContent).toContain(
       i18n.t('wirNotices.lines.moreItems', { count: 6 }),
     );
-    // The last tile leads to every notification.
-    expect(tiles.at(-1)?.querySelector('a')?.getAttribute('href')).toBe(
-      MORE_NOTIFICATIONS_ROUTE,
-    );
+    // No "see all" circle: the reel itself scrolls through everything new.
+    for (const tile of tiles)
+      expect(tile.querySelector('a')?.getAttribute('href')).not.toBe(
+        MORE_NOTIFICATIONS_ROUTE,
+      );
     // Lines never name the partner.
     expect(section.textContent).not.toContain('{{name}}');
   });

@@ -107,11 +107,6 @@
   color: var(--wir-notice-ink-inverse);
 }
 
-.wir-notice-tone-all .wir-notice-face {
-  background: color-mix(in srgb, var(--color-surface-raised) 60%, transparent);
-  color: var(--color-text-secondary);
-}
-
 .wir-notice-label {
   display: -webkit-box;
   max-width: 100%;
@@ -144,7 +139,7 @@
 .wir-notice-leaf {
   display: grid;
   justify-items: center;
-  width: 2.3rem;
+  width: 2.1rem;
   overflow: hidden;
   border-radius: var(--radius-small);
   background: var(--color-surface-raised);
@@ -165,7 +160,7 @@
 
 .wir-notice-leaf-day {
   font-family: var(--font-display);
-  font-size: 1.05rem;
+  font-size: 0.95rem;
   font-weight: 650;
   line-height: 1.2;
 }
@@ -174,8 +169,8 @@
   box-sizing: border-box;
   display: grid;
   gap: 0.15rem;
-  width: 3.1rem;
-  padding: 0.3rem;
+  width: 2.75rem;
+  padding: 0.25rem;
   border-radius: var(--radius-small);
   background: var(--color-surface-raised);
   color: var(--color-text);
@@ -265,10 +260,4 @@
   fill: var(--color-surface-raised);
   stroke: var(--color-person-rose);
   stroke-width: 2;
-}
-
-.wir-notice-dots {
-  width: 1.5rem;
-  height: 1.5rem;
-  fill: currentColor;
 }

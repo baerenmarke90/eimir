@@ -1778,8 +1778,6 @@
   },
   "wirNotices": {
     "title": "New for you",
-    "all": "See all",
-    "allLine": "All notifications",
     "kinds": {
       "today": "Today",
       "date": "Date suggestion",

@@ -290,7 +290,8 @@ for (const { width, theme } of [
     await expect(tiles.nth(0)).toContainText('Dinner with Lena');
     await expect(tiles.nth(1)).toContainText('Picnic by the lake');
     await expect(tiles.nth(2)).toContainText('Strawberries');
-    await expect(tiles.last()).toContainText(wirNotices.all);
+    // No "see all" circle: the reel itself scrolls through everything new.
+    await expect(tiles.last()).toContainText('Strawberries');
     // A first view on this device lets the cards arrive after the opening.
     await expect(tiles.nth(1)).toHaveClass(/wir-card-arrive-after-opening/);
     const gamesReel = page.getByRole('region', { name: games.waiting.title });

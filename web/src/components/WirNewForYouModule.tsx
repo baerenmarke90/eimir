@@ -411,28 +411,6 @@ export function WirNewForYouModule({
             </TodayDestinationLink>
           </li>
         ))}
-        <li className="wir-notice-item">
-          <TodayDestinationLink
-            to={MORE_NOTIFICATIONS_ROUTE}
-            className="wir-notice-tile wir-notice-tone-all"
-            selectedKey="wir-notice-all"
-          >
-            <span className="wir-notice-face" aria-hidden="true">
-              <svg
-                className="wir-notice-dots"
-                viewBox="0 0 24 24"
-                focusable="false"
-                aria-hidden="true"
-              >
-                <circle cx="6" cy="12" r="2" />
-                <circle cx="12" cy="12" r="2" />
-                <circle cx="18" cy="12" r="2" />
-              </svg>
-            </span>
-            <span className="wir-notice-label">{t('wirNotices.all')}</span>
-            <span className="sr-only">{t('wirNotices.allLine')}</span>
-          </TodayDestinationLink>
-        </li>
       </ul>
     </section>
   );

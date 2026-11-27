@@ -1776,6 +1776,52 @@
       }
     }
   },
+  "wirNotices": {
+    "title": "New for you",
+    "settingsLabel": "New for you",
+    "all": "See all",
+    "allLine": "All notifications",
+    "kinds": {
+      "today": "Today",
+      "date": "Date suggestion",
+      "counter": "New suggestion",
+      "selection": "Wish selection",
+      "list": "List",
+      "note": "Note",
+      "picture": "Picture ping-pong",
+      "heart": "Heart hunt",
+      "comment": "Comment",
+      "reaction": "Reaction"
+    },
+    "titles": {
+      "wish": "Your wish",
+      "selection": "Your wish selection",
+      "list": "A list",
+      "note": "New note",
+      "picture": "Your picture is finished",
+      "heart": "Found!",
+      "moment": "Your moment"
+    },
+    "lines": {
+      "date": "Waiting for your answer",
+      "selectionShared_one": "{{count}} idea to choose from",
+      "selectionShared_other": "{{count}} ideas to choose from",
+      "selectionShared": "Choose together",
+      "selectionReady": "Your result is here",
+      "selectionRandom": "Let chance decide?",
+      "shared": "Newly shared",
+      "picture": "Give it a name",
+      "heart": "Now you hide one.",
+      "on": "on “{{title}}”",
+      "more_one": "and {{count}} more",
+      "more_other": "and {{count}} more",
+      "moreItems_one": "+ {{count}} more",
+      "moreItems_other": "+ {{count}} more",
+      "allDay": "All day",
+      "plan": "Your plan for today"
+    },
+    "reaction": "Reaction: {{reaction}}"
+  },
   "wirDesign": {
     "title": "App design",
     "intro": "How eimir. feels for you. Only your view changes.",

@@ -189,6 +189,7 @@ import { ConnectedMoment } from './ConnectedMoment';
 import { FirstStepAction } from './FirstStepAction';
 import { useImportantDayMoment, type WirOccasion } from './wirImportantDay';
 import { useWirOccasion } from './wirOccasion';
+import { WirNewForYouModule } from './WirNewForYouModule';
 
 import {
   breatheRings,
@@ -2215,6 +2216,20 @@ const TodayPageView = memo(function TodayPageView({
       />
     ) : null;
   const moduleContent: Record<DashboardModuleKey, ReactNode> = {
+    new_for_you:
+      apis.notifications && account?.id ? (
+        <WirNewForYouModule
+          notificationsApi={apis.notifications}
+          accountId={account.id}
+          spaceId={spaceId}
+          upcoming={dashboardQuery.data?.upcoming ?? []}
+          viewerLocalDate={dashboardQuery.data?.viewerLocalDate}
+          visible={isDashboardModuleVisible(
+            dashboardPreferences,
+            'new_for_you',
+          )}
+        />
+      ) : null,
     partner_distance:
       partnerDistanceVisible &&
       (sharedRhythm || !partnerDistanceInHero) &&

@@ -22,10 +22,12 @@ import {
   useSpaceCapability,
   withdrawSpaceCapability,
 } from '../client/spaceEntitlement';
+import { cardArrivalClass, useCardArrivals } from '../client/useCardArrivals';
 import { useTranslation } from '../i18n';
 import { GAMES_COUPLE_CAPABILITY } from './GamesProductArea';
 import { TodayDestinationLink } from './TodayDestinationLink';
 import { WirGameTileArt } from './WirGameTileArt';
+import './WirCardArrival.css';
 import './WirLists.css';
 import './WirWaitingGamesModule.css';
 
@@ -141,6 +143,13 @@ export function WirWaitingGamesModule({
   }, [accountId, denied, queryClient, spaceId]);
 
   const items = waitingQuery.data?.items ?? [];
+  // A game that waits again later (a new turn) arrives again.
+  const turnKey = (item: WaitingGameView) =>
+    `${item.game}:${item.since.toISOString()}`;
+  const arrivals = useCardArrivals(
+    `${accountId}:${spaceId}:games`,
+    items.map(turnKey),
+  );
   if (!allowed || items.length === 0) return null;
   return (
     <section
@@ -156,7 +165,10 @@ export function WirWaitingGamesModule({
         {items.map((item: WaitingGameView) => {
           const game = GAME_PRESENTATION[item.game];
           return (
-            <li key={item.game} className="wir-game-tile-item">
+            <li
+              key={item.game}
+              className={`wir-game-tile-item${cardArrivalClass(arrivals.get(turnKey(item)))}`}
+            >
               <TodayDestinationLink
                 to={game.route}
                 className={`wir-game-tile wir-game-tile-${game.tone}`}

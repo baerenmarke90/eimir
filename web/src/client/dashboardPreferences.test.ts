@@ -50,7 +50,8 @@ describe('dashboardPreferences', () => {
         (key) =>
           key !== 'daily_quote' &&
           key !== 'shared_experience' &&
-          key !== 'partner_distance',
+          key !== 'partner_distance' &&
+          key !== 'new_for_you',
       );
     const migrated = orderedDashboardModuleKeys({
       items: legacy.map((moduleKey) => ({ moduleKey, visible: true })),
@@ -61,6 +62,7 @@ describe('dashboardPreferences', () => {
           key !== 'daily_quote' &&
           key !== 'shared_experience' &&
           key !== 'partner_distance' &&
+          key !== 'new_for_you' &&
           key !== 'relationship_presence',
       ),
     ).toEqual(legacy.filter((key) => key !== 'relationship_presence'));
@@ -69,8 +71,12 @@ describe('dashboardPreferences', () => {
     expect(migrated.indexOf('partner_distance')).toBe(
       migrated.indexOf('relationship_presence') + 1,
     );
-    expect(migrated.indexOf('shared_experience')).toBe(
+    // #2345 B: what is new for the reader follows the hero and distance.
+    expect(migrated.indexOf('new_for_you')).toBe(
       migrated.indexOf('partner_distance') + 1,
+    );
+    expect(migrated.indexOf('shared_experience')).toBe(
+      migrated.indexOf('new_for_you') + 1,
     );
     expect(migrated.indexOf('daily_quote')).toBe(
       migrated.indexOf('shared_experience') + 1,

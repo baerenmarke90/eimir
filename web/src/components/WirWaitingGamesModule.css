@@ -29,6 +29,8 @@
 /* The reel is Wir's existing lists track (`.wir-lists-row`); tiles keep a
    fixed width so the next game peeks in. */
 .wir-lists-row > .wir-game-tile-item {
+  --wir-card-arrival-width: var(--wir-game-tile-width);
+
   flex: 0 0 auto;
   display: flex;
   scroll-snap-align: start;

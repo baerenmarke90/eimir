@@ -214,6 +214,8 @@ declare('duration-sequence-beat', value('motion.duration.sequenceBeat'));
 declare('duration-module-enter', value('motion.duration.moduleEnter'));
 declare('motion-module-rise', value('motion.module.rise'));
 declare('duration-send-flight', value('motion.duration.sendFlight'));
+declare('duration-card-arrival', value('motion.duration.cardArrival'));
+declare('duration-card-arrival-sweep', value('motion.duration.cardArrivalSweep'));
 declare('duration-gesture-moment', value('motion.duration.gestureMoment'));
 // Motion Contract 5.3: Enter stagger steps and their cap (#2073).
 declare('duration-stagger-item', value('motion.stagger.item'));
@@ -351,6 +353,8 @@ ${storyColorDeclarations('dark', '    ')}
     --duration-sequence-beat: ${value('motion.duration.instant')};
     --duration-module-enter: ${value('motion.duration.instant')};
     --duration-send-flight: ${value('motion.duration.instant')};
+    --duration-card-arrival: ${value('motion.duration.instant')};
+    --duration-card-arrival-sweep: ${value('motion.duration.instant')};
     --duration-gesture-moment: ${value('motion.duration.instant')};
     --duration-stagger-item: ${value('motion.duration.instant')};
     --duration-stagger-module: ${value('motion.duration.instant')};

@@ -10,6 +10,7 @@ describe('dashboardModules', () => {
     expect(DASHBOARD_MODULE_KEYS).toEqual([
       'relationship_presence',
       'partner_distance',
+      'new_for_you',
       'shared_experience',
       'daily_quote',
       'games_waiting',

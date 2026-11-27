@@ -26,6 +26,7 @@
 export type DashboardModuleKey =
   | 'relationship_presence'
   | 'partner_distance'
+  | 'new_for_you'
   | 'shared_experience'
   | 'games_waiting'
   | 'daily_quote'
@@ -62,6 +63,9 @@ export const DASHBOARD_MODULE_CATALOG: readonly DashboardModuleCatalogEntry[] =
   [
     { key: 'relationship_presence', labelKey: 'm5s5.today.roles.hero' },
     { key: 'partner_distance', labelKey: 'partnerLocation.wirModuleLabel' },
+    // #2345 B: what is new for the reader, newest first. On by default; it
+    // renders only while something is new or planned for today.
+    { key: 'new_for_you', labelKey: 'wirNotices.settingsLabel' },
     { key: 'shared_experience', labelKey: 'coupleExperiences.incoming.title' },
     { key: 'daily_quote', labelKey: 'dailyQuote.title' },
     // #2158 C: games waiting on the reader. On by default; it renders only

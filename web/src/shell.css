@@ -1153,27 +1153,12 @@
   }
 }
 
-/* The create entry lives in the top bar (Expanded, web): one round plus at the
-   bar's end on every page, instead of a pill dropped into each page's content.
-   Compact keeps its floating/dock entries, so the bar one stays hidden there. */
+/* The create entry lives in the top bar (Expanded, web): one labelled pill at
+   the bar's end on every page, instead of a pill dropped into each page's
+   content. Compact keeps its floating/dock entries, so the bar one stays hidden
+   there. */
 .topbar-create {
   display: flex;
-}
-
-.topbar-create .add-action {
-  inline-size: var(--touch-target-floating-create);
-  block-size: var(--touch-target-floating-create);
-  padding: 0;
-  border-radius: var(--radius-floating-create);
-}
-
-.topbar-create .add-action .add-action-label {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
 }
 
 .topbar-duplicate-create {
@@ -1187,7 +1172,7 @@
   }
 
   /* A page's own create action (note, place, person, plan, list, moment…)
-     takes the bar's plus position as the same round plus, so every page has
+     takes the bar's position as the same labelled pill, so every page has
      exactly one create entry there. It stays inside its tab panel, so a parked
      tab still hides it. The everything-menu steps aside while one is present. */
   .product-shell:has(> .product-topbar .topbar-create)
@@ -1200,27 +1185,10 @@
       (
         var(--shell-topbar-min-height) -
         var(--shell-header-safe-top, 0px) -
-        var(--touch-target-floating-create)
+        var(--touch-target-comfortable)
       ) /
       2
     );
-    box-sizing: border-box;
-    inline-size: var(--touch-target-floating-create);
-    block-size: var(--touch-target-floating-create);
-    padding: 0;
-    border-radius: var(--radius-floating-create);
-  }
-
-  .product-shell:has(> .product-topbar .topbar-create)
-    [data-floating-create]
-    :is(.add-action-label, .add-action-heading-icon) {
-    display: none;
-  }
-
-  .product-shell:has(> .product-topbar .topbar-create)
-    .add-action[data-floating-create]
-    .add-action-floating-icon {
-    display: block;
   }
 
   .product-shell:has(.product-main [data-floating-create])

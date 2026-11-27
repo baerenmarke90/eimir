@@ -300,6 +300,15 @@ describe('refresh ahead while the app is in use', () => {
     expect(sessions.refreshSessionTokens).not.toHaveBeenCalled();
   });
 
+  it('leaves a token with two hours or less left to the normal timer', async () => {
+    setup(false, HOUR);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+      window.dispatchEvent(new Event('focus'));
+    });
+    expect(sessions.refreshSessionTokens).not.toHaveBeenCalled();
+  });
+
   it('does not use this path for the short tokens of an older server', async () => {
     setup(false, 10 * 60_000);
     await act(async () => {

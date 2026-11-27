@@ -12,8 +12,14 @@ import type { StyleSpecification } from 'maplibre-gl';
  */
 
 const STORAGE_KEY = 'eimir-basemap-style-v1';
-/** Older styles are not used: the provider moves to new tile sets. */
-export const BASEMAP_STYLE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+/**
+ * Older styles are not used: the provider moves to new tile sets. The tile set
+ * changes weekly and the provider serves a removed version as the latest one,
+ * so a stored style that is a few days old still draws a correct map. It is
+ * refreshed in the background every time a map is opened, so a week is the
+ * longest a device can go without a fresh copy.
+ */
+export const BASEMAP_STYLE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 /** A stored style younger than this is not fetched again. */
 const REFRESH_AFTER_MS = 6 * 60 * 60 * 1000;
 

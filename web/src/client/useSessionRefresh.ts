@@ -25,9 +25,11 @@ const MAX_TIMER_DELAY_MS = 2 ** 31 - 1;
 const REFRESH_AHEAD_WINDOW_MS = 12 * 60 * 60 * 1000;
 /**
  * Below this, the normal timer just before expiry refreshes an open app. The
- * floor also keeps a short-lived token from an older server out of this path.
+ * floor also keeps short-lived tokens (an older server's 15 minutes, a
+ * one-hour fixture) out of this path: they never reach it, so they cannot
+ * start a refresh loop or an unexpected request.
  */
-const REFRESH_AHEAD_FLOOR_MS = 30 * 60 * 1000;
+const REFRESH_AHEAD_FLOOR_MS = 2 * 60 * 60 * 1000;
 /** At most one refresh ahead per device in this time. */
 const REFRESH_AHEAD_MIN_INTERVAL_MS = 30 * 60 * 1000;
 /** The app has settled by then, so the request does not compete with startup. */

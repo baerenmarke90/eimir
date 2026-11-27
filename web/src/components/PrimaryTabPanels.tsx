@@ -10,12 +10,15 @@ import {
 } from 'react';
 import {
   type Location,
+  NavigationType,
   Route,
   Routes,
+  UNSAFE_LocationContext as RouterLocationContext,
   useLocation,
   useNavigationType,
 } from 'react-router-dom';
 import { PrimaryTabActiveContext } from '../client/primaryTabActive';
+import { PrimaryTabPreparedContext } from '../client/primaryTabPrepared';
 import {
   primaryTabPeekGeometry,
   usePrimaryTabPeek,
@@ -235,6 +238,12 @@ function resetWirCarousels(panel: Element | null) {
 /**
  * The tab's routed page. It depends only on the location the tab sees, so
  * showing, hiding or peeking the tab never renders the page again.
+ *
+ * `Routes` reads the router's location even when it is given its own, and
+ * hands its routes a new location context each time it renders. Without the
+ * provider here every navigation in the app would therefore render every
+ * page, link and route hook of every kept tab. The provider gives `Routes`
+ * the location the tab sees, which is also the one it passes on.
  */
 const KeptRoute = memo(function KeptRoute({
   path,
@@ -245,10 +254,16 @@ const KeptRoute = memo(function KeptRoute({
   element: ReactNode;
   location: Location;
 }) {
+  const seen = useMemo(
+    () => ({ location, navigationType: NavigationType.Pop }),
+    [location],
+  );
   return (
-    <Routes location={location}>
-      <Route path={path} element={element} />
-    </Routes>
+    <RouterLocationContext.Provider value={seen}>
+      <Routes location={location}>
+        <Route path={path} element={element} />
+      </Routes>
+    </RouterLocationContext.Provider>
   );
 });
 
@@ -262,6 +277,7 @@ const TabRouteContent = memo(function TabRouteContent({
   active,
   location,
   previewKey,
+  prepared,
   fallback,
 }: {
   path: string;
@@ -269,6 +285,8 @@ const TabRouteContent = memo(function TabRouteContent({
   active: boolean;
   location: Location;
   previewKey?: string;
+  /** Set while the tab is prepared before its first visit. */
+  prepared?: () => void;
   fallback: ReactNode;
 }) {
   const kept = useMemo(
@@ -287,11 +305,13 @@ const TabRouteContent = memo(function TabRouteContent({
   );
   return (
     <PrimaryTabActiveContext.Provider value={active}>
-      <PrimaryTabTaskOriginScope active={active}>
-        <AppErrorBoundary resetKey={kept.key} fallback={fallback}>
-          <KeptRoute path={path} element={element} location={kept} />
-        </AppErrorBoundary>
-      </PrimaryTabTaskOriginScope>
+      <PrimaryTabPreparedContext.Provider value={prepared ?? null}>
+        <PrimaryTabTaskOriginScope active={active}>
+          <AppErrorBoundary resetKey={kept.key} fallback={fallback}>
+            <KeptRoute path={path} element={element} location={kept} />
+          </AppErrorBoundary>
+        </PrimaryTabTaskOriginScope>
+      </PrimaryTabPreparedContext.Provider>
     </PrimaryTabActiveContext.Provider>
   );
 });
@@ -362,6 +382,22 @@ export function PrimaryTabPanels({
     !locations.current.has(path) &&
     panels.some((panel) => panel.path === path && panel.retain !== false);
   const prepared = usePrewarm(candidates.filter(unbuilt));
+  // A prepared page says when it has drawn what it is prepared for; its panel
+  // then rests with its contents skipped until the first visit. One stable
+  // callback per path, so telling it never renders the page.
+  const [rested, setRested] = useState<ReadonlySet<string>>(() => new Set());
+  const restCallbacks = useRef(new Map<string, () => void>());
+  const restFor = (path: string) => {
+    let rest = restCallbacks.current.get(path);
+    if (!rest) {
+      rest = () =>
+        setRested((current) =>
+          current.has(path) ? current : new Set(current).add(path),
+        );
+      restCallbacks.current.set(path, rest);
+    }
+    return rest;
+  };
   const index = primaryTabIndex(pathname);
   const neighbours =
     prewarmNeighbours && index >= 0
@@ -487,7 +523,9 @@ export function PrimaryTabPanels({
         className="primary-tab-panel"
         data-primary-tab={path}
         data-primary-tab-peek={peeking ? 'true' : undefined}
-        data-primary-tab-prewarm={preparing ? 'true' : undefined}
+        data-primary-tab-prewarm={
+          preparing ? (rested.has(path) ? 'rested' : 'true') : undefined
+        }
         data-primary-tab-rehearse={
           prebuilt && rehearsing === path ? 'true' : undefined
         }
@@ -507,6 +545,7 @@ export function PrimaryTabPanels({
           previewKey={
             visited ? undefined : `${peeking ? 'peek' : 'prewarm'}-${path}`
           }
+          prepared={preparing ? restFor(path) : undefined}
           fallback={fallback}
         />
       </div>

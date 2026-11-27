@@ -370,6 +370,9 @@ boolean settings history. `InstanceAdministrationActionEvent` records only:
 It never stores passwords, recovery proofs, free-form reasons, request bodies,
 private relationship payloads, IP-history profiling, or provider secrets.
 
+Part 3 of the redesign (#2324) adds `space_file_viewed` (every Space file load),
+`space_storage_quota_set` and `space_storage_quota_cleared` with the target Space.
+
 ## Registration and maintenance controls
 
 Registration policy and maintenance mode are persisted as application state,
@@ -434,7 +437,7 @@ while `EIMIR_SUPPORT_REPORTS_ENABLED` is off.
 
 | Route | Purpose |
 | --- | --- |
-| `GET /` | List, optional `state` (`NEW`, `IN_PROGRESS`, `CLOSED`), `archived` (default `false`: unarchived reports; `true`: the archive), keyset `cursor`, `limit`; items carry kind, state, time, `archivedAt`, app version and build, failure reference and whether a reply and a ticket exist, plus the `newCount` of unarchived `NEW` reports; never the note |
+| `GET /` | List, optional `state` (`NEW`, `IN_PROGRESS`, `CLOSED`), `archived` (default `false`: unarchived reports; `true`: the archive), keyset `cursor`, `limit`; items carry kind, state, time, `archivedAt`, app version and build, `platform` and `os`, failure reference, whether a reply and a ticket exist and a `notePreview` (the note's first 160 characters on one line, Product Owner decision 2026-11-26, [#2327](https://github.com/baerenmarke90/eimir/issues/2327)), plus the `newCount` of unarchived `NEW` reports and the `stateCounts` of unarchived reports per state; never the full note |
 | `GET /{reportId}` | The report: note, technical client context, failure reference, request id, the opaque reporter account id (no name or email), the reply if any, the ticket link if any and `ticketAvailable` |
 | `PUT /{reportId}/state` | Set `NEW`, `IN_PROGRESS` or `CLOSED` |
 | `PUT /{reportId}/archive` | Archive (`{"archived": true}`) or unarchive a report |
@@ -442,6 +445,10 @@ while `EIMIR_SUPPORT_REPORTS_ENABLED` is off.
 | `POST /{reportId}/reply` | The one reply, plain text of at most 500 characters |
 | `POST /{reportId}/ticket` | Create the tracker ticket from the operator's title and body |
 | `DELETE /{reportId}/ticket` | Clear a ticket link so a new ticket can be created |
+| `GET /templates` | The reply templates, sorted by name regardless of case |
+| `POST /templates` | Create a reply template (`201`) |
+| `PUT /templates/{templateId}` | Replace a template's name and text |
+| `DELETE /templates/{templateId}` | Delete a template (`204`) |
 
 Reads and writes need the ServerAdmin role only, without a step-up
 re-authentication. Reads are not audited. Each write records one content-free privileged audit
@@ -449,6 +456,7 @@ entry: `support_report.state_set`, `support_report.reply_sent`,
 `support_report.ticket_created`, `support_report.ticket_cleared`,
 `support_report.archived`, `support_report.unarchived` or
 `support_report.deleted`. Report text never enters the audit, logs or metrics.
+Template writes are not audited (see [Reply templates](#reply-templates)).
 
 The plugin routers are mounted behind the normal-operation dependency, so in
 maintenance mode they answer `503` like other product routes, while the rest of
@@ -477,6 +485,29 @@ the ServerAdmin area stays reachable.
 A report receives exactly one reply. It is sent once and cannot be edited or
 withdrawn; a second attempt answers `409 SUPPORT_REPORT_ALREADY_REPLIED`. The
 reporter reads it as plain text in their notifications.
+
+### Reply templates
+
+The operator keeps reply texts and inserts one into a reply with a tap
+([#2327](https://github.com/baerenmarke90/eimir/issues/2327), Product Owner
+decisions 2026-11-26).
+
+- Templates are operator text in the plugin table `support_reply_templates`,
+  shared by all ServerAdmins of the instance, not i18n resources and not tied
+  to a report, Account or Space. They are stored as plain text and are not part
+  of any personal data copy or Space export.
+- A template has a name of 1 to 40 and a text of 1 to 500 characters after
+  trimming (`422` otherwise); a reply cannot be longer either. Names are unique
+  regardless of case (`409 SUPPORT_TEMPLATE_NAME_TAKEN`). At most 30 templates
+  exist (`409 SUPPORT_TEMPLATE_LIMIT`). An unknown or malformed id answers
+  `404 SUPPORT_TEMPLATE_NOT_FOUND`.
+- No placeholders: reports are anonymous, so there is no name to fill in.
+- Template writes need the ServerAdmin role only and leave no privileged audit
+  entry: they change operator text, not anything about a person. Sending a reply
+  stays audited as `support_report.reply_sent`.
+- Inserting a template never overwrites typed text: it goes to the caret or
+  replaces the selection; a result over 500 characters is not cut but blocks
+  sending until the operator shortens it.
 
 ### Tickets
 
@@ -508,7 +539,9 @@ reporter reads it as plain text in their notifications.
 ### Runbook: downgrades
 
 - The plugin's migration chain creates `support_report_tickets` with a foreign
-  key to the Core table `support_reports` from Core migration `0175`. Before a
+  key to the Core table `support_reports` from Core migration `0175`, and in
+  revision `0002` the reply templates. Downgrading the plugin chain below `0002`
+  deletes every template. Before a
   Core downgrade below `0175`, downgrade the admin plugin chain to its base
   first.
 - The downgrade of Core migration `0177` drops `support_reports.archived_at`
@@ -517,6 +550,65 @@ reporter reads it as plain text in their notifications.
 - The downgrade of Core migration `0176` deletes the privileged audit rows of
   the four `support_report.*` actions, because the narrower action constraint
   cannot hold them. Export them first if they must be kept.
+
+## People search and Space file
+
+ServerAdmin part 3 (#2324) adds one search and a Space file under People.
+
+- `GET /api/v1/server-admin/search?q=` matches the query against email
+  addresses (as a substring, with `%` and `_` taken literally) and against a
+  complete Account or Space id. It needs at least two characters other than
+  `%` and `_` unless it is a complete id, returns at most 20 Accounts and at
+  most 40 Spaces (those Accounts' Spaces and a Space matched by id). Names are
+  protected content and are never matched.
+- `GET /api/v1/server-admin/spaces/{spaceId}/file` returns the Space
+  lifecycle projection, its members (primary email, verification, sign-in
+  methods, membership status and dates), storage used against the Cloud quota
+  with bytes per media type, the entitlement summary and grant history, and
+  the newest 20 events (grants and privileged actions on this Space; views
+  are left out). It never returns display names, Space names or profile,
+  relationship dates or content. Every call records `space_file_viewed`.
+- `GET /api/v1/server-admin/accounts/{accountId}` lists the Account's Spaces
+  (id, membership status, since).
+
+This narrows the earlier rule that the lifecycle directory carries no
+Account correlation: the link between an Account and its Spaces is shown one
+Space or Account at a time to an allow-listed ServerAdmin, every Space file
+view is audited, and no endpoint lists the link in bulk. The privacy policy
+already says that administration tools show account data and never content.
+Support reports stay anonymous and never link to a Space.
+
+Each member in the Space file links to its Account detail, which shows the
+display name as before. The pairing of a Space with its members' names is
+therefore reachable in two steps; the Product Owner accepted this on
+2026-11-26, since the privacy policy names account data, including names,
+as visible in administration tools.
+
+### Individual storage quota
+
+On eimir. Cloud a ServerAdmin can give one Space an individual storage quota:
+
+```text
+PUT /api/v1/server-admin/spaces/{spaceId}/storage-quota
+{"quotaGb": 80, "effectiveUntil": "2026-12-31T23:59:59+01:00"}
+DELETE /api/v1/server-admin/spaces/{spaceId}/storage-quota
+```
+
+- While it is active the higher of it and the Free or Premium value applies
+  (Product Owner, 2026-11-26): it only ever raises storage, and buying Premium
+  is never undercut by a smaller individual value. A value not above the plan
+  has no effect, which the sheet says. Whole GB from 1 to 1024; an end date
+  must lie in the future and is optional. After it, or after `DELETE`, the tier value applies again at once;
+  no job is involved.
+- Over any quota nothing is deleted; only new bytes are refused. The Space
+  file warns before a value below the current usage is saved.
+- Self-Hosted is unmetered: both calls answer 404 and the action is absent.
+- It is stored in `space_storage_quota_overrides` (Space, bytes, until, set
+  by, set at) and removed with the Space. It is not copied by the operator
+  transfer. Uploads, the Situation pressure list and the storage alert read
+  it through `attachments.quota.space_quota`.
+- Set and clear are recorded as `space_storage_quota_set` and
+  `space_storage_quota_cleared`.
 
 ## Business model
 

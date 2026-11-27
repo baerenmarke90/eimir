@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, render, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ServerAdminApi } from '../api/generated/apis/ServerAdminApi';
 import { ServerAdminSpacesPanel } from './ServerAdminSpacesPanel';
@@ -14,15 +15,17 @@ function renderPanel(initialSpaceId: string | null) {
     listServerAdminSpacesApiV1ServerAdminSpacesGet: vi
       .fn()
       .mockResolvedValue({ items: [], total: 0, limit: 25, offset: 0 }),
-    getServerAdminSpaceApiV1ServerAdminSpacesSpaceIdGet: getSpace,
+    getServerAdminSpaceFile: getSpace,
   } as unknown as ServerAdminApi;
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   render(
-    <QueryClientProvider client={queryClient}>
-      <ServerAdminSpacesPanel api={api} initialSpaceId={initialSpaceId} />
-    </QueryClientProvider>,
+    <MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        <ServerAdminSpacesPanel api={api} initialSpaceId={initialSpaceId} />
+      </QueryClientProvider>
+    </MemoryRouter>,
   );
   return getSpace;
 }
@@ -30,7 +33,7 @@ function renderPanel(initialSpaceId: string | null) {
 describe('ServerAdminSpacesPanel deep link', () => {
   afterEach(() => cleanup());
 
-  it('opens the Space detail from the link', async () => {
+  it('opens the Space file from the link', async () => {
     const getSpace = renderPanel(SPACE_ID);
     await waitFor(() =>
       expect(getSpace).toHaveBeenCalledWith({ spaceId: SPACE_ID }),

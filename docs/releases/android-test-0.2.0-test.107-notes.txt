@@ -1,0 +1,10 @@
+eimir. Android 0.2.0-test.107
+
+- Swiping between the main pages takes less work per swipe, so the slide stays smoother.
+- After a start or return to the app, the app no longer reloads data when nothing on the device changed.
+- The prepared memory map in Momente rests once it is drawn instead of keeping the phone busy in the background.
+- Server administrators can search people, see a Space's files, set an individual Cloud storage quota, and answer help requests with note previews, state counts and reply templates.
+- The area list icons in the wide ServerAdmin layout have a proper size again.
+
+The product changes come from main at ee3306ff69b8c72a155d764da83fd70475c062f2.
+Install over test.106 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 107.

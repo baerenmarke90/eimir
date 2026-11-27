@@ -123,6 +123,18 @@ export interface SupportReportDetailView {
     note: string | null;
     /**
      * 
+     * @type {string}
+     * @memberof SupportReportDetailView
+     */
+    os: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof SupportReportDetailView
+     */
+    platform: string;
+    /**
+     * 
      * @type {SupportReportOperatorReply}
      * @memberof SupportReportDetailView
      */
@@ -170,6 +182,8 @@ export function instanceOfSupportReportDetailView(value: object): value is Suppo
     if (!('id' in value) || value['id'] === undefined) return false;
     if (!('kind' in value) || value['kind'] === undefined) return false;
     if (!('note' in value) || value['note'] === undefined) return false;
+    if (!('os' in value) || value['os'] === undefined) return false;
+    if (!('platform' in value) || value['platform'] === undefined) return false;
     if (!('reply' in value) || value['reply'] === undefined) return false;
     if (!('requestId' in value) || value['requestId'] === undefined) return false;
     if (!('state' in value) || value['state'] === undefined) return false;
@@ -199,6 +213,8 @@ export function SupportReportDetailViewFromJSONTyped(json: any, ignoreDiscrimina
         'id': json['id'],
         'kind': SupportReportKindFromJSON(json['kind']),
         'note': json['note'],
+        'os': json['os'],
+        'platform': json['platform'],
         'reply': SupportReportOperatorReplyFromJSON(json['reply']),
         'requestId': json['requestId'],
         'state': SupportReportStateFromJSON(json['state']),
@@ -229,6 +245,8 @@ export function SupportReportDetailViewToJSONTyped(value?: SupportReportDetailVi
         'id': value['id'],
         'kind': SupportReportKindToJSON(value['kind']),
         'note': value['note'],
+        'os': value['os'],
+        'platform': value['platform'],
         'reply': SupportReportOperatorReplyToJSON(value['reply']),
         'requestId': value['requestId'],
         'state': SupportReportStateToJSON(value['state']),

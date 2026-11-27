@@ -12,6 +12,7 @@ import {
 } from 'react-router-dom';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { setPrimaryTabPeek } from '../client/primaryTabPeek';
+import { usePrimaryTabPrepared } from '../client/primaryTabPrepared';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
 import { usePrimaryNavigation } from '../client/usePrimaryNavigation';
 import * as stageModule from '../motion/stage';
@@ -25,12 +26,23 @@ let openTab: ReturnType<typeof usePrimaryNavigation>['navigatePrimary'];
 const mounts: string[] = [];
 const renders: string[] = [];
 const captures = new Map<string, () => string | null>();
+const prepareds = new Map<string, () => void>();
+/** Renders of a page's own content, which reads no route or task origin. */
+const contentRenders: string[] = [];
+const seenLocations = new Map<string, Set<unknown>>();
+
+function PageContent({ name }: { name: string }) {
+  contentRenders.push(name);
+  return null;
+}
 
 function Page({ name }: { name: string }) {
   renders.push(name);
   const location = useLocation();
+  seenLocations.set(name, (seenLocations.get(name) ?? new Set()).add(location));
   const { captureOrigin } = useTaskOrigin();
   captures.set(name, () => captureOrigin());
+  prepareds.set(name, usePrimaryTabPrepared());
   useEffect(() => {
     mounts.push(name);
   }, [name]);
@@ -38,6 +50,7 @@ function Page({ name }: { name: string }) {
     <section className="page">
       <h1>{name}</h1>
       <output data-testid={`${name}-search`}>{location.search}</output>
+      <PageContent name={name} />
     </section>
   );
 }
@@ -86,7 +99,10 @@ function Harness({
 beforeEach(() => {
   mounts.length = 0;
   renders.length = 0;
+  contentRenders.length = 0;
+  seenLocations.clear();
   captures.clear();
+  prepareds.clear();
   vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
 });
 
@@ -153,6 +169,26 @@ it('keeps mounted route consumers at rest while a visited tab is previewed and d
     previewRenders: [],
     cancelRenders: [],
   });
+});
+
+it('renders only the tab that is opened when another tab is selected or a task opens', async () => {
+  render(<Harness />);
+  await act(() => navigate('/story'));
+  contentRenders.length = 0;
+
+  // The pages read the route (`useLocation`) and the task origin, like the
+  // real ones. Leaving a tab, or a change between two other destinations,
+  // must not render a parked page: it keeps the location object and the
+  // task origin contract it had.
+  await act(() => navigate('/plan'));
+  expect(contentRenders).toEqual(['plan']);
+  contentRenders.length = 0;
+  await act(() => navigate('/story/memories/m1'));
+  expect(contentRenders).toEqual([]);
+  expect(seenLocations.get('today')?.size).toBe(1);
+  expect(seenLocations.get('plan')?.size).toBe(1);
+  await act(() => navigate('/today'));
+  expect(contentRenders).toEqual(['today']);
 });
 
 it('freezes the location a hidden tab sees', async () => {
@@ -468,6 +504,50 @@ it('prepares a panel once the app is quiet and keeps it out of sight until visit
   } finally {
     vi.useRealTimers();
   }
+});
+
+it('lets a prepared panel rest once its page has drawn, until it is visited', async () => {
+  vi.useFakeTimers();
+  try {
+    render(<Harness prewarm={['/plan']} />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(8_000);
+    });
+    expect(panel('/plan')?.dataset.primaryTabPrewarm).toBe('true');
+    const rendersBefore = renders.length;
+
+    act(() => prepareds.get('plan')?.());
+    const rested = panel('/plan');
+    expect(rested?.dataset.primaryTabPrewarm).toBe('rested');
+    expect(rested?.hidden).toBe(false);
+    expect(rested?.getAttribute('aria-hidden')).toBe('true');
+    // Resting changes the panel only, never the page inside it.
+    expect(renders.length).toBe(rendersBefore);
+
+    act(() => navigate('/plan'));
+    expect(panel('/plan')?.dataset.primaryTabPrewarm).toBeUndefined();
+    expect(panel('/plan')?.hidden).toBe(false);
+    // Outside a preparation the signal changes nothing.
+    act(() => prepareds.get('today')?.());
+    expect(panel('/today')?.dataset.primaryTabPrewarm).toBeUndefined();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it('skips the contents of a rested preparation like a parked tab', () => {
+  const css = readFileSync(join(__dirname, '..', 'shell.css'), 'utf8').replace(
+    /\s+/g,
+    ' ',
+  );
+  const rule = css.slice(
+    css.indexOf(
+      '.product-main > .primary-tab-panel[data-primary-tab-prewarm="rested"]',
+    ),
+  );
+  expect(rule.slice(0, rule.indexOf('}'))).toContain(
+    'content-visibility: hidden;',
+  );
 });
 
 it('builds the tabs beside the shown one after its opening, hidden until revealed', async () => {

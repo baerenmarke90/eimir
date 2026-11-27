@@ -85,6 +85,14 @@
   gap: var(--space-1);
 }
 
+/* A base size for every icon here; :where keeps it below any specific rule
+   (the Compact bar's .shell-nav-icon svg, the Needs-you tiles). */
+:where(.server-admin-shell) .eimir-icon {
+  flex: none;
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+}
+
 .server-admin-area-link {
   display: flex;
   align-items: center;
@@ -266,6 +274,12 @@
   padding: var(--space-2) 0;
   color: var(--color-text);
   text-decoration: none;
+}
+
+.server-admin-needs-you-row > .eimir-icon {
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  color: var(--color-text-secondary);
 }
 
 .server-admin-needs-you-icon {

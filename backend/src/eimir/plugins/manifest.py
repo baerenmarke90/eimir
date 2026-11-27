@@ -293,6 +293,9 @@ PLUGIN_TABLES: tuple[PluginTable, ...] = (
     # column; the row cascades with its report (``ON DELETE CASCADE``), so the
     # retention of reports and the deletion of the reporter's Account remove it.
     PluginTable("support_report_tickets", _OPERATOR, None, ()),
+    # Operator plugin: the operator's reply templates (#2327). Operator text shared
+    # by all ServerAdmins; no scope, Account or report column, so nothing to purge.
+    PluginTable("support_reply_templates", _OPERATOR, None, ()),
 )
 
 PLUGIN_TABLE_NAMES = frozenset(row.table for row in PLUGIN_TABLES)

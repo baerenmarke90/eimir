@@ -20,6 +20,7 @@ MODEL_MODULES = (
     "eimir.appearance.models",
     "eimir.attachments.binding",
     "eimir.attachments.models",
+    "eimir.attachments.quota_override",
     "eimir.auth.recent_auth_models",
     "eimir.billing.models",
     "eimir.chapters.models",

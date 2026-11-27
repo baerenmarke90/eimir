@@ -4,6 +4,7 @@ All URIs are relative to *http://localhost*
 
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
+| [**clearServerAdminSpaceStorageQuota**](ServerAdminApi.md#clearserveradminspacestoragequota) | **DELETE** /api/v1/server-admin/spaces/{space_id}/storage-quota | Clear Server Admin Space Storage Quota |
 | [**deleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPost**](ServerAdminApi.md#deleteserveradminaccountapiv1serveradminaccountsaccountiddeletionpost) | **POST** /api/v1/server-admin/accounts/{accountId}/deletion | Delete Server Admin Account |
 | [**getServerAdminAccountApiV1ServerAdminAccountsAccountIdGet**](ServerAdminApi.md#getserveradminaccountapiv1serveradminaccountsaccountidget) | **GET** /api/v1/server-admin/accounts/{accountId} | Get Server Admin Account |
 | [**getServerAdminActionActivityApiV1ServerAdminActivityActionsGet**](ServerAdminApi.md#getserveradminactionactivityapiv1serveradminactivityactionsget) | **GET** /api/v1/server-admin/activity/actions | Get Server Admin Action Activity |
@@ -14,6 +15,7 @@ All URIs are relative to *http://localhost*
 | [**getServerAdminSettingsApiV1ServerAdminSettingsGet**](ServerAdminApi.md#getserveradminsettingsapiv1serveradminsettingsget) | **GET** /api/v1/server-admin/settings | Get Server Admin Settings |
 | [**getServerAdminSpaceApiV1ServerAdminSpacesSpaceIdGet**](ServerAdminApi.md#getserveradminspaceapiv1serveradminspacesspaceidget) | **GET** /api/v1/server-admin/spaces/{space_id} | Get Server Admin Space |
 | [**getServerAdminSpaceEntitlementApiV1ServerAdminSpacesSpaceIdEntitlementGet**](ServerAdminApi.md#getserveradminspaceentitlementapiv1serveradminspacesspaceidentitlementget) | **GET** /api/v1/server-admin/spaces/{space_id}/entitlement | Get Server Admin Space Entitlement |
+| [**getServerAdminSpaceFile**](ServerAdminApi.md#getserveradminspacefile) | **GET** /api/v1/server-admin/spaces/{space_id}/file | Get Server Admin Space File |
 | [**getServerAdminStorageApiV1ServerAdminStorageGet**](ServerAdminApi.md#getserveradminstorageapiv1serveradminstorageget) | **GET** /api/v1/server-admin/storage | Get Server Admin Storage |
 | [**grantServerAdminSpaceEntitlementApiV1ServerAdminSpacesSpaceIdEntitlementGrantsPost**](ServerAdminApi.md#grantserveradminspaceentitlementapiv1serveradminspacesspaceidentitlementgrantspost) | **POST** /api/v1/server-admin/spaces/{space_id}/entitlement/grants | Grant Server Admin Space Entitlement |
 | [**issueServerAdminOperatorRecoveryApiV1ServerAdminAccountsAccountIdRecoveryOperatorPost**](ServerAdminApi.md#issueserveradminoperatorrecoveryapiv1serveradminaccountsaccountidrecoveryoperatorpost) | **POST** /api/v1/server-admin/accounts/{accountId}/recovery/operator | Issue Server Admin Operator Recovery |
@@ -25,6 +27,8 @@ All URIs are relative to *http://localhost*
 | [**requestServerAdminAccountRecoveryEmailApiV1ServerAdminAccountsAccountIdRecoveryEmailPost**](ServerAdminApi.md#requestserveradminaccountrecoveryemailapiv1serveradminaccountsaccountidrecoveryemailpost) | **POST** /api/v1/server-admin/accounts/{accountId}/recovery/email | Request Server Admin Account Recovery Email |
 | [**revokeServerAdminAccountSessionsApiV1ServerAdminAccountsAccountIdSessionsRevokePost**](ServerAdminApi.md#revokeserveradminaccountsessionsapiv1serveradminaccountsaccountidsessionsrevokepost) | **POST** /api/v1/server-admin/accounts/{accountId}/sessions/revoke | Revoke Server Admin Account Sessions |
 | [**revokeServerAdminSpaceEntitlementGrantApiV1ServerAdminSpacesSpaceIdEntitlementGrantsGrantIdRevokePost**](ServerAdminApi.md#revokeserveradminspaceentitlementgrantapiv1serveradminspacesspaceidentitlementgrantsgrantidrevokepost) | **POST** /api/v1/server-admin/spaces/{space_id}/entitlement/grants/{grant_id}/revoke | Revoke Server Admin Space Entitlement Grant |
+| [**searchServerAdmin**](ServerAdminApi.md#searchserveradmin) | **GET** /api/v1/server-admin/search | Search Server Admin |
+| [**setServerAdminSpaceStorageQuota**](ServerAdminApi.md#setserveradminspacestoragequota) | **PUT** /api/v1/server-admin/spaces/{space_id}/storage-quota | Set Server Admin Space Storage Quota |
 | [**updateMaintenanceSettingApiV1ServerAdminSettingsMaintenancePut**](ServerAdminApi.md#updatemaintenancesettingapiv1serveradminsettingsmaintenanceput) | **PUT** /api/v1/server-admin/settings/maintenance | Update Maintenance Setting |
 | [**updateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPut**](ServerAdminApi.md#updatemonitoringalertssettingapiv1serveradminsettingsmonitoringalertsput) | **PUT** /api/v1/server-admin/settings/monitoring-alerts | Update Monitoring Alerts Setting |
 | [**updateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPut**](ServerAdminApi.md#updatemonitoringpushsettingapiv1serveradminsettingsmonitoringpushput) | **PUT** /api/v1/server-admin/settings/monitoring-push | Update Monitoring Push Setting |
@@ -32,6 +36,76 @@ All URIs are relative to *http://localhost*
 | [**updateServerAdminAccountSuspensionApiV1ServerAdminAccountsAccountIdSuspensionPut**](ServerAdminApi.md#updateserveradminaccountsuspensionapiv1serveradminaccountsaccountidsuspensionput) | **PUT** /api/v1/server-admin/accounts/{accountId}/suspension | Update Server Admin Account Suspension |
 | [**verifyServerAdminAccountEmailApiV1ServerAdminAccountsAccountIdEmailsAccountEmailIdVerifyPost**](ServerAdminApi.md#verifyserveradminaccountemailapiv1serveradminaccountsaccountidemailsaccountemailidverifypost) | **POST** /api/v1/server-admin/accounts/{accountId}/emails/{accountEmailId}/verify | Verify Server Admin Account Email |
 
+
+
+## clearServerAdminSpaceStorageQuota
+
+> clearServerAdminSpaceStorageQuota(spaceId)
+
+Clear Server Admin Space Storage Quota
+
+Remove the individual quota; the tier value applies again at once.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  ServerAdminApi,
+} from '';
+import type { ClearServerAdminSpaceStorageQuotaRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new ServerAdminApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+  } satisfies ClearServerAdminSpaceStorageQuotaRequest;
+
+  try {
+    const data = await api.clearServerAdminSpaceStorageQuota(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+`void` (Empty response body)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **204** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
 ## deleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPost
@@ -689,6 +763,76 @@ example().catch(console.error);
 ### Return type
 
 [**ServerAdminSpaceEntitlementView**](ServerAdminSpaceEntitlementView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getServerAdminSpaceFile
+
+> ServerAdminSpaceFile getServerAdminSpaceFile(spaceId)
+
+Get Server Admin Space File
+
+Everything an operator needs about one Space, without names or content.  Each call is recorded as &#x60;&#x60;space_file_viewed&#x60;&#x60; in the privileged audit.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  ServerAdminApi,
+} from '';
+import type { GetServerAdminSpaceFileRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new ServerAdminApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+  } satisfies GetServerAdminSpaceFileRequest;
+
+  try {
+    const data = await api.getServerAdminSpaceFile(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**ServerAdminSpaceFile**](ServerAdminSpaceFile.md)
 
 ### Authorization
 
@@ -1499,6 +1643,150 @@ example().catch(console.error);
 ### Return type
 
 [**ServerAdminSpaceEntitlementView**](ServerAdminSpaceEntitlementView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## searchServerAdmin
+
+> ServerAdminSearchResult searchServerAdmin(q)
+
+Search Server Admin
+
+Find Accounts by email part or id, their Spaces, and a Space by id.  Names are protected content and never matched. At most 20 Accounts come back, so the Account-Space link cannot be listed in bulk.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  ServerAdminApi,
+} from '';
+import type { SearchServerAdminRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new ServerAdminApi();
+
+  const body = {
+    // string (optional)
+    q: q_example,
+  } satisfies SearchServerAdminRequest;
+
+  try {
+    const data = await api.searchServerAdmin(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **q** | `string` |  | [Optional] [Defaults to `&#39;&#39;`] |
+
+### Return type
+
+[**ServerAdminSearchResult**](ServerAdminSearchResult.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## setServerAdminSpaceStorageQuota
+
+> ServerAdminSpaceStorage setServerAdminSpaceStorageQuota(spaceId, serverAdminStorageQuotaRequest)
+
+Set Server Admin Space Storage Quota
+
+Set an individual Cloud quota for the Space, optionally until a date.  The higher of it and the tier value applies while it is active, so a value below the tier has no effect. Over the quota nothing is deleted; only new bytes are refused.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  ServerAdminApi,
+} from '';
+import type { SetServerAdminSpaceStorageQuotaRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new ServerAdminApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+    // ServerAdminStorageQuotaRequest
+    serverAdminStorageQuotaRequest: ...,
+  } satisfies SetServerAdminSpaceStorageQuotaRequest;
+
+  try {
+    const data = await api.setServerAdminSpaceStorageQuota(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **serverAdminStorageQuotaRequest** | [ServerAdminStorageQuotaRequest](ServerAdminStorageQuotaRequest.md) |  | |
+
+### Return type
+
+[**ServerAdminSpaceStorage**](ServerAdminSpaceStorage.md)
 
 ### Authorization
 

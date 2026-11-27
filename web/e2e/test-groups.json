@@ -701,6 +701,11 @@
       "baselineTests": 3,
       "reason": "ServerAdmin monitoring (#2317): System > Monitoring opens with a calm empty history on a fresh installation, the range switch asks the server for 30 days and marks itself pressed, the alert mail switch and the separate alert push switch (#2314) each write exactly one settings change and keep it when another range is read; the Situation's no-backup item on Cloud leads to Monitoring; with history the error-rate, response-time and storage lines render in Compact 360/390/430 and Expanded 1280, Light/Dark with axe, reduced motion and 200 % text without horizontal overflow."
     },
+    "server-admin-people.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 2,
+      "reason": "ServerAdmin People and the Space file (#2324): People opens at one search and marks itself current, an email part finds the Space without showing any name, the Space file shows members by email, plan, storage by media type and history; the storage sheet warns below the current usage, saves an individual 80 GB quota once and the file shows it, and removing it brings the plan's storage back; the Space file and the storage sheet in Compact 360/390/430 and Expanded 1280, Light/Dark with axe, reduced motion and 200 % text without horizontal overflow, and the search results at 200 % text."
+    },
     "server-admin-situation.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 4,
@@ -708,8 +713,8 @@
     },
     "server-admin-support-reports.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 4,
-      "reason": "ServerAdmin support reports (#2189): the operator opens Help from the ServerAdmin area navigation only while the admin plugin is installed, opens a report from the new-report queue (the list never shows the note), changes its state directly with exactly one write, sends the one reply and sees it read-only, creates a ticket from the dialog that sends only the typed title and body and sees the tracker link, and returns to the list with focus restored; the operator archives a report (no dialog, one write), finds it only in the Archived view with its state kept, brings it back, and permanently deletes one only through the confirmation dialog (cancel holds focus and deletes nothing; a linked ticket is named as staying in the tracker); an uncertain PENDING ticket is cleared only after the duplicate warning is confirmed; the list, detail, archive/delete actions, delete dialog, archived view, ticket dialog and uncertain state in Compact 360/390/430 and Expanded 1440, Light/Dark, reduced motion and 200 % text with axe on the section and the dialog."
+      "baselineTests": 5,
+      "reason": "ServerAdmin support reports (#2189) and Help reply templates (#2327): the operator opens Help from the ServerAdmin area navigation only while the admin plugin is installed, opens a report from the new-report queue (cards quote a note preview of at most 160 characters and the state segments carry their counts), changes its state directly with exactly one write, sends the one reply and sees it read-only, creates a ticket from the dialog that sends only the typed title and body and sees the tracker link, and returns to the list with focus restored; the operator archives a report (no dialog, one write), finds it only in the Archived view with its state kept, brings it back, and permanently deletes one only through the confirmation dialog (cancel holds focus and deletes nothing; a linked ticket is named as staying in the tracker); an uncertain PENDING ticket is cleared only after the duplicate warning is confirmed; the list, detail, archive/delete actions, delete dialog, archived view, ticket dialog and uncertain state in Compact 360/390/430 and Expanded 1440, Light/Dark, reduced motion and 200 % text with axe on the section and the dialog; Help > Reply templates: the operator creates a template in the sheet (one write), inserts it into a report reply with a chip and sends it once, follows the Edit link from another report, changes and then deletes the template after a confirmation, with the empty page, the sheet, the list at 360/390/430 and the page at 1280 in Light/Dark with axe."
     },
     "app-shortcuts.spec.ts": {
       "disposition": "PR_CRITICAL",

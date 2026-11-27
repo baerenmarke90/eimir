@@ -74,7 +74,7 @@ def admin_plugin_object() -> Any:
     return import_module("eimir_admin.plugin").plugin
 
 
-CHAIN_PLUGIN_TABLES = frozenset({"support_report_tickets"})
+CHAIN_PLUGIN_TABLES = frozenset({"support_report_tickets", "support_reply_templates"})
 """Manifest tables created by a plugin's own migration chain, never by the Core chain.
 
 The Pro tables are part of the Core chain; the operator plugin's are not
@@ -116,6 +116,10 @@ ADMIN_OPERATIONS = frozenset(
         ("POST", "/api/v1/server-admin/support-reports/{reportId}/reply"),
         ("POST", "/api/v1/server-admin/support-reports/{reportId}/ticket"),
         ("DELETE", "/api/v1/server-admin/support-reports/{reportId}/ticket"),
+        ("GET", "/api/v1/server-admin/support-reports/templates"),
+        ("POST", "/api/v1/server-admin/support-reports/templates"),
+        ("PUT", "/api/v1/server-admin/support-reports/templates/{templateId}"),
+        ("DELETE", "/api/v1/server-admin/support-reports/templates/{templateId}"),
     }
 )
 """Operations of the operator plugin (``eimir-admin``) in the complete contract.

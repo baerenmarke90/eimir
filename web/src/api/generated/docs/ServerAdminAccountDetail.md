@@ -23,6 +23,7 @@ Name | Type
 `mailRecoveryAvailable` | boolean
 `passkeyCount` | number
 `primaryEmail` | string
+`spaces` | [Array&lt;ServerAdminAccountSpace&gt;](ServerAdminAccountSpace.md)
 
 ## Example
 
@@ -48,6 +49,7 @@ const example = {
   "mailRecoveryAvailable": null,
   "passkeyCount": null,
   "primaryEmail": null,
+  "spaces": null,
 } satisfies ServerAdminAccountDetail
 
 console.log(example)

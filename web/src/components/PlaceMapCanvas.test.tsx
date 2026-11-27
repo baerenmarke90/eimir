@@ -456,6 +456,19 @@ it("reports only the viewer's own gestures and settles after they rest", () => {
   }
 });
 
+it('tells its page once, when the map is complete', async () => {
+  const onComplete = vi.fn();
+  render(<PlaceMapCanvas revealWhenComplete onComplete={onComplete} />);
+  expect(onComplete).not.toHaveBeenCalled();
+  act(() => {
+    for (const callback of state.once.idle ?? []) callback();
+  });
+  await act(async () => {
+    await Promise.resolve();
+  });
+  expect(onComplete).toHaveBeenCalledOnce();
+});
+
 it('shows the map in one piece once its view has drawn and photos loaded', () => {
   const { container } = render(<PlaceMapCanvas revealWhenComplete />);
   const canvas = container.querySelector('.place-map-canvas');

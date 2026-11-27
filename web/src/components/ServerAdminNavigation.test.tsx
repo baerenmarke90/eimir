@@ -42,13 +42,13 @@ describe('ServerAdmin area navigation', () => {
     );
 
     expect(html).toContain('href="/server-admin"');
-    expect(html).toContain('href="/server-admin?section=accounts"');
+    expect(html).toContain('href="/server-admin?section=search"');
     expect(html).toContain('href="/server-admin?section=monitoring"');
     expect(html).not.toContain('section=reports');
     // The Compact bar and the Expanded list each mark People as current.
     const current = currentLinks(html);
     expect(current).toHaveLength(2);
-    for (const tag of current) expect(tag).toContain('section=accounts');
+    for (const tag of current) expect(tag).toContain('section=search');
   });
 
   it('adds Help with the unread badge when the plugin is available', () => {
@@ -89,9 +89,14 @@ describe('ServerAdmin area navigation', () => {
     expect(markup(<ServerAdminSubNavigation activeSection="overview" />)).toBe(
       '',
     );
-    expect(markup(<ServerAdminSubNavigation activeSection="reports" />)).toBe(
-      '',
-    );
+  });
+
+  it('shows the Help pages as sub-navigation', () => {
+    const pages = markup(<ServerAdminSubNavigation activeSection="reports" />);
+    expect(pages).toContain('section=replyTemplates');
+    expect(pages).toContain(serverAdmin.navigation.replyTemplates);
+    const [current] = currentLinks(pages);
+    expect(current).not.toContain('section=replyTemplates');
   });
 
   describe('leaving the reports section with an unsent draft', () => {
@@ -129,7 +134,7 @@ describe('ServerAdmin area navigation', () => {
         screen.getAllByRole('link', { name: serverAdmin.areas.people })[0],
       );
       expect(screen.getByTestId('location').textContent).toBe(
-        '?section=accounts',
+        '?section=search',
       );
     });
   });

@@ -23,6 +23,7 @@ import {
 } from '../client/memoryMapSession';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { parseMapPlace } from '../client/photoPlaces';
+import { usePrimaryTabPrepared } from '../client/primaryTabPrepared';
 import {
   ClientProblemError,
   normalizeClientError,
@@ -411,6 +412,18 @@ export function MemoryMapPage({
   const gated =
     query.error instanceof ClientProblemError &&
     query.error.code === 'PREMIUM_ENTITLEMENT_REQUIRED';
+  // A preparation before the first visit (#2063) is done once the map has
+  // drawn its opening view, or at once when there is no map to draw.
+  const prepared = usePrimaryTabPrepared();
+  const nothingToDraw =
+    Boolean(query.error) ||
+    (!query.isPending &&
+      locations.length === 0 &&
+      !query.hasNextPage &&
+      !focusPoint);
+  useEffect(() => {
+    if (nothingToDraw) prepared();
+  }, [nothingToDraw, prepared]);
   function openMemory(
     event: MouseEvent<HTMLAnchorElement>,
     entry: MemoryMapEntry,
@@ -576,6 +589,7 @@ export function MemoryMapPage({
                       <MapCanvas
                         key={`${fullscreenScope}:inline`}
                         revealWhenComplete
+                        onComplete={prepared}
                         initialViewport={viewport.current.value}
                         onViewportChange={rememberViewport}
                         onUserMotionChange={setMapMoving}

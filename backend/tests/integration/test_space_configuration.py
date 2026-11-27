@@ -141,6 +141,31 @@ def test_recovered_configuration_of_an_existing_space_keeps_daily_check_ins_off(
     assert not configuration.energy_check_in_enabled
 
 
+def test_system_timezone_sync_reports_stored_change_and_pending_shared_day(
+    session: Session,
+    pair,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:  # type: ignore[no-untyped-def]
+    space, manager, partner = pair
+
+    first = configuration_service.sync_system_timezone(session, space.id, manager, "Europe/Berlin")
+    assert (first.pending, first.changed) == (False, True)
+    repeat = configuration_service.sync_system_timezone(session, space.id, manager, "Europe/Berlin")
+    assert (repeat.pending, repeat.changed) == (False, False)
+
+    # A partner without configuration authority never moves the shared day.
+    other = configuration_service.sync_system_timezone(session, space.id, partner, "Asia/Tokyo")
+    assert (other.pending, other.changed) == (False, False)
+
+    def blocked(*_args: object, **_kwargs: object) -> None:
+        raise ConflictError("blocked", ErrorCode.VERSION_CONFLICT)
+
+    monkeypatch.setattr(configuration_service, "_ensure_daily_timezone_change_allowed", blocked)
+    held = configuration_service.sync_system_timezone(session, space.id, manager, "Asia/Tokyo")
+    assert (held.pending, held.changed) == (True, False)
+    assert _stored(session, space.id).daily_context_timezone == "Europe/Berlin"
+
+
 def test_manager_can_update_independent_typed_modules(
     session: Session,
     pair,

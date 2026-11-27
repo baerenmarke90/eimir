@@ -245,6 +245,8 @@ EXCLUDED_TABLES: dict[str, str] = {
     "operational_metric_hours": "Operational history of the old instance.",
     "request_metric_minutes": "Request counters of the old instance.",
     "worker_heartbeats": "Worker liveness of the old instance.",
+    # ServerAdmin part 3 (#2324): an operator decision on the old instance.
+    "space_storage_quota_overrides": "Individual quotas are set again by the target's operator.",
     "instance_bootstrap_state": "Instance administration.",
     "spaces": "The target Space exists already; the Space identity is not copied.",
     "space_configurations": "Instance-level Space configuration.",
@@ -278,6 +280,8 @@ EXCLUDED_TABLES: dict[str, str] = {
     # Operator-side technical link of a support report to the operator's ticket (#2189). It is
     # not personal content of the reporter, so it stays out of the personal data copy (#2245).
     "support_report_tickets": "Operator-side ticket link of a report; not the person's content.",
+    # The operator's reply templates (#2327): operator text shared by all ServerAdmins.
+    "support_reply_templates": "Operator's reply templates; operator text, not a person's content.",
     # The Transfer Bundle's own tables (feature removed by Decision 0020).
     "transfer_exports": "Transfer Bundle bookkeeping of the removed self-service feature.",
     "transfer_imports": "Transfer Bundle bookkeeping of the removed self-service feature.",

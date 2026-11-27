@@ -52,6 +52,16 @@ const games = {
       GARDEN_SEED: 'Saatgut wartet aufs Einpflanzen.',
       GARDEN_BOUQUET: 'Ein Strauß für dich.',
     },
+    // The short word under each Wir circle; the reason above is read aloud.
+    labels: {
+      WHO_OF_US: 'Wer von euch?',
+      WISH_DETECTIVE: 'Wunschdetektiv',
+      OUR_MOMENTS: 'Momente',
+      PICTURE_PING_PONG: 'Pingpong',
+      HEART_HUNT: 'Herzversteck',
+      GARDEN_SEED: 'Saatgut',
+      GARDEN_BOUQUET: 'Strauß',
+    },
   },
   heartHunt: {
     intro:

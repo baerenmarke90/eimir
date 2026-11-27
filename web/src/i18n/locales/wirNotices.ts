@@ -2,8 +2,6 @@
 // the partner: in a couple's Space everything comes from them.
 const wirNotices = {
   title: 'Neu für dich',
-  all: 'Alle ansehen',
-  allLine: 'Alle Benachrichtigungen',
   kinds: {
     today: 'Heute',
     date: 'Terminvorschlag',

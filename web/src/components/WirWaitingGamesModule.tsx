@@ -85,10 +85,10 @@ function isEntitlementRequired(error: unknown): boolean {
 }
 
 /**
- * Games that wait on the reader, one calm row each with a single way in
- * (#2158 C). On by default but it renders nothing while nothing waits, while
+ * Games that wait on the reader, one small circle each with a single way in
+ * (#2158 C; circles since #2345 B, Product Owner 2026-11-27). On by default but it renders nothing while nothing waits, while
  * it loads or fails, and without `games.couple` (then it reads nothing).
- * The rows name the game and what it asks, never its content.
+ * Each circle names the game and what it asks, never its content.
  */
 export function WirWaitingGamesModule({
   gamesApi,
@@ -174,12 +174,14 @@ export function WirWaitingGamesModule({
                 className={`wir-game-tile wir-game-tile-${game.tone}`}
                 selectedKey={`wir-waiting-${item.game}`}
               >
-                <WirGameTileArt game={item.game} />
-                <span className="wir-game-tile-title">
-                  {t(`games.entries.${game.entry}.title`)}
+                <span className="wir-game-face">
+                  <WirGameTileArt game={item.game} />
                 </span>
-                <span className="wir-game-tile-line">
-                  {t(`games.waiting.reasons.${item.game}`)}
+                <span className="wir-game-label" aria-hidden="true">
+                  {t(`games.waiting.labels.${item.game}`)}
+                </span>
+                <span className="sr-only">
+                  {`${t(`games.entries.${game.entry}.title`)}: ${t(`games.waiting.reasons.${item.game}`)}`}
                 </span>
               </TodayDestinationLink>
             </li>

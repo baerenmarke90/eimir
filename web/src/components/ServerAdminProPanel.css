@@ -1,6 +1,6 @@
 /* ServerAdmin › Pro (redesign part 5, #2328): board 04 without the Google
    Play codes card. Compact stacks the two columns; from the ServerAdmin grid's
-   52rem breakpoint they sit side by side. */
+   52rem breakpoint they sit next to each other. */
 .server-admin-pro-heading,
 .server-admin-pro-column,
 .server-admin-pro-card,
@@ -135,7 +135,7 @@
   gap: var(--space-3);
 }
 
-/* Duration and count side by side while both fit (board 04), else stacked. */
+/* Duration and count next to each other while both fit (board 04), else stacked. */
 .server-admin-pro-form-pair {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(8rem, 100%), 1fr));

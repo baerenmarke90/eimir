@@ -265,9 +265,9 @@ test('a card arrives once, opening it reads it, and a return replays nothing', a
   // Something new while Wir is open arrives at once, at the front of the notices.
   server.notices = [HEART, ...server.notices];
   // The shell re-reads the unread count when the page becomes visible again
-  // (TanStack Query listens to visibilitychange); a new count reads the reel.
+  // (TanStack Query listens to visibilitychange on window); a new count reads the reel.
   await page.evaluate(() =>
-    document.dispatchEvent(new Event('visibilitychange')),
+    window.dispatchEvent(new Event('visibilitychange')),
   );
   const heart = section.locator('li', { hasText: wirNotices.titles.heart });
   await expect(heart).toBeVisible({ timeout: 10_000 });

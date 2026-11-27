@@ -319,6 +319,12 @@ class ReleaseEvidenceContractTest(unittest.TestCase):
             self.workflow,
         )
 
+    def test_official_web_image_offers_the_public_demo_link(self) -> None:
+        """The sign-in card links to the public Demo; the address is baked in at build."""
+        step = self.workflow.split("- name: Build Web runtime image archive", 1)[1]
+        step = step.split("- name:", 1)[0]
+        self.assertIn('--build-arg "VITE_EIMIR_DEMO_URL=https://demo.eimir.de"', step)
+
     def test_live_advisories_run_separately_and_gate_media_evidence(self) -> None:
         check = "python3 tools/media/check-advisories.py"
         workflow_dir = WORKFLOW.parent

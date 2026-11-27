@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type CSSProperties,
   Fragment,
+  lazy,
   memo,
   type ReactNode,
   Suspense,
@@ -168,7 +169,6 @@ import { WirLists } from './WirLists';
 import { type MomentClipLoader, WirMomentSlides } from './WirMomentGallery';
 import { WirNotes } from './WirNotes';
 import { WirPartnerDaySheet } from './WirPartnerDaySheet';
-import { WirWaitingGamesModule } from './WirWaitingGamesModule';
 import './TodayPage.css';
 import './TodayRetrospectiveAlbum.css';
 import { concealedTitle } from '../client/discreetPlans';
@@ -189,7 +189,6 @@ import { ConnectedMoment } from './ConnectedMoment';
 import { FirstStepAction } from './FirstStepAction';
 import { useImportantDayMoment, type WirOccasion } from './wirImportantDay';
 import { useWirOccasion } from './wirOccasion';
-import { WirNewForYouModule } from './WirNewForYouModule';
 
 import {
   breatheRings,
@@ -1077,6 +1076,21 @@ export function TodayPage(props: TodayPageProps) {
     />
   );
 }
+
+/**
+ * #2345 B: the new-for-you and waiting-games reels load after the entry; each
+ * appears only once its own read is known, so nothing waits on them.
+ */
+const WirWaitingGamesModule = lazy(() =>
+  import('./WirWaitingGamesModule').then((module) => ({
+    default: module.WirWaitingGamesModule,
+  })),
+);
+const WirNewForYouModule = lazy(() =>
+  import('./WirNewForYouModule').then((module) => ({
+    default: module.WirNewForYouModule,
+  })),
+);
 
 const TodayPageView = memo(function TodayPageView({
   apis,
@@ -2218,17 +2232,19 @@ const TodayPageView = memo(function TodayPageView({
   const moduleContent: Record<DashboardModuleKey, ReactNode> = {
     new_for_you:
       apis.notifications && account?.id ? (
-        <WirNewForYouModule
-          notificationsApi={apis.notifications}
-          accountId={account.id}
-          spaceId={spaceId}
-          upcoming={dashboardQuery.data?.upcoming ?? []}
-          viewerLocalDate={dashboardQuery.data?.viewerLocalDate}
-          visible={isDashboardModuleVisible(
-            dashboardPreferences,
-            'new_for_you',
-          )}
-        />
+        <Suspense fallback={null}>
+          <WirNewForYouModule
+            notificationsApi={apis.notifications}
+            accountId={account.id}
+            spaceId={spaceId}
+            upcoming={dashboardQuery.data?.upcoming ?? []}
+            viewerLocalDate={dashboardQuery.data?.viewerLocalDate}
+            visible={isDashboardModuleVisible(
+              dashboardPreferences,
+              'new_for_you',
+            )}
+          />
+        </Suspense>
       ) : null,
     partner_distance:
       partnerDistanceVisible &&
@@ -2613,16 +2629,18 @@ const TodayPageView = memo(function TodayPageView({
     // #2158 C: on by default and Premium; it renders only while a game waits.
     games_waiting:
       account?.id && gamesApi && entitlementApi ? (
-        <WirWaitingGamesModule
-          gamesApi={gamesApi}
-          entitlementApi={entitlementApi}
-          accountId={account.id}
-          spaceId={spaceId}
-          visible={isDashboardModuleVisible(
-            dashboardPreferences,
-            'games_waiting',
-          )}
-        />
+        <Suspense fallback={null}>
+          <WirWaitingGamesModule
+            gamesApi={gamesApi}
+            entitlementApi={entitlementApi}
+            accountId={account.id}
+            spaceId={spaceId}
+            visible={isDashboardModuleVisible(
+              dashboardPreferences,
+              'games_waiting',
+            )}
+          />
+        </Suspense>
       ) : null,
     // Opt-in and Premium; it renders nothing (and reads nothing) otherwise.
     shared_garden:

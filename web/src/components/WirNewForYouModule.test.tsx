@@ -157,9 +157,11 @@ describe('WirNewForYouModule (#2345 B)', () => {
     expect(tiles[0].textContent).toContain('Dinner with Lena');
     expect(tiles[0].textContent).toContain(i18n.t('wirNotices.lines.allDay'));
     expect(tiles[1].textContent).toContain('Groceries');
+    // The small tile previews one entry; the second joins the count.
     expect(tiles[1].textContent).toContain('Strawberries');
+    expect(tiles[1].textContent).not.toContain('Baguette');
     expect(tiles[1].textContent).toContain(
-      i18n.t('wirNotices.lines.moreItems', { count: 5 }),
+      i18n.t('wirNotices.lines.moreItems', { count: 6 }),
     );
     // The last tile leads to every notification.
     expect(tiles.at(-1)?.querySelector('a')?.getAttribute('href')).toBe(

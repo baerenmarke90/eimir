@@ -3176,6 +3176,15 @@
         "HEART_HUNT": "A heart is waiting to be found.",
         "GARDEN_SEED": "A seed is waiting to be planted.",
         "GARDEN_BOUQUET": "A bouquet for you."
+      },
+      "labels": {
+        "WHO_OF_US": "Which of you?",
+        "WISH_DETECTIVE": "Wish detective",
+        "OUR_MOMENTS": "Moments",
+        "PICTURE_PING_PONG": "Ping-pong",
+        "HEART_HUNT": "Heart hunt",
+        "GARDEN_SEED": "Seed",
+        "GARDEN_BOUQUET": "Bouquet"
       }
     },
     "heartHunt": {

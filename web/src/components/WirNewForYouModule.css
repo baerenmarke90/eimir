@@ -1,11 +1,14 @@
 /*
- * The `wirNotices` reel on Wir (#2345 B): a swipeable reel of tiles in Wir's lists
- * track. Each kind has its own tint and a real content preview. The two
- * deep tints are local roles at the token boundary (white text on both in
- * Light and Dark, docs/DESIGN-TOKEN-POLICY.md); every other value is a token.
+ * The `wirNotices` reel on Wir (#2345 B): a swipeable reel of small circles in
+ * Wir's lists track, smaller than the hero's portraits (Product Owner
+ * 2026-11-27). Each circle shows a real piece of its content and its title
+ * sits below; everything in the reel is new, so nothing marks it as such. The two deep tints are local roles at the
+ * token boundary (white text on both in Light and Dark,
+ * docs/DESIGN-TOKEN-POLICY.md); every other value is a token.
  */
 .wir-notice-tiles {
-  --wir-notice-width: 10.75rem;
+  --wir-notice-face: 4rem;
+  --wir-notice-width: 4.5rem;
   --wir-notice-deep-warm: #8f3f74;
   --wir-notice-deep-warm-end: #6f2f5a;
   --wir-notice-ink-inverse: #ffffff;
@@ -14,6 +17,8 @@
 :root[data-theme="dark"] .wir-notice-tiles {
   --wir-notice-deep-warm: #7a3462;
   --wir-notice-deep-warm-end: #5c2549;
+  /* Without a ring, the dark circles are lifted off the dark page. */
+  --wir-notice-lift: #ffffff1f;
 }
 
 .wir-lists-row > .wir-notice-item {
@@ -27,16 +32,13 @@
 .wir-notice-tile {
   box-sizing: border-box;
   width: var(--wir-notice-width);
-  min-height: 14rem;
-  padding: var(--space-4);
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: var(--space-2);
-  border-radius: var(--radius-card);
+  border-radius: var(--radius-medium);
   color: var(--color-text);
   text-decoration: none;
-  box-shadow: var(--shadow-soft);
-  background: var(--color-surface-raised);
 }
 
 .wir-notice-tile:focus-visible {
@@ -45,172 +47,169 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .wir-notice-tile {
+  .wir-notice-face {
     transition: transform var(--duration-feedback) var(--easing-standard);
   }
 
-  .wir-notice-tile:active {
-    transform: scale(0.97);
+  .wir-notice-tile:active .wir-notice-face {
+    transform: scale(0.94);
   }
 }
 
-.wir-notice-tile-warm {
-  background: linear-gradient(
-    160deg,
-    var(--color-person-rose-surface),
-    var(--color-surface-raised)
-  );
+.wir-notice-face {
+  box-sizing: border-box;
+  width: var(--wir-notice-face);
+  height: var(--wir-notice-face);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--color-surface-raised);
+  color: var(--color-text);
 }
 
-.wir-notice-tile-cool {
-  background: linear-gradient(
-    160deg,
-    var(--color-surface-raised),
-    var(--color-person-blue-surface)
-  );
+/* The lift is a light wash over any tint (the action pair keeps its own). */
+:root[data-theme="dark"] .wir-notice-face {
+  box-shadow: inset 0 0 0 var(--wir-notice-face) var(--wir-notice-lift);
 }
 
-.wir-notice-tile-paper {
-  background: linear-gradient(
-    160deg,
-    var(--color-surface-raised),
-    var(--color-surface)
-  );
+:root[data-theme="dark"] .wir-notice-tone-brand .wir-notice-face,
+:root[data-theme="dark"] .wir-notice-tone-deep-cool .wir-notice-face {
+  box-shadow: none;
 }
 
-.wir-notice-tile-deep-warm {
-  color: var(--wir-notice-ink-inverse);
+.wir-notice-tone-warm .wir-notice-face {
+  background: var(--color-person-rose-surface);
+}
+
+.wir-notice-tone-cool .wir-notice-face {
+  background: var(--color-person-blue-surface);
+}
+
+.wir-notice-tone-paper .wir-notice-face {
+  background: var(--color-surface-raised);
 }
 
 /* The action pair keeps its contrast in every app design and theme: some
    designs use a light action colour in Dark, with dark text on it. */
-.wir-notice-tile-brand,
-.wir-notice-tile-deep-cool {
+.wir-notice-tone-brand .wir-notice-face,
+.wir-notice-tone-deep-cool .wir-notice-face {
   background: var(--color-action-primary);
   color: var(--color-on-action-primary);
 }
 
-.wir-notice-tile-deep-warm {
+.wir-notice-tone-deep-warm .wir-notice-face {
   background: linear-gradient(
     160deg,
     var(--wir-notice-deep-warm),
     var(--wir-notice-deep-warm-end)
   );
+  color: var(--wir-notice-ink-inverse);
 }
 
-.wir-notice-tile-all {
-  justify-content: flex-end;
-  min-height: 14rem;
+.wir-notice-tone-all .wir-notice-face {
   background: color-mix(in srgb, var(--color-surface-raised) 60%, transparent);
-  box-shadow: none;
-}
-
-.wir-notice-kind {
-  font-family: var(--font-ui);
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  opacity: 0.86;
-}
-
-.wir-notice-body {
-  display: grid;
-  gap: var(--space-2);
-  min-width: 0;
-}
-
-.wir-notice-title {
-  font-family: var(--font-display);
-  font-size: 1.2rem;
-  font-weight: 650;
-  line-height: 1.2;
-  overflow-wrap: break-word;
-}
-
-.wir-notice-time {
-  font-family: var(--font-display);
-  font-size: 2.3rem;
-  font-weight: 650;
-  line-height: 1;
-}
-
-.wir-notice-line {
-  margin-top: auto;
-  font-family: var(--font-ui);
-  font-size: 0.84rem;
-  font-weight: 600;
-  line-height: 1.35;
-  overflow-wrap: break-word;
-}
-
-.wir-notice-tile-warm .wir-notice-line,
-.wir-notice-tile-cool .wir-notice-line,
-.wir-notice-tile-paper .wir-notice-line,
-.wir-notice-tile-all .wir-notice-line {
   color: var(--color-text-secondary);
+}
+
+.wir-notice-label {
+  display: -webkit-box;
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-family: var(--font-ui);
+  font-size: 0.74rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.wir-notice-face-time {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 650;
+}
+
+.wir-notice-face-word {
+  padding-inline: var(--space-1);
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-align: center;
 }
 
 .wir-notice-leaf {
   display: grid;
   justify-items: center;
-  width: 4rem;
+  width: 2.3rem;
   overflow: hidden;
-  border-radius: var(--radius-medium);
+  border-radius: var(--radius-small);
   background: var(--color-surface-raised);
   color: var(--color-text);
-  box-shadow: var(--shadow-soft);
 }
 
 .wir-notice-leaf-weekday {
   justify-self: stretch;
-  padding: 0.15rem 0;
   background: var(--color-person-rose);
   /* Dark rosé in Light, light rosé in Dark: the raised surface reads on both. */
   color: var(--color-surface-raised);
-  font-size: 0.7rem;
+  font-size: 0.56rem;
   font-weight: 700;
+  line-height: 1.4;
   text-align: center;
   text-transform: uppercase;
 }
 
 .wir-notice-leaf-day {
   font-family: var(--font-display);
-  font-size: 1.7rem;
+  font-size: 1.05rem;
   font-weight: 650;
-  line-height: 1.15;
-}
-
-.wir-notice-leaf-time {
-  padding-bottom: 0.35rem;
-  color: var(--color-text-secondary);
-  font-size: 0.7rem;
-  font-weight: 650;
+  line-height: 1.2;
 }
 
 .wir-notice-paper {
+  box-sizing: border-box;
   display: grid;
-  gap: 0.35rem;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-medium);
-  background: color-mix(in srgb, var(--color-surface-raised) 85%, transparent);
+  gap: 0.15rem;
+  width: 3.1rem;
+  padding: 0.3rem;
+  border-radius: var(--radius-small);
+  background: var(--color-surface-raised);
   color: var(--color-text);
-  font-size: 0.84rem;
+  font-size: 0.6rem;
+  line-height: 1.25;
+}
+
+.wir-notice-paper-note {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
 }
 
 .wir-notice-check {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 0.2rem;
   min-width: 0;
-  overflow-wrap: anywhere;
+}
+
+.wir-notice-check-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .wir-notice-box {
   flex: 0 0 auto;
-  width: 0.85rem;
-  height: 0.85rem;
-  border-radius: 0.3rem;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 0.12rem;
   background: var(--color-person-blue-surface);
 }
 
@@ -219,45 +218,36 @@
 }
 
 .wir-notice-bubble {
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-large) var(--radius-large) var(--radius-large)
-    0.35rem;
+  max-width: 3.1rem;
+  overflow: hidden;
+  padding: 0.15rem 0.4rem;
+  border-radius: var(--radius-medium) var(--radius-medium) var(--radius-medium)
+    0.2rem;
   background: var(--color-surface-raised);
   color: var(--color-text);
   font-family: var(--font-display);
-  font-size: 0.95rem;
-  line-height: 1.35;
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  font-size: 0.78rem;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .wir-notice-reaction {
-  font-size: 2.4rem;
+  font-size: 1.9rem;
   line-height: 1;
 }
 
 .wir-notice-heart {
-  width: 3.6rem;
-  height: 3.6rem;
+  width: 2rem;
+  height: 2rem;
   fill: var(--wir-notice-ink-inverse);
 }
 
 .wir-notice-canvas {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 4.5rem;
-  border-radius: var(--radius-medium);
-  background: var(--color-surface-raised);
-}
-
-.wir-notice-canvas svg {
-  width: 6rem;
-  height: 3.6rem;
+  width: 2.8rem;
+  height: 1.8rem;
   fill: none;
-  stroke-width: 3;
+  stroke-width: 6;
   stroke-linecap: round;
 }
 
@@ -267,4 +257,18 @@
 
 .wir-notice-stroke-accent {
   stroke: var(--identity-icon-accent);
+}
+
+.wir-notice-cards {
+  width: 2rem;
+  height: 2rem;
+  fill: var(--color-surface-raised);
+  stroke: var(--color-person-rose);
+  stroke-width: 2;
+}
+
+.wir-notice-dots {
+  width: 1.5rem;
+  height: 1.5rem;
+  fill: currentColor;
 }

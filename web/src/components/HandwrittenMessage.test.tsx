@@ -79,6 +79,31 @@ describe('HandwrittenMessage (#2372)', () => {
     expect(phase()).toBe('final');
   });
 
+  it('keeps writing on a same-width observer report and finishes on a new width', async () => {
+    let report = () => {};
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(callback: () => void) {
+          report = callback;
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+    try {
+      render(<HandwrittenMessage text={WORDS} messageKey="m-resize" />);
+      await flush();
+      act(() => report());
+      expect(phase()).toBe('playing');
+      width.mockReturnValue(500);
+      act(() => report());
+      expect(phase()).toBe('final');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('shows the finished words at once on a tap', async () => {
     render(<HandwrittenMessage text={WORDS} messageKey="m-3" />);
     await flush();

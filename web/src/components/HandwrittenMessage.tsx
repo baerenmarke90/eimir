@@ -62,7 +62,14 @@ export function HandwrittenMessage({
         Number.parseFloat(
           getComputedStyle(document.documentElement).fontSize,
         ) || 16;
-      setFrame({ width: element.clientWidth, em: root * EM_IN_ROOT });
+      const width = element.clientWidth;
+      const em = root * EM_IN_ROOT;
+      // The observer also reports once after it starts and on every height
+      // change. Only a new width or text size is a new layout; anything else
+      // must not end the writing.
+      setFrame((current) =>
+        current?.width === width && current.em === em ? current : { width, em },
+      );
     };
     measure();
     if (typeof ResizeObserver === 'undefined') return;

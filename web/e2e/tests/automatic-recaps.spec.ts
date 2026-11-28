@@ -930,14 +930,14 @@ test('the reader covers the shell in full screen and keeps its page', async ({
   await page.getByRole('link', { name: new RegExp(copy.watchNow) }).click();
   await expect(page).toHaveURL(/\/story\/recaps\/october$/);
   await expect(reader).not.toHaveAttribute('data-fullscreen', /.*/);
-  await reader.getByRole('button', { name: 'Rückblick im Vollbild' }).click();
+  await reader.getByRole('button', { name: copy.fullscreen }).click();
   await expect(reader).toHaveAttribute('data-fullscreen', 'true');
   // Portrait stays: the page fills the viewport width and height.
   const viewport = page.viewportSize();
   const box = await reader.boundingBox();
   expect(box?.width).toBe(viewport?.width);
   expect(box?.height).toBe(viewport?.height);
-  await reader.getByRole('button', { name: 'Vollbild schließen' }).click();
+  await reader.getByRole('button', { name: copy.fullscreenClose }).click();
   await expect(reader).not.toHaveAttribute('data-fullscreen', /.*/);
   await expect(page).toHaveURL(/\/story\/recaps\/october/);
   expect(state.unexpected).toEqual([]);

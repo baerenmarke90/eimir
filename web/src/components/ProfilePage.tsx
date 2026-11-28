@@ -117,7 +117,7 @@ export function ProfilePage(props: ProfilePageProps) {
         />
         <ItemMenuOption
           icon="hinzufuegen"
-          title={t('profiles.addPreference')}
+          title={t('profiles.addPreferenceShort')}
           onClick={() => request('preference')}
         />
         {partner.id ? (

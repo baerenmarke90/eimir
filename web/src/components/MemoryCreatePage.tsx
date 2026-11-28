@@ -889,7 +889,7 @@ export function MemoryCreatePage({
     </div>
   );
   const saveLabel = pending
-    ? t('memory.saving')
+    ? t('common.saving')
     : partial
       ? t('taskBoundary.retryPhotos')
       : experienceKind
@@ -915,9 +915,7 @@ export function MemoryCreatePage({
         hasBlockingPhotoFailure
       }
     >
-      {!experienceKind && !pending && !partial
-        ? t('m5s3.common.save')
-        : saveLabel}
+      {!experienceKind && !pending && !partial ? t('common.save') : saveLabel}
     </button>
   );
   return (
@@ -932,7 +930,7 @@ export function MemoryCreatePage({
                   onClick={requestClose}
                   aria-disabled={pending}
                 >
-                  {t('taskBoundary.close')}
+                  {t('common.close')}
                 </TaskBackButton>
               }
               title={t(
@@ -951,7 +949,7 @@ export function MemoryCreatePage({
                   onClick={requestClose}
                   aria-disabled={pending}
                 >
-                  {t('taskBoundary.close')}
+                  {t('common.close')}
                 </TaskBackButton>
               }
               title={t('memory.heading')}

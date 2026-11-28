@@ -15,7 +15,6 @@ const dailyQuote = {
       together: 'Gemeinsame Erlebnisse & Alltag',
     },
   },
-  kicker: 'Euer Impuls',
   title: 'Spruch des Tages',
   pro: 'Pro',
   loading: 'Dein Spruch für heute wird geladen …',
@@ -26,7 +25,6 @@ const dailyQuote = {
   unavailable: 'Der Spruch des Tages ist gerade nicht verfügbar.',
   unavailableOffline:
     'Offline – dein Spruch des Tages wird nach dem Verbinden wieder angezeigt.',
-  retry: 'Erneut versuchen',
   settingsAria: 'Deine Einstellungen für den Spruch des Tages öffnen',
   settingsTitle: 'Spruch des Tages',
   selectionAction: 'Rubriken auswählen',
@@ -35,8 +33,6 @@ const dailyQuote = {
   settingsLoading: 'Deine Einstellung für den Spruch des Tages wird geladen …',
   settingsSaved: 'Gespeichert.',
   enabledLabel: 'Spruch des Tages anzeigen',
-  enabledDescription:
-    'Wenn du es ausschaltest, verschwindet die Karte auf „Wir“. Deine Auswahl bleibt gespeichert.',
   enabledSettingsDescription:
     'Gilt nur für dich. Deine Rubriken bleiben gespeichert.',
   sheetTitle: 'Dein Spruch des Tages',
@@ -45,9 +41,6 @@ const dailyQuote = {
   privacyResolved: 'Nur für dich – {{name}} sieht deine Auswahl nicht.',
   privacyFallback: 'Nur für dich – deine Auswahl bleibt persönlich.',
   categories: 'Rubriken',
-  done: 'Fertig',
-  cancel: 'Abbrechen',
-  saving: 'Wird gespeichert …',
   preferencesLoading: 'Deine Auswahl wird geladen …',
   preferencesUnavailable: 'Deine Auswahl ist gerade nicht verfügbar.',
   preferencesOffline:

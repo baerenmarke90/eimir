@@ -279,7 +279,7 @@ export function PrivateItemMenuSheets({
         {canEdit ? (
           <ItemMenuOption
             icon="pen"
-            title={t('privateArea.edit')}
+            title={t('common.edit')}
             disabled={disabled}
             onClick={() =>
               leaveItemMenu(menu.menuSheet, onEdit, () =>
@@ -292,7 +292,7 @@ export function PrivateItemMenuSheets({
           <ItemMenuOption
             icon="trash"
             danger
-            title={t('privateArea.delete')}
+            title={t('common.delete')}
             disabled={disabled}
             onClick={() => {
               menu.setMenuOpen(false);
@@ -308,7 +308,7 @@ export function PrivateItemMenuSheets({
         title={t('privateArea.deleteConfirmTitle')}
         body={t('privateArea.deleteConfirmBody')}
         confirmLabel={t('privateArea.deleteConfirm')}
-        pendingLabel={t('privateArea.deleting')}
+        pendingLabel={t('common.deleting')}
         pending={deletePending}
         error={deleteError}
         restoreFocusRef={menu.trigger}

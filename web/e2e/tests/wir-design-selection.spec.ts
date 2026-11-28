@@ -21,6 +21,7 @@ import {
   SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
+import germanUi from '../../src/i18n/locales/de';
 
 async function fixture(
   page: Page,
@@ -327,7 +328,9 @@ test('selecting design colours keeps the current layout and navigation', async (
     'content',
     '#2c2334',
   );
-  await sheet.getByRole('button', { name: copy.close, exact: true }).click();
+  await sheet
+    .getByRole('button', { name: germanUi.common.close, exact: true })
+    .click();
   await expect(
     card.getByRole('button', {
       name: `${copy.palette.title} ${copy.names.warm}`,
@@ -734,7 +737,7 @@ for (const [width, theme, large] of [
           .click();
         await expect(page.getByText(copy.saved, { exact: true })).toBeVisible();
         await page
-          .getByRole('button', { name: copy.close, exact: true })
+          .getByRole('button', { name: germanUi.common.close, exact: true })
           .click();
         await expect(page.getByRole('dialog')).toHaveCount(0);
         await page.goto('/today');
@@ -873,7 +876,9 @@ test('Free can preview, cancel, retain a saved Pro design and reset to Geborgen'
     .check();
   await expect(page.getByRole('button', { name: copy.discover })).toBeVisible();
   expect(f.writes).toEqual([]);
-  await page.getByRole('button', { name: copy.close, exact: true }).click();
+  await page
+    .getByRole('button', { name: germanUi.common.close, exact: true })
+    .click();
   await page.goto('/today');
   await expect(page.locator('.today-page')).toHaveAttribute(
     'data-wir-design',
@@ -1129,7 +1134,9 @@ test('quote preference recovery keeps aligned controls and accessible feedback',
     .analyze();
   expect(issues.violations).toEqual([]);
   quoteFailure = false;
-  await failedQuote.getByRole('button', { name: quoteCopy.retry }).click();
+  await failedQuote
+    .getByRole('button', { name: germanUi.common.retry })
+    .click();
   await expect(failure).toHaveCount(0);
   await expect(failedQuote.getByRole('checkbox')).toBeEnabled();
   await alignedVisibilityControls(page);
@@ -1403,7 +1410,9 @@ test('the retired design falls back to Verbunden and the picker still saves', as
     .check();
   await picker.getByRole('button', { name: copy.save, exact: true }).click();
   await expect(picker.getByText(copy.saved, { exact: true })).toBeVisible();
-  await picker.getByRole('button', { name: copy.close, exact: true }).click();
+  await picker
+    .getByRole('button', { name: germanUi.common.close, exact: true })
+    .click();
   await page.goto('/today');
   await expect(page.locator('.today-page')).toHaveAttribute(
     'data-wir-design',
@@ -1588,7 +1597,9 @@ test('retired Faden restores standard navigation and the picker still saves', as
     .check();
   await picker.getByRole('button', { name: copy.save, exact: true }).click();
   await expect(picker.getByText(copy.saved, { exact: true })).toBeVisible();
-  await picker.getByRole('button', { name: copy.close, exact: true }).click();
+  await picker
+    .getByRole('button', { name: germanUi.common.close, exact: true })
+    .click();
   await page.goto('/today');
   await expect(page.locator('.today-page')).toHaveAttribute(
     'data-wir-design',

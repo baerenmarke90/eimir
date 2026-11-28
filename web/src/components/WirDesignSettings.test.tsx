@@ -192,7 +192,7 @@ it('previews without writing, cancels, and saves once only after server confirma
     window.history.replaceState(null, '');
     window.dispatchEvent(new PopStateEvent('popstate'));
   });
-  fireEvent.click(screen.getByRole('button', { name: t('close') }));
+  fireEvent.click(screen.getByRole('button', { name: i18n.t('common.close') }));
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   expect(back).toHaveBeenCalledOnce();
   back.mockRestore();

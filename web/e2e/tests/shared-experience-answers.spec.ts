@@ -4,8 +4,6 @@ import de from '../../src/i18n/locales/de';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import copy from '../../src/i18n/locales/coupleExperiences';
 import photoPlaces from '../../src/i18n/locales/photoPlaces';
-import storyProducts from '../../src/i18n/locales/storyProducts';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import localizedFixture from '../fixtures/locales/de';
 import {
   installMocks,
@@ -177,7 +175,7 @@ for (const [width, theme] of [
     await expect(comments.nth(0)).toContainText('Still smiling about this.');
     await expect(comments.nth(1)).toContainText('Me too.');
     await expect(page.locator('.comment-list')).not.toContainText(
-      storyProducts.comments.authorSelf,
+      localizedFixture.retiredCopy.commentAuthorSelf,
     );
     const violations = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
@@ -194,7 +192,7 @@ for (const [width, theme] of [
       page.getByRole('heading', { name: copy.editOwnAnswer, exact: true }),
     ).toBeVisible();
     await expect(
-      page.getByLabel(de.memory.titleLabel, { exact: true }),
+      page.getByLabel(de.common.title, { exact: true }),
     ).not.toBeVisible();
     await page
       .getByLabel(de.memory.bodyLabel, { exact: true })
@@ -208,7 +206,7 @@ for (const [width, theme] of [
     ]);
     expect(writes).toEqual([fixture.ownEdited]);
     await page
-      .getByRole('button', { name: taskBoundary.back, exact: true })
+      .getByRole('button', { name: de.common.back, exact: true })
       .click();
     // The confirmed editor replaces itself with the actual result; Back restores the journal origin.
     await expect(

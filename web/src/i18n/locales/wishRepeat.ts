@@ -4,7 +4,6 @@ const wishRepeat = {
   sheet: {
     title: 'Nochmal erleben',
     intro: 'Ein neuer Wunsch, der an das erste Mal erinnert.',
-    titleLabel: 'Titel',
     create: 'Wunsch anlegen',
     creating: 'Wird angelegt …',
     planNow: 'Gleich planen',

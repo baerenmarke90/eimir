@@ -175,7 +175,7 @@ export function SharedNoteReadPage({
         {current.capabilities.canEdit ? (
           <ItemMenuOption
             icon="pen"
-            title={t('sharedNotes.read.edit')}
+            title={t('common.edit')}
             onClick={() =>
               leaveItemMenu(menuSheet, edit, () => setMenuOpen(false))
             }
@@ -221,7 +221,7 @@ export function SharedNoteReadPage({
           <ItemMenuOption
             icon="trash"
             danger
-            title={t('sharedNotes.menu.delete')}
+            title={t('common.delete')}
             disabled={presentation.isPending}
             onClick={() => {
               setMenuOpen(false);
@@ -241,7 +241,7 @@ export function SharedNoteReadPage({
         title={t('sharedNotes.delete.title')}
         body={t('sharedNotes.delete.body', { title: displayTitle })}
         confirmLabel={t('sharedNotes.delete.confirm')}
-        pendingLabel={t('sharedNotes.delete.pending')}
+        pendingLabel={t('common.deleting')}
         pending={remove.isPending}
         error={remove.error}
         restoreFocusRef={menuTrigger}

@@ -10,7 +10,6 @@ import {
 import de from '../../src/i18n/locales/de';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import supportReport from '../../src/i18n/locales/supportReport';
-import taskSheets from '../../src/i18n/locales/taskSheets';
 import AxeBuilder from '../support/axe';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import {
@@ -192,11 +191,11 @@ function sheetOf(page: Page) {
     dialog,
     send: dialog.getByRole('button', { name: copy.send, exact: true }),
     done: dialog.getByRole('button', {
-      name: copy.success.done,
+      name: de.common.done,
       exact: true,
     }),
     handle: dialog.getByRole('button', {
-      name: taskSheets.close,
+      name: de.common.close,
       exact: true,
     }),
     problemNote: dialog.getByLabel(copy.noteLabel.PROBLEM, { exact: true }),

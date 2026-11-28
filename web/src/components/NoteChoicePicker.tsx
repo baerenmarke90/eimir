@@ -195,7 +195,7 @@ export function NoteChoicePicker({
             }
             onClick={() => void confirm()}
           >
-            {linking ? t('m5s3.common.saving') : t('sharedNotes.plan.link')}
+            {linking ? t('common.saving') : t('sharedNotes.plan.link')}
           </button>
           {onCreateNew ? (
             <AddActionButton

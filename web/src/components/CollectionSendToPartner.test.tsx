@@ -205,7 +205,7 @@ describe('Send a list to the partner (#1907 E2)', () => {
       i18n.t('m5s3.collection.sort'),
       sendLabel(),
       i18n.t('m5s3.collection.pinToToday'),
-      i18n.t('m5s3.common.delete'),
+      i18n.t('common.delete'),
     ]);
     expect(
       screen
@@ -223,6 +223,6 @@ describe('Send a list to the partner (#1907 E2)', () => {
     const rows = (await screen.findAllByRole('button'))
       .filter((button) => button.classList.contains('item-menu-option'))
       .map((button) => button.textContent);
-    expect(rows).toEqual([i18n.t('common.edit'), i18n.t('m5s3.common.delete')]);
+    expect(rows).toEqual([i18n.t('common.edit'), i18n.t('common.delete')]);
   });
 });

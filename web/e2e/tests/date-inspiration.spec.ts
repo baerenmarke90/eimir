@@ -2,7 +2,6 @@ import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import dateIdeas from '../../src/i18n/locales/dateIdeas';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import proPaywall from '../../src/i18n/locales/proPaywall';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import AxeBuilder from '../support/axe';
 import {
   catalogIdea,
@@ -12,6 +11,7 @@ import {
   signIn,
 } from '../support/dateIdeas';
 import { captureScreenshot } from '../support/storyTimelineFixture';
+import germanUi from '../../src/i18n/locales/de';
 
 /*
  * #1892: Pro date inspiration and the shared Pro paywall. Since #1907 J1 solo
@@ -78,7 +78,7 @@ async function openFilters(page: Page) {
 }
 
 function back(page: Page) {
-  return page.getByRole('button', { name: taskBoundary.back }).first();
+  return page.getByRole('button', { name: germanUi.common.back }).first();
 }
 
 test.describe('date inspiration and Pro paywall (#1892)', () => {
@@ -196,7 +196,7 @@ test.describe('date inspiration and Pro paywall (#1892)', () => {
       FIRST.wishTitle,
     );
     expect(state.wishCreates).toHaveLength(0);
-    await page.getByRole('button', { name: m5s3.common.save }).click();
+    await page.getByRole('button', { name: germanUi.common.save }).click();
     await expect(page).toHaveURL(/\/plan\/wishes\/66666666-/);
     expect(state.wishCreates).toHaveLength(1);
     expect(state.wishCreates[0].body).toMatchObject({
@@ -243,7 +243,7 @@ test.describe('date inspiration and Pro paywall (#1892)', () => {
     await expect(page.locator('#planning-create-title')).toHaveValue(
       FIRST.planTitle,
     );
-    await page.getByRole('button', { name: m5s3.common.save }).click();
+    await page.getByRole('button', { name: germanUi.common.save }).click();
     await expect(page).toHaveURL(/\/plan\/plans\/77777777-/);
     expect(state.createdPlans[0]).toMatchObject({
       title: FIRST.planTitle,

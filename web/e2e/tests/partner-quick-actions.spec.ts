@@ -1092,9 +1092,15 @@ for (const [width, theme] of [
         ),
       ).toBeGreaterThanOrEqual(14);
     }
-    await expect(surface.getByText(copy.intro)).toHaveCount(0);
-    await expect(surface.getByText(copy.thinkingHint)).toHaveCount(0);
-    await expect(surface.getByText(copy.checkInHint)).toHaveCount(0);
+    await expect(
+      surface.getByText('Kleine Gesten direkt an deinen Partner.'),
+    ).toHaveCount(0);
+    await expect(
+      surface.getByText(localizedFixtures.retiredCopy.kissHint),
+    ).toHaveCount(0);
+    await expect(
+      surface.getByText(localizedFixtures.retiredCopy.checkInHint),
+    ).toHaveCount(0);
     const entry = surface.getByRole('link', {
       name: new RegExp(onceCopy.title),
     });
@@ -1193,7 +1199,7 @@ for (const width of [390, 1280]) {
     await expect(gallery).toBeVisible();
     await expect(gallery.locator('img')).toBeVisible();
     await expect(
-      gallery.getByRole('button', { name: storyProducts.gallery.close }),
+      gallery.getByRole('button', { name: de.common.close }),
     ).toBeFocused();
     await expectNoHorizontalOverflow(page);
     await expectNoWcagViolations(page);
@@ -1328,20 +1334,18 @@ test('a foreground Wish invitation opens the private favorites directly', async 
   await expect(
     page.getByRole('heading', { name: wishSelection.chooseTitle }),
   ).toBeVisible();
-  // #2371: the favourites step opens as a card deck; skip every card to reach
-  // the summary list with its share action.
+  // #2371: the first choice starts as a card deck; leaving every card out
+  // reaches the summary that offers sending without a favourite.
   const skip = page.getByRole('button', {
     name: wishSelection.deckSkip,
     exact: true,
   });
-  // The button is disabled while a card leaves, so poll until the deck ends.
-  await expect
-    .poll(async () => {
-      if ((await skip.count()) === 0) return 'done';
-      if (await skip.isEnabled()) await skip.click();
-      return 'skipping';
-    })
-    .toBe('done');
+  await expect(skip).toBeVisible();
+  for (let card = 0; card < 6; card += 1) {
+    if (!(await skip.isVisible()) || !(await skip.isEnabled())) break;
+    await skip.click();
+  }
+  await expect(skip).toHaveCount(0);
   await expect(
     page.getByRole('button', { name: wishSelection.shareNone }),
   ).toBeVisible();
@@ -1460,7 +1464,7 @@ for (const scenario of [
     );
 
     // The same notification never animates again on a later refresh.
-    await receipt.getByRole('button', { name: receiptCopy.close }).click();
+    await receipt.getByRole('button', { name: de.common.close }).click();
     await expect(receiptLocator(page)).toHaveCount(0);
     await refreshUnreadCount(page);
     await page.waitForTimeout(300);

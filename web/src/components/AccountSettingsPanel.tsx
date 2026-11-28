@@ -293,14 +293,14 @@ export function AccountSettingsPanel({
                     className="secondary"
                     onClick={closeDialog}
                   >
-                    {t('accountSettings.cancelAction')}
+                    {t('common.cancel')}
                   </button>
                   <button
                     type="button"
                     className="account-delete-button"
                     onClick={beginRecentAuthentication}
                   >
-                    {t('accountSettings.continueAction')}
+                    {t('common.continue')}
                   </button>
                 </div>
               </>
@@ -417,7 +417,7 @@ export function AccountSettingsPanel({
                     }}
                     disabled={busy}
                   >
-                    {t('accountSettings.backAction')}
+                    {t('common.back')}
                   </button>
                   <button
                     type="button"
@@ -425,7 +425,7 @@ export function AccountSettingsPanel({
                     onClick={closeDialog}
                     disabled={busy}
                   >
-                    {t('accountSettings.cancelAction')}
+                    {t('common.cancel')}
                   </button>
                 </div>
               </div>
@@ -498,7 +498,7 @@ export function AccountSettingsPanel({
                     }}
                     disabled={deletionMutation.isPending}
                   >
-                    {t('accountSettings.backAction')}
+                    {t('common.back')}
                   </button>
                   <button
                     type="button"
@@ -506,7 +506,7 @@ export function AccountSettingsPanel({
                     onClick={closeDialog}
                     disabled={deletionMutation.isPending}
                   >
-                    {t('accountSettings.cancelAction')}
+                    {t('common.cancel')}
                   </button>
                   <button
                     type="submit"

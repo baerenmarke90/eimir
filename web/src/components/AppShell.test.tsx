@@ -9,9 +9,9 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { Link, MemoryRouter, useLocation } from 'react-router-dom';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import navigation from '../i18n/locales/navigation';
-import taskBoundary from '../i18n/locales/taskBoundary';
 import { AppShell } from './AppShell';
 import { MomentMapLink } from './MomentMapLink';
+import germanUi from '../i18n/locales/de';
 
 /** Opening anchor tags, so attribute order in the markup does not matter. */
 function anchorTags(html: string): string[] {
@@ -218,7 +218,7 @@ describe('AppShell', () => {
       .parseFromString(html, 'text/html')
       .querySelectorAll('button.back-link.tertiary');
     expect(backButtons).toHaveLength(1);
-    expect(backButtons[0]?.textContent).toBe(taskBoundary.back);
+    expect(backButtons[0]?.textContent).toBe(germanUi.common.back);
     expect(renderShell('/story')).not.toContain('shell-detail-context');
   });
 
@@ -228,7 +228,7 @@ describe('AppShell', () => {
     expect(html).not.toContain('shell-primary-action');
     expect(html).not.toContain('quick-create-trigger');
     expect(html).not.toContain('mobile-quick-create');
-    expect(html).not.toContain(`>${navigation.newContent}<`);
+    expect(html).not.toContain(`>${'Neu festhalten'}<`);
 
     const compact = html.slice(html.indexOf('mobile-bottom-nav'));
     for (const path of ['/today', '/story', '/plan', '/more']) {

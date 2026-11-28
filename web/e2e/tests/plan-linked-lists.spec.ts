@@ -2,11 +2,9 @@ import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import composer from '../../src/i18n/locales/composer';
 import de from '../../src/i18n/locales/de';
-import experiences from '../../src/i18n/locales/experiences';
 import copy from '../../src/i18n/locales/m5s3';
 import memoryCopy from '../../src/i18n/locales/memoryProduct';
 import storyCopy from '../../src/i18n/locales/storyProducts';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import fixtures from '../fixtures/locales/de';
 import { editViaMenu, itemMenuTrigger } from '../support/itemMenu';
 import { closeHeartAudience, showHeartAudience } from '../support/memoryDiary';
@@ -464,13 +462,13 @@ function listTool(page: Page) {
 
 async function closePlanEditor(page: Page) {
   const close = page.locator('.composer-header .task-back-control');
-  await expect(close).toHaveAccessibleName(taskBoundary.close);
+  await expect(close).toHaveAccessibleName(de.common.close);
   await close.click();
 }
 
 async function closeHeartEditor(page: Page) {
   const back = page.locator('.composer-header .task-back-control');
-  await expect(back).toHaveAccessibleName(taskBoundary.back);
+  await expect(back).toHaveAccessibleName(de.common.back);
   await expect(back).toHaveAttribute('href', /\/heart-moments\/[^/]+$/);
   await back.click();
 }
@@ -609,7 +607,7 @@ for (const view of [
       }),
     ).toBeVisible();
     await listSheet
-      .getByRole('button', { name: experiences.finish, exact: true })
+      .getByRole('button', { name: de.common.done, exact: true })
       .click();
     await expect(listSheet).toHaveCount(0);
     await expect(
@@ -693,9 +691,7 @@ test('completed-list scope survives detail return and reopened items leave that 
       name: copy.collection.markDone.replace('{{title}}', 'Picknickdecke'),
     }),
   ).toBeVisible();
-  await page
-    .getByRole('button', { name: taskBoundary.back, exact: true })
-    .click();
+  await page.getByRole('button', { name: de.common.back, exact: true }).click();
   await expect(page).toHaveURL(/\/more\/collections\?scope=COMPLETED$/);
   await expect(
     page.getByRole('button', {
@@ -733,7 +729,7 @@ test('Memory continuation saves the canonical source Place and returns to the co
       .getByText(state.place.address, { exact: true }),
   ).toBeVisible();
   await places
-    .getByRole('button', { name: experiences.finish, exact: true })
+    .getByRole('button', { name: de.common.done, exact: true })
     .click();
   await expect(places).toHaveCount(0);
   await expect(page.getByLabel(de.memory.bodyLabel)).toHaveValue(
@@ -757,9 +753,7 @@ test('Memory continuation saves the canonical source Place and returns to the co
   await expect(page.locator('.memory-detail-body')).toHaveText(
     fixtures.planLinkedLists.savedMemoryBody,
   );
-  await page
-    .getByRole('button', { name: taskBoundary.back, exact: true })
-    .click();
+  await page.getByRole('button', { name: de.common.back, exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/plan/plans/${planId}$`));
   await expect(
     page.getByRole('link', {
@@ -810,9 +804,7 @@ test('private HeartMoment continuation saves a protected location snapshot', asy
     longitude: state.place.longitude,
   });
   expect(state.calls.sourceLinks).not.toContain('heart-moments/heart-new');
-  await page
-    .getByRole('button', { name: taskBoundary.back, exact: true })
-    .click();
+  await page.getByRole('button', { name: de.common.back, exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/plan/plans/${planId}$`));
   expect(state.unexpected).toEqual([]);
 });
@@ -862,7 +854,7 @@ for (const view of [
       });
       if (source.kind === 'HEART_MOMENT') {
         await expect(reverse).toHaveCount(0);
-        await editViaMenu(page, storyCopy.heartMomentProduct.edit);
+        await editViaMenu(page, de.common.edit);
         await expect(reverse).toContainText(state.plan.title);
         await noOverflow(page);
         await captureScreenshot(
@@ -874,7 +866,7 @@ for (const view of [
         await closeHeartEditor(page);
         await expect(reverse).toHaveCount(0);
         await page
-          .getByRole('button', { name: taskBoundary.back, exact: true })
+          .getByRole('button', { name: de.common.back, exact: true })
           .click();
         await expect(page).toHaveURL(new RegExp(`/plan/plans/${planId}$`));
         await expect(context.getByRole('link')).toHaveCount(3);
@@ -949,13 +941,11 @@ test('shared HeartMoment capture retains its Plan in both directions', async ({
     handoff.getByRole('button', { name: de.common.retry, exact: true }),
   ).toHaveCount(0);
   expect(state.calls.sourceLinks).toEqual(['heart-moments/heart-new']);
-  await editViaMenu(page, storyCopy.heartMomentProduct.edit);
+  await editViaMenu(page, de.common.edit);
   await expect(reverse).toContainText(state.plan.title);
   await closeHeartEditor(page);
   await expect(reverse).toHaveCount(0);
-  await page
-    .getByRole('button', { name: taskBoundary.back, exact: true })
-    .click();
+  await page.getByRole('button', { name: de.common.back, exact: true }).click();
   await expect(
     page
       .getByRole('region', { name: copy.planStory.linksHeading })
@@ -1001,9 +991,7 @@ test('a confirmed source link refreshes the Plan after returning during the pend
     })
     .click();
   await expect.poll(() => admitted).toBe(true);
-  await page
-    .getByRole('button', { name: taskBoundary.back, exact: true })
-    .click();
+  await page.getByRole('button', { name: de.common.back, exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/plan/plans/${planId}$`));
   const related = page.getByRole('region', {
     name: copy.planStory.linksHeading,
@@ -1027,7 +1015,7 @@ test('Milestone capture retains its Plan and existing Milestones can unlink and 
     .getByRole('button', { name: copy.planStory.milestoneAction, exact: true })
     .click();
   await page
-    .getByLabel(storyCopy.milestoneProduct.titleLabel, { exact: true })
+    .getByLabel(de.common.title, { exact: true })
     .fill(fixtures.planLinkedLists.savedMilestoneTitle);
   await page
     .getByRole('button', { name: storyCopy.milestoneProduct.save, exact: true })
@@ -1047,7 +1035,7 @@ test('Milestone capture retains its Plan and existing Milestones can unlink and 
       name: new RegExp(fixtures.planLinkedLists.savedMilestoneTitle),
     })
     .click();
-  await editViaMenu(page, storyCopy.milestoneProduct.edit);
+  await editViaMenu(page, de.common.edit);
   await page
     .getByRole('button', {
       name: memoryCopy.planning.remove.replace('{{title}}', state.plan.title),
@@ -1115,7 +1103,7 @@ test('Plan field drafts survive guarded exit, bounded list choice and in-context
     .click();
   const picker = page.getByRole('dialog', { name: copy.collection.choose });
   await expect(
-    picker.getByLabel(copy.common.title, { exact: true }),
+    picker.getByLabel(de.common.title, { exact: true }),
   ).toBeVisible();
   await expect(discard).not.toBeVisible();
   await page.goBack();
@@ -1165,7 +1153,7 @@ test('Plan creation keeps its draft while creating a list and retries a partial 
     .getByRole('button', { name: copy.collection.createNew, exact: true })
     .click();
   await dialog
-    .getByLabel(copy.common.title, { exact: true })
+    .getByLabel(de.common.title, { exact: true })
     .fill(fixtures.planLinkedLists.newListTitle);
   await dialog
     .getByRole('button', { name: copy.collection.createNew, exact: true })
@@ -1187,9 +1175,7 @@ test('Plan creation keeps its draft while creating a list and retries a partial 
     fullPage: true,
   });
   state.calls.failLinks = true;
-  await page
-    .getByRole('button', { name: copy.common.save, exact: true })
-    .click();
+  await page.getByRole('button', { name: de.common.save, exact: true }).click();
   await expect(
     page.getByText(copy.collection.planSavedLinkFailed),
   ).toBeVisible();

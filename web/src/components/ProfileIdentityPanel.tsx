@@ -447,8 +447,8 @@ export function ProfileIdentityPanel({
                 <div className="form-actions profile-identity-edit-actions">
                   <button type="submit" disabled={pending || !dirty}>
                     {saveMutation.isPending
-                      ? t('profileIdentity.savingProfile')
-                      : t('profileIdentity.saveProfile')}
+                      ? t('common.saving')
+                      : t('common.save')}
                   </button>
                   <button
                     type="button"

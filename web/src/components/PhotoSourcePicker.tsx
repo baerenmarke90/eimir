@@ -709,14 +709,14 @@ export function PhotoSourcePicker({
       <ShortTaskSheet
         open={open}
         title={t('photoSources.title')}
-        closeLabel={t('taskSheets.close')}
+        closeLabel={t('common.close')}
         onClose={close}
         restoreFocusRef={trigger}
         className="photo-source-sheet"
         footer={
           <div className="photo-source-footer">
             <button type="button" className="secondary" onClick={close}>
-              {t('taskSheets.close')}
+              {t('common.close')}
             </button>
             {retry && !view ? (
               <button
@@ -727,7 +727,7 @@ export function PhotoSourcePicker({
                     void runImport(task.current, retry.ready, retry.ids);
                 }}
               >
-                {t('photoSources.retryImport')}
+                {t('common.retry')}
               </button>
             ) : null}
             {view ? (

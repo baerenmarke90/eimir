@@ -12,6 +12,7 @@ import {
   SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
+import germanUi from '../../src/i18n/locales/de';
 
 /*
  * The Listen destination (fifth primary tab): Lists and Notes are two views of
@@ -233,11 +234,11 @@ test('a note searches by icon and its one actions menu lists Edit first and Dele
 
   // Editing is not a button on the page; it is the first row of the menu.
   await expect(
-    page.getByRole('button', { name: copy.read.edit, exact: true }),
+    page.getByRole('button', { name: germanUi.common.edit, exact: true }),
   ).toHaveCount(0);
   await expect(itemMenuTrigger(page)).toHaveCount(1);
   await openItemMenu(page);
   const rows = page.locator('.item-menu-option');
-  await expect(rows.first()).toContainText(copy.read.edit);
-  await expect(rows.last()).toContainText(copy.menu.delete);
+  await expect(rows.first()).toContainText(germanUi.common.edit);
+  await expect(rows.last()).toContainText(germanUi.common.delete);
 });

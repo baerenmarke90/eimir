@@ -129,7 +129,7 @@ export function ServerAdminMonitoringPanel({ api }: { api: ServerAdminApi }) {
           body={t('serverAdmin.states.errorBody')}
           action={
             <button type="button" onClick={() => void query.refetch()}>
-              {t('serverAdmin.refresh')}
+              {t('common.refresh')}
             </button>
           }
         />

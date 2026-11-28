@@ -55,9 +55,8 @@ function setup(
   return { createChapter, view, page };
 }
 const title = () =>
-  screen.getByRole('textbox', { name: i18n.t('m5s3.common.title') });
-const save = () =>
-  screen.getByRole('button', { name: i18n.t('m5s3.common.save') });
+  screen.getByRole('textbox', { name: i18n.t('common.title') });
+const save = () => screen.getByRole('button', { name: i18n.t('common.save') });
 beforeEach(() => {
   window.history.replaceState(null, '', '/');
   onlineManager.setOnline(true);
@@ -109,7 +108,7 @@ describe('Chapter capture task', () => {
     setup();
     await user.type(title(), 'A chapter');
     await user.click(
-      screen.getByRole('button', { name: i18n.t('taskBoundary.back') }),
+      screen.getByRole('button', { name: i18n.t('common.back') }),
     );
     expect(await screen.findByRole('alertdialog')).toBeTruthy();
     await user.click(
@@ -117,7 +116,7 @@ describe('Chapter capture task', () => {
     );
     expect((title() as HTMLInputElement).value).toBe('A chapter');
     await user.click(
-      screen.getByRole('button', { name: i18n.t('taskBoundary.back') }),
+      screen.getByRole('button', { name: i18n.t('common.back') }),
     );
     await user.click(
       screen.getByRole('button', {
@@ -161,7 +160,7 @@ describe('Chapter capture task', () => {
     expect(create).toHaveBeenCalledTimes(1);
     expect(
       screen
-        .getByRole('button', { name: i18n.t('taskBoundary.back') })
+        .getByRole('button', { name: i18n.t('common.back') })
         .hasAttribute('disabled'),
     ).toBe(true);
     view.rerender(page('account-b'));

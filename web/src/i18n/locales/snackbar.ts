@@ -1,6 +1,5 @@
 const snackbar = {
   snackbar: {
-    dismiss: 'Schließen',
     spaceSwitched: 'Bereich gewechselt.',
     identityLinkWaiting:
       'Dein Link wartet. Speichere oder schließe zuerst deinen Entwurf.',

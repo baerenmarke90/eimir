@@ -8,7 +8,6 @@ import photoPlaces from '../../src/i18n/locales/photoPlaces';
 import recapCopy from '../../src/i18n/locales/recaps';
 import copy from '../../src/i18n/locales/relationshipReflections';
 import storyProducts from '../../src/i18n/locales/storyProducts';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import AxeBuilder from '../support/axe';
 import { editViaMenu } from '../support/itemMenu';
 import { mockMapTiles } from '../support/mapTiles';
@@ -507,7 +506,7 @@ for (const [width, theme, largeText] of [
     });
     await countdown.click();
     await expect(page).toHaveURL(new RegExp(`/plan/plans/${PLAN}$`));
-    await page.getByRole('button', { name: taskBoundary.back }).click();
+    await page.getByRole('button', { name: de.common.back }).click();
     await expect(page).toHaveURL(/\/today$/);
     await page.goto('/more/profile');
     await expect(page.locator('.profile-page')).toBeVisible();
@@ -782,7 +781,7 @@ test('Plan overview bounds prose, preserves full detail, and restores a cold sna
   await expect(more).toHaveAttribute('aria-expanded', 'true');
   await expect(page.getByText(description, { exact: true })).toBeVisible();
   const beforeReturn = planReads;
-  await page.getByRole('button', { name: taskBoundary.back }).click();
+  await page.getByRole('button', { name: de.common.back }).click();
   await expect(page.locator('.planen-next-link')).toContainText(TITLE);
   expect(planReads).toBe(beforeReturn);
 

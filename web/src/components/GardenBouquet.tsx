@@ -110,7 +110,7 @@ export function BouquetBindCard({
       ) : null}
       <div className="garden-card-actions">
         <button type="button" className="secondary" onClick={onCancel}>
-          {t('games.garden.cancel')}
+          {t('common.cancel')}
         </button>
         <button
           type="button"

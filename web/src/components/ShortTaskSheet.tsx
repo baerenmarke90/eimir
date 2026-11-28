@@ -205,7 +205,7 @@ export function ShortTaskSheet({
     return true;
   }
 
-  const resolvedCloseLabel = closeLabel?.trim() || t('taskSheets.close');
+  const resolvedCloseLabel = closeLabel?.trim() || t('common.close');
   const {
     present: retainedPresence,
     presenceState,

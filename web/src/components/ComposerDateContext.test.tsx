@@ -17,6 +17,7 @@ import {
   ComposerDateContext,
   type ComposerDateContextHandle,
 } from './ComposerDateContext';
+import germanUi from '../i18n/locales/de';
 
 beforeEach(() => {
   HTMLDialogElement.prototype.showModal = function () {
@@ -108,7 +109,7 @@ describe('ComposerDateContext', () => {
       target: { value: '2026-11-12' },
     });
     await user.click(
-      within(dialog).getByRole('button', { name: experiences.finish }),
+      within(dialog).getByRole('button', { name: germanUi.common.done }),
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     const values = new FormData(
@@ -176,7 +177,7 @@ describe('ComposerDateContext', () => {
       experiences.invalidPeriod,
     );
     await user.click(
-      within(dialog).getByRole('button', { name: experiences.finish }),
+      within(dialog).getByRole('button', { name: germanUi.common.done }),
     );
     expect(screen.getByRole('dialog')).toBe(dialog);
     await user.click(
@@ -268,7 +269,7 @@ describe('ComposerDateContext', () => {
       target: { value: '2026-11-14' },
     });
     await user.click(
-      within(dialog).getByRole('button', { name: experiences.finish }),
+      within(dialog).getByRole('button', { name: germanUi.common.done }),
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
 

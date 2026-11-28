@@ -161,7 +161,7 @@ function Settings({
         ref={sheet}
         open={open}
         title={t('memoryWorldSettings.choices')}
-        closeLabel={t('memoryWorldSettings.close')}
+        closeLabel={t('common.close')}
         className="memory-world-sheet"
         initialFocusRef={initialFocus}
         restoreFocusRef={opener}
@@ -180,7 +180,7 @@ function Settings({
                   className="button-link"
                   onClick={() => void capability.refetch()}
                 >
-                  {t('memoryWorldSettings.retry')}
+                  {t('common.retry')}
                 </button>
               </div>
             ) : null}
@@ -219,7 +219,7 @@ function Settings({
                 onClick={() => void save()}
               >
                 {saving
-                  ? t('memoryWorldSettings.saving')
+                  ? t('common.saving')
                   : changed
                     ? t('memoryWorldSettings.choose', { name: name(draft) })
                     : t('memoryWorldSettings.selected')}

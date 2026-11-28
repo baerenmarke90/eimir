@@ -312,7 +312,7 @@ export function GardenPlayback({
                 ? t('games.garden.story.playback.again')
                 : playing
                   ? t('games.garden.story.playback.pause')
-                  : t('games.garden.story.playback.resume')}
+                  : t('common.continue')}
             </button>
           )}
           <button
@@ -321,7 +321,7 @@ export function GardenPlayback({
             className="secondary"
             onClick={onClose}
           >
-            {t('games.garden.story.playback.close')}
+            {t('common.close')}
           </button>
         </div>
       </div>

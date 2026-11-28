@@ -198,9 +198,7 @@ export function ServerAdminReplyTemplateSheet({
                 disabled={busy || !online}
                 onClick={onDelete}
               >
-                {deleting
-                  ? t('serverAdmin.templates.sheet.deleting')
-                  : t('serverAdmin.templates.sheet.delete')}
+                {deleting ? t('common.deleting') : t('common.delete')}
               </button>
             ) : null}
             <button
@@ -209,12 +207,10 @@ export function ServerAdminReplyTemplateSheet({
               disabled={busy}
               onClick={close}
             >
-              {t('serverAdmin.templates.sheet.cancel')}
+              {t('common.cancel')}
             </button>
             <button type="submit" disabled={busy || !online}>
-              {pending
-                ? t('serverAdmin.templates.sheet.saving')
-                : t('serverAdmin.templates.sheet.save')}
+              {pending ? t('common.saving') : t('common.save')}
             </button>
           </div>
         </form>

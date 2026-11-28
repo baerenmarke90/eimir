@@ -14,6 +14,7 @@ import {
   signIn,
   SPACE_ID,
 } from '../support/storyTimelineFixture';
+import germanUi from '../../src/i18n/locales/de';
 
 test.use({ channel: 'chromium' });
 
@@ -176,11 +177,11 @@ test('a browser Plan saves a retried PDF, opens and downloads it, then removes i
   await selectPdf(page);
   await expect(page.getByText(fileCopy.uploadFailed)).toBeVisible();
   await expect(
-    page.getByRole('button', { name: copy.common.save, exact: true }),
+    page.getByRole('button', { name: germanUi.common.save, exact: true }),
   ).toBeDisabled();
   await page.locator('.plan-file-feedback button').click();
   const save = page.getByRole('button', {
-    name: copy.common.save,
+    name: germanUi.common.save,
     exact: true,
   });
   await expect(save).toBeEnabled();
@@ -225,7 +226,7 @@ test('a browser Plan saves a retried PDF, opens and downloads it, then removes i
     fullPage: true,
   });
 
-  await editViaMenu(page, copy.common.edit);
+  await editViaMenu(page, germanUi.common.edit);
   await page
     .getByRole('button', {
       name: fileCopy.removeNamed.replace('{{name}}', file.name),
@@ -248,7 +249,7 @@ test('the Android runtime stages a PDF and opens it through the system handoff',
   const api = await installPlanFileApi(page, true);
   await signIn(page);
   await page.goto(planRoute);
-  await editViaMenu(page, copy.common.edit);
+  await editViaMenu(page, germanUi.common.edit);
   await selectPdf(page);
   const save = page.getByRole('button', {
     name: copy.common.saveChanges,

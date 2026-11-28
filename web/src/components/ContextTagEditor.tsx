@@ -365,7 +365,7 @@ function ContextTagEditorContent({
               if (commit(true) !== null) sheet.current?.requestClose();
             }}
           >
-            {t('experiences.finish')}
+            {t('common.done')}
           </button>
         }
       >

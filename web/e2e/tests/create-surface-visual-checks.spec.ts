@@ -2,7 +2,6 @@ import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import composer from '../../src/i18n/locales/composer';
 import de from '../../src/i18n/locales/de';
-import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import photoSources from '../../src/i18n/locales/photoSources';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import { expectLabeledComposerTool } from '../support/addAction';
@@ -803,7 +802,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       element.style.zoom = '';
     });
     await page.setViewportSize({ width: 390, height: 844 });
-    await editViaMenu(page, memoryProduct.edit);
+    await editViaMenu(page, de.common.edit);
     await showContextTags(page);
     await showContextSuggestions(page);
     await expect(

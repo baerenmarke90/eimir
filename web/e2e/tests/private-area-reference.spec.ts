@@ -36,9 +36,17 @@ const PRIVATE_ITEM_ID = '66666666-6666-4666-8666-666666666666';
 const TEST_NOW = '2026-09-01T10:00:00Z';
 
 const privateCreateCases = [
-  { kind: 'notes', copy: privateArea.notes },
-  { kind: 'gift-ideas', copy: privateArea.gifts },
-  { kind: 'collections', copy: privateArea.collections },
+  { kind: 'notes', copy: privateArea.notes, titleLabel: de.common.title },
+  {
+    kind: 'gift-ideas',
+    copy: privateArea.gifts,
+    titleLabel: privateArea.gifts.titleLabel,
+  },
+  {
+    kind: 'collections',
+    copy: privateArea.collections,
+    titleLabel: de.common.title,
+  },
 ] as const;
 
 /**
@@ -483,9 +491,7 @@ async function openPrivateItemEdit(page: Page, title: string) {
       name: privateArea.menuLabel.replace('{{name}}', title),
     })
     .click();
-  await page
-    .getByRole('button', { name: privateArea.edit, exact: true })
-    .click();
+  await page.getByRole('button', { name: de.common.edit, exact: true }).click();
   // The menu sheet leaves with an exit animation; later steps wait for it.
   await expect(page.locator('.item-menu')).toHaveCount(0);
 }
@@ -585,7 +591,7 @@ async function expectPrivateReferenceStructure(page: Page): Promise<void> {
     await expectLabeledAddAction(create);
     await expect(create).not.toHaveCSS('position', 'fixed');
     await expect(
-      page.getByRole('button', { name: navigation.newContent, exact: true }),
+      page.getByRole('button', { name: 'Neu festhalten', exact: true }),
     ).toHaveCount(0);
   }
 
@@ -674,7 +680,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
     if (colorScheme === 'dark') {
       await create.click();
-      const title = page.getByLabel(privateArea.notes.titleLabel, {
+      const title = page.getByLabel(de.common.title, {
         exact: true,
       });
       await title.fill('Unsaved private note');
@@ -735,7 +741,7 @@ test('private area reflows at 320 CSS px and removes decorative motion', async (
     page.getByLabel(privateArea.gifts.titleLabel, { exact: true }),
   ).toBeInViewport();
   await expect(
-    page.getByRole('button', { name: privateArea.save, exact: true }),
+    page.getByRole('button', { name: de.common.save, exact: true }),
   ).toBeInViewport();
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
@@ -808,10 +814,10 @@ for (const viewport of [
     const unexpectedRequests = await signInAndOpenPrivateArea(page);
     await page.goto('/more/private/notes/new');
 
-    const title = page.getByLabel(privateArea.notes.titleLabel);
+    const title = page.getByLabel(de.common.title);
     await title.fill('   ');
     await page
-      .getByRole('button', { name: privateArea.save, exact: true })
+      .getByRole('button', { name: de.common.save, exact: true })
       .click();
 
     await expect(title).toHaveValue('   ');
@@ -914,7 +920,7 @@ test('private collection is read/check-first and discloses management in Edit', 
   ).toBeVisible();
 
   await openPrivateItemEdit(page, 'Packing list');
-  const titleInput = page.getByLabel(privateArea.collections.titleLabel);
+  const titleInput = page.getByLabel(de.common.title);
   const newItem = page.getByPlaceholder(privateArea.collections.itemTitleLabel);
   const rename = page.getByLabel(privateArea.collections.rename);
   for (const field of [titleInput, newItem, rename]) {
@@ -1162,7 +1168,7 @@ for (const view of feedbackViews) {
       })
       .click();
     await expect(
-      page.getByRole('button', { name: privateArea.edit, exact: true }),
+      page.getByRole('button', { name: de.common.edit, exact: true }),
     ).toBeDisabled();
     await page.keyboard.press('Escape');
     await expect.poll(() => fixture.writes.length).toBe(1);
@@ -1710,7 +1716,7 @@ test('private pointer reorder survives release and retains the existing title dr
   const fixture = await installHeldPrivateReorder(page);
   await page.goto(`/more/private/collections/${PRIVATE_COLLECTION_ID}`);
   await openPrivateItemEdit(page, 'Travel preparations');
-  const draft = page.getByLabel(privateArea.collections.titleLabel);
+  const draft = page.getByLabel(de.common.title);
   await draft.fill('My travel draft');
   const rows = page.locator('[data-sortable-item-id]');
   await rows.first().scrollIntoViewIfNeeded();
@@ -1763,7 +1769,7 @@ for (const recoveryMode of ['immediate', 'held'] as const) {
     await page.goto(`/more/private/collections/${PRIVATE_COLLECTION_ID}`);
     await openPrivateItemEdit(page, 'Travel preparations');
     const before = await privateEditTitles(page);
-    const draft = page.getByLabel(privateArea.collections.titleLabel);
+    const draft = page.getByLabel(de.common.title);
     await draft.fill('My travel draft');
     const handle = page
       .locator(`[data-sortable-item-id="${fixture.items[1].id}"]`)
@@ -2099,7 +2105,7 @@ for (const view of [
         new RegExp(`/more/private/${definition.kind}/new$`),
       );
       await expect(page.locator('[data-floating-create]')).toHaveCount(0);
-      const titleInput = page.getByLabel(definition.copy.titleLabel, {
+      const titleInput = page.getByLabel(definition.titleLabel, {
         exact: true,
       });
       await expectVisibleFieldBoundary(titleInput);
@@ -2120,7 +2126,7 @@ for (const view of [
       if (definition.kind === 'gift-ideas') {
         const editor = page.locator('.private-gift-composer');
         const save = editor.getByRole('button', {
-          name: privateArea.save,
+          name: de.common.save,
           exact: true,
         });
         await expect(
@@ -2159,11 +2165,11 @@ for (const view of [
       const title = `Personal ${definition.kind} plan`;
       await titleInput.fill(title);
       await page
-        .getByRole('button', { name: privateArea.save, exact: true })
+        .getByRole('button', { name: de.common.save, exact: true })
         .click();
       await expect.poll(() => fixture.writes.length).toBe(1);
       await expect(
-        page.getByRole('button', { name: privateArea.saving, exact: true }),
+        page.getByRole('button', { name: de.common.saving, exact: true }),
       ).toBeDisabled();
       fixture.release();
       await expect(page).toHaveURL(
@@ -2232,10 +2238,10 @@ for (const view of privateEditorViews) {
         .getByRole('link', { name: definition.copy.add, exact: true })
         .click();
       await page
-        .getByLabel(definition.copy.titleLabel, { exact: true })
+        .getByLabel(definition.titleLabel, { exact: true })
         .fill('Previous task private title');
       await page
-        .getByRole('button', { name: privateArea.save, exact: true })
+        .getByRole('button', { name: de.common.save, exact: true })
         .click();
       await expect.poll(() => fixture.writes.length).toBe(1);
       await openPrivateSection(page, destination.kind);
@@ -2295,7 +2301,7 @@ for (const view of privateEditorViews) {
         }),
       ).toBeVisible();
       await expect(
-        page.getByLabel(definition.copy.titleLabel, { exact: true }),
+        page.getByLabel(definition.titleLabel, { exact: true }),
       ).toHaveValue('');
       await expectNoHorizontalOverflow(page);
       await expectNoWcagViolations(page);
@@ -2330,10 +2336,10 @@ for (const view of privateEditorViews) {
       .getByRole('link', { name: privateArea.notes.add, exact: true })
       .click();
     await page
-      .getByLabel(privateArea.notes.titleLabel, { exact: true })
+      .getByLabel(de.common.title, { exact: true })
       .fill('Previous session private title');
     await page
-      .getByRole('button', { name: privateArea.save, exact: true })
+      .getByRole('button', { name: de.common.save, exact: true })
       .click();
     await expect.poll(() => fixture.writes.length).toBe(1);
     await signOutToPublicEntry(page);
@@ -2349,9 +2355,9 @@ for (const view of privateEditorViews) {
         exact: true,
       }),
     ).toBeVisible();
-    await expect(
-      page.getByLabel(privateArea.notes.titleLabel, { exact: true }),
-    ).toHaveValue('');
+    await expect(page.getByLabel(de.common.title, { exact: true })).toHaveValue(
+      '',
+    );
     await expectNoHorizontalOverflow(page);
     await expectNoWcagViolations(page);
     await page.screenshot({
@@ -2495,18 +2501,16 @@ for (const view of [
       page.getByRole('heading', { name: 'Hidden cabin idea' }),
     ).toBeVisible();
     await openPrivateItemEdit(page, 'Hidden cabin idea');
+    await page.getByLabel(de.common.title).fill('Quiet cabin for autumn');
     await page
-      .getByLabel(privateArea.notes.titleLabel)
-      .fill('Quiet cabin for autumn');
-    await page
-      .getByRole('button', { name: privateArea.save, exact: true })
+      .getByRole('button', { name: de.common.save, exact: true })
       .click();
     await expect.poll(() => fixture.writes.length).toBe(1);
     expect(fixture.writes).toEqual([
       { ifMatch: '1', title: 'Quiet cabin for autumn' },
     ]);
     await expect(
-      page.getByRole('button', { name: privateArea.saving, exact: true }),
+      page.getByRole('button', { name: de.common.saving, exact: true }),
     ).toBeDisabled();
     fixture.release();
     await expect(
@@ -2552,11 +2556,9 @@ for (const view of [
     await openFreshPrivateSection(page, 'notes');
     await page.getByRole('link', { name: /Hidden cabin idea/ }).click();
     await openPrivateItemEdit(page, 'Hidden cabin idea');
+    await page.getByLabel(de.common.title).fill('Submitted old private title');
     await page
-      .getByLabel(privateArea.notes.titleLabel)
-      .fill('Submitted old private title');
-    await page
-      .getByRole('button', { name: privateArea.save, exact: true })
+      .getByRole('button', { name: de.common.save, exact: true })
       .click();
     await expect.poll(() => fixture.writes.length).toBe(1);
     fixture.denyReads();
@@ -2628,11 +2630,9 @@ for (const view of [
     await openFreshPrivateSection(page, 'notes');
     await page.getByRole('link', { name: /Hidden cabin idea/ }).click();
     await openPrivateItemEdit(page, 'Hidden cabin idea');
+    await page.getByLabel(de.common.title).fill('Old session private title');
     await page
-      .getByLabel(privateArea.notes.titleLabel)
-      .fill('Old session private title');
-    await page
-      .getByRole('button', { name: privateArea.save, exact: true })
+      .getByRole('button', { name: de.common.save, exact: true })
       .click();
     await expect.poll(() => fixture.writes.length).toBe(1);
 
@@ -2769,7 +2769,7 @@ for (const view of [
           })
           .click();
         await page
-          .getByRole('button', { name: privateArea.delete, exact: true })
+          .getByRole('button', { name: de.common.delete, exact: true })
           .click();
         await page
           .getByRole('button', {
@@ -2781,7 +2781,7 @@ for (const view of [
         expect(fixture.writes).toEqual(['1']);
         await expect(
           page.getByRole('button', {
-            name: privateArea.deleting,
+            name: de.common.deleting,
             exact: true,
           }),
         ).toBeDisabled();

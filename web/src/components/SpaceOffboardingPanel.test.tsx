@@ -6,6 +6,7 @@ import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import { MembershipStatus } from '../api/generated/models/MembershipStatus';
 import spaceOffboarding from '../i18n/locales/spaceOffboarding';
 import { SpaceOffboardingPanel } from './SpaceOffboardingPanel';
+import germanUi from '../i18n/locales/de';
 
 function renderPanel({
   demoMode = false,
@@ -44,7 +45,7 @@ function advanceToFinalConfirmation() {
   expect(screen.getByText(spaceOffboarding.consequencesTitle)).toBeDefined();
 
   fireEvent.click(
-    screen.getByRole('button', { name: spaceOffboarding.continueAction }),
+    screen.getByRole('button', { name: germanUi.common.continue }),
   );
   expect(screen.getByText(spaceOffboarding.finalTitle)).toBeDefined();
 }
@@ -72,7 +73,7 @@ describe('SpaceOffboardingPanel', () => {
       expect(window.history.state?.__eimirEditorEntry).toBeTruthy(),
     );
     fireEvent.click(
-      screen.getByRole('button', { name: spaceOffboarding.cancelAction }),
+      screen.getByRole('button', { name: germanUi.common.cancel }),
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });

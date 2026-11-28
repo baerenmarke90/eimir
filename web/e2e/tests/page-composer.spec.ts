@@ -21,7 +21,6 @@ import planFiles from '../../src/i18n/locales/planFiles';
 import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
 import sharedNotes from '../../src/i18n/locales/sharedNotes';
 import storyProducts from '../../src/i18n/locales/storyProducts';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import voiceNotes from '../../src/i18n/locales/voiceNotes';
 import AxeBuilder from '../support/axe';
 import {
@@ -425,7 +424,7 @@ async function capture(page: Page, info: TestInfo, name: string) {
 async function closeChoice(page: Page) {
   const sheet = page.getByRole('dialog').last();
   const done = sheet.getByRole('button', {
-    name: experiences.finish,
+    name: de.common.done,
     exact: true,
   });
   if (await done.count()) await done.click();
@@ -606,7 +605,7 @@ async function fullScreenRoundTrip(page: Page, info: TestInfo, name: string) {
     '2',
   );
   await fullscreen
-    .getByRole('button', { name: gallery.close, exact: true })
+    .getByRole('button', { name: de.common.close, exact: true })
     .click();
   await expect(fullscreen).toHaveCount(0);
   await expect(activeSlide).toBeFocused();
@@ -695,7 +694,7 @@ for (const view of [
     ]) {
       await page.goto(screen.path);
       if ('edit' in screen && screen.edit)
-        await editViaMenu(page, m5s3.common.edit);
+        await editViaMenu(page, de.common.edit);
       if (view.large)
         await page.addStyleTag({ content: 'html { font-size: 200%; }' });
       await expect(page.locator('.page-composer').last()).toBeVisible();
@@ -848,10 +847,8 @@ for (const view of [
       );
       await expect(
         page
-          .getByRole('link', { name: taskBoundary.back, exact: true })
-          .or(
-            page.getByRole('button', { name: taskBoundary.back, exact: true }),
-          ),
+          .getByRole('link', { name: de.common.back, exact: true })
+          .or(page.getByRole('button', { name: de.common.back, exact: true })),
       ).toBeVisible();
       if (view.width === 390 && view.motion === 'no-preference')
         expect((await new AxeBuilder({ page }).analyze()).violations).toEqual(
@@ -945,8 +942,8 @@ test('Diary tools preserve photos, cover, sensitivity, place and tag through sav
   );
   await capture(page, info, 'diary-saved-detail-frame-13');
   await page
-    .getByRole('button', { name: taskBoundary.back, exact: true })
-    .or(page.getByRole('link', { name: taskBoundary.back, exact: true }))
+    .getByRole('button', { name: de.common.back, exact: true })
+    .or(page.getByRole('link', { name: de.common.back, exact: true }))
     .click();
   await expect(page).toHaveURL(/\/story(?:\?|$)/);
   expect(
@@ -1007,7 +1004,7 @@ for (const theme of ['light', 'dark'] as const) {
           draft.locator('.photo-draft-grid :is(input, .photo-draft-action)'),
         ).toHaveCount(0);
         await expect(
-          draft.getByRole('button', { name: experiences.finish, exact: true }),
+          draft.getByRole('button', { name: de.common.done, exact: true }),
         ).toHaveCount(0);
         const geometry = await tiles.evaluateAll((buttons) =>
           buttons.map((button) => {
@@ -1142,7 +1139,7 @@ for (const theme of ['light', 'dark'] as const) {
       await expect(revealedPhoto).toHaveCount(0);
       await expect(reveal).toHaveAttribute('aria-pressed', 'false');
       await fullscreen
-        .getByRole('button', { name: gallery.close, exact: true })
+        .getByRole('button', { name: de.common.close, exact: true })
         .click();
       await expect(fullscreen).toHaveCount(0);
       await expect(tiles.nth(1)).toHaveAttribute('aria-pressed', 'true');
@@ -1190,7 +1187,7 @@ for (const theme of ['light', 'dark'] as const) {
           ? de.memory.save
           : kind === 'heart'
             ? storyProducts.heartMomentProduct.save
-            : m5s3.common.save;
+            : de.common.save;
       await page.getByRole('button', { name: saveName, exact: true }).click();
       const resourceKind =
         kind === 'diary'
@@ -1763,7 +1760,7 @@ test('Plan schedule and linked checklist remain bounded tasks with updated progr
   const state = await installPageComposerFixture(page);
   await signIn(page);
   await page.goto('/plan/plans/composer-plan');
-  await editViaMenu(page, m5s3.common.edit);
+  await editViaMenu(page, de.common.edit);
   const editedTitle = 'Evening walk';
   const titleInput = page.locator('#plan-edit-title');
   await titleInput.fill(editedTitle);
@@ -1921,8 +1918,8 @@ test('detail Places restore their map invoker without consuming a later clean ed
     await place.click();
     await expect(page).toHaveURL(/\/story\/map\?place=49.56%3A7.07$/);
     await page
-      .getByRole('button', { name: taskBoundary.back, exact: true })
-      .or(page.getByRole('link', { name: taskBoundary.back, exact: true }))
+      .getByRole('button', { name: de.common.back, exact: true })
+      .or(page.getByRole('link', { name: de.common.back, exact: true }))
       .click();
     await expect(page).toHaveURL(new RegExp(`${path}$`));
     await expect(place).toBeFocused();
@@ -1938,11 +1935,11 @@ test('detail Places restore their map invoker without consuming a later clean ed
       // to the menu button that started it.
       const edit = itemMenuTrigger(page);
       await expect(edit).toBeInViewport();
-      await chooseItemMenuRow(page, m5s3.common.edit);
+      await chooseItemMenuRow(page, de.common.edit);
       await expect(page.locator('.page-composer').last()).toBeVisible();
       const close = page.locator('.composer-header .task-back-control:visible');
       await expect(close).toHaveCount(1);
-      await expect(close).toHaveAccessibleName(taskBoundary.close);
+      await expect(close).toHaveAccessibleName(de.common.close);
       await close.click();
       await expect(page).toHaveURL(new RegExp(`${path}$`));
       await waitForSettledMotion(page);

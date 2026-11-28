@@ -5,7 +5,6 @@ import { recapDetailPath } from '../../src/client/routes';
 import de from '../../src/i18n/locales/de';
 import navigation from '../../src/i18n/locales/navigation';
 import copy from '../../src/i18n/locales/recaps';
-import taskSheets from '../../src/i18n/locales/taskSheets';
 import fixtures from '../fixtures/locales/de';
 import AxeBuilder from '../support/axe';
 import { fulfillDefaultProductContext } from '../support/productContext';
@@ -829,7 +828,7 @@ for (const [width, theme] of [
     const state = await setup(page, { start: 'wir', pro: false });
     const invitation = page.locator('.monthly-recap-invitation');
     await expect(
-      page.getByRole('link', { name: copy.allRecaps, exact: true }),
+      page.getByRole('link', { name: 'Alle Rückblicke', exact: true }),
     ).toHaveCount(0);
     await expect(
       invitation.getByRole('link', { name: new RegExp(copy.watchNow) }),
@@ -968,7 +967,7 @@ test('reduced motion opens Watch now paused and playback pauses for editing', as
   await page.clock.fastForward(90001);
   await expect(page).toHaveURL(/page=1/);
   await page
-    .getByRole('button', { name: taskSheets.close, exact: true })
+    .getByRole('button', { name: de.common.close, exact: true })
     .click();
   await page.addStyleTag({ content: 'html { font-size: 200%; }' });
   // On a photo the toggle is an icon on the picture; large text must keep it
@@ -1412,7 +1411,7 @@ test('large text and an unsaved offline draft preserve the editing task', async 
   );
   await expect(words.locator('.ui-state')).toBeVisible();
   await words
-    .getByRole('button', { name: new RegExp(taskSheets.close) })
+    .getByRole('button', { name: new RegExp(de.common.close) })
     .click();
   await expect(page.getByRole('alertdialog')).toBeVisible();
   await page.getByRole('button', { name: copy.keep, exact: true }).click();

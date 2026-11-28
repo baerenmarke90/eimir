@@ -125,7 +125,7 @@ function Settings({
         ref={sheet}
         open={open}
         title={t('personColours.choices')}
-        closeLabel={t('personColours.close')}
+        closeLabel={t('common.close')}
         className="person-colours-sheet"
         restoreFocusRef={opener}
         isCloseBlocked={saving}
@@ -143,7 +143,7 @@ function Settings({
                   className="button-link"
                   onClick={() => void capability.refetch()}
                 >
-                  {t('personColours.retry')}
+                  {t('common.retry')}
                 </button>
               </div>
             ) : null}
@@ -179,9 +179,9 @@ function Settings({
               >
                 {t(
                   saving
-                    ? 'personColours.saving'
+                    ? 'common.saving'
                     : changed
-                      ? 'personColours.save'
+                      ? 'common.save'
                       : 'personColours.selected',
                 )}
               </button>

@@ -122,7 +122,7 @@ function SupportReportSheetContent({
     : status === 'queued'
       ? t('supportReport.sendNow')
       : status === 'failed'
-        ? t('supportReport.retry')
+        ? t('common.retry')
         : online
           ? t('supportReport.send')
           : t('supportReport.sendLater');
@@ -175,7 +175,7 @@ function SupportReportSheetContent({
             className="button-link button-link-primary support-report-action"
             onClick={close}
           >
-            {t('supportReport.success.done')}
+            {t('common.done')}
           </button>
         ) : (
           <>

@@ -179,7 +179,7 @@ export function ServerAdminSpacesPanel({
                         aria-expanded={selectedSpaceId === space.id}
                         onClick={() => setSelectedSpaceId(space.id)}
                       >
-                        {t('serverAdmin.spaces.open')}
+                        {t('common.open')}
                       </button>
                     </td>
                   </tr>

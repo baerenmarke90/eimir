@@ -3,7 +3,6 @@ export default {
   add: 'Datei hinzufügen',
   tool: 'Datei',
   pdfSize: 'PDF · {{size}}',
-  open: 'Öffnen',
   download: 'Herunterladen',
   removeNamed: '{{name}} entfernen',
   openNamed: '{{name}} öffnen',

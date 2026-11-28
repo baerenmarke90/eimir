@@ -648,7 +648,7 @@ export function RelatedPersonEditorSheet({
         {error ? <ProblemState error={error} /> : null}
         <footer className="people-editor-footer">
           <button type="submit" disabled={pending || avatarNotReady}>
-            {t(pending ? 'people.saving' : 'people.saveChanges')}
+            {t(pending ? 'common.saving' : 'common.save')}
           </button>
         </footer>
       </form>

@@ -22,6 +22,7 @@ import serverAdmin from '../i18n/locales/serverAdmin';
 
 const reports = serverAdmin.reports;
 import { ServerAdminSupportReportDetail } from './ServerAdminSupportReportDetail';
+import germanUi from '../i18n/locales/de';
 
 const NOTE = 'Our private words about the bug';
 const reportId = '00000000-0000-4000-8000-0000000000aa';
@@ -180,10 +181,10 @@ describe('ServerAdminSupportReportDetail archive and delete', () => {
     ).toBeNull();
     // Cancel holds the focus, so Enter cannot delete by accident.
     expect(document.activeElement).toBe(
-      within(dialog).getByRole('button', { name: reports.deleteDialog.cancel }),
+      within(dialog).getByRole('button', { name: germanUi.common.cancel }),
     );
     fireEvent.click(
-      within(dialog).getByRole('button', { name: reports.deleteDialog.cancel }),
+      within(dialog).getByRole('button', { name: germanUi.common.cancel }),
     );
     expect(
       screen.queryByRole('dialog', { name: reports.deleteDialog.title }),
@@ -441,7 +442,7 @@ describe('ServerAdminSupportReportDetail', () => {
     });
     expect(within(dialog).getByText(reports.ticketDialog.intro)).toBeTruthy();
     const title = within(dialog).getByLabelText(
-      reports.ticketDialog.titleLabel,
+      germanUi.common.title,
     ) as HTMLInputElement;
     const body = within(dialog).getByLabelText(
       reports.ticketDialog.bodyLabel,
@@ -613,10 +614,9 @@ async function openTicketDialog() {
 }
 
 function typeTicket(dialog: HTMLElement, title: string, body: string) {
-  fireEvent.change(
-    within(dialog).getByLabelText(reports.ticketDialog.titleLabel),
-    { target: { value: title } },
-  );
+  fireEvent.change(within(dialog).getByLabelText(germanUi.common.title), {
+    target: { value: title },
+  });
   fireEvent.change(
     within(dialog).getByLabelText(reports.ticketDialog.bodyLabel),
     { target: { value: body } },
@@ -672,7 +672,7 @@ describe('ServerAdminSupportReportDetail ticket and write failures', () => {
       expect(
         (
           within(dialog).getByLabelText(
-            reports.ticketDialog.titleLabel,
+            germanUi.common.title,
           ) as HTMLInputElement
         ).value,
       ).toBe('My title');
@@ -725,11 +725,8 @@ describe('ServerAdminSupportReportDetail ticket and write failures', () => {
       await within(dialog).findByText(reports.errors.ticketTooLong),
     ).toBeTruthy();
     expect(
-      (
-        within(dialog).getByLabelText(
-          reports.ticketDialog.titleLabel,
-        ) as HTMLInputElement
-      ).value,
+      (within(dialog).getByLabelText(germanUi.common.title) as HTMLInputElement)
+        .value,
     ).toBe('Long one');
   });
 
@@ -951,12 +948,12 @@ describe('ServerAdminSupportReportDetail reply templates', () => {
     });
 
     fireEvent.click(
-      await screen.findByRole('button', { name: templates.edit }),
+      await screen.findByRole('button', { name: germanUi.common.edit }),
     );
     expect(confirm).toHaveBeenCalledWith(reports.reply.discardConfirm);
     expect(onEditTemplates).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: templates.edit }));
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.edit }));
     expect(onEditTemplates).toHaveBeenCalledTimes(1);
   });
 

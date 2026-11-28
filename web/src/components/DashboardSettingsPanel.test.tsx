@@ -27,6 +27,7 @@ import relationshipReflections from '../i18n/locales/relationshipReflections';
 import sharedNotes from '../i18n/locales/sharedNotes';
 import wirNotices from '../i18n/locales/wirNotices';
 import { DashboardSettingsPanel } from './DashboardSettingsPanel';
+import germanUi from '../i18n/locales/de';
 
 const ACCOUNT_ID = 'account-1';
 const SPACE_ID = 'space-1';
@@ -520,7 +521,7 @@ describe('DashboardSettingsPanel', () => {
         (screen.getByRole('radio', { name: '1' }) as HTMLInputElement).disabled,
       ).toBe(true);
     });
-    screen.getByText(profileIdentity.dashboardUpcomingSaving);
+    screen.getByText(germanUi.common.saving);
 
     await act(async () => {
       resolveUpdate?.({ moduleKey: 'upcoming', itemLimit: 3 });
@@ -981,7 +982,7 @@ describe('DashboardSettingsPanel', () => {
           }) as HTMLInputElement
         ).disabled,
       ).toBe(false);
-      screen.getByText(profileIdentity.dashboardModuleSaving);
+      screen.getByText(germanUi.common.saving);
 
       await act(async () => {
         resolveUpdate?.({ moduleKey: 'keepsake', visible: false });

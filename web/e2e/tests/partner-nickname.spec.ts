@@ -207,7 +207,7 @@ test('partner nickname remains private to the viewer and follows profile edits i
     })
     .fill('Sternchen');
   await capture(page, info, 'nickname-profile-390-light-edit.png');
-  await editor.getByRole('button', { name: profiles.nickname.save }).click();
+  await editor.getByRole('button', { name: de.common.save }).click();
   await expect(editor.getByText('Sternchen')).toBeVisible();
   expect(fixture.writes).toEqual(['Sternchen']);
   await capture(page, info, 'nickname-profile-390-light-saved.png');

@@ -4,13 +4,11 @@ const memoryWorldSettings = {
   intro:
     'Story und Stapel sind inklusive, alle anderen Welten gehören zu Pro. Deine Partnerperson wählt ihre eigene Welt.',
   choices: 'Welt auswählen',
-  close: 'Schließen',
   current: 'Aktiv',
   free: 'Inklusive',
   pro: 'Pro',
   choose: '{{name}} wählen',
   selected: 'Ausgewählt',
-  saving: 'Wird gespeichert …',
   saved: '{{name}} ist jetzt deine Welt unter Erinnerungen.',
   kept: '{{name}} bleibt dir auch ohne Pro erhalten. Für eine andere Pro-Welt brauchst du Pro.',
   proHint:
@@ -19,7 +17,6 @@ const memoryWorldSettings = {
   proLoading: 'Pro wird geprüft …',
   proUnavailable:
     'Pro konnte gerade nicht geprüft werden. Story und Stapel kannst du weiterhin auswählen.',
-  retry: 'Erneut versuchen',
   denied:
     'Für eine neue Pro-Welt brauchst du Pro. Deine bisherige Welt bleibt erhalten.',
   offline:
@@ -34,7 +31,6 @@ const memoryWorldSettings = {
     hidden:
       'Erinnerungen mit sensiblen Fotos tauchen in den Welten nicht auf. Im Tagebuch bleiben sie wie gewohnt. Gilt nur auf diesem Gerät.',
   },
-  switchWorld: 'Welt wechseln',
   switchWorldCurrent: 'Welt wechseln – gerade: {{name}}',
   worlds: {
     story: {

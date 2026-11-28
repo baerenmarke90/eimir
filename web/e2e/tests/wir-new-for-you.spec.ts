@@ -75,10 +75,26 @@ const HEART = notice(
 interface Server {
   notices: Record<string, unknown>[];
   reads: string[];
+  games: Record<string, unknown>[];
 }
 
 async function installMocks(page: Page): Promise<Server> {
-  const server: Server = { notices: [DATE, LIST], reads: [] };
+  const server: Server = {
+    notices: [DATE, LIST],
+    reads: [],
+    games: [
+      {
+        game: 'PICTURE_PING_PONG',
+        reason: 'DRAW',
+        since: '2026-11-27T07:00:00Z',
+      },
+      {
+        game: 'GARDEN_SEED',
+        reason: 'PLANT',
+        since: '2026-11-27T06:00:00Z',
+      },
+    ],
+  };
   await page.route('**/api/v1/**', async (route: Route) => {
     if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
@@ -180,20 +196,7 @@ async function installMocks(page: Page): Promise<Server> {
     if (method === 'GET' && pathname === `${SPACE}/entitlements`)
       return json({ tier: 'PREMIUM', capabilities: ['games.couple'] });
     if (method === 'GET' && pathname === `${SPACE}/games/waiting`)
-      return json({
-        items: [
-          {
-            game: 'PICTURE_PING_PONG',
-            reason: 'DRAW',
-            since: '2026-11-27T07:00:00Z',
-          },
-          {
-            game: 'GARDEN_SEED',
-            reason: 'PLANT',
-            since: '2026-11-27T06:00:00Z',
-          },
-        ],
-      });
+      return json({ items: server.games });
     if (method === 'GET' && pathname === `${SPACE}/notifications/unread-count`)
       return json({ unreadCount: server.notices.length });
     if (method === 'GET' && pathname === `${SPACE}/notifications/wir`)
@@ -335,10 +338,14 @@ test('a card arrives once, opening it reads it, and a return replays nothing', a
   // Opening the list reads it and it leaves Wir.
   await section.getByRole('link', { name: /Weekend shopping/ }).click();
   await expect.poll(() => server.reads).toContain(LIST.id);
-  await page.goto('/today');
+  // Back inside the app, without a reload: Wir reads again on return.
+  await page.goBack();
+  await expect(page).toHaveURL(/\/today$/);
   await expect(reel(page).getByText('Picnic by the lake')).toBeVisible();
   await expect(reel(page).getByText('Weekend shopping')).toHaveCount(0);
-  // Seen cards never arrive again on this device.
+  // Seen cards never arrive again on this device, also after a new start.
+  await page.goto('/today');
+  await expect(reel(page).getByText('Picnic by the lake')).toBeVisible();
   await expect(
     reel(page).locator('li', { hasText: 'Picnic by the lake' }),
   ).not.toHaveClass(/wir-card-arrive/);
@@ -356,4 +363,25 @@ test('with reduced motion a new card is simply there', async ({ page }) => {
   );
   expect(running).toBe(0);
   await saveEvidence(page, 'new-for-you-390-reduced');
+});
+
+test('a turn played in a game leaves Du bist dran on the way back (#2345)', async ({
+  page,
+}) => {
+  const server = await openWir(page, 390, 'light');
+  const gamesReel = page.getByRole('region', { name: games.waiting.title });
+  const pingPong = gamesReel.locator('a[href="/games/picture-ping-pong"]');
+  await expect(pingPong).toBeVisible();
+  await pingPong.click();
+  await expect(page).not.toHaveURL(/\/today$/);
+  // The game page has replaced Wir before the turn is played.
+  await expect(gamesReel).toBeHidden();
+  // The turn is played on the game page; the server no longer waits on it.
+  server.games = server.games.filter(
+    (item) => item.game !== 'PICTURE_PING_PONG',
+  );
+  await page.goBack();
+  await expect(page).toHaveURL(/\/today$/);
+  await expect(pingPong).toHaveCount(0);
+  await expect(gamesReel.getByRole('link')).toHaveCount(1);
 });

@@ -5,6 +5,7 @@ import type { GamesApi } from '../api/generated/apis/GamesApi';
 import type { WaitingGameKind } from '../api/generated/models/WaitingGameKind';
 import type { WaitingGameView } from '../api/generated/models/WaitingGameView';
 import { dashboardQueryKey } from '../client/dashboardQueries';
+import { usePrimaryTabReturn } from '../client/primaryTabActive';
 import {
   ClientProblemError,
   normalizeClientError,
@@ -130,6 +131,15 @@ export function WirWaitingGamesModule({
     },
     enabled: allowed,
     retry: false,
+  });
+  // Wir stays mounted while a game is open; each return reads what waits
+  // again, so a turn just played has left when Wir shows again (#2345).
+  usePrimaryTabReturn(() => {
+    if (!allowed) return;
+    void queryClient.invalidateQueries({
+      queryKey: waitingGamesQueryKey(accountId, spaceId),
+      exact: true,
+    });
   });
   const denied = isEntitlementRequired(waitingQuery.error);
   useEffect(() => {

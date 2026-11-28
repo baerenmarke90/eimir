@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import type { ChapterTimelineMarker } from '../api/generated/models/ChapterTimelineMarker';
 import type { StoryItem } from '../api/generated/models/StoryItem';
-import { groupDiaryEntries } from './diaryEntries';
+import { i18n } from '../i18n';
+import { formatChapterPeriod } from './chapterPresentation';
+import { diaryRevealRevision, groupDiaryEntries } from './diaryEntries';
 import {
   aggregateStoryPages,
-  storyRequest,
   DEFAULT_STORY_FILTERS,
+  storyRequest,
 } from './storyProduct';
-import { formatChapterPeriod } from './chapterPresentation';
-import { i18n } from '../i18n';
 
 const date = new Date('2026-06-01T00:00:00Z');
 const chapter: ChapterTimelineMarker = {
@@ -126,4 +126,22 @@ it('shows continuing periods beside later months without duplicating start event
   expect(emptyYear[0].key).toBe('2027-01');
   expect(emptyYear[0].entries).toEqual([]);
   expect(emptyYear[0].periods).toEqual([chapter]);
+});
+
+it('changes the reveal revision when a same-length page gains a newer entry', () => {
+  // The first Timeline page has a fixed size: a new entry pushes the oldest
+  // one off and the count stays the same.
+  const newer = {
+    kind: 'HEART_MOMENT',
+    effectiveDate: date,
+    heartMoment: { id: 'heart-new', createdAt: date },
+  } as StoryItem;
+  const before = groupDiaryEntries([memory, milestone], [], 'en-GB');
+  const after = groupDiaryEntries([newer, memory], [], 'en-GB');
+  expect(after.flatMap((group) => group.entries)).toHaveLength(2);
+  expect(diaryRevealRevision(after)).not.toBe(diaryRevealRevision(before));
+  expect(
+    diaryRevealRevision(groupDiaryEntries([memory, milestone], [], 'en-GB')),
+  ).toBe(diaryRevealRevision(before));
+  expect(diaryRevealRevision([])).toBe('');
 });

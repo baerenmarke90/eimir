@@ -114,7 +114,7 @@ function AppIconSettings({
       </div>
       <button
         type="button"
-        className="design-palette-trigger"
+        className="design-palette-trigger app-icon-trigger"
         aria-labelledby="app-icon-heading app-icon-value"
         aria-haspopup="dialog"
         ref={opener}

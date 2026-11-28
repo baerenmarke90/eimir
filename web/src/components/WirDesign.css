@@ -72,6 +72,7 @@
   align-items: center;
   gap: var(--space-3);
   min-block-size: var(--touch-target-web);
+  min-inline-size: 0;
   max-inline-size: 100%;
   padding: var(--space-1) var(--space-3);
   border: 0;
@@ -115,6 +116,8 @@
 }
 .design-palette-trigger-copy {
   display: grid;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
   justify-items: start;
   gap: var(--space-1);
 }

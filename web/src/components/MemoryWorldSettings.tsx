@@ -117,7 +117,7 @@ function Settings({
       <p className="settings-section-intro">{t('memoryWorldSettings.help')}</p>
       <button
         type="button"
-        className="design-palette-trigger"
+        className="design-palette-trigger memory-world-trigger"
         aria-labelledby="memory-world-title memory-world-value"
         aria-haspopup="dialog"
         ref={opener}

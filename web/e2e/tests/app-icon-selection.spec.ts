@@ -245,7 +245,7 @@ test('Pro explicitly saves, survives reload and resets to adaptive Original', as
   await capture(page, info, 'app-icons-pro-saved-390-dark.png');
   await page.keyboard.press('Escape');
   await page.reload();
-  await expect(page.locator('.app-icon-summary strong')).toHaveText('Salbei');
+  await expect(page.locator('.app-icon-trigger strong')).toHaveText('Salbei');
   await page.getByLabel('Darstellung', { exact: true }).selectOption('light');
   await expect(page.locator('#app-favicon')).toHaveAttribute(
     'href',

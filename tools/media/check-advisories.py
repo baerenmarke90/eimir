@@ -55,13 +55,18 @@ NOT_VERBATIM = re.compile(
 )
 
 
+def description_of(entry: dict) -> str:
+    """Debian files new TEMP entries before their text: an empty one places nothing."""
+    return entry.get("description") or ""
+
+
 def findings(data: dict, package: str = "ffmpeg") -> dict[str, str]:
     result = {}
     for identifier, value in data.get(package, {}).items():
         status = value.get("releases", {}).get("sid", {}).get("status")
         if status not in {None, "resolved"}:
             evidence = json.dumps(
-                {"description": value["description"], "status": status},
+                {"description": description_of(value), "status": status},
                 sort_keys=True,
                 separators=(",", ":"),
             )
@@ -92,7 +97,7 @@ def relevant_findings(
     return {
         identifier: digest
         for identifier, digest in findings(data, package).items()
-        if is_relevant(entries[identifier]["description"], built, identifiers)
+        if is_relevant(description_of(entries[identifier]), built, identifiers)
     }
 
 

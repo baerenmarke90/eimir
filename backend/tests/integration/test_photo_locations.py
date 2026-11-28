@@ -480,3 +480,80 @@ def test_heart_moment_replacement_keeps_a_single_photo_place(client, couple, ses
     session.expire_all()
     assert session.get(PhotoLocationDraft, UUID(edited)) is None
     assert session.get(Attachment, UUID(original)).status == "DELETING"
+
+
+def gps_jpeg(latitude_seconds: int, longitude_seconds: int, latitude_minutes: int = 31) -> bytes:
+    """A photo taken at 52°<minutes>'<seconds>" N, 13°24'<seconds>" E (1" is about 31 m)."""
+    image = Image.new("RGB", (32, 24), (10, 20, 30))
+    exif = Image.Exif()
+    exif[0x8825] = {
+        1: "N",
+        2: (52, latitude_minutes, latitude_seconds),
+        3: "E",
+        4: (13, 24, longitude_seconds),
+    }
+    data = io.BytesIO()
+    image.save(data, "JPEG", exif=exif.tobytes())
+    return data.getvalue()
+
+
+def ready_at(client, couple, session, monkeypatch, *position, **kwargs):  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(binding, "image_bytes", lambda: gps_jpeg(*position, **kwargs))
+    return binding.ready_attachment(client, couple, session)
+
+
+def test_a_later_photo_at_the_same_spot_adds_no_second_place(  # type: ignore[no-untyped-def]
+    client, couple, session, monkeypatch
+):
+    first = ready_at(client, couple, session, monkeypatch, 0, 0)
+    memory = binding.memory(client, couple)
+    saved = attach(client, couple, memory, [first])
+    assert saved.status_code == 200
+    second = ready_at(client, couple, session, monkeypatch, 0, 0)
+    assert attach(client, couple, saved.json(), [first, second]).status_code == 200
+    assert len(places(client, couple, memory["id"]).json()["items"]) == 1
+    assert len(session.execute(select(Place)).scalars().all()) == 1
+
+
+def test_photos_a_few_metres_apart_share_one_place(  # type: ignore[no-untyped-def]
+    client, couple, session, monkeypatch
+):
+    first = ready_at(client, couple, session, monkeypatch, 0, 0)
+    second = ready_at(client, couple, session, monkeypatch, 1, 1)  # about 30-45 m away
+    memory = binding.memory(client, couple)
+    assert attach(client, couple, memory, [first, second]).status_code == 200
+    assert len(places(client, couple, memory["id"]).json()["items"]) == 1
+
+
+def test_separate_entries_at_one_spot_reuse_the_same_place(  # type: ignore[no-untyped-def]
+    client, couple, session, monkeypatch
+):
+    one = ready_at(client, couple, session, monkeypatch, 0, 0)
+    memory_one = binding.memory(client, couple)
+    assert attach(client, couple, memory_one, [one]).status_code == 200
+    two = ready_at(client, couple, session, monkeypatch, 1, 0)
+    memory_two = binding.memory(client, couple)
+    assert attach(client, couple, memory_two, [two]).status_code == 200
+    [first_place] = places(client, couple, memory_one["id"]).json()["items"]
+    [second_place] = places(client, couple, memory_two["id"]).json()["items"]
+    assert first_place["id"] == second_place["id"]
+    assert len(session.execute(select(Place)).scalars().all()) == 1
+    # Removing the association from one entry leaves the other one untouched.
+    unlinked = client.delete(
+        f"{binding.base_path(couple['space'].id)}/places/{first_place['id']}"
+        f"/memories/{memory_one['id']}",
+        headers=auth(couple["token_a"]),
+    )
+    assert unlinked.status_code == 204
+    assert places(client, couple, memory_one["id"]).json()["items"] == []
+    assert len(places(client, couple, memory_two["id"]).json()["items"]) == 1
+
+
+def test_distant_photos_still_get_their_own_places(  # type: ignore[no-untyped-def]
+    client, couple, session, monkeypatch
+):
+    here = ready_at(client, couple, session, monkeypatch, 0, 0)
+    there = ready_at(client, couple, session, monkeypatch, 0, 0, latitude_minutes=32)  # ~1.8 km
+    memory = binding.memory(client, couple)
+    assert attach(client, couple, memory, [here, there]).status_code == 200
+    assert len(places(client, couple, memory["id"]).json()["items"]) == 2

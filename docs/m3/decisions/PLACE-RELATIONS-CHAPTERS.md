@@ -95,6 +95,12 @@ Maps, Geocoding, current position, and Provider data remain reserved for M7/M8 o
 
 Rationale: Places with the same name or address may intentionally be distinct from a Domain perspective; automatic merging would mutate data and introduce Privacy risk.
 
+### Amendment (Product Owner, 2026-11-28): photo-derived Places reuse a nearby Place
+
+D07 governs what a person creates and edits: an explicit Create request still always makes a new Place, and existing Places are never merged. It does not cover the Place that is derived automatically from a selected photo's GPS. Creating one per photo or per entry filled the Place list with several identical addresses (a later photo on the same entry, two photos a few metres apart, separate entries from the same spot).
+
+When a photo's position is bound to a Memory or Heart Moment, it is linked to an existing non-archived located Place of the same Space within 75 m (the nearest one) instead of creating another. A new automatic Place is created only when none is that close, and photos in one save that fall within that distance of each other share it. Photos' positions still never reach the Place unless the account's photo-Place association applies. Existing duplicates stay as they are; there is no automatic merge, and an explicit Merge UX remains separate scope. The linked Place keeps its name, address and edits; linking is per target, so removing the association from one entry leaves the other entries intact.
+
 ## 4. M3-D08 / D31 – Canonical relation surface
 
 ### Decision

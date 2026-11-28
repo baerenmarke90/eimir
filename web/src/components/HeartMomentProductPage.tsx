@@ -1759,6 +1759,7 @@ export function HeartMomentProductPage({
                 <MediaGallery
                   readingFrame
                   presentation="composer"
+                  directSensitiveToggle
                   initialMediaId={
                     heartMoment.selectedCoverAttachmentId ?? undefined
                   }

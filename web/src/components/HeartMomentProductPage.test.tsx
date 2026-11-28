@@ -30,6 +30,7 @@ import experiences from '../i18n/locales/experiences';
 import m5s3 from '../i18n/locales/m5s3';
 import navigation from '../i18n/locales/navigation';
 import relationshipComponents from '../i18n/locales/relationshipComponents';
+import sensitiveMedia from '../i18n/locales/sensitiveMedia';
 import storyProducts from '../i18n/locales/storyProducts';
 import taskBoundary from '../i18n/locales/taskBoundary';
 import { AppShell } from './AppShell';
@@ -772,6 +773,35 @@ describe('Heart Moment detail edit action and shared state (#1014)', () => {
     expect(
       document.querySelector('.moment-metadata time')?.getAttribute('datetime'),
     ).toBe('2026-08-25');
+  });
+
+  it('reveals a sensitive photo in place with one tap instead of opening it still covered', async () => {
+    const user = userEvent.setup();
+    renderDetail(
+      undefined,
+      {
+        ...heartMoment,
+        attachments: orderedMediaHeart.attachments?.filter(
+          (item) => item.mediaType === 'IMAGE',
+        ),
+      },
+      'detail',
+      protectedMediaApis(),
+    );
+    // Tap the covered photo itself, not the small corner control.
+    await screen.findByText(sensitiveMedia.tapToReveal);
+    const photo = document
+      .querySelector(
+        '.media-gallery-carousel-slide:not(.is-clone) .sensitive-media-cover',
+      )
+      ?.closest('button');
+    if (!(photo instanceof HTMLButtonElement))
+      throw new Error('The covered photo is not a button.');
+    await user.click(photo);
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(
+      await screen.findByRole('button', { name: sensitiveMedia.hide }),
+    ).toBeTruthy();
   });
 
   it('shows authored context without inventing prose for a textless result', async () => {

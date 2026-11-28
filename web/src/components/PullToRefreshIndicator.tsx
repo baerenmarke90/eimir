@@ -23,16 +23,16 @@ export function PullToRefreshIndicator(options: PullToRefreshOptions) {
             <svg
               className={`app-pull-refresh-icon inline-icon${state.refreshing ? ' eimir-motion-loading-spin' : ''}`}
               viewBox="0 0 24 24"
-              width="18"
-              height="18"
+              width="20"
+              height="20"
               fill="none"
               stroke="currentColor"
+              strokeWidth="2.5"
               strokeLinecap="round"
-              strokeLinejoin="round"
               aria-hidden="true"
             >
-              <path d="M20 11a8 8 0 1 0-2.34 5.66" />
-              <path d="M20 4v7h-7" />
+              {/* An open ring, as in the platform's own refresh spinners. */}
+              <path d="M12 3a9 9 0 1 0 9 9" />
             </svg>
           </span>
         </div>

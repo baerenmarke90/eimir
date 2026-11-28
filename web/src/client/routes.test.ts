@@ -250,6 +250,17 @@ describe('content deep links', () => {
       '/more/notes/note-1',
     );
     expect(subpageParentPath('/more/notes')).toBe('/more');
+    // The private root redirects to Notes, so its sections must leave for More.
+    for (const section of [
+      'notes',
+      'gift-ideas',
+      'collections',
+      'partner-notes',
+    ])
+      expect(subpageParentPath(`/more/private/${section}`)).toBe('/more');
+    expect(subpageParentPath('/more/private/notes/n1')).toBe(
+      '/more/private/notes',
+    );
     expect(subpageParentPath(ACTIVITY_ROUTE)).toBe('/more');
     expect(subpageParentPath(`${ACTIVITY_ROUTE}/`)).toBe('/more');
     expect(subpageParentPath('/today/only-you/x')).toBe('/today');

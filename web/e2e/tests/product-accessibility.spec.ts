@@ -1147,12 +1147,11 @@ for (const view of [
       page.getByText('Book the cabin for autumn', { exact: true }),
     ).toHaveCount(0);
     await expect(page.locator('.private-partner-notes-panel')).toHaveCount(0);
-    const preferenceTrigger = page.getByRole('button', {
-      name: profiles.addPreferenceShort,
-      exact: true,
-    });
-    await expectLabeledAddAction(preferenceTrigger);
-    await preferenceTrigger.click();
+    // Adding a preference starts from the profile menu at the top right.
+    await page.getByRole('button', { name: profiles.menu }).click();
+    await page
+      .getByRole('button', { name: profiles.addPreference, exact: false })
+      .click();
     // Shared SELF_PROFILE preferences must never inherit the owner-only promise.
     await expect(dialog).not.toHaveAttribute('aria-describedby');
     await expect(dialog.getByRole('note')).toHaveCount(0);

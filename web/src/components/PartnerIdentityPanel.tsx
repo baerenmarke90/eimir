@@ -1,6 +1,4 @@
-import { EditPencilIcon } from './ListEntryActions';
-import { AddActionContent } from './AddAction';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ProfilesApi } from '../client/mediaApis';
 import { SpacesApi } from '../api/generated/apis/SpacesApi';
@@ -21,15 +19,17 @@ export function PartnerIdentityPanel({
   accessToken,
   account,
   spaceId,
+  nicknameRequest = 0,
 }: {
   apiBaseUrl: string;
   accessToken: string;
   account: AccountView;
   spaceId: string;
+  /** Raised by the page's actions menu: opens the nickname form once per change. */
+  nicknameRequest?: number;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const editButtonRef = useRef<HTMLButtonElement>(null);
   const nicknameInputRef = useRef<HTMLInputElement>(null);
   const [editingNickname, setEditingNickname] = useState(false);
   const [nicknameDraft, setNicknameDraft] = useState('');
@@ -122,7 +122,6 @@ export function PartnerIdentityPanel({
       );
       setEditingNickname(false);
       setNicknameStatus(nickname === null ? 'removed' : 'saved');
-      requestAnimationFrame(() => editButtonRef.current?.focus());
     },
     onError: () => nicknameInputRef.current?.focus(),
   });
@@ -136,6 +135,23 @@ export function PartnerIdentityPanel({
   const shownAvatarUrl = displayAvatarUrl(partnerId, {
     avatarUrl,
     hasNoPicture,
+  });
+
+  // The nickname is set from the page's actions menu.
+  const handledNicknameRequest = useRef(0);
+  useEffect(() => {
+    if (
+      nicknameRequest === handledNicknameRequest.current ||
+      !nicknameQuery.data ||
+      nicknameQuery.data.partnerId !== partnerId
+    )
+      return;
+    handledNicknameRequest.current = nicknameRequest;
+    setNicknameDraft(nicknameQuery.data.nickname ?? '');
+    setNicknameStatus(null);
+    nicknameMutation.reset();
+    setEditingNickname(true);
+    requestAnimationFrame(() => nicknameInputRef.current?.focus());
   });
 
   if (!partner) return null;
@@ -187,39 +203,6 @@ export function PartnerIdentityPanel({
                 t('profiles.nickname.fallback', { name: partnerFirstName })}
             </p>
           </div>
-          <button
-            ref={editButtonRef}
-            type="button"
-            className={
-              currentNickname
-                ? 'list-entry-icon-button content-edit-action'
-                : 'add-action'
-            }
-            aria-label={
-              currentNickname
-                ? t('profiles.nickname.edit')
-                : t('profiles.nickname.add')
-            }
-            title={
-              currentNickname
-                ? t('profiles.nickname.edit')
-                : t('profiles.nickname.add')
-            }
-            disabled={nicknameQuery.isLoading || Boolean(nicknameQuery.error)}
-            onClick={() => {
-              setNicknameDraft(currentNickname ?? '');
-              setNicknameStatus(null);
-              nicknameMutation.reset();
-              setEditingNickname(true);
-              requestAnimationFrame(() => nicknameInputRef.current?.focus());
-            }}
-          >
-            {currentNickname ? (
-              <EditPencilIcon className="list-entry-icon" />
-            ) : (
-              <AddActionContent label={t('profiles.nickname.add')} />
-            )}
-          </button>
         </div>
         <p className="field-help">{t('profiles.nickname.privateHelp')}</p>
         {nicknameQuery.error ? (
@@ -267,7 +250,6 @@ export function PartnerIdentityPanel({
                 onClick={() => {
                   setEditingNickname(false);
                   nicknameMutation.reset();
-                  requestAnimationFrame(() => editButtonRef.current?.focus());
                 }}
               >
                 {t('common.cancel')}

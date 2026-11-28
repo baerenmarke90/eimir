@@ -133,6 +133,8 @@ export default {
   },
   edit: 'Auswahl anpassen',
   menu: 'Menü des Rückblicks',
+  fullscreen: 'Rückblick im Vollbild',
+  fullscreenClose: 'Vollbild schließen',
   selectionTitle: 'Was gehört für euch dazu?',
   selectionBody:
     'Wählt bis zu 24 gemeinsam sichtbare Inhalte aus diesem Zeitraum. Eure Auswahl bleibt bestehen.',

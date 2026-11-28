@@ -122,7 +122,6 @@ export default {
   begin: 'Losblättern',
   finishTitle: 'Was bleibt euch davon?',
   finishBody: 'Eure eigenen Worte machen diesen Rückblick zu eurem.',
-  source: 'Original öffnen',
   sourceUnavailable: 'Dieser Inhalt ist hier nicht mehr verfügbar.',
   untitled: 'Ein gemeinsamer Moment',
   sourceKind: {

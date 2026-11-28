@@ -3,6 +3,7 @@ import {
   type ReactNode,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from 'react';
@@ -17,11 +18,11 @@ import {
 } from '../client/recapFilm';
 import type { ReferenceApis } from '../client/referenceFlow';
 import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
-import { loadVideoSource } from '../client/video';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { contextTagLabel } from './ContextTagList';
 import { EimirIcon } from './EimirIcon';
 import { MemoryPreview } from './MemoryPreview';
+import { acquireRecapClip, type RecapPreload } from './recapPreload';
 import './RecapFilmScene.css';
 import '../motion/playback.css';
 
@@ -141,27 +142,36 @@ function FilmClip({
   onSettled?: () => void;
 }) {
   const { t } = useTranslation();
-  const video = useRef<HTMLVideoElement>(null);
-  const [url, setUrl] = useState<string | null>(null);
+  const label = t('recaps.film.video');
+  const host = useRef<HTMLDivElement>(null);
+  const [video, setVideo] = useState<HTMLVideoElement | null>(null);
   const parentType = parentTypeOf(source);
   const start = media.clipStartSeconds ?? 0;
   const length = media.clipSeconds ?? 5;
   useEffect(() => {
     if (reducedMotion) return;
     if (parentType !== 'MEMORY' && parentType !== 'HEART_MOMENT') return;
-    const controller = new AbortController();
-    loadVideoSource(
+    // The reader may already buffer this clip; the scene adopts that element.
+    const lease = acquireRecapClip(
       props.mediaApis,
       props.spaceId,
       parentType,
       media.parentId,
       media.attachmentId,
-      controller.signal,
-    )
-      .then((result) => setUrl(result.url))
+      start,
+    );
+    let live = true;
+    lease.ready
+      .then((element) => {
+        if (live) setVideo(element);
+      })
       // The poster stays when a clip cannot be played.
       .catch(() => undefined);
-    return () => controller.abort();
+    return () => {
+      live = false;
+      setVideo(null);
+      lease.release();
+    };
   }, [
     reducedMotion,
     parentType,
@@ -169,10 +179,24 @@ function FilmClip({
     props.spaceId,
     media.parentId,
     media.attachmentId,
+    start,
   ]);
+  useLayoutEffect(() => {
+    const container = host.current;
+    if (!container || !video) return;
+    video.className = 'recap-film-clip';
+    video.setAttribute('aria-label', label);
+    // A clip seen before starts again from its own beginning.
+    if (video.readyState >= 1) video.currentTime = start;
+    container.append(video);
+    return () => {
+      video.pause();
+      video.remove();
+    };
+  }, [video, label, start]);
   useEffect(() => {
-    const element = video.current;
-    if (!element || !url) return;
+    const element = video;
+    if (!element) return;
     const stop = () => {
       if (element.currentTime >= start + length) element.pause();
     };
@@ -190,7 +214,7 @@ function FilmClip({
       element.removeEventListener('timeupdate', stop);
       element.removeEventListener('loadedmetadata', begin);
     };
-  }, [url, playing, reducedMotion, start, length]);
+  }, [video, playing, reducedMotion, start, length]);
   return (
     <>
       <FilmImage
@@ -200,19 +224,106 @@ function FilmClip({
         quality="thumbnail"
         onSettled={onSettled}
       />
-      {url ? (
-        <video
-          ref={video}
-          className="recap-film-clip"
-          src={url}
-          muted
-          playsInline
-          preload="metadata"
-          aria-label={t('recaps.film.video')}
-        />
-      ) : null}
+      {/* The adopted clip element lives here outside React's own children. */}
+      <div ref={host} className="recap-film-clip-host" />
     </>
   );
+}
+
+/** The pictures a cover scene shows for its layout. */
+function coverShown(scene: Extract<FilmScene, { type: 'cover' }>): FilmMedia[] {
+  const layout = scene.media.length ? scene.layout : 'type';
+  return layout === 'mosaic' || layout === 'stack'
+    ? scene.media.slice(0, 3)
+    : layout === 'split'
+      ? scene.media.slice(0, 2)
+      : layout === 'strip'
+        ? scene.media
+        : layout === 'single' || layout === 'frame'
+          ? scene.media.slice(0, 1)
+          : [];
+}
+
+function groupShown(
+  scene: Extract<FilmScene, { type: 'duo' | 'collage' }>,
+): FilmMedia[] {
+  return scene.media.slice(0, scene.type === 'collage' ? 3 : 2);
+}
+
+/** The source whose read grant authorizes a picture of a mixed scene. */
+function mediaSource(
+  value: RecapView,
+  item: FilmMedia,
+  fallback: RecapSourceView | null,
+): RecapSourceView | null {
+  return (
+    value.sources.find(
+      (source) =>
+        source.id === item.parentId ||
+        (source.media ?? []).some(
+          (entry) => entry.attachmentId === item.attachmentId,
+        ),
+    ) ?? fallback
+  );
+}
+
+function picturePreloads(
+  source: RecapSourceView | null,
+  media: FilmMedia,
+  quality: 'original' | 'thumbnail',
+): RecapPreload[] {
+  const parentType = parentTypeOf(source);
+  if (!parentType) return [];
+  const base = {
+    parentType,
+    parentId: media.parentId,
+    attachmentId: media.attachmentId,
+  };
+  // A clip shows its poster first and then plays; both are warmed.
+  return media.kind === 'VIDEO'
+    ? [
+        { ...base, variant: 'thumbnail' },
+        {
+          ...base,
+          variant: 'clip',
+          clipStartSeconds: media.clipStartSeconds ?? 0,
+        },
+      ]
+    : [{ ...base, variant: quality }];
+}
+
+/** Every picture and clip a film scene renders, in the variant it reads. */
+export function filmScenePreloads(
+  scene: FilmScene,
+  value: RecapView,
+): RecapPreload[] {
+  switch (scene.type) {
+    case 'cover':
+      return coverShown(scene).flatMap((item, index) =>
+        picturePreloads(
+          mediaSource(value, item, scene.source),
+          item,
+          index === 0 ? 'original' : 'thumbnail',
+        ),
+      );
+    case 'photo':
+      return picturePreloads(scene.source, scene.media, 'original');
+    case 'duo':
+    case 'collage':
+      return groupShown(scene).flatMap((item) =>
+        picturePreloads(scene.source, item, 'original'),
+      );
+    case 'covers':
+      return scene.covers.flatMap((cover) =>
+        picturePreloads(cover.source, cover.media, 'thumbnail'),
+      );
+    case 'closing':
+      return scene.media.flatMap((item) =>
+        picturePreloads(mediaSource(value, item, null), item, 'thumbnail'),
+      );
+    default:
+      return [];
+  }
 }
 
 function Picture(
@@ -316,8 +427,6 @@ export type RecapFilmSceneProps = MediaProps & {
   playing: boolean;
   reducedMotion: boolean;
   onSettled: () => void;
-  /** The canonical source link with the reader's return context. */
-  sourceLink: (source: RecapSourceView) => ReactNode;
   /** Reflections and own-words actions of the closing scene. */
   closing?: ReactNode;
 };
@@ -328,7 +437,6 @@ export function RecapFilmScene({
   playing,
   reducedMotion,
   onSettled,
-  sourceLink,
   closing,
   ...media
 }: RecapFilmSceneProps) {
@@ -359,16 +467,7 @@ export function RecapFilmScene({
           ? t('recaps.film.coverFallbackYear', { year: month })
           : t('recaps.film.coverFallback', { month }));
       const layout = scene.media.length ? scene.layout : 'type';
-      const shown =
-        layout === 'mosaic' || layout === 'stack'
-          ? scene.media.slice(0, 3)
-          : layout === 'split'
-            ? scene.media.slice(0, 2)
-            : layout === 'strip'
-              ? scene.media
-              : layout === 'single' || layout === 'frame'
-                ? scene.media.slice(0, 1)
-                : [];
+      const shown = coverShown(scene);
       return (
         <div className="recap-film-frame" data-layout={layout}>
           {shown.length ? (
@@ -377,15 +476,7 @@ export function RecapFilmScene({
                 <Picture
                   key={item.attachmentId}
                   {...pictureProps}
-                  source={
-                    value.sources.find(
-                      (source) =>
-                        source.id === item.parentId ||
-                        (source.media ?? []).some(
-                          (entry) => entry.attachmentId === item.attachmentId,
-                        ),
-                    ) ?? scene.source
-                  }
+                  source={mediaSource(value, item, scene.source)}
                   media={item}
                   index={index}
                   quality={index === 0 ? 'original' : 'thumbnail'}
@@ -494,7 +585,6 @@ export function RecapFilmScene({
             {scene.answers.length ? (
               <Answers answers={scene.answers} inline />
             ) : null}
-            {sourceLink(scene.source)}
           </div>
         </div>
       );
@@ -502,7 +592,7 @@ export function RecapFilmScene({
     case 'duo':
     case 'collage': {
       const title = filmSourceTitle(scene.source);
-      const shown = scene.media.slice(0, scene.type === 'collage' ? 3 : 2);
+      const shown = groupShown(scene);
       return (
         <div className="recap-film-frame" data-layout={scene.layout}>
           <div
@@ -527,7 +617,6 @@ export function RecapFilmScene({
             {scene.answers.length ? (
               <Answers answers={scene.answers} inline />
             ) : null}
-            {sourceLink(scene.source)}
           </div>
         </div>
       );
@@ -581,7 +670,6 @@ export function RecapFilmScene({
                 {scene.words}
               </p>
             )}
-            {sourceLink(scene.source)}
           </div>
         </div>
       );
@@ -604,7 +692,6 @@ export function RecapFilmScene({
             ) : null}
             <Eyebrow source={source} />
             <h1 className="recap-film-title">{title}</h1>
-            {source.available ? sourceLink(source) : null}
           </div>
         </div>
       );
@@ -620,7 +707,6 @@ export function RecapFilmScene({
               </p>
             ) : null}
             <Answers answers={scene.answers} />
-            {sourceLink(scene.source)}
           </div>
         </div>
       );
@@ -758,15 +844,7 @@ export function RecapFilmScene({
                 <Picture
                   key={item.attachmentId}
                   {...pictureProps}
-                  source={
-                    value.sources.find(
-                      (source) =>
-                        source.id === item.parentId ||
-                        (source.media ?? []).some(
-                          (entry) => entry.attachmentId === item.attachmentId,
-                        ),
-                    ) ?? null
-                  }
+                  source={mediaSource(value, item, null)}
                   media={item}
                   index={index}
                   quality="thumbnail"

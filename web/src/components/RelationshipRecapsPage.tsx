@@ -44,7 +44,6 @@ import {
   recapPeriodLabel,
   recapPeriodStatus,
   recapScenes,
-  recapSourcePath,
 } from '../client/recaps';
 import type { ReferenceApis } from '../client/referenceFlow';
 import {
@@ -71,14 +70,38 @@ import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import type { ProfilePageProps } from './ProfilePage';
 import { ProMark } from './ProMark';
-import { RecapFilmScene } from './RecapFilmScene';
+import { filmScenePreloads, RecapFilmScene } from './RecapFilmScene';
 import { RecapMedia, type RecapMediaProps } from './RecapMedia';
 import { RecapTasks } from './RecapTasks';
+import { type RecapPreload, useRecapPreload } from './recapPreload';
 import { SecureSurface } from './SecureSurface';
 import { BackSlotHost, TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 import './RelationshipRecapsPage.css';
 import '../motion/playback.css';
+
+/** The established reader reads the first cover picture and highlights in full. */
+function legacyScenePreloads(
+  sources: readonly RecapView['sources'][number][],
+): RecapPreload[] {
+  return sources.flatMap((source, index) =>
+    source.available &&
+    source.previewAttachmentId &&
+    !source.previewIsSensitive &&
+    (source.kind === 'MEMORY' ||
+      source.kind === 'HEART_MOMENT' ||
+      source.kind === 'PLAN')
+      ? [
+          {
+            parentType: source.kind,
+            parentId: source.id,
+            attachmentId: source.previewAttachmentId,
+            variant: index === 0 ? 'original' : 'thumbnail',
+          } satisfies RecapPreload,
+        ]
+      : [],
+  );
+}
 
 export type RecapsPageProps = ProfilePageProps & { mediaApis: ReferenceApis };
 const POLL_WINDOW_MS = 120_000;
@@ -515,8 +538,7 @@ function RecapReader({
   const { t } = useTranslation();
   const [search, setSearch] = useSearchParams();
   const location = useLocation();
-  const navigate = useNavigate();
-  const { requestReturn, captureOrigin, resolveOrigin } = useTaskOrigin();
+  const { requestReturn, resolveOrigin } = useTaskOrigin();
   const [task, setTask] = useState<'selection' | 'reflection' | null>(null);
   const started = useRef(Date.now());
   const key = ['relationship-recap', props.account.id, props.spaceId, recapId];
@@ -667,6 +689,32 @@ function RecapReader({
     ),
     onAdvance: () => setPage(Math.min(page + 1, pageCount - 1), true),
   });
+  // The neighbouring pages' pictures and clips load ahead, so a turn shows
+  // them at once instead of a placeholder (PO 2026-11-28).
+  const preloads = useMemo(
+    () =>
+      value?.status !== 'READY'
+        ? []
+        : filmScenes
+          ? filmScenes.map((item) => filmScenePreloads(item, value))
+          : scenes.map((item) =>
+              legacyScenePreloads(
+                item.type === 'cover'
+                  ? mosaic
+                  : item.type === 'highlight' && item.layout === 'photo'
+                    ? [item.source]
+                    : [],
+              ),
+            ),
+    [value, filmScenes, scenes, mosaic],
+  );
+  useRecapPreload({
+    pages: preloads,
+    page,
+    mediaApis: props.mediaApis,
+    spaceId: props.spaceId,
+    reducedMotion: playback.reducedMotion,
+  });
   // Taps and arrow keys can arrive faster than a render commits, while this
   // render still holds the previous page and route entry. The intended page is
   // kept until it is committed and replayed once after the commit if needed.
@@ -804,31 +852,6 @@ function RecapReader({
         {overlay ? <span className="sr-only">{toggleLabel}</span> : toggleLabel}
       </button>
     ) : null;
-  const sourceLink = (item: NonNullable<typeof source>) => (
-    <Link
-      className="recap-text-link"
-      to={recapSourcePath(item)}
-      state={{ taskOriginKey: null }}
-      onClick={(event) => {
-        const origin = captureOrigin();
-        // React Router receives the scoped opaque return key through navigation.
-        if (
-          origin &&
-          !event.ctrlKey &&
-          !event.metaKey &&
-          !event.shiftKey &&
-          event.button === 0
-        ) {
-          event.preventDefault();
-          void navigate(recapSourcePath(item), {
-            state: { taskOriginKey: origin },
-          });
-        }
-      }}
-    >
-      {t('recaps.source')}
-    </Link>
-  );
   const closingExtras = value ? (
     <>
       {value.reflections.map((note) => (
@@ -1064,7 +1087,6 @@ function RecapReader({
                       playing={playback.running}
                       reducedMotion={playback.reducedMotion}
                       onSettled={settleMedia}
-                      sourceLink={sourceLink}
                       closing={closingExtras}
                     />
                     {!filmPictured && filmScene.type !== 'closing'
@@ -1243,7 +1265,6 @@ function RecapReader({
                           {t(`recaps.mutualReaction.${source.mutualReaction}`)}
                         </p>
                       ) : null}
-                      {source.available ? sourceLink(source) : null}
                     </div>
                   </>
                 ) : (
@@ -1295,23 +1316,16 @@ function RecapReader({
                   {t('recaps.gestureHint')}
                 </p>
               ) : null}
-              {capability.data ? (
+              {/* Own words live on the closing page only; the selection stays
+                  editable from every page until the period is retained. */}
+              {capability.data && !value.savedAt ? (
                 <div className="recap-reader-tools">
-                  {value.savedAt ? null : (
-                    <button
-                      type="button"
-                      className="recap-text-button"
-                      onClick={() => setTask('selection')}
-                    >
-                      {t('recaps.edit')}
-                    </button>
-                  )}
                   <button
                     type="button"
                     className="recap-text-button"
-                    onClick={() => setTask('reflection')}
+                    onClick={() => setTask('selection')}
                   >
-                    {t('recaps.ownWords')}
+                    {t('recaps.edit')}
                   </button>
                 </div>
               ) : null}

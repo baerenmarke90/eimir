@@ -109,6 +109,10 @@
   position: absolute;
   inset: 0;
 }
+/* Holds the adopted, already buffering clip element without a box of its own. */
+.recap-film-clip-host {
+  display: contents;
+}
 .recap-film-picture .story-media-preview,
 .recap-film-picture .story-media-skeleton,
 .recap-film-picture .story-media-placeholder,

@@ -5,7 +5,6 @@ import { recapDetailPath } from '../../src/client/routes';
 import de from '../../src/i18n/locales/de';
 import navigation from '../../src/i18n/locales/navigation';
 import copy from '../../src/i18n/locales/recaps';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import taskSheets from '../../src/i18n/locales/taskSheets';
 import fixtures from '../fixtures/locales/de';
 import AxeBuilder from '../support/axe';
@@ -867,7 +866,7 @@ for (const [width, theme] of [
   });
 }
 
-test('Watch now advances automatically, resumes after a source, and finishes without looping', async ({
+test('Watch now advances automatically and finishes without looping', async ({
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
@@ -903,13 +902,8 @@ test('Watch now advances automatically, resumes after a source, and finishes wit
     .press('Enter');
   await advanceSpread(fixtureCopy.monthHeadline);
   await expect(page).toHaveURL(/page=1/);
-  await page.getByRole('link', { name: new RegExp(copy.source) }).click();
-  await page
-    .getByRole('button', { name: new RegExp(taskBoundary.back) })
-    .first()
-    .click();
-  await expect(page).toHaveURL(/\/story\/recaps\/october\?page=1/);
-  // Like a photo memory, playback resumes on the restored page after a source.
+  // The film stays in the reader: no page links away to its originals.
+  await expect(page.locator('.recap-spread a')).toHaveCount(0);
   await advanceSpread(fixtureCopy.photoTitle);
   await expect(page).toHaveURL(/page=2/);
   await expect(
@@ -944,10 +938,8 @@ test('reduced motion opens Watch now paused and playback pauses for editing', as
   await page.getByRole('button', { name: copy.play, exact: true }).click();
   await page.clock.fastForward(90001);
   await expect(page).toHaveURL(/page=1/);
-  await page.getByRole('button', { name: copy.ownWords, exact: true }).click();
-  await expect(
-    page.getByRole('textbox', { name: copy.reflectionLabel }),
-  ).toBeVisible();
+  await page.getByRole('button', { name: copy.edit, exact: true }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
   await expect(page.locator('.recap-reader')).toHaveAttribute(
     'data-playing',
     'false',
@@ -1132,21 +1124,12 @@ for (const [width, theme] of [
       (await new AxeBuilder({ page }).include('.recap-reader').analyze())
         .violations,
     ).toEqual([]);
-    const original = page.getByRole('link', { name: copy.source });
-    await expect(original).toHaveText(copy.source);
-    await original.click();
-    await expect(page).toHaveURL(/\/story\/memories\/mem-canal/);
-    await page
-      .getByRole('button', {
-        name: new RegExp(taskBoundary.back),
-        exact: false,
-      })
-      .first()
-      .click();
-    await expect(page).toHaveURL(/\/story\/recaps\/october\?page=1/);
-    await expect(page.locator('.recap-spread h1')).toHaveText(
-      fixtureCopy.photoTitle,
-    );
+    // Own words belong to the closing page; a photo page offers neither
+    // them nor a link away to the original.
+    await expect(page.locator('.recap-spread a')).toHaveCount(0);
+    await expect(
+      page.getByRole('button', { name: copy.ownWords, exact: true }),
+    ).toHaveCount(0);
     expect(state.prepares()).toBe(1);
     expect(state.unexpected).toEqual([]);
   });
@@ -1171,6 +1154,8 @@ test('selection, private draft, explicit sharing, automatic retention and withdr
   await selection.getByRole('button', { name: copy.reload }).click();
   await selection.getByRole('button', { name: copy.apply }).click();
   await expect(selection).toBeHidden();
+  // Own words are offered once, on the closing page.
+  await openClosingPage(page);
   await page.getByRole('button', { name: copy.ownWords, exact: true }).click();
   const words = page.getByRole('dialog');
   await words.getByRole('textbox').fill(fixtureCopy.reflection);
@@ -1180,8 +1165,6 @@ test('selection, private draft, explicit sharing, automatic retention and withdr
   await expect(words.getByRole('textbox')).toHaveValue(fixtureCopy.reflection);
   await words.getByRole('button', { name: copy.share, exact: true }).click();
   await expect(words).toBeHidden();
-  await page.getByRole('button', { name: copy.next, exact: true }).click();
-  await page.getByRole('button', { name: copy.next, exact: true }).click();
   await expect(page.locator('blockquote')).toContainText(
     fixtureCopy.reflection,
   );
@@ -1395,6 +1378,7 @@ test('large text and an unsaved offline draft preserve the editing task', async 
     .getByRole('link', { name: new RegExp(copy.open) })
     .first()
     .click();
+  await openClosingPage(page);
   await page.getByRole('button', { name: copy.ownWords, exact: true }).click();
   const words = page.getByRole('dialog');
   await words.getByRole('textbox').fill('An unfinished thought.');
@@ -2063,6 +2047,18 @@ for (const [width, height, scheme, all] of [
 }
 
 /** The scene's stage name for evidence: its type, or 'climax' for the highlight. */
+/** Turns to the reader's last page, where the closing offers own words. */
+async function openClosingPage(page: Page) {
+  const next = page.getByRole('button', { name: copy.next, exact: true });
+  const spread = page.locator('.recap-spread');
+  while (await next.isEnabled()) {
+    const current = await spread.getAttribute('aria-label');
+    await next.click();
+    // Wait for the turn to commit before reading the button again.
+    await expect(spread).not.toHaveAttribute('aria-label', current ?? '');
+  }
+}
+
 async function stageName(page: Page): Promise<string> {
   const spread = page.locator('.recap-spread').first();
   const type = (await spread.getAttribute('class'))?.match(

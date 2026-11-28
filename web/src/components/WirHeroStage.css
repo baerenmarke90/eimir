@@ -366,10 +366,11 @@
 }
 
 .wir-bridge-line svg {
-  /* Same 32:28 ratio as the heart path; the thin outline keeps the fill, not
-     the rim, as the heart's weight. */
-  width: 2.75rem;
-  height: 2.40625rem;
+  /* Same 32:28 ratio as the heart path (taken from the viewBox); the thin
+     outline keeps the fill, not the rim, as the heart's weight. The share of
+     the column keeps it clear of the portraits when the text is enlarged. */
+  width: min(2.75rem, 55%);
+  height: auto;
   flex: none;
   overflow: visible;
   fill: none;

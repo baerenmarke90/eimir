@@ -12,13 +12,16 @@ from eimir.appearance import service
 from eimir.appearance.models import (
     DEFAULT_MEMORY_WORLD,
     DEFAULT_WIR_DESIGN,
+    DEFAULT_WIR_REEL_STYLE,
     FREE_MEMORY_WORLDS,
     FREE_WIR_DESIGNS,
+    FREE_WIR_REEL_STYLES,
     AppIconId,
     AppIconPreference,
     MemoryWorldId,
     PersonColoursId,
     WirDesignId,
+    WirReelStyleId,
 )
 from eimir.authorization import AuthorizationContext
 from eimir.entitlements.models import Capability
@@ -299,3 +302,69 @@ def update_memory_world_preference(
         ensure_capability(session, authorization.space_id, Capability.THEME_BESPOKE_PACKS.value)
     saved = service.save_memory_world(session, authorization, body.world_id, expected_token)
     return _world_view(saved, authorization, response)
+
+
+class WirReelStylePreferenceView(ApiModel):
+    """The caller's own presentation of the Wir reels "Neu für dich" and "Du bist dran"."""
+
+    style_id: WirReelStyleId
+    version: int
+
+
+class WirReelStylePreferencePatch(ApiModel):
+    style_id: WirReelStyleId
+
+
+def _reel_style_view(
+    preference: AppIconPreference | None,
+    authorization: AuthorizationContext,
+    response: Response,
+) -> WirReelStylePreferenceView:
+    response.headers["ETag"] = etag_for_token(service.concurrency_token(preference, authorization))
+    response.headers["Cache-Control"] = "private, no-store"
+    return WirReelStylePreferenceView(
+        style_id=preference.effective_wir_reel_style if preference else DEFAULT_WIR_REEL_STYLE,
+        version=preference.version if preference else 0,
+    )
+
+
+@router.get(
+    "/spaces/{spaceId}/appearance/wir-reels",
+    response_model=WirReelStylePreferenceView,
+    operation_id="getWirReelStylePreference",
+    responses={200: {"headers": ETAG_HEADERS}, **problem_responses(401, 404)},
+)
+def get_wir_reel_style_preference(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+) -> WirReelStylePreferenceView:
+    """Read only the caller's own Wir reel style, including after Pro expiry."""
+    return _reel_style_view(
+        service.read_preference(session, authorization), authorization, response
+    )
+
+
+@router.patch(
+    "/spaces/{spaceId}/appearance/wir-reels",
+    response_model=WirReelStylePreferenceView,
+    operation_id="updateWirReelStylePreference",
+    responses={200: {"headers": ETAG_HEADERS}, **problem_responses(401, 403, 404, 409, 422)},
+)
+def update_wir_reel_style_preference(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+    body: WirReelStylePreferencePatch,
+    expected_token: IfMatchToken,
+) -> WirReelStylePreferenceView:
+    """Save a known style. Circles are Free; tiles and chips require Pro.
+
+    Membership precedes the capability check. Reads never delete or revert a
+    saved style when a grant expires, and returning to circles stays free.
+    The style is a personal presentation and is not shared with the partner.
+    """
+    if body.style_id not in FREE_WIR_REEL_STYLES:
+        ensure_capability(session, authorization.space_id, Capability.THEME_BESPOKE_PACKS.value)
+    saved = service.save_wir_reel_style(session, authorization, body.style_id, expected_token)
+    return _reel_style_view(saved, authorization, response)

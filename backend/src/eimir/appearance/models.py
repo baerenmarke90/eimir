@@ -75,6 +75,18 @@ class MemoryWorldId(StrEnum):
     JAR = "jar"
 
 
+class WirReelStyleId(StrEnum):
+    """A personal presentation of the Wir reels "Neu für dich" and "Du bist dran" (#2345).
+
+    A style only changes how the same items are shown; the items, their order
+    and their read state are identical. It is never shared with the partner.
+    """
+
+    CIRCLES = "circles"
+    TILES = "tiles"
+    CHIPS = "chips"
+
+
 # Product Owner decision 2026-11-14: "connected" is the default composition and,
 # like "warm", Free. Every other design requires ``theme.bespoke_packs``.
 DEFAULT_WIR_DESIGN = WirDesignId.CONNECTED
@@ -84,6 +96,11 @@ FREE_WIR_DESIGNS = frozenset({WirDesignId.CONNECTED, WirDesignId.WARM})
 # Every other memory world requires ``theme.bespoke_packs``.
 DEFAULT_MEMORY_WORLD = MemoryWorldId.STORY
 FREE_MEMORY_WORLDS = frozenset({MemoryWorldId.STORY, MemoryWorldId.STACK})
+
+# #2345 (Product Owner decision 2026-11-28): circles are the default and the only
+# Free reel style; tiles and chips require ``theme.bespoke_packs``.
+DEFAULT_WIR_REEL_STYLE = WirReelStyleId.CIRCLES
+FREE_WIR_REEL_STYLES = frozenset({WirReelStyleId.CIRCLES})
 
 
 class AppIconPreference(IdMixin, TimestampMixin, VersionMixin, Base):
@@ -117,6 +134,8 @@ class AppIconPreference(IdMixin, TimestampMixin, VersionMixin, Base):
     wir_design_palette: Mapped[str | None] = mapped_column(String(24), nullable=True)
     # NULL means the default Story presentation.
     memory_world: Mapped[str | None] = mapped_column(String(24), nullable=True)
+    # NULL means the default circles.
+    wir_reel_style: Mapped[str | None] = mapped_column(String(24), nullable=True)
 
     @property
     def effective_wir_design(self) -> WirDesignId:
@@ -139,3 +158,11 @@ class AppIconPreference(IdMixin, TimestampMixin, VersionMixin, Base):
         if world is not None and world in MemoryWorldId:
             return MemoryWorldId(world)
         return DEFAULT_MEMORY_WORLD
+
+    @property
+    def effective_wir_reel_style(self) -> WirReelStyleId:
+        """Resolve no choice, or a style unknown to this installation, to circles."""
+        style = self.wir_reel_style
+        if style is not None and style in WirReelStyleId:
+            return WirReelStyleId(style)
+        return DEFAULT_WIR_REEL_STYLE

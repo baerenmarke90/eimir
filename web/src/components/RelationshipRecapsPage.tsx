@@ -1310,16 +1310,18 @@ function RecapReader({
                       ) : null}
                       {source.available && source.quote ? (
                         <blockquote className="recap-quote">
-                          <p>
-                            {source.quote.authorName
-                              ? t('recaps.quote', {
-                                  name: source.quote.authorName,
-                                  text: source.quote.text,
-                                })
-                              : t('recaps.quoteAnonymous', {
-                                  text: source.quote.text,
-                                })}
-                          </p>
+                          <RecapQuoteLine
+                            text={
+                              source.quote.authorName
+                                ? t('recaps.quote', {
+                                    name: source.quote.authorName,
+                                    text: source.quote.text,
+                                  })
+                                : t('recaps.quoteAnonymous', {
+                                    text: source.quote.text,
+                                  })
+                            }
+                          />
                         </blockquote>
                       ) : null}
                       {source.available &&
@@ -1430,5 +1432,27 @@ function RecapReader({
         </>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * #2373 (Product Owner, 2026-11-28): the partner's own words on a highlight
+ * get one soft marker sweep as the scene appears, like an underline in a
+ * shared diary. The marker is a decorative copy of the line underneath the
+ * words, drawn by CSS from `data-text` (so the words exist once in the
+ * document and its accessibility tree), and follows every line wrap. The
+ * scene's own entrance plays it again whenever the scene is shown; with
+ * reduced motion the marker is simply there.
+ */
+function RecapQuoteLine({ text }: { text: string }) {
+  return (
+    <p className="recap-quote-line">
+      <span
+        className="recap-quote-marker"
+        data-text={text}
+        aria-hidden="true"
+      />
+      <span className="recap-quote-words">{text}</span>
+    </p>
   );
 }

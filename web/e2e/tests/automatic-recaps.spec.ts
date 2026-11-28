@@ -1742,6 +1742,74 @@ for (const [width, theme] of [
   });
 }
 
+for (const [width, theme] of [
+  [360, 'light'],
+  [390, 'dark'],
+] as const) {
+  test(`a marker sweeps behind the quoted words once the scene has entered at ${width} ${theme} (#2373)`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 844 });
+    await page.emulateMedia({
+      colorScheme: theme,
+      reducedMotion: 'no-preference',
+    });
+    await page.addInitScript(
+      (value) => localStorage.setItem('eimir-theme', value),
+      theme,
+    );
+    const words = fixtureCopy.ownWords;
+    const state = await setup(page, { dense: true, ownWords: true });
+    await page
+      .getByRole('link', { name: new RegExp(copy.open) })
+      .first()
+      .click();
+    const stage = page.locator('.recap-spread');
+    const next = page.getByRole('button', { name: copy.next, exact: true });
+    await next.click();
+    await next.click();
+    const quote = `Ben: „${words.photoQuote}“`;
+    // The words exist once; the marker is drawn from `data-text`.
+    await expect(stage.locator('.recap-quote')).toHaveText(quote);
+    const marker = stage.locator('.recap-quote-marker');
+    await expect(marker).toHaveAttribute('data-text', quote);
+    await expect(marker).toHaveAttribute('aria-hidden', 'true');
+    expect(
+      await marker.evaluate((element) =>
+        element
+          .getAnimations()
+          .map((animation) => (animation as CSSAnimation).animationName),
+      ),
+    ).toEqual(['eimir-motion-recap-marker-sweep']);
+    await page.waitForTimeout(550);
+    await captureScreenshot(
+      page,
+      info,
+      `recaps-quote-marker-sweeping-${width}-${theme}.png`,
+    );
+    // The sweep ends on its own clock with the whole marker uncovered.
+    await expect
+      .poll(() =>
+        marker.evaluate((element) =>
+          element.getAnimations().map((animation) => animation.playState),
+        ),
+      )
+      .toEqual(['finished']);
+    expect(
+      await marker.evaluate((element) => getComputedStyle(element).clipPath),
+    ).toMatch(/^inset\(0px( 0%? ?0px 0px)?\)$|^inset\(0px 0% 0px 0px\)$/);
+    await captureScreenshot(
+      page,
+      info,
+      `recaps-quote-marker-rest-${width}-${theme}.png`,
+    );
+    // Axe covers the same scene with its static marker in the reduced-motion
+    // quote test above; here playback keeps turning pages under the scan.
+    expect(state.writes()).toBe(0);
+    expect(state.unexpected).toEqual([]);
+  });
+}
+
 // The good-days rhythm was removed with Einblicke (#2210): even a stale
 // server payload that still carries `mood` adds no page.
 test('the facts lead straight to the highlights without a good-days page', async ({

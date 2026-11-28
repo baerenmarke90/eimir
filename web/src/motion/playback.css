@@ -306,6 +306,17 @@
   }
 }
 
+/* #2373: the recap quote marker is uncovered from the inline start, one
+   layer at a time (Playback domain clip-path, Motion Contract M6). */
+@keyframes eimir-motion-recap-marker-sweep {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0);
+  }
+}
+
 @keyframes eimir-motion-recap-page-enter {
   from {
     opacity: 0.5;

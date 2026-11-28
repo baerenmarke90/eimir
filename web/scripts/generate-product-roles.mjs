@@ -227,6 +227,7 @@ declare('motion-stagger-max-items', value('motion.stagger.maxItems'));
 declare('duration-gesture-sequence', value('motion.duration.gestureSequence'));
 declare('duration-connection-draw', value('motion.duration.connectionDraw'));
 declare('duration-handwriting', value('motion.duration.handwriting'));
+declare('duration-marker-sweep', value('motion.duration.markerSweep'));
 declare('duration-connection-beat', value('motion.duration.connectionBeat'));
 declare(
   'duration-connection-travel',
@@ -365,6 +366,7 @@ ${storyColorDeclarations('dark', '    ')}
     --duration-gesture-sequence: ${value('motion.duration.instant')};
     --duration-connection-draw: ${value('motion.duration.instant')};
     --duration-handwriting: ${value('motion.duration.instant')};
+    --duration-marker-sweep: ${value('motion.duration.instant')};
     --duration-connection-beat: ${value('motion.duration.instant')};
     --duration-connection-travel: ${value('motion.duration.instant')};
     --duration-connection-travel-far: ${value('motion.duration.instant')};

@@ -1,107 +1,27 @@
 name: Self-Hosted Deployment Guard
 
 on:
-  # Pull requests run the heavy job only in the full tier (tools/ci/change_scope.py, #2096).
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
-  # Nightly and manual runs come from the nightly regression dispatcher.
+  # Run both checks when dispatched by the nightly regression or manually.
   workflow_dispatch:
+  # PR CI selects each check independently using its shared change detection.
+  workflow_call:
+    inputs:
+      check:
+        required: true
+        type: string
+    outputs:
+      network_guard_passed:
+        description: Whether the network checks ran and passed.
+        value: ${{ jobs.deployment-guard.outputs.passed }}
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: self-hosted-deployment-guard-${{ inputs.check || 'full' }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  changes:
-    name: Change Detection
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: read
-      # Labels and draft state are read live so a re-run after adding ci:full applies it.
-      pull-requests: read
-    outputs:
-      deployment_guard: ${{ steps.scope.outputs.deployment_guard }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-
-      - name: Test change-scope filter logic
-        run: python3 tools/ci/test_change_scope.py
-
-      - name: Determine relevant change scopes
-        id: scope
-        env:
-          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          PUSH_BASE_SHA: ${{ github.event.before }}
-          PUSH_HEAD_SHA: ${{ github.sha }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-
-          case "$GITHUB_EVENT_NAME" in
-            pull_request)
-              base_sha="$PR_BASE_SHA"
-              head_sha="$PR_HEAD_SHA"
-              ;;
-            push)
-              base_sha="$PUSH_BASE_SHA"
-              head_sha="$PUSH_HEAD_SHA"
-              ;;
-            *)
-              echo "deployment_guard=true" >> "$GITHUB_OUTPUT"
-              echo "Scheduled/manual run: Deployment Guard remains fully active."
-              exit 0
-              ;;
-          esac
-
-          if [ -z "$base_sha" ] || [ -z "$head_sha" ] \
-            || [[ "$base_sha" =~ ^0+$ ]] \
-            || ! git cat-file -e "${base_sha}^{commit}" 2>/dev/null \
-            || ! git cat-file -e "${head_sha}^{commit}" 2>/dev/null; then
-            echo "deployment_guard=true" >> "$GITHUB_OUTPUT"
-            echo "Change range unavailable; failing closed to Deployment Guard."
-            exit 0
-          fi
-
-          # A pull request compares against the merge base. A plain two-commit diff
-          # would count newer base-branch commits that the head lacks as changes of
-          # this pull request and select the full tier for an unrelated change (#2096).
-          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-            if ! git merge-base "$base_sha" "$head_sha" >/dev/null 2>&1; then
-              echo "deployment_guard=true" >> "$GITHUB_OUTPUT"
-              echo "Pull-request merge base unavailable; failing closed to Deployment Guard."
-              exit 0
-            fi
-            git diff --name-only --no-renames "$base_sha...$head_sha" > /tmp/changed-files.txt
-          else
-            git diff --name-only --no-renames "$base_sha" "$head_sha" > /tmp/changed-files.txt
-          fi
-          echo "Changed files:"
-          cat /tmp/changed-files.txt
-
-          tier_args=()
-          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-            pr_state=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" \
-              --jq '{draft: .draft, labels: [.labels[].name] | join(",")}')
-            tier_args=(--pull-request
-              --draft "$(jq -r '.draft' <<< "$pr_state")"
-              --labels "$(jq -r '.labels' <<< "$pr_state")"
-              --head-ref "$GITHUB_HEAD_REF")
-          fi
-          python3 tools/ci/change_scope.py /tmp/changed-files.txt "${tier_args[@]}" > /tmp/scope-outputs.txt
-          cat /tmp/scope-outputs.txt >> "$GITHUB_OUTPUT"
-          cat /tmp/scope-outputs.txt
-          grep -E '^(tier|tier_reason)=' /tmp/scope-outputs.txt \
-            | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
-
   upgrade-rehearsal:
     name: Install, upgrade, rollback and Demo rehearsal
-    needs: changes
-    if: needs.changes.outputs.deployment_guard == 'true'
+    if: github.event_name == 'workflow_dispatch' || inputs.check == 'rehearsal'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
@@ -129,9 +49,12 @@ jobs:
 
   deployment-guard:
     name: Network and Port Guard
-    needs: changes
-    if: needs.changes.outputs.deployment_guard == 'true'
+    if: github.event_name == 'workflow_dispatch' || inputs.check == 'network'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      passed: ${{ steps.verified.outputs.passed }}
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -468,3 +391,7 @@ jobs:
       - name: Clean up
         if: always()
         run: docker compose --profile self-hosted --env-file .env down -v --remove-orphans
+
+      - name: Record completed network checks
+        id: verified
+        run: echo "passed=true" >> "$GITHUB_OUTPUT"

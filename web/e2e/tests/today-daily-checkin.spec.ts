@@ -921,7 +921,18 @@ test('the Wir opening ends on its own and returning to Wir replays no entrance',
                 (animation) =>
                   animation instanceof CSSAnimation &&
                   animation.playState === 'running' &&
-                  animation.effect?.getComputedTiming().iterations === 1,
+                  animation.effect?.getComputedTiming().iterations === 1 &&
+                  // The Wir backdrop glow fades in with a tapped route
+                  // change by design (TodayPage.css); it is not a content
+                  // entrance.
+                  !(
+                    (animation.effect as KeyframeEffect).pseudoElement ===
+                      '::before' &&
+                    (
+                      (animation.effect as KeyframeEffect)
+                        .target as HTMLElement | null
+                    )?.classList.contains('today-page')
+                  ),
               )
               .map((animation) => (animation as CSSAnimation).animationName),
           );

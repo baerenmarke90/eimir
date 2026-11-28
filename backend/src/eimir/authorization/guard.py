@@ -135,6 +135,11 @@ def require_readable_shared[ResourceT: PrivateResourceMixin](
     an unknown ID, matching ``require_writable_locked``.
     """
     found = require_readable(session, model, context, resource_id)
+    # Request sessions do not autoflush, and ``refresh`` replaces unflushed
+    # attribute changes with the stored row. A caller that just wrote the
+    # resource (a gallery bound before its photo Place, #2353) would silently
+    # lose that write, so persist it before re-reading under the lock.
+    session.flush()
     try:
         session.refresh(found, with_for_update={"read": True})
     except InvalidRequestError as error:

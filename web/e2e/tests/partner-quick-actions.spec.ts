@@ -1328,6 +1328,20 @@ test('a foreground Wish invitation opens the private favorites directly', async 
   await expect(
     page.getByRole('heading', { name: wishSelection.chooseTitle }),
   ).toBeVisible();
+  // #2371: the favourites step opens as a card deck; skip every card to reach
+  // the summary list with its share action.
+  const skip = page.getByRole('button', {
+    name: wishSelection.deckSkip,
+    exact: true,
+  });
+  // The button is disabled while a card leaves, so poll until the deck ends.
+  await expect
+    .poll(async () => {
+      if ((await skip.count()) === 0) return 'done';
+      if (await skip.isEnabled()) await skip.click();
+      return 'skipping';
+    })
+    .toBe('done');
   await expect(
     page.getByRole('button', { name: wishSelection.shareNone }),
   ).toBeVisible();

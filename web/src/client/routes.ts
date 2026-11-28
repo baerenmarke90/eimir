@@ -146,6 +146,14 @@ export function subpageParentPath(pathname: string): string {
   if (path === ACTIVITY_ROUTE) return '/more';
   if (path === '/search' || path === '/games' || path === '/server-admin')
     return '/more';
+  // The private area root only redirects to its first section, so its section
+  // lists would loop back into themselves; Back leaves for More instead.
+  if (
+    /^\/more\/private\/(?:notes|gift-ideas|collections|partner-notes)$/.test(
+      path,
+    )
+  )
+    return '/more';
   const parent = path.slice(0, path.lastIndexOf('/'));
   return parent || '/more';
 }

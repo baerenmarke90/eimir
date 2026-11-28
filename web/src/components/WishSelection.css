@@ -616,3 +616,131 @@
 }
 /* The icon rocks while the draw is pending: `.eimir-motion-loading-roll`
    (the Loading domain in src/motion/utilities.css), set in the markup. */
+
+/*
+ * #2371: the favourite step as a card deck. The top card follows the
+ * finger (Gesture follow writes `transform`); the stacking offset uses the
+ * separate `translate` property so the two compose. The next card waits a
+ * little lower and paler and rises when it becomes the top card. A decided
+ * card leaves above the stack; the stage clips it at its edges so it never
+ * adds horizontal scroll.
+ */
+.wish-selection-deck {
+  display: grid;
+  gap: var(--space-4);
+  justify-items: center;
+}
+
+.wish-selection-deck > .wish-selection-support {
+  margin: 0;
+  justify-self: stretch;
+}
+
+.wish-selection-deck-stage {
+  display: grid;
+  inline-size: 100%;
+  max-inline-size: 22rem;
+  padding-block-end: var(--space-3);
+}
+
+/* Only while a card leaves does the stage clip it (with a margin as wide as
+   the page gutter), so it never adds horizontal scroll and the resting
+   cards keep their whole soft shadow. */
+.wish-selection-deck-stage:has(> [data-place="leaving"]) {
+  overflow: clip;
+  overflow-clip-margin: var(--space-4);
+}
+
+.wish-selection-deck-card {
+  grid-area: 1 / 1;
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  color: var(--color-text);
+  touch-action: pan-y;
+  user-select: none;
+  transition:
+    translate var(--duration-transition) var(--easing-standard),
+    opacity var(--duration-transition) var(--easing-standard);
+}
+
+.wish-selection-deck-card[data-place="top"] {
+  z-index: 1;
+  cursor: grab;
+}
+
+.wish-selection-deck-card[data-place="next"] {
+  translate: 0 var(--space-3);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.wish-selection-deck-card[data-place="leaving"] {
+  z-index: 2;
+  pointer-events: none;
+}
+
+.wish-selection-deck-card:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.wish-selection-deck-media > * {
+  inline-size: 100%;
+  block-size: auto;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-medium);
+}
+
+.wish-selection-deck-media .wish-selection-row-initial {
+  font: var(--font-page-heading);
+}
+
+.wish-selection-task .wish-selection-deck-media .date-idea-media {
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.wish-selection-deck-title {
+  padding-inline: var(--space-2);
+  padding-block-end: var(--space-2);
+  font: var(--font-section-heading);
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+.wish-selection-deck-progress {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font: var(--font-supporting-copy);
+}
+
+/* Side by side when they fit; stacked with large text on narrow screens. */
+.wish-selection-deck-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  gap: var(--space-3);
+  inline-size: 100%;
+  max-inline-size: 22rem;
+}
+
+.wish-selection-deck-actions > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-inline-size: 0;
+  min-block-size: var(--touch-target-web);
+  white-space: normal;
+  text-align: center;
+}
+
+.wish-selection-deck-heart {
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+  fill: currentColor;
+}

@@ -17,6 +17,10 @@ const occasionMarks = {
   todayRelationshipStart: 'Heute beginnt eure Geschichte',
   todayOwnBirthday: 'Alles Gute zum Geburtstag',
   todayPartnerBirthday: 'Alles Gute, {{name}}',
+  // #2370: the days together on the anniversary and on a round day; `days`
+  // is the count formatted for the locale, `count` picks the plural.
+  daysTogether_one: '{{days}} Tag zusammen',
+  daysTogether_other: '{{days}} Tage zusammen',
 };
 
 export default occasionMarks;

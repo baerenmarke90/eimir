@@ -186,6 +186,7 @@ import {
 } from '../motion/stage';
 import { ConnectedMoment } from './ConnectedMoment';
 import { FirstStepAction } from './FirstStepAction';
+import { RollingCount } from './RollingCount';
 import { useImportantDayMoment, type WirOccasion } from './wirImportantDay';
 import { useWirOccasion } from './wirOccasion';
 
@@ -1822,14 +1823,21 @@ const TodayPageView = memo(function TodayPageView({
           <TodayDestinationLink
             to={STORY_OURS_ROUTE}
             className="wir-bridge"
-            ariaLabel={`${wirOccasion ? `${wirOccasion.primary}. ` : ''}${heroDurationText}. ${t('relationshipReflections.passport.title')}`}
+            ariaLabel={`${wirOccasion ? `${wirOccasion.primary}. ${wirOccasion.count?.line === 'secondary' ? `${wirOccasion.secondary}. ` : ''}` : ''}${heroDurationText}. ${t('relationshipReflections.passport.title')}`}
           >
             <strong className="wir-bridge-lead">
               {wirOccasion ? (
                 <span className="wir-bridge-swap">
                   <span className="wir-bridge-time">{heroBridgeLead}</span>
                   <span className="wir-bridge-occasion">
-                    {wirOccasion.primary}
+                    <RollingCount
+                      text={wirOccasion.primary}
+                      value={
+                        wirOccasion.count?.line === 'primary'
+                          ? wirOccasion.count.formatted
+                          : ''
+                      }
+                    />
                   </span>
                 </span>
               ) : (
@@ -1846,7 +1854,14 @@ const TodayPageView = memo(function TodayPageView({
                     ))}
                   </span>
                   <span className="wir-bridge-occasion">
-                    {wirOccasion.secondary}
+                    <RollingCount
+                      text={wirOccasion.secondary}
+                      value={
+                        wirOccasion.count?.line === 'secondary'
+                          ? wirOccasion.count.formatted
+                          : ''
+                      }
+                    />
                   </span>
                 </span>
               ) : (

@@ -1,16 +1,46 @@
 import type { QueryClient } from '@tanstack/react-query';
-import { clearProductReadCacheInBackground } from './productReadCache';
+import {
+  captureMediaCacheLease,
+  evictAuthorizedMedia,
+} from './authorizedMediaCache';
+import { revokePersistedProductReadsInBackground } from './productReadCache';
+
+interface SensitiveMediaFlag {
+  id: string;
+  isSensitive?: boolean;
+}
 
 /** Confirmed classification invalidates old reads before any return navigation. */
 export function protectSensitiveMediaProjections(
   client: QueryClient,
   spaceId: string,
-  attachments: readonly { id: string; isSensitive?: boolean }[],
+  attachments: readonly SensitiveMediaFlag[],
+  {
+    previous = [],
+    parent,
+  }: {
+    /** The media before this save; a photo that was already sensitive is protected. */
+    previous?: readonly SensitiveMediaFlag[];
+    /** The saved entry whose stored photos are dropped on a new mark. */
+    parent?: {
+      /** Any API client of the session, to address its media store. */
+      apiClient: object;
+      type: 'HEART_MOMENT' | 'MEMORY';
+      id: string;
+    };
+  } = {},
 ): void {
+  const alreadySensitive = new Set(
+    previous.filter((item) => item.isSensitive === true).map((item) => item.id),
+  );
+  // Only a new mark needs protection. Every saved photo reports a flag, and
+  // a save without a new mark must not revoke stored reads or photos.
   const flags = new Map(
     attachments
-      .filter((item) => typeof item.isSensitive === 'boolean')
-      .map((item) => [item.id, item.isSensitive]),
+      .filter(
+        (item) => item.isSensitive === true && !alreadySensitive.has(item.id),
+      )
+      .map((item) => [item.id, true]),
   );
   if (!flags.size) return;
   const scope = {
@@ -44,5 +74,18 @@ export function protectSensitiveMediaProjections(
   client.setQueriesData(scope, update);
   // Revoke pending disk writes as well as old persisted projections. A failed
   // disk clear cannot revive the invalidated generation after reload.
-  clearProductReadCacheInBackground();
+  revokePersistedProductReadsInBackground();
+  // Drop the stored and decoded photos of this entry only: they reload with
+  // the new mark. Every other photo of the app stays on screen.
+  if (parent) {
+    try {
+      evictAuthorizedMedia(captureMediaCacheLease(parent.apiClient, spaceId), [
+        'attachment',
+        parent.type,
+        parent.id,
+      ]);
+    } catch {
+      // A session that is no longer current has no media left to protect.
+    }
+  }
 }

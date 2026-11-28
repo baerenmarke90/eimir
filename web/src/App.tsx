@@ -177,6 +177,7 @@ import { useVideoTransferNavigation } from './client/useVideoTransferNavigation'
 import { VideoProcessingContext } from './client/video';
 import { AudioProcessingContext } from './client/voiceNotes';
 import { WirDesignProvider } from './client/wirDesign';
+import { WirReelStyleProvider } from './client/wirReelStyleContext';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { AppShell } from './components/AppShell';
 import { Brand } from './components/Brand';
@@ -1621,14 +1622,23 @@ function AuthenticatedApp({
             accountId={account.id}
             spaceId={spaceId}
           >
-            <OnceMessagesProvider
-              apiBaseUrl={apiBaseUrl}
-              accessToken={tokens.accessToken}
+            <WirReelStyleProvider
+              key={`wir-reel-style:${apiBaseUrl}:${account.id}:${spaceId}`}
+              api={appearanceApi}
+              entitlementsApi={entitlementApi}
+              instance={apiBaseUrl}
               accountId={account.id}
               spaceId={spaceId}
             >
-              {relationshipContent}
-            </OnceMessagesProvider>
+              <OnceMessagesProvider
+                apiBaseUrl={apiBaseUrl}
+                accessToken={tokens.accessToken}
+                accountId={account.id}
+                spaceId={spaceId}
+              >
+                {relationshipContent}
+              </OnceMessagesProvider>
+            </WirReelStyleProvider>
           </MemoryWorldProvider>
           <VoiceShareIngress
             key={`${apiBaseUrl}:${account.id}:${spaceId}`}

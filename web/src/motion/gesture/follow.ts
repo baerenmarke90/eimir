@@ -111,22 +111,34 @@ export function decideRelease(input: ReleaseInput): 'commit' | 'cancel' {
   return 'cancel';
 }
 
+/** The side a gesture committed to: +1 toward larger coordinates, -1 toward smaller. */
+export type CommitSide = 1 | -1;
+
 export interface GestureFollowConfig {
   axis: GestureAxis;
-  /** +1 when larger coordinates commit (sheet down), -1 otherwise. */
-  direction: 1 | -1;
+  /**
+   * +1 when larger coordinates commit (sheet down), -1 otherwise. `'both'`
+   * commits on either side (a card swiped left or right, #2371): the travel
+   * is the distance from rest, and the side is where the element is.
+   */
+  direction: CommitSide | 'both';
   /** The element's size along the axis, for the commit distance. */
   size: () => number;
   threshold: CommitThreshold | CommitPreset;
   /** Offsets that follow 1:1 (beyond, rubber-banding). Default `[min(0, d·∞), …]`. */
   range: () => { min: number; max: number };
   /** Where a committed gesture settles (for example the sheet height). */
-  committedOffset: () => number;
+  committedOffset: (side: CommitSide) => number;
   /** Decide whether a pointer may start this gesture (nested owners, buttons). */
   canStart?: (event: PointerEvent) => boolean;
   /** Runs at release, before the settle (M10). */
-  onCommit?: () => void;
+  onCommit?: (side: CommitSide) => void;
   onCancel?: () => void;
+  /**
+   * The committed settle reached its target (at once with reduced motion);
+   * not called when the settle is interrupted by a new grab or `cancel()`.
+   */
+  onSettled?: (side: CommitSide) => void;
   /** Ownership claimed: the person is dragging (budget, M15). */
   onDragStart?: () => void;
   onDragEnd?: () => void;
@@ -139,6 +151,11 @@ export interface GestureFollow {
   readonly offset: number;
   /** Cancels a running gesture and settles to rest at once. */
   cancel(): void;
+  /**
+   * Commits without a gesture (a visible button, a key): runs `onCommit`
+   * and settles from rest to the committed offset, as a release would.
+   */
+  commit(side?: CommitSide): void;
   dispose(): void;
 }
 
@@ -182,7 +199,10 @@ export function attachGestureFollow(
     element.style.transform = translate(config.axis, value);
   };
 
-  const travelOf = (value: number) => (value - 0) * config.direction;
+  /** The side an offset commits to; fixed unless the gesture is two-sided. */
+  const sideOf = (value: number): CommitSide =>
+    config.direction === 'both' ? (value < 0 ? -1 : 1) : config.direction;
+  const travelOf = (value: number) => value * sideOf(value);
 
   const flush = () => {
     frame = 0;
@@ -207,11 +227,17 @@ export function attachGestureFollow(
     if (ownership === 'claim') config.onDragEnd?.();
   };
 
-  const settleTo = (target: number, velocity: number, clamp: boolean) => {
+  const settleTo = (
+    target: number,
+    velocity: number,
+    clamp: boolean,
+    committed?: CommitSide,
+  ) => {
     const from = offset;
     offset = target;
     if (prefersReducedMotion() || Math.abs(from - target) < 0.5) {
       place(target);
+      if (committed) config.onSettled?.(committed);
       return;
     }
     const frames = sampleSpring(from, target, velocity, undefined, clamp);
@@ -227,9 +253,16 @@ export function attachGestureFollow(
       },
     );
     const running = settle;
-    running?.finished.then(
+    if (!running) {
+      // Without a running settle (no Web Animations) the target is final.
+      if (committed) config.onSettled?.(committed);
+      return;
+    }
+    running.finished.then(
       () => {
-        if (settle === running) settle = null;
+        if (settle !== running) return;
+        settle = null;
+        if (committed) config.onSettled?.(committed);
       },
       () => {},
     );
@@ -300,6 +333,7 @@ export function attachGestureFollow(
     endDrag();
     ownership = 'pending';
     const cancelled = event.type === 'pointercancel';
+    const side = sideOf(offset);
     // The release is the last sample: its time and position (Motion
     // Contract 4.6; #2073 velocity tuning).
     const finger = cancelled
@@ -307,7 +341,7 @@ export function attachGestureFollow(
       : tracker.velocity({
           t: event.timeStamp,
           p: config.axis === 'x' ? event.clientX : event.clientY,
-        }) * config.direction;
+        }) * side;
     // Past the edge the element moved slower than the finger.
     const { min, max } = config.range();
     const velocity =
@@ -322,18 +356,19 @@ export function attachGestureFollow(
         });
     if (decision === 'commit') {
       haptic('commit');
-      config.onCommit?.();
+      config.onCommit?.(side);
       settleTo(
-        config.committedOffset(),
-        velocity * config.direction,
+        config.committedOffset(side),
+        velocity * side,
         config.clampCommit ?? true,
+        side,
       );
     } else {
       config.onCancel?.();
       if (cancelled) {
         offset = 0;
         place(0);
-      } else settleTo(0, velocity * config.direction, false);
+      } else settleTo(0, velocity * side, false);
     }
   };
 
@@ -365,6 +400,20 @@ export function attachGestureFollow(
       ownership = 'pending';
       offset = 0;
       place(0);
+    },
+    commit(requested) {
+      if (pointer !== null) return;
+      stopSettle();
+      const side =
+        requested ?? (config.direction === 'both' ? 1 : config.direction);
+      haptic('commit');
+      config.onCommit?.(side);
+      settleTo(
+        config.committedOffset(side),
+        0,
+        config.clampCommit ?? true,
+        side,
+      );
     },
     dispose() {
       if (frame && typeof cancelAnimationFrame === 'function')

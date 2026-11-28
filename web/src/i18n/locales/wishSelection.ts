@@ -55,6 +55,16 @@ const wishSelection = {
   favoriteCount_one: '{{count}} Favorit',
   favoriteCount_other: '{{count}} Favoriten',
   allFavorites: 'Alles Favorit? Je weniger, desto klarer wird euer Treffer.',
+  // #2371: the favourite step as a card deck, before the summary list.
+  deckHint:
+    'Wisch nach rechts, wenn du Lust drauf hast, nach links, wenn eher nicht.',
+  deckCard: 'Karte',
+  deckProgress: '{{current}} von {{total}}',
+  deckLike: 'Lust drauf',
+  deckSkip: 'Eher nicht',
+  deckBack: 'Vorige Karte',
+  deckLiked: '{{title}}: Lust drauf',
+  deckSkipped: '{{title}}: eher nicht',
   share: 'Favoriten abschicken',
   shareNone: 'Ohne Favorit abschicken',
   changeLater: 'Du kannst das später noch ändern.',

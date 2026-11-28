@@ -10,6 +10,7 @@ import privateArea from '../../src/i18n/locales/privateArea';
 import profileIdentity from '../../src/i18n/locales/profileIdentity';
 import profiles from '../../src/i18n/locales/profiles';
 import quietHints from '../../src/i18n/locales/quietHints';
+import germanFixture from '../fixtures/locales/de';
 import {
   expectFloatingAddAction,
   expectLabeledAddAction,
@@ -21,7 +22,6 @@ import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillNoWishSelectionRound } from '../support/productContext';
 import { expectVisibleFieldBoundary } from '../support/renderedContrast';
-import germanFixture from '../fixtures/locales/de';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -1151,7 +1151,7 @@ for (const view of [
     // Adding a preference starts from the profile menu at the top right.
     await page.getByRole('button', { name: profiles.menu }).click();
     await page
-      .getByRole('button', { name: profiles.addPreference, exact: false })
+      .getByRole('button', { name: profiles.addPreferenceShort, exact: false })
       .click();
     // Shared SELF_PROFILE preferences must never inherit the owner-only promise.
     await expect(dialog).not.toHaveAttribute('aria-describedby');

@@ -36,9 +36,17 @@ const PRIVATE_ITEM_ID = '66666666-6666-4666-8666-666666666666';
 const TEST_NOW = '2026-09-01T10:00:00Z';
 
 const privateCreateCases = [
-  { kind: 'notes', copy: privateArea.notes },
-  { kind: 'gift-ideas', copy: privateArea.gifts },
-  { kind: 'collections', copy: privateArea.collections },
+  { kind: 'notes', copy: privateArea.notes, titleLabel: de.common.title },
+  {
+    kind: 'gift-ideas',
+    copy: privateArea.gifts,
+    titleLabel: privateArea.gifts.titleLabel,
+  },
+  {
+    kind: 'collections',
+    copy: privateArea.collections,
+    titleLabel: de.common.title,
+  },
 ] as const;
 
 /**
@@ -2097,7 +2105,7 @@ for (const view of [
         new RegExp(`/more/private/${definition.kind}/new$`),
       );
       await expect(page.locator('[data-floating-create]')).toHaveCount(0);
-      const titleInput = page.getByLabel(definition.copy.titleLabel, {
+      const titleInput = page.getByLabel(definition.titleLabel, {
         exact: true,
       });
       await expectVisibleFieldBoundary(titleInput);
@@ -2230,7 +2238,7 @@ for (const view of privateEditorViews) {
         .getByRole('link', { name: definition.copy.add, exact: true })
         .click();
       await page
-        .getByLabel(definition.copy.titleLabel, { exact: true })
+        .getByLabel(definition.titleLabel, { exact: true })
         .fill('Previous task private title');
       await page
         .getByRole('button', { name: de.common.save, exact: true })
@@ -2293,7 +2301,7 @@ for (const view of privateEditorViews) {
         }),
       ).toBeVisible();
       await expect(
-        page.getByLabel(definition.copy.titleLabel, { exact: true }),
+        page.getByLabel(definition.titleLabel, { exact: true }),
       ).toHaveValue('');
       await expectNoHorizontalOverflow(page);
       await expectNoWcagViolations(page);

@@ -544,7 +544,7 @@ test.describe('Privacy policy in the English UI', () => {
     await expect(page.getByText(en.legal.draftBadge)).toBeVisible();
     await expect(page).toHaveTitle(`${en.legal.privacySheetTitle} · eimir.`);
     await expect(
-      page.getByRole('button', { name: en.taskBoundary.back }),
+      page.getByRole('button', { name: en.common.back }),
     ).toBeVisible();
     await expectNoWcagViolations(page);
   });

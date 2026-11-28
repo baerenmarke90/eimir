@@ -7,6 +7,7 @@ rechecks canonical authorization, automatic origin and untouched version.
 from __future__ import annotations
 
 from datetime import timedelta
+from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
@@ -386,7 +387,11 @@ def enrich_private_location(session: Session, payload: dict[str, Any]) -> None:
     assert location.longitude is not None
     try:
         candidate = PhotonReverseGeocoder(origin).reverse(
-            GeoPoint(latitude=location.latitude, longitude=location.longitude),
+            # The protected location stores floats; str() keeps their exact digits.
+            GeoPoint(
+                latitude=Decimal(str(location.latitude)),
+                longitude=Decimal(str(location.longitude)),
+            ),
             account.locale,
         )
     except GeocodingUnavailableError:

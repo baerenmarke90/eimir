@@ -1,0 +1,34 @@
+/*
+ * #2370: the structure of a rolling count. Each digit keeps its own glyph in
+ * the flow (hidden) for width and baseline, and clips a strip of 0 to 9 that
+ * rests on its value. `clip-path` clips without moving the baseline, which
+ * `overflow` on an inline-block would. The owner animates the strip.
+ */
+.rolling-count {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.rolling-count-digit {
+  position: relative;
+  display: inline-block;
+  clip-path: inset(0);
+}
+
+.rolling-count-rest {
+  visibility: hidden;
+}
+
+.rolling-count-strip {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  translate: 0 calc(var(--rolling-digit, 0) * -1lh);
+}
+
+.rolling-count-strip > * {
+  block-size: 1lh;
+}

@@ -125,49 +125,47 @@
 }
 
 /*
- * #2372: the handwritten greeting above an opened message. Each stroke has
+ * #2372: the opened message written by hand. Each stroke has
  * `pathLength="1"` and draws in with the catalogue's Enter `draw` keyframes
- * over its share of `--duration-handwriting`, after the strokes before it,
- * at one steady pen speed (`--easing-playback`). Only `playing` animates, so
- * a return or remount shows the finished greeting.
+ * over its share of the writing time (`--handwriting-total`, from the pen
+ * speed and capped at `--duration-handwriting`), after the strokes before
+ * it, at one steady pen speed (`--easing-playback`). Only `playing`
+ * animates, so a return or remount shows the finished words.
  */
-.once-greeting {
-  margin: 0;
+.once-handwriting {
+  min-width: 0;
   color: var(--color-private);
 }
 
-.once-greeting-strokes {
+.once-handwriting-strokes {
   display: block;
-  inline-size: min(10rem, 55%);
+  max-inline-size: 100%;
   block-size: auto;
   overflow: visible;
 }
 
-.once-greeting-strokes path {
+.once-handwriting-strokes[data-phase="playing"] {
+  cursor: pointer;
+}
+
+.once-handwriting-strokes path {
   fill: none;
   stroke: currentColor;
-  stroke-width: 2.5px;
+  stroke-width: 2.25px;
   stroke-linecap: round;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
 }
 
-.once-greeting-strokes[data-phase="before"] path {
+.once-handwriting-strokes[data-phase="before"] path {
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
 }
 
-.once-greeting-strokes[data-phase="playing"] path {
+.once-handwriting-strokes[data-phase="playing"] path {
   animation: eimir-motion-enter-draw
-    calc(var(--duration-handwriting) * var(--stroke-share))
-    var(--easing-playback)
-    calc(var(--duration-handwriting) * var(--stroke-start)) both;
-}
-
-.once-greeting-text {
-  margin: 0;
-  color: var(--color-private);
-  font: var(--font-personal-heading);
+    calc(var(--handwriting-total) * var(--stroke-share)) var(--easing-playback)
+    calc(var(--handwriting-total) * var(--stroke-start)) both;
 }
 
 .once-page button {

@@ -135,7 +135,7 @@
   --motion-stagger-max-items: 4;
   --duration-gesture-sequence: 1800ms;
   --duration-connection-draw: 700ms;
-  --duration-handwriting: 1200ms;
+  --duration-handwriting: 3600ms;
   --duration-connection-beat: 450ms;
   --duration-connection-travel: 3200ms;
   --duration-connection-travel-far: 6000ms;

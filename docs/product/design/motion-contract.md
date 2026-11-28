@@ -423,7 +423,7 @@ A rare, multi-beat emotional choreography: a received partner gesture (`PartnerG
 
 | Aspect | Rule |
 | --- | --- |
-| Approval | each Moment needs an explicit Product Owner decision, recorded in the Motion Guideline (today: #455 gesture receipt, the connected moment, the shared achievement, the important-day Moment #2072, the once-message greeting #2372) |
+| Approval | each Moment needs an explicit Product Owner decision, recorded in the Motion Guideline (today: #455 gesture receipt, the connected moment, the shared achievement, the important-day Moment #2072, the handwritten once message #2372) |
 | Duration | beats of `--duration-gesture-moment`, the whole of at most `--duration-gesture-sequence` |
 | Easing | `--easing-enter` for arrival, `--easing-settle` only for an approved landing |
 | Trigger | a confirmed result, a received event, or an approved occasion of the day (the important-day Moment); never pending state, a refetch or a cache update |
@@ -442,13 +442,16 @@ A rare, multi-beat emotional choreography: a received partner gesture (`PartnerG
 - **The keyframes are in the layer.** The receipt's choreography and the notification glyph beats are in `motion/moments.css`, which loads only with its owners. The connected moment and the shared achievement use the shared Enter and surface keyframes.
 - **The shared achievement is a single arrival, not a multi-beat Moment.** It is Enter `surface` with `surface-exit`, released by its presence.
 - **The receipt's ripple is now a soft filled halo instead of a scaled 2 px ring (M7).** The transfer-done glyph fades instead of wiping with `clip-path` (M6).
-- **Once messages** reveal with Enter `shift` (`OnceMessages.css`). Since #2372 (Product Owner, 2026-11-28), a handwritten greeting (`onceMessages.greeting`, English "for you") writes itself above the opened message as a Moment (`HandwrittenGreeting.tsx`, identity `once.greeting`, the message as its item):
-  - its strokes draw in pen order with the Enter `draw` keyframes, each over its share of `--duration-handwriting` (1200 ms) at one steady speed (`--easing-playback`);
-  - the message is readable from the first frame (M13), and the greeting never delays or hides it;
-  - it plays once per message, and a return or remount shows it finished;
+- **Once messages** reveal with Enter `shift` (`OnceMessages.css`). Since #2372 (Product Owner, 2026-11-28), the opened message's words write themselves by hand as a Moment (`HandwrittenMessage.tsx`, identity `once.handwriting`, the message as its item):
+  - the words are laid out at runtime in the single-stroke font EMS Allure (`handwritingLayout.ts`, glyphs in `handwritingFont.ts`, SIL OFL 1.1), wrapped to the reading width and scaled with the reader's text size;
+  - each stroke draws in pen order with the Enter `draw` keyframes at one steady pen speed (`motion.handwriting.penSpeed`, `--easing-playback`), and the writing time is capped at `--duration-handwriting` (3600 ms), so a longer message writes faster;
+  - a tap shows the finished words at once;
+  - it plays once per message, and a return, a remount or a resize while writing shows the finished words;
   - with reduced motion, a hidden page or another emphasized motion it shows its final state;
-  - there is no haptic, because opening is a quiet, private act;
-  - the privacy and screenshot rules are unchanged, and the greeting appears only inside the protected reading view.
+  - there is no haptic;
+  - **Recorded exception to M13 (Product Owner, 2026-11-28):** the words appear as they are written instead of being readable from the first beat. Assistive technology gets them at once as text, the tap and reduced motion show them finished, and the writing time is bounded;
+  - text the font cannot write (emoji, non-Latin scripts, more than 280 characters) keeps the normal type;
+  - the privacy and screenshot rules are unchanged, and the writing happens only inside the protected reading view.
 
 **Approved instance: the important-day Moment on Wir** (Product Owner, 2026-11-20). The full specification is in [#2072](https://github.com/baerenmarke90/eimir/issues/2072); the rules below are its motion contract.
 
@@ -1205,7 +1208,7 @@ In addition to Motion Guideline section 10, a pull request with new or changed m
 
 | Version | Date | Change |
 | --- | --- | --- |
-| 1.24 | 2026-11-28 | Once-message greeting Moment (#2372, Product Owner 2026-11-28; 4.7) and the token `motion.duration.handwriting`. |
+| 1.24 | 2026-11-28 | Handwritten once message Moment (#2372, Product Owner 2026-11-28; 4.7) with a recorded M13 exception, the tokens `motion.duration.handwriting` (writing cap) and `motion.handwriting.penSpeed`. |
 | 1.22 | 2026-11-28 | Important-day Moment (#2370, Product Owner 2026-11-28): round days together become an occasion, and the days-together count rolls into place on the anniversary and on round days (4.7, keyframes `eimir-motion-value-roll`). |
 | 1.21 | 2026-11-26 | Fluid tab switching: hidden kept tabs skip rendering with `content-visibility: hidden` instead of `display: none`, so their CSS animations never restart and the per-reveal `getAnimations()` settle is gone (M4). While the pages slide sideways, the bar and the Wir marks pause their backdrop blur (Product Owner, 2026-11-26). The root-tab entrance never plays in a tab that a swipe reveals or that is built in the background, and a segment panel's fade no longer restarts when the entrance ends (the cold-start blink on Planen). Enter `module`: one entrance for every module on every page, with the tokens `motion.duration.moduleEnter` and `motion.module.rise` (Product Owner, 2026-11-26). |
 | 1.20 | 2026-11-26 | Pro showcase (#2310): four decorative Ambient scenes on the Pro paywall (4.5). Their keyframes and roles are in `motion/pro-showcase.css`; they run finite cycles, pause in place while they are not current or not seen, and are absent with reduced motion (M8). |

@@ -1,8 +1,6 @@
 const onceMessages = {
   title: 'Nur für dich',
   from: 'Von {{name}}',
-  // #2372: the handwritten greeting above an opened message.
-  greeting: 'für dich',
   for: 'Für {{name}}',
   singleView: 'Einmal ansehen',
   message: 'Deine Nachricht',

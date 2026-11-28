@@ -3,8 +3,8 @@
 Captured with Playwright Chromium from `web/e2e/tests/shared-wish-selection.spec.ts`, run with `SCREENSHOT_EXPORT_DIR`. The API is mocked.
 
 - `wish-selection-deck-<width>-<theme>[-large-reduced].png`: the first card of a fresh choice (two candidates) at 360 Light, 390 Light and Dark, 430 Light, 1280 Dark (Expanded), and 320 Light with 200 % text and reduced motion. With large text the two buttons stack, and long titles hyphenate.
-- `wish-selection-favorites-<width>-<theme>[-large-reduced].png` and `wish-selection-private-390-light.png`: the summary list after the deck. The first candidate is a favourite, the second was left out, and "Favoriten abschicken" stays the single primary action.
-- `wish-selection-deck-swipe-390-light.gif`: a real pointer swipe right on the first card, then "Eher nicht" on the second, and the hand-over to the list. It plays at normal speed first, then 4× slower.
+- `wish-selection-favorites-<width>-<theme>[-large-reduced].png` and `wish-selection-private-390-light.png`: the summary list after the deck. The first candidate is a favourite, the second was left out, and the send-favourites button stays the single primary action.
+- `wish-selection-deck-swipe-390-light.gif`: a real pointer swipe right on the first card, then the skip button on the second, and the hand-over to the list. It plays at normal speed first, then 4× slower.
 
 ## Behaviour checked
 
@@ -16,8 +16,8 @@ Captured with Playwright Chromium from `web/e2e/tests/shared-wish-selection.spec
 - **Pro date ideas** (`wish-selection-date-ideas.spec.ts`): the deck shows the Wish first, then the ideas in round order; the summary shows the chosen ones.
 - **Each width and theme** (`composing and choosing at …`): no horizontal overflow and no axe (WCAG 2.2 AA) violation on the deck, and the same checks on the summary list.
 - **Unit level** (`WishSelectionPage.test.tsx`):
-  - progress in the card's name ("1 von 3"), and only the top card exposed;
-  - "Lust drauf", Arrow Left, "Vorige Karte" and the hand-over to the list;
+  - progress in the card's accessible name (card 1 of 3), and only the top card exposed;
+  - the favourite button, Arrow Left, the previous-card button and the hand-over to the list;
   - the decision announcement;
   - the sent ids;
   - saved favourites open the list directly.

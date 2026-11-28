@@ -403,7 +403,7 @@ Motion that follows the finger (or mouse, pen, scroll) instead of a clock. On `m
 - `onSettled(side)` reports the end of a committed settle; it is not called when a grab or `cancel()` interrupts the settle;
 - `commit(side)` runs the same commit and settle without a gesture, for the visible buttons and the arrow keys.
 
-Swipe right makes a candidate a private favourite, and swipe left leaves it out. The decision is recorded at release (M10). The decided card settles off screen, and the next card rises from the stack (`translate` and `opacity`, `--duration-transition`). The stage clips only while a card leaves. After the last card, the summary list takes over after `--duration-transition`. With reduced motion nothing travels. The non-gesture alternatives are the buttons "Eher nicht" and "Lust drauf", Arrow Left and Arrow Right on the focused card, and "Vorige Karte".
+Swipe right makes a candidate a private favourite, and swipe left leaves it out. The decision is recorded at release (M10). The decided card settles off screen, and the next card rises from the stack (`translate` and `opacity`, `--duration-transition`). The stage clips only while a card leaves. After the last card, the summary list takes over after `--duration-transition`. With reduced motion nothing travels. The non-gesture alternatives are the skip and favourite buttons, Arrow Left and Arrow Right on the focused card, and the previous-card button.
 
 | Gesture | Owner | Release handoff | Interruption | Haptics | Non-gesture alternative |
 | --- | --- | --- | --- | --- | --- |

@@ -10,7 +10,9 @@ entered.
 
 **No deduplication.** Every create request produces a new place, even with
 the same name and coordinates (M3-D07). Merging two places would be an
-unsolicited data mutation and one that cannot be reversed reliably.
+unsolicited data mutation and one that cannot be reversed reliably. The one
+exception is the automatic photo Place, which reuses a nearby Place instead of
+calling this function (see ``eimir.attachments.photo_locations.bind``).
 
 The canonical lock order in the M3 core begins with `Place`. A place is
 therefore always locked before any Plan or Chapter that references it.

@@ -14,8 +14,19 @@ import type { DashboardItem } from '../api/generated/models/DashboardItem';
 import type { WirNotice } from '../api/generated/models/WirNotice';
 import { notificationUnreadCountQueryKey } from '../client/notificationQueries';
 import { MORE_NOTIFICATIONS_ROUTE } from '../client/routes';
-import { i18n } from '../i18n';
+import { i18n, resolvedLocale } from '../i18n';
 import { WirNewForYouModule } from './WirNewForYouModule';
+
+// The reel style comes from the personal appearance (#2345); `null` is circles.
+const reelStyle = vi.hoisted(() => ({
+  value: null as null | {
+    style: 'circles' | 'tiles' | 'chips';
+    pending: boolean;
+  },
+}));
+vi.mock('../client/wirReelStyleContext', () => ({
+  useWirReelStyleId: () => reelStyle.value,
+}));
 
 const SPACE = 'space';
 const ME = 'me';
@@ -99,6 +110,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  reelStyle.value = null;
 });
 
 describe('WirNewForYouModule (#2345 B)', () => {
@@ -235,5 +247,69 @@ describe('WirNewForYouModule (#2345 B)', () => {
     renderModule({ items });
     const again = await screen.findByText(i18n.t('wirNotices.titles.heart'));
     expect(again.closest('li')?.className).not.toContain('wir-card-arrive');
+  });
+
+  it('shows larger tiles with up to three list entries in the tiles style (#2345)', async () => {
+    reelStyle.value = { style: 'tiles', pending: false };
+    const { markNotificationRead } = renderModule({
+      items: [
+        notice({
+          id: 'n-list',
+          kind: 'COLLECTION_SENT',
+          targetType: 'COLLECTION',
+          targetId: 'list-1',
+          target: {
+            targetType: 'COLLECTION',
+            targetId: 'list-1',
+            title: 'Groceries',
+          },
+          preview: { items: ['Strawberries', 'Baguette'], moreItems: 5 },
+        }),
+        notice({
+          id: 'n-date',
+          kind: 'WISH_DATE_PROPOSED',
+          targetType: 'WISH',
+          targetId: 'wish-1',
+          target: { targetType: 'WISH', targetId: 'wish-1', title: 'Picnic' },
+          appointmentStart: new Date('2026-11-29T10:00:00Z'),
+        }),
+      ],
+    });
+    const section = await screen.findByRole('region', {
+      name: i18n.t('wirNotices.title'),
+    });
+    await screen.findByText('Groceries');
+    expect(section.querySelector('ul')?.className).toContain('wir-reel-tiles');
+    const list = screen.getByText('Groceries').closest('a');
+    expect(list?.className).toContain('wir-ntile');
+    expect(list?.textContent).toContain('Strawberries');
+    expect(list?.textContent).toContain('Baguette');
+    expect(list?.textContent).toContain(
+      i18n.t('wirNotices.lines.moreItems', { count: 5 }),
+    );
+    const date = screen.getByText('Picnic').closest('a');
+    expect(date?.textContent).toContain(
+      new Intl.DateTimeFormat(resolvedLocale(), { day: 'numeric' }).format(
+        new Date('2026-11-29T10:00:00Z'),
+      ),
+    );
+    if (!list) throw new Error('missing tile');
+    fireEvent.click(list);
+    await waitFor(() =>
+      expect(markNotificationRead).toHaveBeenCalledWith({
+        spaceId: SPACE,
+        notificationId: 'n-list',
+      }),
+    );
+  });
+
+  it('renders nothing while the reel style is not known yet', async () => {
+    reelStyle.value = { style: 'circles', pending: true };
+    const { container, getWirNotices } = renderModule({
+      items: [notice({ id: 'n-heart', kind: 'HEART_HUNT_FOUND' })],
+    });
+    await waitFor(() => expect(getWirNotices).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(container.innerHTML).toBe('');
   });
 });

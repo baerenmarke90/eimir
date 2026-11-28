@@ -111,6 +111,8 @@ If a step fails and its rollback is not trivial, stop and use section 7.
   ```
 
   Wait until no `Publish Immutable Release` or nightly run is in progress (do not cancel another contributor's run).
+  Then, before C3, the Coordinator integrates the snapshot revision into the Android release line (section 6.4,
+  step 1), so that the bundle of C3 holds the release-line revision that C6 exports.
 - Verify: `gh run list --repo O/eimir --status in_progress` is empty; `git ls-remote origin refs/heads/main` returns the
   snapshot revision chosen at G4.
 - Rollback: set the variable back to `true`.
@@ -205,11 +207,14 @@ content has been checked. A wrong export pushed to a private repository is not a
   git push -u origin main
   ```
 
-  Commit as the PO's identity. Do not push any other branch or tag.
+  Commit with the neutral snapshot identity of decision D6 in the export tool's README (its `fresh-history` command),
+  never a personal one. Do not push any other branch or tag, except the Android release line of section 6.4
+  (decision D7): after `main`, each repository gets the branch `release/android-test.14-20261026` made there.
 - Verify: the export gates passed for this exact revision; `git ls-tree -r --name-only HEAD | wc -l` equals the
   manifest count; `git log --oneline | wc -l` is 1; gitleaks over the new repository is clean
   (`docker run --rm -v "$PWD:/repo" -w /repo zricethezav/gitleaks:v8.24.3 detect --source . --redact --exit-code 1`);
-  the Core tree has no `backend/pro/` and no Pro package data (date-idea catalog and images, `daily_sayings.json`).
+  the Core tree has no `backend/pro/` and no Pro package data (date-idea catalog and images, `daily_sayings.json`);
+  the release-line checks of section 6.4, step 4, pass.
 - Rollback: while `eimir-core` is still private, delete and recreate it, or force-push a corrected snapshot (allowed
   only before the ruleset of C7 exists and before C8).
 
@@ -394,10 +399,13 @@ repository is private: every installed test APK reads the anonymous feed of `O/e
 404, the updater reports that no update was found and the app keeps running, but it never updates again.
 
 - Action, in this order:
-  1. Before D0 (D-5 to D-2, implementation session, PO merges): a pull request on the release branch changes the
-     update location to the decision of section 8, item D1 (the releases of the public `eimir-core`) in
-     `UpdatePolicy.REPOSITORY` (the feed URL, release URLs and feed tag links derive from it); the allowed host list
-     stays (the hosts are the same for any public GitHub repository). Two repositories must not be confused here: the
+  1. Before D0 (D-5 to D-2, implementation session, PO merges): a pull request on the release branch
+     ([#2295](https://github.com/baerenmarke90/eimir/pull/2295)) makes the update location a single tested constant,
+     `UpdatePolicy.REPOSITORY` (the feed URL, release URLs and feed tag links derive from it), and makes the publisher
+     and asset repositories parameters; every default stays `O/eimir`, so merging it publishes nothing while the plan
+     names a published release. The allowed host list stays (the hosts are the same for any public GitHub
+     repository). The bridge of step 2 then changes only that constant to the decision of section 8, item D1 (the
+     releases of the public `eimir-core`). Two repositories must not be confused here: the
      **update location** baked into the APK says where that APK looks for the *next* release, while the **asset
      repository** is where the release itself is published, and the marker URL written by
      `scripts/android_test_release.py` and checked by the release plan checker must name the asset repository,
@@ -405,17 +413,23 @@ repository is private: every installed test APK reads the anonymous feed of `O/e
      `O/eimir-core` but asset repository `O/eimir`; from `<N+1>` both are `O/eimir-core`. Both are parameters of the
      release workflow and the scripts, defaulting to `O/eimir`.
   2. D-1 (PO asks for it): the **bridge** test release `android-test-v0.2.0-test.<N>` is published from the old
-     repository with the [Android test release procedure](../.claude/skills/android-test-release/SKILL.md). Its
-     updater already reads the new location. The PO installs it on both phones from the in-app update prompt.
-  3. D0 (after C15): the publishing jobs run in `eimir-pro` (section 6.1); test release `<N+1>` is signed there with
-     the same keystore on a GitHub-hosted runner and published to the new location. Open point (section 8, item D7):
-     the publisher creates the release tag on the APK source commit (`--target` and the checker's
-     `target_commitish`), and GitHub can only tag a commit that exists in the asset repository, so a source commit
-     that exists only in `eimir-pro` cannot be published to `eimir-core` as is. The publisher also downloads the
-     predecessor release (`<N>`, the bridge) from the asset repository to verify its signer and package contract;
-     the bridge lives in `O/eimir`, which is private after C11, so `<N+1>` needs the bridge's assets in reach (for
-     example the bridge's verified assets attached to a release in `eimir-core`, or a predecessor repository
-     parameter read before C11). Both are part of item D7.
+     repository with the [Android test release procedure](../.claude/skills/android-test-release/SKILL.md). Its one
+     extra commit sets `UpdatePolicy.REPOSITORY = "O/eimir-core"`; the repository variables
+     `EIMIR_ANDROID_TEST_PUBLISHER_REPOSITORY` and `EIMIR_ANDROID_TEST_ASSET_REPOSITORY` stay unset, so the release,
+     its tag and the marker URL are still in `O/eimir`, where every installed predecessor looks. Its updater already
+     reads the new location. The PO installs it on both phones from the in-app update prompt.
+  3. D0 (after C6 and C15): decided by the PO on 2026-11-25 (section 8, item D7, option (a)): the release line with
+     the sideload updater and the APK source lives in `eimir-core` as the branch
+     `release/android-test.14-20261026`, made in C6 as described in section 6.4. The Android publishing jobs, the
+     release plan and the release notes live in `eimir-pro` on a branch of the same name. Test release `<N+1>` is
+     planned on a commit of the `eimir-core` release branch, signed in `eimir-pro` with the same keystore on a
+     GitHub-hosted runner, and published to `eimir-core` with update location and asset repository `O/eimir-core`
+     (`EIMIR_ANDROID_TEST_PUBLISHER_REPOSITORY=O/eimir-pro`, `EIMIR_ANDROID_TEST_ASSET_REPOSITORY=O/eimir-core`, and
+     the environment secret `EIMIR_ANDROID_TEST_RELEASE_TOKEN` of C16). The tag then targets the exact APK source as
+     today, so the "tag is the APK source" checks of the publisher and of the release plan checker stay unchanged.
+     Still open (section 6.4, step 6): the publisher downloads the predecessor release (`<N>`, the bridge) from the
+     asset repository to verify its signer and package contract, but the bridge lives in `O/eimir`, which is private
+     after C11.
 - Verify: `apksigner verify --print-certs` of the bridge APK and of `<N+1>` prints the same certificate SHA-256 as
   `test.103`; the new release has the four assets `eimir-android-test-v0.2.0-test.<N+1>.apk`,
   `eimir-test-update.json`, `native-acceptance.md` and `SHA256SUMS`; an anonymous request to the new feed returns 200;
@@ -490,8 +504,8 @@ drafts, merged on November 25 while this runbook was written).
 | [#2047](https://github.com/baerenmarke90/eimir/pull/2047) Daily quote from an operator-run service | ready, backend and Web | **re-create from patch**, split: Core client and contract into `eimir-core`, the quotes service into `eimir-pro`; or close | It changes `backend/src/eimir/quotes/`, which Phase 2 moved to `eimir_pro`; the patch no longer applies as is. |
 | [#1901](https://github.com/baerenmarke90/eimir/pull/1901) Refresh the editorial Date Ideas catalog | ready, Pro content | **re-create from patch** in `eimir-pro` (paths mapped to `backend/pro/src/eimir_pro/date_ideas/`) | Editorial Pro content; after the cut-over it must not enter the public Core. |
 | [#1596](https://github.com/baerenmarke90/eimir/pull/1596) Hetzner S3 staging preflight (docs) | ready, docs | **re-create from patch** in `eimir-core`, or merge before the freeze if still accurate | Core operations documentation, stale since 2026-11-02. |
-| [#1443](https://github.com/baerenmarke90/eimir/pull/1443) Standing Android release pull request | draft, base `release/android-test.85-baseline` | **keep** until C17 step 3 succeeds, then **close** with a pointer | It carries the release branch that publishes the bridge release; never merge it. |
-| [#1332](https://github.com/baerenmarke90/eimir/pull/1332) Signed test app with removable updater | open since 2026-10-17 | **close** with a pointer | Superseded by the release-branch flow; history stays in the archive. |
+| [#1443](https://github.com/baerenmarke90/eimir/pull/1443) Standing Android release pull request | draft, base `release/android-test.85-baseline` (a frozen ancestor of the release line, kept only as a comparison point) | **keep** until C17 step 3 succeeds, then **close** with a pointer | It carries the release branch that publishes the bridge release; never merge it. After C6 the release line continues as `release/android-test.14-20261026` in both new repositories (section 6.4). |
+| [#1332](https://github.com/baerenmarke90/eimir/pull/1332) Signed test app with removable updater | draft against `main`, open since 2026-10-17 | **close** with a pointer | Its head is an ancestor of the release line, which carries the updater into `eimir-core` (section 6.4); history stays in the archive. |
 
 ## 5. Rehearsal plan (D-4 to D-2)
 
@@ -535,9 +549,10 @@ readable feed, which a private repository cannot provide; see 5.2, item 6.
    location (section 8, item D1); the Java updater tests (`UpdatePolicyTest`, `UpdateCatalogTest`) pass with the new
    location. The rehearsal does **not** install anything on the phones and does not publish to the real update
    location: a rehearsal APK with a higher version code would consume the test numbering. The anonymous feed is
-   proven with a throwaway public repository and one rehearsal release, deleted afterwards; until item D7 is decided
-   that repository must contain the APK source commit, because the release tag targets it. The real device
-   acceptance is the bridge release of C17.
+   proven with a throwaway public repository and one rehearsal release, deleted afterwards. As decided in item D7,
+   that throwaway repository plays `eimir-core`: it holds the release-line branch made by section 6.4 (steps 2 to
+   4, on the rehearsal export), and the rehearsal release's tag targets a commit of it; the rehearsal Pro repository
+   holds the publishing jobs, the plan and the notes. The real device acceptance is the bridge release of C17.
 7. **Settings:** default `GITHUB_TOKEN` permission read; fork pull request workflows off in the Pro repository; the
    immutable releases setting; the environment deployment branch policy.
 8. **Rollback drills:** Arcane staging sync switched back to its previous branch; a ruleset deleted and recreated.
@@ -570,7 +585,10 @@ All of these in one rehearsal run, recorded with run links in #2183:
   this repository" state that the evidence records, never a silently skipped check (section 8, item D5). The
   probe, the `supply-chain-state.json` record and the variable `EIMIR_SUPPLY_CHAIN_EXCEPTION` (C16) are described in
   [SBOM and attestations, section 11](m6/SBOM-ATTESTATIONS.md#11-repositories-without-attestations-or-code-scanning-decision-0019-d5).
-- The Android publishing jobs move with the release branch into `eimir-pro` and publish to the location of item D1.
+- The Android publishing jobs, the release plan and the release notes move into `eimir-pro`; the APK source (the
+  release line with the sideload updater) moves into `eimir-core` (item D7, section 6.4). The jobs check out the APK
+  source from the asset repository and the plan and notes from their own repository (section 6.4, step 5), and
+  publish to the location of item D1.
 - `status_drift` and the identity references of C20.
 - The `eimir-kvm-pr` routing in `ci.yml` is removed from the Core snapshot (the operator runner never serves
   `eimir-core`).
@@ -583,6 +601,115 @@ phase 1, the manifest, and the README with the exact command line used in C6. Th
 ### 6.3 Secret scan (implementation session `cutover-b-secrets`)
 
 Scan over all refs of the old repository and the rotation list of C2. Findings are handed to the PO, not committed.
+
+### 6.4 Android release line in the snapshots (decision D7)
+
+The sideload updater, the release scripts, the release plan, the Android publishing jobs and the in-app App updates
+screen exist only on the release line `release/android-test.14-20261026`, never on `main`: the updater was built in
+[#1332](https://github.com/baerenmarke90/eimir/pull/1332), whose head is an ancestor of the release line, and was
+merged only there. A snapshot of `main` alone therefore holds none of it, and after the cut-over there would be no
+tree to build `<N+1>` from. With item D7 decided as (a), both new repositories get the release line as a branch of
+the same name, made from one release-line revision with the same export tool and the same allow-lists as `main`:
+
+1. **Integrate the snapshot revision** (D0, after C1 and before C3, Coordinator): merge the snapshot revision `<S>` of
+   `main` into the release branch of `O/eimir` as for a test release (the integration step of the
+   [Android test release procedure](../.claude/skills/android-test-release/SKILL.md), conflicts resolved the same
+   way), leave `.github/android-test-release.json` at the bridge, and push. The push runs only the Android preflight
+   of `release-publish.yml`; it finds the bridge's published tag, re-verifies its public assets and reports
+   `ready=false`, so nothing is signed or published. The resulting release-line revision `<L>` has `<S>` as an
+   ancestor, which keeps later merges of `eimir-core` `main` into the release branch ordinary merges.
+2. **Export it** with both allow-lists, from a checkout of `<S>` (so both runs read the same allow-list files; the
+   `allowlist_sha256` of the four manifests must match):
+
+   ```sh
+   python tools/cutover/core_export.py dry-run --rev <L> --with-pro --work <dirL> --backend
+   ```
+
+   Every gate must pass, as for `main`. The Core tree of `<L>` is the Core tree of `<S>` plus the release-line files
+   below; the Pro tree adds the Android publishing jobs in `release-publish.yml`, their tests, the release notes and
+   the plan.
+3. **Make the branch commits** (Coordinator, local). `fresh-history` writes only a root commit on `main`, so the
+   verified tree is reused for a commit whose parent is the snapshot commit of C6:
+
+   ```sh
+   python tools/cutover/core_export.py fresh-history --tree <dirL>/tree \
+     --manifest <dirL>/report/manifest.json --target <dirL>/release-core.git \
+     --message "Android release line from O/eimir-archive at <L>"
+   git -C <dir>/eimir-core.git fetch <dirL>/release-core.git main:refs/tmp/release
+   tree=$(git -C <dir>/eimir-core.git rev-parse 'refs/tmp/release^{tree}')
+   commit=$(GIT_AUTHOR_NAME='eimir.' GIT_AUTHOR_EMAIL='snapshot@eimir.invalid' \
+     GIT_COMMITTER_NAME='eimir.' GIT_COMMITTER_EMAIL='snapshot@eimir.invalid' \
+     GIT_AUTHOR_DATE="<commit date of L>" GIT_COMMITTER_DATE="<commit date of L>" \
+     git -C <dir>/eimir-core.git commit-tree "$tree" -p main \
+       -m "Android release line from O/eimir-archive at <L>")
+   git -C <dir>/eimir-core.git update-ref refs/heads/release/android-test.14-20261026 "$commit"
+   git -C <dir>/eimir-core.git update-ref -d refs/tmp/release
+   ```
+
+   The same for `eimir-pro` with `<dirL>/pro-tree`, `<dirL>/pro-report/manifest.json` and
+   `--allowlist tools/cutover/pro-allowlist.toml`. A `--parent` and `--branch` option of `fresh-history` would replace
+   the plumbing and keep the manifest check on the branch commit itself (follow-up for `cutover-a-export`).
+4. **Check and push** after `main` (C6): `git ls-tree -r --name-only release/android-test.14-20261026 | wc -l` equals
+   the count of the release-line manifest; `git log --oneline release/android-test.14-20261026 | wc -l` is 2;
+   `git diff --name-only main release/android-test.14-20261026` lists only the release-line files below (in
+   `eimir-core`) or the publishing files (in `eimir-pro`); then
+   `git -C <dir>/eimir-core.git push <eimir-core URL> release/android-test.14-20261026`, by hand, and the same for
+   `eimir-pro`.
+5. **Allow-list and pipeline prerequisites** (before G3, so the rehearsal proves them):
+   - `.github/android-test-release.json` is in neither allow-list today; the split gate rejects it. It belongs to the
+     Pro tree with the publishing jobs (`cutover-a-export`).
+   - The release notes `docs/releases/android-test-*` are excluded from Core by the `official-release-pipeline` rule
+     and land in Pro. The publishing jobs today check out the APK source from their own repository and read the notes
+     from that checkout (`test -s "$NOTES_FILE"`). In `eimir-pro` they must check out the APK source from the asset
+     repository (`actions/checkout` with `repository:` set to it and `ref:` the plan's `sourceRevision`), and read the
+     plan and the notes from their own checkout. This is a change of the Android jobs on the release branch, a
+     follow-up to [#2295](https://github.com/baerenmarke90/eimir/pull/2295), whose guard already refuses a source
+     commit that the asset repository does not contain.
+   - The Environment `android-test-release` of `eimir-pro` allows the release branch of the same name (C5).
+6. **Still open: the predecessor of `<N+1>`.** The publisher downloads the APK and `SHA256SUMS` of the previous
+   release from the asset repository to verify its signer and package contract. For `<N+1>` that is the bridge in
+   `O/eimir`, private after C11, and the publishing token of item D1 is limited to `eimir-core`. Options: a predecessor
+   repository parameter used once for `<N+1>` with a separate read-only token for the archive, removed afterwards; or
+   publishing `<N+1>` before C11 while `O/eimir` is still public. This needs a decision before G3; it is the only
+   release-line point that only the rehearsal can prove.
+
+Measured on 2026-11-25. The release line at `3e339d5df` (`test.103`) exports with the current allow-lists, but its
+`plugin-imports` and `secret-scan` gates fail: it predates
+[#2285](https://github.com/baerenmarke90/eimir/pull/2285) and the newer `.gitleaks.toml` allowances on `main`. A
+local integration of `main` at `63f098018` (made with `git merge-tree`, never pushed; one conflict, in
+`web/e2e/test-impact.json`) passes every Core gate and every Pro gate except `split`. `split` names
+`.github/android-test-release.json` and `.github/workflows/core-advance.yml`; the second one fails the same way for
+`main` itself. So step 1 is required, not optional.
+
+**Files that become public with the release line and need a review before C8.** These are the release-line files
+that the Core allow-list exports (`git diff --name-status <S>...<L>`, filtered by the Core manifest of `<L>`; 53 at
+`3e339d5df`). Gitleaks passes on them; the review covers content, not secrets:
+
+- **Updater** (`native-wrappers`): `android/app/src/sideload/**` (`UpdatePolicy`, `UpdateCatalog`, `UpdateTransport`,
+  `AppUpdatesPlugin`, `AppUpdateFileProvider`, the sideload `AndroidManifest.xml` with the App Links hosts, and
+  `res/xml/app_update_paths.xml`), `android/app/src/testSideload/**`, the sideload build type in
+  `android/app/build.gradle`, plus the release-line changes to `android/README.md`, `MainActivity.java` and
+  `PhotoFileChooserTest.java`. Check: the update location is the D1 location, the allowed download hosts, the
+  install-permission handling, no test-only host left in the manifest.
+- **Release scripts** (`core-scripts-and-tools`): `scripts/android_test_release.py`,
+  `scripts/android_test_release_plan.py` and their tests. They embed the pinned signing-certificate SHA-256 values
+  (public fingerprints, also in `assetlinks.json`, not secrets) and the legacy API origin; check that no step expects
+  a private path. The release-line changes to `tools/ci/project_identity_scan.py` and its two tests are allowances
+  for the sideload files; check that each one is still needed.
+- **In-app App updates screen** (`web-client`): `web/src/components/AppUpdatesPanel.*`, `AppUpdatesSummary.tsx`,
+  `web/src/client/appUpdates*.ts`, `useAppUpdateState.ts`, the Settings entries (`SettingsIndex*.tsx`,
+  `SettingsPage.tsx`, `settingsNavigation.ts`, `routes*.ts`), `capacitorShell*.ts`, the i18n keys
+  (`web/src/i18n/locales/appUpdates.ts`, `en.json`, `germanPack.ts`), the e2e spec `app-updates.spec.ts`, its fixtures
+  and its entries in `web/e2e/test-groups.json` and `test-impact.json`. Check: it renders only when
+  `VITE_EIMIR_TEST_UPDATES` is `true`, the platform is Android and the `EimirAppUpdates` plugin exists, so the normal
+  Web and Play builds are unchanged.
+- **Documentation** (`documentation`): `docs/ANDROID-TEST-UPDATES.md`, `docs/DEPENDENCIES.md` (release-line change),
+  and `docs/product/design/references/1331/` (`android-test-updates.md`, `native-email-entry.md`,
+  `evidence/README.md`, `evidence/signed-build.json`). Check: `ANDROID-TEST-UPDATES.md` and
+  `references/1331/android-test-updates.md` name the PO by first name, as about ten design files on `main` already do;
+  whether personal names stay in public files is the PO's call, and it covers these two as well; `signed-build.json` records the
+  legacy test origin and the legacy signer fingerprint.
+- **Core CI** (`core-ci`): the release-line change to `.github/workflows/android-launcher-icons.yml`.
 
 ## 7. Rollback per phase and abort criteria
 
@@ -621,7 +748,7 @@ decides otherwise.
 | D4 | Default `GITHUB_TOKEN` permission in the new repositories | (a) read, proven in the rehearsal; (b) write as today | **(a)**, falling back to write only for a job the rehearsal shows to need it. |
 | D5 | Code scanning and attestations for the private `eimir-pro` | (a) accept no CodeQL and no GitHub attestations there at the cut-over, recorded in the evidence, with a follow-up for a free Python security linter (for example Bandit) and key-based image signing before Self-Hosted; (b) pay for an organization with the security products | **(a)**: `eimir-core` keeps CodeQL and attestations for free; the Pro images are consumed only by the operator's own deployment for now. |
 | D6 | Secret scanning and push protection in `eimir-core` | (a) on; (b) off as today | **(a)**: free for a public repository and complements the gitleaks check. |
-| D7 | Which commit the Android test release tag in `eimir-core` points at once the publisher runs in `eimir-pro` (found 2026-11-25 while adapting the release path; C17 step 3) | (a) the release branch with the sideload updater lives in `eimir-core` (public; it holds only Core client code), `eimir-pro` signs and publishes from a pinned commit of it, so the tag targets the exact APK source as today; (b) the release branch lives in `eimir-pro` and the tag targets the pinned `eimir-core` revision, with the exact APK source bound only by the marker's `sourceRevision` and `native-acceptance.md` | **(a)**: keeps the existing "tag is the APK source" check of the publisher and the release plan checker unchanged; the updater code is public anyway. (b) needs a changed checker contract. |
+| D7 | Which commit the Android test release tag in `eimir-core` points at once the publisher runs in `eimir-pro` (found 2026-11-25 while adapting the release path; C17 step 3) | (a) the release branch with the sideload updater lives in `eimir-core` (public; it holds only Core client code), `eimir-pro` signs and publishes from a pinned commit of it, so the tag targets the exact APK source as today; (b) the release branch lives in `eimir-pro` and the tag targets the pinned `eimir-core` revision, with the exact APK source bound only by the marker's `sourceRevision` and `native-acceptance.md` | **Decided by the PO on 2026-11-25: (a).** It keeps the existing "tag is the APK source" check of the publisher and the release plan checker unchanged; the updater code is public anyway. Consequences: the bridge release has update location `eimir-core` while its marker and assets stay in the old repository; from `<N+1>` both are `eimir-core` (C17). The release line becomes the branch `release/android-test.14-20261026` of both snapshots, from one integrated release-line revision through the same export tool and allow-lists, with the files to review before C8 (section 6.4). Still open: the predecessor of `<N+1>` (section 6.4, step 6). |
 
 ## 9. What this runbook could not verify
 

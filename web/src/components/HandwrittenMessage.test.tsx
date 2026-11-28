@@ -94,13 +94,29 @@ describe('HandwrittenMessage (#2372)', () => {
     expect(phase()).toBe('final');
   });
 
+  it('writes the words by hand and shows an emoji in place when the pen reaches it', async () => {
+    const { container } = render(
+      <HandwrittenMessage text={'It does not work 😢'} messageKey="m-6" />,
+    );
+    expect(container.querySelector('.sr-only')?.textContent).toBe(
+      'It does not work 😢',
+    );
+    const symbol = container.querySelector('.once-handwriting-symbol');
+    expect(symbol?.textContent).toBe('😢');
+    expect(
+      Number((symbol as SVGElement).style.getPropertyValue('--stroke-start')),
+    ).toBeGreaterThan(0.5);
+    await flush();
+    expect(phase()).toBe('playing');
+  });
+
   it('keeps the normal type when the font cannot write the words', () => {
     const { container } = render(
-      <HandwrittenMessage text={'Love you ❤️'} messageKey="m-5" />,
+      <HandwrittenMessage text={'Привет ❤️'} messageKey="m-5" />,
     );
     expect(strokes()).toBeNull();
     expect(container.querySelector('.once-words')?.textContent).toBe(
-      'Love you ❤️',
+      'Привет ❤️',
     );
   });
 });

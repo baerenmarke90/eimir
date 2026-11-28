@@ -13,7 +13,7 @@ import {
   type MomentTicket,
   startMoment,
 } from '../motion';
-import { layoutHandwriting } from './handwritingLayout';
+import { layoutHandwriting, SYMBOL_SIZE } from './handwritingLayout';
 
 /** The Moment's identity; each opened message is its own item. */
 export const HANDWRITING_MOMENT = 'once.handwriting';
@@ -39,8 +39,9 @@ type Phase = 'before' | 'playing' | 'final';
  * - The words are readable text for assistive technology from the start
  *   (the strokes are decorative). Showing them only as they are written is
  *   the Product Owner's recorded exception to M13 for this Moment.
- * - Text the font cannot write (emoji, other scripts, very long messages)
- *   keeps the normal type.
+ * - Emoji and other symbols keep their own form and appear in place as the
+ *   pen reaches them. Letters of other scripts and very long messages keep
+ *   the normal type.
  */
 export function HandwrittenMessage({
   text,
@@ -133,6 +134,24 @@ export function HandwrittenMessage({
                   } as CSSProperties
                 }
               />
+            ))}
+            {layout.symbols.map((symbol, index) => (
+              <text
+                // biome-ignore lint/suspicious/noArrayIndexKey: symbols of one fixed layout, in pen order
+                key={index}
+                className="once-handwriting-symbol"
+                x={symbol.x}
+                y={symbol.y}
+                fontSize={SYMBOL_SIZE}
+                style={
+                  {
+                    '--stroke-start': symbol.start,
+                    '--stroke-share': symbol.share,
+                  } as CSSProperties
+                }
+              >
+                {symbol.text}
+              </text>
             ))}
           </svg>
         </>

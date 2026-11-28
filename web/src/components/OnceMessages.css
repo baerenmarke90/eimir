@@ -168,6 +168,23 @@
     calc(var(--handwriting-total) * var(--stroke-start)) both;
 }
 
+/* Emoji and symbols in the line: their own glyphs (monochrome ones in the
+   ink colour), faded in when the pen reaches them. */
+.once-handwriting-symbol {
+  fill: currentColor;
+  stroke: none;
+}
+
+.once-handwriting-strokes[data-phase="before"] .once-handwriting-symbol {
+  opacity: 0;
+}
+
+.once-handwriting-strokes[data-phase="playing"] .once-handwriting-symbol {
+  animation: eimir-motion-enter-fade
+    calc(var(--handwriting-total) * var(--stroke-share)) var(--easing-playback)
+    calc(var(--handwriting-total) * var(--stroke-start)) both;
+}
+
 .once-page button {
   max-width: 100%;
   white-space: normal;

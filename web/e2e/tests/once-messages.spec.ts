@@ -358,9 +358,10 @@ test('two devices exchange actual encrypted content, deliberately reveal once an
 });
 
 for (const scenario of [
-  { width: 360, theme: 'dark', large: false },
-  { width: 430, theme: 'light', large: false },
-  { width: 320, theme: 'light', large: true },
+  { width: 360, theme: 'dark', large: false, emoji: false },
+  // An emoji keeps its own form inside the handwriting (#2372 follow-up).
+  { width: 430, theme: 'light', large: false, emoji: true },
+  { width: 320, theme: 'light', large: true, emoji: false },
 ] as const) {
   const label = `${scenario.width}-${scenario.theme}${scenario.large ? '-large-reduced' : ''}`;
   test(`an opened message written by hand at ${label} (#2372)`, async ({
@@ -385,7 +386,8 @@ for (const scenario of [
       await enable(sender, a, app, ACCOUNT_ID);
       await enable(receiver, b, app, PARTNER_ID);
       await sender.goto(`${ROOT}/new`);
-      await sender.getByLabel(copy.message, { exact: true }).fill(WORDS);
+      const words = scenario.emoji ? `${WORDS} \u{1F622}` : WORDS;
+      await sender.getByLabel(copy.message, { exact: true }).fill(words);
       await sender
         .getByRole('button', { name: copy.send, exact: true })
         .click();
@@ -400,8 +402,11 @@ for (const scenario of [
       await receiver
         .getByRole('button', { name: copy.open, exact: true })
         .click();
-      await expect(receiver.getByText(WORDS, { exact: true })).toBeVisible();
+      await expect(receiver.getByText(words, { exact: true })).toBeVisible();
       const handwriting = receiver.locator('.once-handwriting-strokes');
+      await expect(handwriting.locator('.once-handwriting-symbol')).toHaveCount(
+        scenario.emoji ? 1 : 0,
+      );
       // Reduced motion shows the finished handwriting at once.
       if (scenario.large)
         await expect(handwriting).toHaveAttribute('data-phase', 'final');

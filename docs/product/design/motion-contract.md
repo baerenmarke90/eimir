@@ -1,6 +1,6 @@
 # eimir. Motion Contract
 
-**Version:** 1.25 (2026-11-28)<br>
+**Version:** 1.26 (2026-11-28)<br>
 **Status:** Normative lower-level design-system contract under Product Reference v1 once merged. Library decision **approved by the Product Owner on 2026-11-19**: an in-house motion layer on WAAPI and CSS for all primitives, Gesture follow included; Motion is not adopted ([6.6](#66-product-owner-decisions)). Haptics are approved ([4.10](#410-haptics)).<br>
 **Scope:** Canonical Web/Mobile Web UI, including the Capacitor-delivered Android app<br>
 **Issue:** [#2067](https://github.com/baerenmarke90/eimir/issues/2067)<br>
@@ -458,7 +458,7 @@ A rare, multi-beat emotional choreography: a received partner gesture (`PartnerG
   - with reduced motion, a hidden page or another emphasized motion it shows its final state;
   - there is no haptic;
   - **Recorded exception to M13 (Product Owner, 2026-11-28):** the words appear as they are written instead of being readable from the first beat. Assistive technology gets them at once as text, the tap and reduced motion show them finished, and the writing time is bounded;
-  - text the font cannot write (emoji, non-Latin scripts, more than 280 characters) keeps the normal type;
+  - emoji and other symbols keep their own glyphs inside the handwriting and fade in (Enter `fade`) when the pen reaches them; only letters of other scripts and messages over 280 characters keep the normal type (follow-up after device acceptance, 2026-11-28);
   - the privacy and screenshot rules are unchanged, and the writing happens only inside the protected reading view.
 
 **Approved instance: the important-day Moment on Wir** (Product Owner, 2026-11-20). The full specification is in [#2072](https://github.com/baerenmarke90/eimir/issues/2072); the rules below are its motion contract.
@@ -1217,6 +1217,7 @@ In addition to Motion Guideline section 10, a pull request with new or changed m
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 1.26 | 2026-11-28 | Handwritten once message: emoji and symbols stay in the handwriting and fade in when the pen reaches them, instead of switching the whole message to the normal type (4.7). |
 | 1.25 | 2026-11-28 | Recap reader quote marker (#2373, Product Owner 2026-11-28): a Playback `clip-path` wipe on the marker behind a highlight's quoted words (4.8), and the token `motion.duration.markerSweep`. |
 | 1.24 | 2026-11-28 | Handwritten once message Moment (#2372, Product Owner 2026-11-28; 4.7) with a recorded M13 exception, the tokens `motion.duration.handwriting` (writing cap) and `motion.handwriting.penSpeed`. |
 | 1.23 | 2026-11-28 | Gesture follow two-sided mode (`direction: 'both'`, `onSettled`, `commit(side)`) and its first owner, the Wish selection card deck (#2371, Product Owner 2026-11-28; 4.6, 4.12). |

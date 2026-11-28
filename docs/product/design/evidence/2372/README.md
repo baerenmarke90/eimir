@@ -5,6 +5,7 @@ Captured with Playwright Chromium from `web/e2e/tests/once-messages.spec.ts`, ru
 - `once-open-handwriting-writing-390-light.png`: about 1.1 s after opening. The partner's words are halfway written.
 - `once-open-390-light.png`, `once-open-360-dark.png` and `once-open-430-light.png`: the finished handwriting, wrapped to the reading width.
 - `once-open-320-light-large-reduced.png`: 320 px with 200 % text and reduced motion. The handwriting appears finished at once and grows with the text size.
+- `once-open-emoji-430-light.png`: a message ending in an emoji (follow-up after device acceptance). The words are handwritten, and the emoji keeps its own form at the end of the line.
 - `once-voice-390-light.png` and `once-photo-390-light.png`: voice and photo-only messages, unchanged.
 
 ## Behaviour checked
@@ -19,7 +20,8 @@ Captured with Playwright Chromium from `web/e2e/tests/once-messages.spec.ts`, ru
     - pen-order timing;
     - wrapping and line breaks;
     - umlauts and substituted quote marks;
-    - the normal-type fallback for emoji, other scripts, long and empty text.
+    - emoji kept as one symbol each in pen order;
+    - the normal-type fallback for other scripts, long and empty text.
   - `HandwrittenMessage.test.tsx`:
     - readable words and decorative strokes;
     - one play within the cap, and no replay on a remount;

@@ -6013,8 +6013,8 @@
     "hint": "A light vibration when you swipe, drop and send. Applies to this device only."
   },
   "systemColors": {
-    "title": "System colours",
-    "label": "System colours (Material You)",
+    "title": "System colours (beta)",
+    "label": "System colours (Material You, beta)",
     "hint": "Buttons and accents take the colours of your Android wallpaper. Surfaces and backgrounds stay as they are. Applies to this device only.",
     "unsuitable": "Your device's system colours do not have enough contrast for eimir. and are not used."
   },

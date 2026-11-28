@@ -1,5 +1,5 @@
 /*
- * "System colours" (Android Material You). Action and brand accent tokens only;
+ * "System colours" (Android Material You). Action and brand accent tokens only (buttons, links, ticks, marks, battery fill);
  * surfaces and backgrounds stay as the chosen design defines them. The values
  * come from the native palette through src/client/systemColors.ts. The
  * repeated attribute raises specificity above every design palette rule,
@@ -16,6 +16,9 @@
   --color-on-action-primary: var(--system-colors-light-on-action);
   --color-brand-strong: var(--system-colors-light-brand-strong);
   --color-brand-text: var(--system-colors-light-brand-text);
+  --color-link-text: var(--system-colors-light-brand-text);
+  --color-brand: var(--system-colors-light-brand);
+  --color-shared: var(--system-colors-light-brand-strong);
   --color-focus: var(--system-colors-light-focus);
 }
 
@@ -26,5 +29,8 @@
   --color-on-action-primary: var(--system-colors-dark-on-action);
   --color-brand-strong: var(--system-colors-dark-brand-strong);
   --color-brand-text: var(--system-colors-dark-brand-text);
+  --color-link-text: var(--system-colors-dark-brand-text);
+  --color-brand: var(--system-colors-dark-brand);
+  --color-shared: var(--system-colors-dark-brand-strong);
   --color-focus: var(--system-colors-dark-focus);
 }

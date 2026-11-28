@@ -85,6 +85,15 @@ describe('deriveSystemAccent', () => {
     });
   });
 
+  it('also maps the softer brand tone used by ticks and marks', () => {
+    const accent = deriveSystemAccent(palette());
+    expect(accent?.light.brand).toBe(BLUE['500']);
+    expect(accent?.dark.brand).toBe(BLUE['300']);
+    expect(
+      deriveSystemAccent(palette({ ...BLUE, '500': '#e6ebff' })),
+    ).toBeNull();
+  });
+
   it('keeps readable contrast for every derived pair', () => {
     const accent = deriveSystemAccent(palette());
     for (const scheme of [accent?.light, accent?.dark]) {

@@ -38,6 +38,8 @@ export interface SystemAccentScheme {
   onActionPrimary: string;
   brandStrong: string;
   brandText: string;
+  /** The softer brand tone for fills and marks, such as list ticks. */
+  brand: string;
   focus: string;
 }
 export interface SystemAccent {
@@ -110,11 +112,18 @@ function readableOn(background: string, candidates: string[]): string | null {
 function scheme(
   tones: Tones,
   surface: string,
-  pick: { action: ToneName; brand: ToneName; focus: ToneName; on: ToneName },
+  pick: {
+    action: ToneName;
+    brand: ToneName;
+    mark: ToneName;
+    focus: ToneName;
+    on: ToneName;
+  },
 ): SystemAccentScheme | null {
   const actionPrimary = tones[pick.action];
   const brand = tones[pick.brand];
   const focus = tones[pick.focus];
+  const mark = tones[pick.mark];
   const onActionPrimary =
     readableOn(actionPrimary, [tones[pick.on]]) ??
     readableOn(actionPrimary, [tones['0'], tones['1000']]);
@@ -122,6 +131,7 @@ function scheme(
     !onActionPrimary ||
     contrastRatio(actionPrimary, surface) < COMPONENT_CONTRAST ||
     contrastRatio(focus, surface) < COMPONENT_CONTRAST ||
+    contrastRatio(mark, surface) < COMPONENT_CONTRAST ||
     contrastRatio(brand, surface) < TEXT_CONTRAST
   )
     return null;
@@ -130,6 +140,7 @@ function scheme(
     onActionPrimary,
     brandStrong: brand,
     brandText: brand,
+    brand: mark,
     focus,
   };
 }
@@ -147,12 +158,14 @@ export function deriveSystemAccent(
   const light = scheme(tones, LIGHT_REFERENCE_SURFACE, {
     action: '600',
     brand: '700',
+    mark: '500',
     focus: '600',
     on: '0',
   });
   const dark = scheme(tones, DARK_REFERENCE_SURFACE, {
     action: '200',
     brand: '200',
+    mark: '300',
     focus: '300',
     on: '800',
   });
@@ -164,6 +177,7 @@ const VARIABLES: Record<keyof SystemAccentScheme, string> = {
   onActionPrimary: 'on-action',
   brandStrong: 'brand-strong',
   brandText: 'brand-text',
+  brand: 'brand',
   focus: 'focus',
 };
 

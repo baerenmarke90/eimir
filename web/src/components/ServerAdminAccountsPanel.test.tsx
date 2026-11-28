@@ -245,13 +245,57 @@ describe('ServerAdminAccountsPanel privileged actions', () => {
 
     // Notice in detail view
     expect(
-      screen.getByText(serverAdmin.accounts.detail.deletionNotice),
+      screen.getByText(
+        textBefore(serverAdmin.accounts.detail.deletionPending),
+        { exact: false },
+      ),
     ).toBeTruthy();
-    // Delete button should not be shown
+    expectNoOperatorActions();
+  });
+
+  it('shows a completed deletion without any operator action', async () => {
+    const deletedSummary: ServerAdminAccountSummary = {
+      ...accountSummary,
+      disabledAt: new Date('2026-09-19T18:00:00Z'),
+      deletionStatus: 'COMPLETED',
+    };
+    const deletedDetail: ServerAdminAccountDetail = {
+      ...accountDetail,
+      disabledAt: new Date('2026-09-19T18:00:00Z'),
+      deletionStatus: 'COMPLETED',
+      deletionAcceptedAt: new Date('2026-09-19T18:00:00Z'),
+      deletionCompletedAt: new Date('2026-09-19T18:05:00Z'),
+    };
+
+    renderPanel({ summary: deletedSummary, detail: deletedDetail });
+    await openAccountDetail();
+
     expect(
-      screen.queryByRole('button', {
-        name: serverAdmin.accounts.detail.deleteAccount,
-      }),
+      screen.getByText(
+        textBefore(serverAdmin.accounts.detail.deletionCompleted),
+        { exact: false },
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.queryByText(serverAdmin.accounts.detail.emailTitle),
     ).toBeNull();
+    expectNoOperatorActions();
   });
 });
+
+/** The localized sentence up to its interpolated date. */
+function textBefore(message: string): string {
+  return message.slice(0, message.indexOf('{{')).trim();
+}
+
+function expectNoOperatorActions(): void {
+  for (const name of [
+    serverAdmin.accounts.detail.deleteAccount,
+    serverAdmin.accounts.detail.unsuspend,
+    serverAdmin.accounts.detail.suspend,
+    serverAdmin.accounts.detail.revokeSessions,
+    serverAdmin.accounts.detail.operatorRecovery,
+  ]) {
+    expect(screen.queryByRole('button', { name })).toBeNull();
+  }
+}

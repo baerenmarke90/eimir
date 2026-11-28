@@ -753,15 +753,76 @@ def test_server_admin_delete_account_success(
     assert detail_json["deletionAcceptedAt"] is not None
     assert detail_json["disabledAt"] is not None
 
-    # Account Directory list reflection
+    # Account Directory list reflection: only the explicit filter lists the tombstone.
+    for status_filter in ("all", "active", "suspended"):
+        hidden_res = client.get(
+            f"/api/v1/server-admin/accounts?query={target_email.email}&status={status_filter}",
+            headers=auth(admin_token),
+        )
+        assert hidden_res.status_code == 200
+        assert hidden_res.json()["total"] == 0
     list_res = client.get(
-        f"/api/v1/server-admin/accounts?query={target_email.email}",
+        f"/api/v1/server-admin/accounts?query={target_email.email}&status=deleted",
         headers=auth(admin_token),
     )
     assert list_res.status_code == 200
     items = list_res.json()["items"]
     assert len(items) == 1
     assert items[0]["deletionStatus"] == "PENDING"
+
+
+def test_server_admin_rejects_operator_actions_on_a_deleted_account(
+    client,
+    session,
+    server_admin_allowlist,
+    tmp_path,
+    monkeypatch,
+) -> None:  # type: ignore[no-untyped-def]
+    _, admin_token = _admin(session)
+    journal = DeletionJournal.initialize(tmp_path / "deletions.journal", instance_id=uuid4())
+    monkeypatch.setattr(deletion_self_service, "_configured_journal", lambda: journal)
+    target = accounts.create_account(
+        session,
+        display_name="Deleted Target",
+        email="deleted-target@example.test",
+        password_hash=passwords.hash_password("old-password-value"),
+    )
+    target_email = session.execute(
+        select(AccountEmail).where(AccountEmail.account_id == target.id)
+    ).scalar_one()
+
+    deleted = client.post(
+        f"/api/v1/server-admin/accounts/{target.id}/deletion",
+        headers=auth(admin_token),
+        json={"confirmation": f"DELETE {target_email.email}"},
+    )
+    assert deleted.status_code == 200
+
+    base = f"/api/v1/server-admin/accounts/{target.id}"
+    attempts = [
+        client.put(f"{base}/suspension", headers=auth(admin_token), json={"suspended": False}),
+        client.put(f"{base}/suspension", headers=auth(admin_token), json={"suspended": True}),
+        client.post(f"{base}/sessions/revoke", headers=auth(admin_token)),
+        client.post(f"{base}/recovery/operator", headers=auth(admin_token)),
+        client.post(f"{base}/recovery/email", headers=auth(admin_token)),
+        client.post(f"{base}/email-verification/request", headers=auth(admin_token)),
+        client.post(
+            f"{base}/emails/{target_email.id}/verify",
+            headers=auth(admin_token),
+            json={"confirmationEmail": target_email.email},
+        ),
+    ]
+    for response in attempts:
+        assert response.status_code == 422, response.request.url
+        assert response.json()["code"] == "SERVER_ADMIN_ACCOUNT_DELETED"
+
+    session.expire_all()
+    # The fail-closed tombstone survives every attempt (#520).
+    assert session.get(Account, target.id).disabled_at is not None
+    detail = client.get(base, headers=auth(admin_token)).json()
+    assert detail["deletionStatus"] == "PENDING"
+    assert detail["deletionCompletedAt"] is None
+    assert detail["deletionFailedAt"] is None
 
 
 def test_server_admin_delete_account_idempotent_retry(

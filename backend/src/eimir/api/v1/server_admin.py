@@ -74,7 +74,7 @@ _STORAGE_PRESSURE_RATIO = 0.85
 _EXPIRING_GRANT_WINDOW = timedelta(days=7)
 _ATTENTION_LIMIT = 5
 
-AccountStatusFilter = Literal["all", "active", "suspended"]
+AccountStatusFilter = Literal["all", "active", "suspended", "deleted"]
 VerificationFilter = Literal["all", "verified", "unverified"]
 SpaceStatusFilter = Literal["all", "active", "inactive", "empty", "anomaly"]
 SpaceLifecycleStatus = Literal["active", "inactive", "empty"]
@@ -282,6 +282,8 @@ class ServerAdminAccountDetail(ServerAdminAccountSummary):
     mail_recovery_available: bool
     local_password_available: bool
     deletion_accepted_at: datetime | None = None
+    deletion_completed_at: datetime | None = None
+    deletion_failed_at: datetime | None = None
     spaces: list[ServerAdminAccountSpace] = Field(default_factory=list)
 
 
@@ -487,8 +489,8 @@ def _account_detail(
     current_time: datetime,
 ) -> ServerAdminAccountDetail:
     summary = _account_summary(session, account, current_time=current_time)
-    deletion_accepted_at = session.execute(
-        select(AccountDeletion.accepted_at).where(AccountDeletion.account_id == account.id)
+    deletion = session.execute(
+        select(AccountDeletion).where(AccountDeletion.account_id == account.id)
     ).scalar_one_or_none()
     email_rows = list(
         session.execute(
@@ -521,7 +523,13 @@ def _account_detail(
     local_password_available = AuthProvider.LOCAL_PASSWORD.value in summary.auth_methods
     return ServerAdminAccountDetail(
         **summary.model_dump(),
-        deletion_accepted_at=ensure_utc(deletion_accepted_at) if deletion_accepted_at else None,
+        deletion_accepted_at=ensure_utc(deletion.accepted_at) if deletion else None,
+        deletion_completed_at=(
+            ensure_utc(deletion.completed_at) if deletion and deletion.completed_at else None
+        ),
+        deletion_failed_at=(
+            ensure_utc(deletion.failed_at) if deletion and deletion.failed_at else None
+        ),
         emails=[
             ServerAdminAccountEmail(
                 id=email.id,
@@ -1276,6 +1284,13 @@ def list_server_admin_accounts(
             statement = statement.where(email_match)
         else:
             statement = statement.where(or_(email_match, Account.id == account_id_match))
+    # A deleted Account keeps a pseudonymous tombstone row (#520). It is not an
+    # operable Account, so only the explicit "deleted" filter lists it.
+    deletion_accepted = exists().where(AccountDeletion.account_id == Account.id)
+    if account_status == "deleted":
+        statement = statement.where(deletion_accepted)
+    else:
+        statement = statement.where(~deletion_accepted)
     if account_status == "active":
         statement = statement.where(Account.disabled_at.is_(None))
     elif account_status == "suspended":
@@ -1350,7 +1365,7 @@ def update_server_admin_account_suspension(
 @router.post(
     "/accounts/{accountId}/sessions/revoke",
     response_model=ServerAdminSessionRevocationResult,
-    responses=problem_responses(401, 403, 404),
+    responses=problem_responses(401, 403, 404, 422),
 )
 def revoke_server_admin_account_sessions(
     admin: CurrentServerAdmin,
@@ -1377,6 +1392,7 @@ def request_server_admin_account_email_verification(
     account_id: Annotated[str, Path(alias="accountId")],
 ) -> Response:
     target = account_operations.require_account(session, _parse_account_id(account_id))
+    account_operations.reject_deleted_account(session, target.id)
     if not target.is_active:
         raise ValidationError(
             "A suspended Account must be unsuspended before email verification.",
@@ -1439,6 +1455,7 @@ def request_server_admin_account_recovery_email(
     account_id: Annotated[str, Path(alias="accountId")],
 ) -> ServerAdminRecoveryEmailResult:
     target = account_operations.require_account(session, _parse_account_id(account_id))
+    account_operations.reject_deleted_account(session, target.id)
     if not target.is_active:
         raise ValidationError(
             "A suspended Account must be unsuspended before recovery.",

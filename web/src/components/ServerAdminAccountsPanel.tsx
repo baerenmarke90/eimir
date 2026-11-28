@@ -35,6 +35,27 @@ function authMethodLabel(method: string): string {
   }
 }
 
+type AccountStatusFields = {
+  deletionStatus?: ServerAdminAccountDetail['deletionStatus'];
+  disabledAt: Date | null;
+};
+
+/** One status label; an accepted deletion outranks suspension (#520). */
+function accountStatusKey(account: AccountStatusFields): string {
+  switch (account.deletionStatus) {
+    case 'PENDING':
+      return 'serverAdmin.accounts.status.pendingDeletion';
+    case 'COMPLETED':
+      return 'serverAdmin.accounts.status.deleted';
+    case 'FAILED':
+      return 'serverAdmin.accounts.status.deletionFailed';
+    default:
+      return account.disabledAt
+        ? 'serverAdmin.accounts.status.suspended'
+        : 'serverAdmin.accounts.status.active';
+  }
+}
+
 function AccountDetail({
   account,
   api,
@@ -50,6 +71,8 @@ function AccountDetail({
   const [recoveryUrl, setRecoveryUrl] = useState<string | null>(null);
   const [recoveryExpiry, setRecoveryExpiry] = useState<Date | null>(null);
   const [deletionDialogOpen, setDeletionDialogOpen] = useState(false);
+  // A deleted Account is an irreversible tombstone: no operator action applies.
+  const deleted = Boolean(account.deletionStatus);
 
   const invalidate = () => {
     void queryClient.invalidateQueries({
@@ -195,23 +218,10 @@ function AccountDetail({
         </div>
         <span
           className={`server-admin-badge ${
-            account.deletionStatus === 'PENDING' ||
-            account.deletionStatus === 'COMPLETED'
-              ? 'is-danger'
-              : account.disabledAt
-                ? 'is-warning'
-                : 'is-ok'
+            deleted ? 'is-danger' : account.disabledAt ? 'is-warning' : 'is-ok'
           }`}
         >
-          {account.deletionStatus === 'PENDING'
-            ? t('serverAdmin.accounts.status.pendingDeletion')
-            : account.deletionStatus === 'COMPLETED'
-              ? t('serverAdmin.accounts.status.deleted')
-              : t(
-                  account.disabledAt
-                    ? 'serverAdmin.accounts.status.suspended'
-                    : 'serverAdmin.accounts.status.active',
-                )}
+          {t(accountStatusKey(account))}
         </span>
       </div>
 
@@ -273,145 +283,153 @@ function AccountDetail({
         </ul>
       )}
 
-      <h4>{t('serverAdmin.accounts.detail.emailTitle')}</h4>
-      <div className="server-admin-account-email-list">
-        {account.emails.map((email) => (
-          <div className="server-admin-account-email-row" key={email.id}>
-            <div>
-              <strong>{email.email}</strong>
-              <p className="server-admin-muted">
-                {email.isPrimary
-                  ? t('serverAdmin.accounts.detail.primaryEmail')
-                  : t('serverAdmin.accounts.detail.additionalEmail')}{' '}
-                ·{' '}
-                {t(
-                  email.verifiedAt
-                    ? 'serverAdmin.accounts.verification.verified'
-                    : 'serverAdmin.accounts.verification.unverified',
-                )}
-              </p>
-            </div>
-            {email.verifiedAt === null ? (
-              <div className="server-admin-inline-confirmation">
-                {email.isPrimary ? (
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    disabled={pending || account.disabledAt !== null}
-                    onClick={() => verificationRequestMutation.mutate()}
-                  >
-                    {t('serverAdmin.accounts.detail.resendVerification')}
-                  </button>
+      {deleted ? null : (
+        <>
+          <h4>{t('serverAdmin.accounts.detail.emailTitle')}</h4>
+          <div className="server-admin-account-email-list">
+            {account.emails.map((email) => (
+              <div className="server-admin-account-email-row" key={email.id}>
+                <div>
+                  <strong>{email.email}</strong>
+                  <p className="server-admin-muted">
+                    {email.isPrimary
+                      ? t('serverAdmin.accounts.detail.primaryEmail')
+                      : t('serverAdmin.accounts.detail.additionalEmail')}{' '}
+                    ·{' '}
+                    {t(
+                      email.verifiedAt
+                        ? 'serverAdmin.accounts.verification.verified'
+                        : 'serverAdmin.accounts.verification.unverified',
+                    )}
+                  </p>
+                </div>
+                {email.verifiedAt === null ? (
+                  <div className="server-admin-inline-confirmation">
+                    {email.isPrimary ? (
+                      <button
+                        type="button"
+                        className="secondary-button"
+                        disabled={pending || account.disabledAt !== null}
+                        onClick={() => verificationRequestMutation.mutate()}
+                      >
+                        {t('serverAdmin.accounts.detail.resendVerification')}
+                      </button>
+                    ) : null}
+                    <label htmlFor={`verify-${email.id}`}>
+                      {t('serverAdmin.accounts.detail.typeEmailToVerify')}
+                    </label>
+                    <input
+                      id={`verify-${email.id}`}
+                      type="email"
+                      autoComplete="off"
+                      value={verificationText}
+                      onChange={(event) =>
+                        setVerificationText(event.target.value)
+                      }
+                      placeholder={email.email}
+                    />
+                    <button
+                      type="button"
+                      disabled={
+                        pending ||
+                        verificationText.trim().toLowerCase() !==
+                          email.email.toLowerCase()
+                      }
+                      onClick={() =>
+                        verificationMutation.mutate({
+                          emailId: email.id,
+                          email: verificationText,
+                        })
+                      }
+                    >
+                      {t('serverAdmin.accounts.detail.verifyEmail')}
+                    </button>
+                  </div>
                 ) : null}
-                <label htmlFor={`verify-${email.id}`}>
-                  {t('serverAdmin.accounts.detail.typeEmailToVerify')}
-                </label>
-                <input
-                  id={`verify-${email.id}`}
-                  type="email"
-                  autoComplete="off"
-                  value={verificationText}
-                  onChange={(event) => setVerificationText(event.target.value)}
-                  placeholder={email.email}
-                />
+              </div>
+            ))}
+          </div>
+
+          {verificationRequestMutation.isSuccess ? (
+            <p className="status status-success" role="status">
+              {t('serverAdmin.accounts.detail.verificationRequested')}
+            </p>
+          ) : null}
+
+          <h4>{t('serverAdmin.accounts.detail.actionsTitle')}</h4>
+          <div className="server-admin-account-actions">
+            <button type="button" disabled={pending} onClick={updateSuspension}>
+              {t(
+                account.disabledAt
+                  ? 'serverAdmin.accounts.detail.unsuspend'
+                  : 'serverAdmin.accounts.detail.suspend',
+              )}
+            </button>
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={pending || account.activeSessionCount === 0}
+              onClick={revokeSessions}
+            >
+              {t('serverAdmin.accounts.detail.revokeSessions')}
+            </button>
+            {account.localPasswordAvailable ? (
+              account.mailRecoveryAvailable ? (
                 <button
                   type="button"
-                  disabled={
-                    pending ||
-                    verificationText.trim().toLowerCase() !==
-                      email.email.toLowerCase()
-                  }
-                  onClick={() =>
-                    verificationMutation.mutate({
-                      emailId: email.id,
-                      email: verificationText,
-                    })
-                  }
+                  className="secondary-button"
+                  disabled={pending || account.disabledAt !== null}
+                  onClick={() => recoveryEmailMutation.mutate()}
                 >
-                  {t('serverAdmin.accounts.detail.verifyEmail')}
+                  {t('serverAdmin.accounts.detail.sendRecovery')}
                 </button>
-              </div>
+              ) : (
+                <button
+                  type="button"
+                  className="secondary-button"
+                  disabled={pending || account.disabledAt !== null}
+                  onClick={issueOperatorRecovery}
+                >
+                  {t('serverAdmin.accounts.detail.operatorRecovery')}
+                </button>
+              )
             ) : null}
           </div>
-        ))}
-      </div>
 
-      {verificationRequestMutation.isSuccess ? (
-        <p className="status status-success" role="status">
-          {t('serverAdmin.accounts.detail.verificationRequested')}
-        </p>
-      ) : null}
+          {recoveryEmailMutation.isSuccess ? (
+            <p className="status status-success" role="status">
+              {t('serverAdmin.accounts.detail.recoverySent')}
+            </p>
+          ) : null}
 
-      <h4>{t('serverAdmin.accounts.detail.actionsTitle')}</h4>
-      <div className="server-admin-account-actions">
-        <button type="button" disabled={pending} onClick={updateSuspension}>
-          {t(
-            account.disabledAt
-              ? 'serverAdmin.accounts.detail.unsuspend'
-              : 'serverAdmin.accounts.detail.suspend',
-          )}
-        </button>
-        <button
-          type="button"
-          className="secondary-button"
-          disabled={pending || account.activeSessionCount === 0}
-          onClick={revokeSessions}
-        >
-          {t('serverAdmin.accounts.detail.revokeSessions')}
-        </button>
-        {account.localPasswordAvailable ? (
-          account.mailRecoveryAvailable ? (
-            <button
-              type="button"
-              className="secondary-button"
-              disabled={pending || account.disabledAt !== null}
-              onClick={() => recoveryEmailMutation.mutate()}
-            >
-              {t('serverAdmin.accounts.detail.sendRecovery')}
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="secondary-button"
-              disabled={pending || account.disabledAt !== null}
-              onClick={issueOperatorRecovery}
-            >
-              {t('serverAdmin.accounts.detail.operatorRecovery')}
-            </button>
-          )
-        ) : null}
-      </div>
-
-      {recoveryEmailMutation.isSuccess ? (
-        <p className="status status-success" role="status">
-          {t('serverAdmin.accounts.detail.recoverySent')}
-        </p>
-      ) : null}
-
-      {recoveryUrl ? (
-        <div className="server-admin-recovery-proof" role="status">
-          <strong>{t('serverAdmin.accounts.detail.recoveryProofTitle')}</strong>
-          <p>{t('serverAdmin.accounts.detail.recoveryProofBody')}</p>
-          <input
-            type="text"
-            readOnly
-            value={recoveryUrl}
-            aria-label={t('serverAdmin.accounts.detail.recoveryProofLabel')}
-            onFocus={(event) => event.currentTarget.select()}
-          />
-          <p className="server-admin-muted">
-            {t('serverAdmin.accounts.detail.recoveryProofExpires')}:{' '}
-            {formatDate(recoveryExpiry)}
-          </p>
-          <button
-            type="button"
-            className="secondary-button"
-            onClick={() => void navigator.clipboard?.writeText(recoveryUrl)}
-          >
-            {t('serverAdmin.accounts.detail.copyRecoveryProof')}
-          </button>
-        </div>
-      ) : null}
+          {recoveryUrl ? (
+            <div className="server-admin-recovery-proof" role="status">
+              <strong>
+                {t('serverAdmin.accounts.detail.recoveryProofTitle')}
+              </strong>
+              <p>{t('serverAdmin.accounts.detail.recoveryProofBody')}</p>
+              <input
+                type="text"
+                readOnly
+                value={recoveryUrl}
+                aria-label={t('serverAdmin.accounts.detail.recoveryProofLabel')}
+                onFocus={(event) => event.currentTarget.select()}
+              />
+              <p className="server-admin-muted">
+                {t('serverAdmin.accounts.detail.recoveryProofExpires')}:{' '}
+                {formatDate(recoveryExpiry)}
+              </p>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => void navigator.clipboard?.writeText(recoveryUrl)}
+              >
+                {t('serverAdmin.accounts.detail.copyRecoveryProof')}
+              </button>
+            </div>
+          ) : null}
+        </>
+      )}
 
       {actionError ? (
         <p className="status status-error" role="alert">
@@ -424,10 +442,19 @@ function AccountDetail({
 
       <div className="server-admin-danger-zone">
         <strong>{t('serverAdmin.accounts.detail.deletionTitle')}</strong>
-        {account.deletionStatus === 'PENDING' ||
-        account.deletionStatus === 'COMPLETED' ? (
+        {deleted ? (
           <p className="status status-warning" role="status">
-            {t('serverAdmin.accounts.detail.deletionNotice')}
+            {account.deletionStatus === 'COMPLETED'
+              ? t('serverAdmin.accounts.detail.deletionCompleted', {
+                  date: formatDate(account.deletionCompletedAt ?? null),
+                })
+              : account.deletionStatus === 'FAILED'
+                ? t('serverAdmin.accounts.detail.deletionFailed', {
+                    date: formatDate(account.deletionFailedAt ?? null),
+                  })
+                : t('serverAdmin.accounts.detail.deletionPending', {
+                    date: formatDate(account.deletionAcceptedAt ?? null),
+                  })}
           </p>
         ) : (
           <>
@@ -476,7 +503,9 @@ export function ServerAdminAccountsPanel({
 }) {
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<'all' | 'active' | 'suspended'>('all');
+  const [status, setStatus] = useState<
+    'all' | 'active' | 'suspended' | 'deleted'
+  >('all');
   const [verification, setVerification] = useState<
     'all' | 'verified' | 'unverified'
   >('all');
@@ -578,6 +607,9 @@ export function ServerAdminAccountsPanel({
               <option value="suspended">
                 {t('serverAdmin.accounts.status.suspended')}
               </option>
+              <option value="deleted">
+                {t('serverAdmin.accounts.status.deleted')}
+              </option>
             </select>
           </label>
           <label>
@@ -645,17 +677,7 @@ export function ServerAdminAccountsPanel({
                         </span>
                       </td>
                       <td>{account.primaryEmail ?? '–'}</td>
-                      <td>
-                        {account.deletionStatus === 'PENDING'
-                          ? t('serverAdmin.accounts.status.pendingDeletion')
-                          : account.deletionStatus === 'COMPLETED'
-                            ? t('serverAdmin.accounts.status.deleted')
-                            : t(
-                                account.disabledAt
-                                  ? 'serverAdmin.accounts.status.suspended'
-                                  : 'serverAdmin.accounts.status.active',
-                              )}
-                      </td>
+                      <td>{t(accountStatusKey(account))}</td>
                       <td>
                         {t(
                           account.emailVerified

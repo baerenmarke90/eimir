@@ -73,6 +73,18 @@ export interface ServerAdminAccountDetail {
     deletionAcceptedAt?: Date | null;
     /**
      * 
+     * @type {Date}
+     * @memberof ServerAdminAccountDetail
+     */
+    deletionCompletedAt?: Date | null;
+    /**
+     * 
+     * @type {Date}
+     * @memberof ServerAdminAccountDetail
+     */
+    deletionFailedAt?: Date | null;
+    /**
+     * 
      * @type {AccountDeletionStatus}
      * @memberof ServerAdminAccountDetail
      */
@@ -190,6 +202,8 @@ export function ServerAdminAccountDetailFromJSONTyped(json: any, ignoreDiscrimin
         'authMethods': json['authMethods'],
         'createdAt': (new Date(json['createdAt'])),
         'deletionAcceptedAt': json['deletionAcceptedAt'] === undefined ? undefined : json['deletionAcceptedAt'] === null ? null : (new Date(json['deletionAcceptedAt'])),
+        'deletionCompletedAt': json['deletionCompletedAt'] === undefined ? undefined : json['deletionCompletedAt'] === null ? null : (new Date(json['deletionCompletedAt'])),
+        'deletionFailedAt': json['deletionFailedAt'] === undefined ? undefined : json['deletionFailedAt'] === null ? null : (new Date(json['deletionFailedAt'])),
         'deletionStatus': json['deletionStatus'] === undefined ? undefined : json['deletionStatus'] === null ? null : AccountDeletionStatusFromJSON(json['deletionStatus']),
         'disabledAt': (json['disabledAt'] == null ? null : new Date(json['disabledAt'])),
         'displayName': json['displayName'],
@@ -222,6 +236,8 @@ export function ServerAdminAccountDetailToJSONTyped(value?: ServerAdminAccountDe
         'authMethods': value['authMethods'],
         'createdAt': value['createdAt'].toISOString(),
         'deletionAcceptedAt': value['deletionAcceptedAt'] == null ? value['deletionAcceptedAt'] : value['deletionAcceptedAt'].toISOString(),
+        'deletionCompletedAt': value['deletionCompletedAt'] == null ? value['deletionCompletedAt'] : value['deletionCompletedAt'].toISOString(),
+        'deletionFailedAt': value['deletionFailedAt'] == null ? value['deletionFailedAt'] : value['deletionFailedAt'].toISOString(),
         'deletionStatus': AccountDeletionStatusToJSON(value['deletionStatus']),
         'disabledAt': value['disabledAt'] == null ? value['disabledAt'] : value['disabledAt'].toISOString(),
         'displayName': value['displayName'],

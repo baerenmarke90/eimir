@@ -4966,11 +4966,12 @@
       "next": "Next",
       "status": {
         "label": "Status",
-        "all": "All",
+        "all": "All (excluding deleted)",
         "active": "Active",
         "suspended": "Suspended",
         "pendingDeletion": "Deletion pending",
-        "deleted": "Deleted"
+        "deleted": "Deleted",
+        "deletionFailed": "Deletion failed"
       },
       "verification": {
         "label": "Email verification",
@@ -5018,7 +5019,9 @@
         "confirmOperatorRecovery": "Create a single-use operator recovery link? Existing open recovery links for this account will become invalid.",
         "deletionTitle": "Delete account",
         "deletionWarning": "Deletion irreversibly removes the account and cleans up private data according to the authoritative #520 lifecycle.",
-        "deletionNotice": "Irreversible account deletion has started for this account (#520).",
+        "deletionPending": "Deletion was accepted on {{date}} and is completing in the background. The account can no longer be used.",
+        "deletionCompleted": "Deleted on {{date}}. Personal and sign-in data are removed. A record without personal details remains for the shared history.",
+        "deletionFailed": "A cleanup step failed on {{date}}. The account stays locked and unusable. Details are listed under failed jobs.",
         "deleteAccount": "Delete account"
       },
       "deletionDialog": {

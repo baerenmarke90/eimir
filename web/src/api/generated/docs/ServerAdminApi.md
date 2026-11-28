@@ -1084,7 +1084,7 @@ async function example() {
   const body = {
     // string (optional)
     query: query_example,
-    // 'all' | 'active' | 'suspended' (optional)
+    // 'all' | 'active' | 'suspended' | 'deleted' (optional)
     status: status_example,
     // 'all' | 'verified' | 'unverified' (optional)
     verification: verification_example,
@@ -1112,7 +1112,7 @@ example().catch(console.error);
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
 | **query** | `string` |  | [Optional] [Defaults to `undefined`] |
-| **status** | `all`, `active`, `suspended` |  | [Optional] [Defaults to `&#39;all&#39;`] [Enum: all, active, suspended] |
+| **status** | `all`, `active`, `suspended`, `deleted` |  | [Optional] [Defaults to `&#39;all&#39;`] [Enum: all, active, suspended, deleted] |
 | **verification** | `all`, `verified`, `unverified` |  | [Optional] [Defaults to `&#39;all&#39;`] [Enum: all, verified, unverified] |
 | **limit** | `number` |  | [Optional] [Defaults to `50`] |
 | **offset** | `number` |  | [Optional] [Defaults to `0`] |
@@ -1647,6 +1647,7 @@ No authorization required
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **403** | The caller is authenticated but is not authorized for this operation. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

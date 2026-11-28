@@ -1,6 +1,6 @@
 # eimir. Motion Contract
 
-**Version:** 1.22 (2026-11-28)<br>
+**Version:** 1.25 (2026-11-28)<br>
 **Status:** Normative lower-level design-system contract under Product Reference v1 once merged. Library decision **approved by the Product Owner on 2026-11-19**: an in-house motion layer on WAAPI and CSS for all primitives, Gesture follow included; Motion is not adopted ([6.6](#66-product-owner-decisions)). Haptics are approved ([4.10](#410-haptics)).<br>
 **Scope:** Canonical Web/Mobile Web UI, including the Capacitor-delivered Android app<br>
 **Issue:** [#2067](https://github.com/baerenmarke90/eimir/issues/2067)<br>
@@ -495,7 +495,7 @@ These are not primitives. They are areas whose motion is defined by their own cl
     - `motion/playback.css`: the recap film, the recap reader and the garden playback, loaded with them;
     - `motion/story-playback.css`: the Momente story.
 
-    The Playback property exception in M6 is used by the film's scene cuts: `clip-path` for iris, wipe, shift, split and match, and `filter: blur()` for blur, focus and the caption word reveal. Each runs on one layer at a time, the scene spread or the caption.
+    The Playback property exception in M6 is used by the film's scene cuts: `clip-path` for iris, wipe, shift, split and match, and `filter: blur()` for blur, focus and the caption word reveal. Each runs on one layer at a time, the scene spread or the caption. The recap reader's quote marker (#2373, Product Owner 2026-11-28) also uses it: after the highlight scene has entered (`--duration-context`), a `clip-path` wipe from the inline start uncovers a soft marker behind the partner's quoted words over `--duration-marker-sweep` (keyframes `eimir-motion-recap-marker-sweep`). The reason is that the marker must follow every line wrap, and `transform` cannot reveal a multi-line inline background. The wipe runs on one layer, the marker copy behind the words, which CSS draws from `data-text`, so the words exist once in the accessibility tree. It plays again whenever the scene is shown, and reduced motion shows the marker at once.
 
     Story playback uses it once more, for the rediscovery lead (`story.featuredKicker`) on Momente › Erinnerungen ([#2192](https://github.com/baerenmarke90/eimir/issues/2192)). The lead plays as the story's first slide, and its photo develops like instant film. It goes from a dark, colourless, soft print to the photo with `filter` (brightness, saturation, sepia, contrast, blur) and opacity, on the one photo layer:
     - **Reason:** an opacity fade from a faint print could not be seen as developing on the device, and the Product Owner asked for a visible develop.
@@ -718,7 +718,7 @@ Legend:
 | Onboarding, move-in and first-run empty states (#1907 I1, #2048) | Enter once per identity. Empty states are static. The first item added is Enter `rise` plus Feedback `success` | covered |
 | Paywall and purchase success (`ProPaywallPage.tsx`) | The paywall opens with Enter. Purchase success is Feedback `success` only after the store confirms it. No celebration Moment, so monetization stays calm (Freemium matrix, presentation rules) | rule |
 | Important days and birthdays (`OccasionMark.tsx`, `ImportantDatesPanel.tsx`, Wir) | Enter for the mark. On Wir, the approved **important-day Moment** (4.7, [#2072](https://github.com/baerenmarke90/eimir/issues/2072)) plays once per local day per device, after the opening. It never surfaces private or surprise dates. A "Gratulieren" action is out of scope by PO decision (2026-11-20) | covered |
-| Insights, recaps and the recap film | Enter `draw`/`fade` for insights; Playback for the recap film | covered |
+| Insights, recaps and the recap film | Enter `draw`/`fade` for insights; Playback for the recap film and the reader's quote marker (#2373, 4.8) | covered |
 | Wish selection draw (`WishSelection.css` roll) | A Loading-like draw that runs only until the result is known, then Feedback `success`. Instant with reduced motion | rule |
 | Games: garden, Heart Hunt, Picture Ping-Pong, Who of us, wish detective, remote games | Scenes domain | covered |
 | Voice notes and audio playback (`VoiceNotePlayer.tsx`) | The slider is Gesture follow. Playback progress updates the position directly, without per-tick animation | rule |
@@ -1199,6 +1199,7 @@ In addition to Motion Guideline section 10, a pull request with new or changed m
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 1.25 | 2026-11-28 | Recap reader quote marker (#2373, Product Owner 2026-11-28): a Playback `clip-path` wipe on the marker behind a highlight's quoted words (4.8), and the token `motion.duration.markerSweep`. |
 | 1.22 | 2026-11-28 | Important-day Moment (#2370, Product Owner 2026-11-28): round days together become an occasion, and the days-together count rolls into place on the anniversary and on round days (4.7, keyframes `eimir-motion-value-roll`). |
 | 1.21 | 2026-11-26 | Fluid tab switching: hidden kept tabs skip rendering with `content-visibility: hidden` instead of `display: none`, so their CSS animations never restart and the per-reveal `getAnimations()` settle is gone (M4). While the pages slide sideways, the bar and the Wir marks pause their backdrop blur (Product Owner, 2026-11-26). The root-tab entrance never plays in a tab that a swipe reveals or that is built in the background, and a segment panel's fade no longer restarts when the entrance ends (the cold-start blink on Planen). Enter `module`: one entrance for every module on every page, with the tokens `motion.duration.moduleEnter` and `motion.module.rise` (Product Owner, 2026-11-26). |
 | 1.20 | 2026-11-26 | Pro showcase (#2310): four decorative Ambient scenes on the Pro paywall (4.5). Their keyframes and roles are in `motion/pro-showcase.css`; they run finite cycles, pause in place while they are not current or not seen, and are absent with reduced motion (M8). |

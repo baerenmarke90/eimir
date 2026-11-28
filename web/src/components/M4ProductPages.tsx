@@ -38,6 +38,7 @@ import { memoryPreviewTitle } from '../client/memoryProduct';
 import {
   notificationsListQueryKey,
   notificationUnreadCountQueryKey,
+  wirNoticesQueryKey,
 } from '../client/notificationQueries';
 import {
   beginNotificationRead,
@@ -767,6 +768,13 @@ export function NotificationsProductPage({
             exact: true,
           }),
         );
+      // Reading everything also empties the Wir reel (#2345).
+      refreshes.push(
+        queryClient.invalidateQueries({
+          queryKey: wirNoticesQueryKey(submission.spaceId),
+          exact: true,
+        }),
+      );
       await Promise.all(refreshes);
     },
   });

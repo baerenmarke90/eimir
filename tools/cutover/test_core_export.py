@@ -827,7 +827,7 @@ class ForbiddenTextTest(ExportTestCase):
         result = self.gates(self.export(config), config)["forbidden-text"]
         self.assertTrue(result.failed)
         self.assertIn(
-            ".github/workflows/ci.yml contains 'eimir-kvm-pr' (operator-runner-label)", result.details
+            ".github/workflows/ci.yml contains 'eimir-kvm-pr' 1 times (operator-runner-label)", result.details
         )
 
     def test_the_transform_removes_the_label_and_the_gate_passes(self) -> None:
@@ -868,7 +868,9 @@ class RealSplitConfigTest(unittest.TestCase):
         for path in ("scripts/supply_chain_state.py", "tools/ci/test_supply_chain_state.py"):
             self.assertTrue(pro.exported(path) and core.exported(path), path)
             self.assertTrue(any(rule.matches(path) for rule in pro.overlaps), path)
-        self.assertEqual(core_export.cheap_gates_for(pro), ("coverage", "licence", "secret-scan"))
+        self.assertEqual(
+            core_export.cheap_gates_for(pro), ("coverage", "licence", "forbidden-text", "secret-scan")
+        )
 
     def test_the_real_core_transform_removes_the_operator_runner_from_ci(self) -> None:
         core = core_export.load_config(REAL_ALLOWLIST)
@@ -930,6 +932,202 @@ class TwoTreeDryRunTest(ProTreeTestCase):
             ]
         )
         self.assertEqual(code, 2)
+
+
+IDENTITY = textwrap.dedent(
+    """
+    [identity]
+    source = "owner/old"
+    archive = "owner/old-archive"
+    issue_map = "issue-map.toml"
+
+    [[rewrite]]
+    id = "contact"
+    reason = "living repository"
+    paths = ["backend/src/**"]
+    old = "github.com/owner/old)"
+    new = "github.com/owner/old-core)"
+
+    [[rewrite]]
+    id = "links"
+    reason = "history or moved"
+    kind = "issue-links"
+    paths = ["**"]
+
+    [[rewrite]]
+    id = "open-tasks"
+    reason = "qualified tracker"
+    kind = "issue-refs"
+    paths = ["docs/STATUS.md"]
+    lines = '^- \\[ \\] '
+
+    [[rewrite]]
+    id = "history"
+    reason = "everything else in docs"
+    kind = "regex"
+    paths = ["docs/**"]
+    except = ["docs/kept.md"]
+    pattern = '(?<=owner/)old(?![\\w-])'
+    replacement = 'old-archive'
+    minimum = 2
+    """
+)
+
+IDENTITY_GATE = textwrap.dedent(
+    """
+    [[gates.forbidden_text]]
+    id = "old-repository-name"
+    pattern = 'owner/old(?![\\w-])'
+    paths = ["**"]
+    reason = "never point at the archive by accident"
+    [[gates.forbidden_text.allow]]
+    path = "docs/kept.md"
+    reason = "historical record"
+    [[gates.forbidden_text.allow]]
+    path = "docs/gone.md"
+    reason = "stale on purpose"
+    """
+)
+
+IDENTITY_FILES = {
+    "backend/src/eimir/agent.py": 'AGENT = "app (+https://github.com/owner/old)"\n',
+    "docs/links.md": (
+        "See https://github.com/owner/old/issues/12 and https://github.com/owner/old/pull/5,\n"
+        "the archive https://github.com/owner/old-archive/issues/3, the run\n"
+        "https://github.com/owner/old/actions/runs/9 and `owner/old#7`.\n"
+    ),
+    "docs/STATUS.md": (
+        "- [ ] **#5:** moved\n- [ ] **#8:** open, see owner/x#4 and &#123;\n- [x] **#9:** done\n"
+    ),
+    "docs/kept.md": "Renamed to owner/old on a date.\n",
+}
+
+
+class IdentityTestCase(ExportTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.commit(IDENTITY_FILES)
+        (self.temp / "issue-map.toml").write_text(
+            'schema = 1\n[moved]\n"5" = "owner/new#2"\n', encoding="utf-8"
+        )
+        self.identity_config_text = CONFIG.replace("[gates]", IDENTITY + "\n[gates]") + IDENTITY_GATE
+
+    def identity_config(self, text: str | None = None) -> core_export.Config:
+        return self.config(text or self.identity_config_text)
+
+
+class IdentityRewriteTest(IdentityTestCase):
+    def test_rules_rewrite_living_and_historical_references(self) -> None:
+        manifest = self.export(self.identity_config())
+        links = (self.out / "docs/links.md").read_text(encoding="utf-8")
+        self.assertIn("https://github.com/owner/old-archive/issues/12", links)
+        self.assertIn("https://github.com/owner/new/issues/2", links)  # moved by the issue map
+        self.assertIn("https://github.com/owner/old-archive/issues/3", links)  # already the archive
+        self.assertIn("https://github.com/owner/old-archive/actions/runs/9", links)
+        self.assertIn("`owner/old-archive#7`", links)
+        self.assertNotIn("owner/old/", links)
+        self.assertEqual(
+            (self.out / "backend/src/eimir/agent.py").read_text(encoding="utf-8"),
+            'AGENT = "app (+https://github.com/owner/old-core)"\n',
+        )
+        self.assertEqual(manifest["rewrites"], {"contact": 1, "links": 2, "open-tasks": 2, "history": 2})
+        item = next(item for item in manifest["files"] if item["path"] == "docs/links.md")
+        self.assertEqual(item["rewrites"], {"links": 2, "history": 2})
+
+    def test_open_task_references_are_qualified_only_on_open_task_lines(self) -> None:
+        self.export(self.identity_config())
+        self.assertEqual(
+            (self.out / "docs/STATUS.md").read_text(encoding="utf-8"),
+            "- [ ] **owner/new#2:** moved\n- [ ] **owner/old-archive#8:** open, see owner/x#4 and &#123;\n"
+            "- [x] **#9:** done\n",
+        )
+
+    def test_excluded_files_are_left_alone(self) -> None:
+        self.export(self.identity_config())
+        self.assertEqual(
+            (self.out / "docs/kept.md").read_text(encoding="utf-8"), "Renamed to owner/old on a date.\n"
+        )
+
+    def test_a_rule_below_its_minimum_fails_the_export(self) -> None:
+        text = self.identity_config_text.replace("minimum = 2", "minimum = 3")
+        with self.assertRaisesRegex(ExportError, "history replaced 2 occurrences, expected at least 3"):
+            self.export(self.identity_config(text))
+
+    def test_the_gate_fails_on_a_leftover_and_reports_allowed_and_stale_files(self) -> None:
+        self.commit({"docs/new.md": "Clone https://github.com/owner/old.git\n"})
+        text = self.identity_config_text.replace(
+            'except = ["docs/kept.md"]', 'except = ["docs/kept.md", "docs/new.md"]'
+        )
+        config = self.identity_config(text)
+        result = core_export.gate_forbidden_text(self.out, self.export(config), config)
+        self.assertTrue(result.failed)
+        self.assertIn(
+            "docs/new.md contains 'owner/old(?![\\\\w-])' 1 times (old-repository-name)", result.details
+        )
+        self.assertIn("old-repository-name: 1 left in docs/kept.md (historical record)", result.warnings)
+        self.assertIn(
+            "old-repository-name: allowance no longer needed (or file not exported): docs/gone.md",
+            result.warnings,
+        )
+
+    def test_a_clean_tree_passes_the_gate(self) -> None:
+        config = self.identity_config()
+        result = core_export.gate_forbidden_text(self.out, self.export(config), config)
+        self.assertEqual(result.status, "passed", result.details)
+
+    def test_a_malformed_issue_map_is_refused(self) -> None:
+        for content, message in (
+            ('schema = 1\n[moved]\n"5" = "new#2"\n', "must map to 'owner/repo#N'"),
+            ('schema = 1\n[moved]\n"x" = "owner/new#2"\n', "is not an issue number"),
+            ("[moved]\n", "schema must be 1"),
+        ):
+            with self.subTest(content=content):
+                (self.temp / "issue-map.toml").write_text(content, encoding="utf-8")
+                with self.assertRaisesRegex(ExportError, message):
+                    self.identity_config()
+
+    def test_identity_kinds_need_the_identity_table(self) -> None:
+        text = self.identity_config_text.replace(
+            '[identity]\nsource = "owner/old"', "[notidentity]\nsource = 1"
+        )
+        with self.assertRaises(ExportError):
+            self.identity_config(text)
+
+
+class RealIdentityConfigTest(unittest.TestCase):
+    def test_the_real_identity_rules_load_with_an_empty_issue_map(self) -> None:
+        core = core_export.load_config(REAL_ALLOWLIST)
+        pro = core_export.load_config(REAL_ALLOWLIST.with_name("pro-allowlist.toml"))
+        for config in (core, pro):
+            self.assertEqual(config.identity.source, "baerenmarke90/eimir")
+            self.assertEqual(config.identity.archive, "baerenmarke90/eimir-archive")
+            self.assertEqual(config.identity.moved, {})
+            self.assertIn("old-repository-name", {rule.id for rule in config.forbidden_text})
+
+    def test_the_real_rules_on_sample_lines(self) -> None:
+        core = core_export.load_config(REAL_ALLOWLIST)
+        samples = {
+            "docs/IMPLEMENTATION-STATUS.md": (
+                "- [ ] **#2148:** deferred, see https://github.com/baerenmarke90/eimir/issues/2148\n",
+                "- [ ] **baerenmarke90/eimir-archive#2148:** deferred, see "
+                "https://github.com/baerenmarke90/eimir-archive/issues/2148\n",
+            ),
+            "docs/SELF-HOSTING.md": (
+                'gh release verify "v1" --repo baerenmarke90/eimir\n',
+                'gh release verify "v1" --repo baerenmarke90/eimir-core\n',
+            ),
+            "docs/product/x.md": (
+                "Run https://github.com/baerenmarke90/eimir/actions/runs/1"
+                " on ghcr.io/baerenmarke90/eimir-web.\n",
+                "Run https://github.com/baerenmarke90/eimir-archive/actions/runs/1"
+                " on ghcr.io/baerenmarke90/eimir-web.\n",
+            ),
+        }
+        for path, (before, after) in samples.items():
+            with self.subTest(path=path):
+                totals: dict[str, int] = {}
+                data, _ = core_export.rewrite_content(core, path, before.encode(), totals)
+                self.assertEqual(data.decode(), after)
 
 
 class PublisherRequirementTest(ProTreeTestCase):
@@ -1032,6 +1230,95 @@ class RealSplitCoverageTest(unittest.TestCase):
         for path in required:
             self.assertTrue(pro.exported(path), path)
         self.assertEqual(pro.same_project, "backend/pyproject.toml")
+
+
+class StatusDriftAcceptanceTest(unittest.TestCase):
+    """Rehearsal step 4: Reuse Review failed because status_drift queried #2148 in the new repository."""
+
+    ROOT = REAL_ALLOWLIST.parents[2]
+
+    def test_open_tasks_of_the_exported_status_are_not_checked_in_eimir_core(self) -> None:
+        sys.path.insert(0, str(self.ROOT / "tools/ci"))
+        try:
+            import status_drift
+        finally:
+            sys.path.pop(0)
+        core = core_export.load_config(REAL_ALLOWLIST)
+        path = "docs/IMPLEMENTATION-STATUS.md"
+        source = (self.ROOT / path).read_text(encoding="utf-8")
+        before = status_drift.open_issue_references(source)
+        self.assertTrue(before, "the status document lists open tasks")
+        exported, _ = core_export.rewrite_content(core, path, source.encode("utf-8"), {})
+        after = status_drift.open_issue_references(exported.decode("utf-8"))
+        self.assertEqual([number for _, number in after], [number for _, number in before])
+        self.assertEqual({repository for repository, _ in after}, {core.identity.archive})
+
+        def no_query(number: int) -> str:
+            raise AssertionError(f"#{number} must not be queried in eimir-core")
+
+        skipped: list[str] = []
+        errors = status_drift.validate_text(
+            Path(path),
+            exported.decode("utf-8"),
+            no_query,
+            tracker_repository="baerenmarke90/eimir-core",
+            skipped=skipped,
+        )
+        self.assertFalse([error for error in errors if "#" in error], errors)
+        self.assertEqual(len(skipped), len(after))
+
+
+class CiTestsGateTest(ExportTestCase):
+    GATE = textwrap.dedent(
+        """
+        ci_tests = ["scripts/test_*.py"]
+        [[gates.ci_tests_skip]]
+        path = "scripts/test_skipped.py"
+        reason = "needs docker"
+        [[gates.ci_tests_skip]]
+        path = "scripts/test_gone.py"
+        reason = "stale on purpose"
+        """
+    )
+
+    def config_with_gate(self) -> core_export.Config:
+        return self.config(
+            CONFIG.replace(
+                'openapi_contract = "backend/openapi.json"\n',
+                'openapi_contract = "backend/openapi.json"\n' + self.GATE,
+            )
+        )
+
+    def test_the_gate_is_configured_only_where_the_allow_list_names_tests(self) -> None:
+        self.assertNotIn("ci-tests", core_export.cheap_gates_for(self.config()))
+        self.assertIn("ci-tests", core_export.cheap_gates_for(self.config_with_gate()))
+        real = core_export.load_config(REAL_ALLOWLIST)
+        self.assertIn("ci-tests", core_export.cheap_gates_for(real))
+
+    @unittest.skipIf(os.name == "nt", "the gate needs a POSIX system")
+    def test_a_failing_ci_test_fails_and_a_skipped_one_is_reported(self) -> None:
+        self.commit(
+            {
+                # Runs inside the fresh one-commit repository of the gate.
+                "scripts/test_ok.py": "import subprocess\nsubprocess.run(['git', 'log', '-1'], check=True)\n",
+                "scripts/test_bad.py": "raise SystemExit('broken in the exported tree')\n",
+                "scripts/test_skipped.py": "raise SystemExit(1)\n",
+            }
+        )
+        config = self.config_with_gate()
+        result = core_export.gate_ci_tests(self.out, self.export(config), config, self.work)
+        self.assertTrue(result.failed)
+        self.assertEqual(result.details, ["scripts/test_bad.py failed: broken in the exported tree"])
+        self.assertIn("not run: scripts/test_skipped.py (needs docker)", result.warnings)
+        self.assertIn(
+            "skip entry no longer needed (or file not exported): scripts/test_gone.py", result.warnings
+        )
+
+    @unittest.skipUnless(os.name == "nt", "Windows only")
+    def test_on_windows_the_gate_is_skipped_with_its_reason(self) -> None:
+        config = self.config_with_gate()
+        result = core_export.gate_ci_tests(self.out, self.export(config), config, self.work)
+        self.assertEqual(result.status, "skipped")
 
 
 if __name__ == "__main__":

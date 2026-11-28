@@ -106,6 +106,14 @@ SELF_VALIDATING_TOOLING_OWNERS = {
     "scripts/test_android_adaptive_icon_resources.py": ANDROID_LAUNCHER_WORKFLOW,
     "scripts/test_android_launcher_identity.py": ANDROID_LAUNCHER_WORKFLOW,
 }
+# Decision 0019: the public eimir-core repository does not carry the private
+# release pipeline. An owner workflow that is not part of this checkout cannot
+# validate its tooling, so its entries fall away there; those paths then fail
+# closed like any unknown path. In this repository every owner is present.
+_ROOT = Path(__file__).resolve().parents[2]
+SELF_VALIDATING_TOOLING_OWNERS = {
+    path: owner for path, owner in SELF_VALIDATING_TOOLING_OWNERS.items() if (_ROOT / owner).is_file()
+}
 
 # These exact tools are tested by the unconditional Change Detection preflight,
 # before it classifies any diff. They do not build or configure product runtimes.
@@ -450,6 +458,9 @@ LABEL_GATED_WORKFLOW_EXACT = (
     RELEASE_EVIDENCE_WORKFLOW,
     ".github/workflows/web-browser-qa.yml",
 )
+# As above: a label-gated workflow that is not part of this checkout (the
+# release pipeline in eimir-core, Decision 0019) has no definition to protect.
+LABEL_GATED_WORKFLOW_EXACT = tuple(path for path in LABEL_GATED_WORKFLOW_EXACT if (_ROOT / path).is_file())
 
 
 def _normalized(paths: Iterable[str]) -> list[str]:

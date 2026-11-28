@@ -92,6 +92,11 @@ reason = "The release evidence and publish workflows read it to record that atte
 patterns = ["scripts/supply_chain_state.py", "tools/ci/test_supply_chain_state.py"]
 
 [[include]]
+id = "shared-release-manifest"
+reason = "The release manifest builder and its test: the release candidate and publisher use them here, and the Core CI uses them for the project-identity scan and the Cloud topology tests."
+patterns = ["scripts/release_manifest.py", "tools/ci/test_release_manifest.py"]
+
+[[include]]
 id = "pro-provenance"
 reason = "The provenance sections of the editorial Pro catalogs (decision D4); the transform below keeps only them."
 patterns = ["PROVENANCE.md"]
@@ -115,6 +120,11 @@ patterns = ["scripts/supply_chain_state.py", "tools/ci/test_supply_chain_state.p
 id = "uv-workspace"
 reason = "Two versions of one pair: the Core tree carries the Core-only workspace (transformed, re-locked), the Pro tree the official workspace with the plugin members. Their [project] tables are equal (checked by the split gate)."
 patterns = ["backend/pyproject.toml", "backend/uv.lock"]
+
+[[overlap]]
+id = "shared-release-manifest"
+reason = "Same files in both repositories: Core tests read them, the private release pipeline runs them."
+patterns = ["scripts/release_manifest.py", "tools/ci/test_release_manifest.py"]
 
 [[overlap]]
 id = "provenance-split"
@@ -186,6 +196,34 @@ private repository.
 """
 
 # --------------------------------------------------------------------------
+# Repository identity (P5), as in core-allowlist.toml
+# --------------------------------------------------------------------------
+
+[identity]
+source = "baerenmarke90/eimir"
+archive = "baerenmarke90/eimir-archive"
+issue_map = "issue-map.toml"
+
+[[rewrite]]
+id = "issue-links"
+reason = "Issue and pull request links point at the archive, or at the new item listed in issue-map.toml (the Pro and operator READMEs, the photo-source acceptance issue of the Google setup state)."
+kind = "issue-links"
+paths = ["**"]
+minimum = 1
+
+[[rewrite]]
+id = "catalog-history-sources"
+reason = "The source_url of the archived and the current daily-saying catalog names a file of the old history."
+kind = "regex"
+paths = [
+  "backend/pro/src/eimir_pro/quotes/daily_sayings.json",
+  "backend/pro/archive/quotes/daily_sayings.before-ai-sayings-2026-11-18.json",
+]
+pattern = '(?<=github\.com/baerenmarke90/)eimir(?=/blob/)'
+replacement = 'eimir-archive'
+minimum = 2
+
+# --------------------------------------------------------------------------
 # Gates
 # --------------------------------------------------------------------------
 
@@ -200,3 +238,21 @@ path = "README.md"
 path = "PROVENANCE.md"
 contains = ["## Date-idea catalog and images", "## Daily Saying catalog"]
 lacks = ["## Contributors", "PolyForm"]
+
+[[gates.forbidden_text]]
+id = "old-repository-name"
+pattern = 'baerenmarke90/eimir(?![\w-])'
+paths = ["**"]
+reason = "The private tree names the old repository only where its publisher still needs the monorepository default."
+[[gates.forbidden_text.allow]]
+path = ".github/workflows/release-publish.yml"
+reason = "test-checked-main defaults EIMIR_TEST_CHANNEL_REPOSITORY to the monorepository (test channel publisher, P2); set the variable in eimir-pro."
+[[gates.forbidden_text.allow]]
+path = "scripts/test_deployment_channel.py"
+reason = "DEFAULT_REPOSITORY reproduces the monorepository behaviour until the variable is set (P2)."
+[[gates.forbidden_text.allow]]
+path = "tools/ci/test_release_publish_workflow.py"
+reason = "Asserts the test-checked-main default above (P2)."
+[[gates.forbidden_text.allow]]
+path = "tools/ci/test_test_deployment_channel.py"
+reason = "Tests the default and the rejected look-alike names of the publishing repository (P2)."

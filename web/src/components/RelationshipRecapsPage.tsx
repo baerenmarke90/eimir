@@ -66,6 +66,12 @@ import { resolvedLocale, useTranslation } from '../i18n';
 import { languageName, resolveSupportedLocale } from '../i18n/locale';
 import { AutoLoadMore } from './AutoLoadMore';
 import { EimirIcon } from './EimirIcon';
+import {
+  ItemMenuOption,
+  ItemMenuSheet,
+  ItemMenuTrigger,
+  leaveItemMenu,
+} from './ItemActions';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import type { ProfilePageProps } from './ProfilePage';
@@ -75,6 +81,7 @@ import { RecapMedia, type RecapMediaProps } from './RecapMedia';
 import { RecapTasks } from './RecapTasks';
 import { type RecapPreload, useRecapPreload } from './recapPreload';
 import { SecureSurface } from './SecureSurface';
+import type { ShortTaskSheetHandle } from './ShortTaskSheet';
 import { BackSlotHost, TaskBackButton } from './TaskBackButton';
 import { UiState } from './UiState';
 import './RelationshipRecapsPage.css';
@@ -540,6 +547,9 @@ function RecapReader({
   const location = useLocation();
   const { requestReturn, resolveOrigin } = useTaskOrigin();
   const [task, setTask] = useState<'selection' | 'reflection' | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuTrigger = useRef<HTMLButtonElement>(null);
+  const menuSheet = useRef<ShortTaskSheetHandle>(null);
   const started = useRef(Date.now());
   const key = ['relationship-recap', props.account.id, props.spaceId, recapId];
   const query = useQuery({
@@ -583,6 +593,10 @@ function RecapReader({
     capability: 'relationship.passport',
   });
   const value = query.data;
+  // The selection stays adjustable until the period is retained.
+  const canAdjust = Boolean(
+    capability.data && value?.status === 'READY' && !value.savedAt,
+  );
   // A monthly or yearly film edition plays its timed scenes; every other
   // edition keeps the established reader unchanged.
   const filmScenes = useMemo(
@@ -680,6 +694,7 @@ function RecapReader({
         : !pageMedia || settledMedia === mediaKey),
     blocked: Boolean(
       task ||
+        menuOpen ||
         query.isError ||
         (value &&
           value.status !== 'PENDING' &&
@@ -929,7 +944,22 @@ function RecapReader({
           )}
         </TaskBackButton>
         {value ? (
-          <span>{recapPeriodLabel(value, resolvedLocale())}</span>
+          <span className="recap-reader-top-end">
+            <span>{recapPeriodLabel(value, resolvedLocale())}</span>
+            {/* Page actions sit in the shared three-dot menu, like every
+                other detail page; own words stay on the closing page. */}
+            {canAdjust ? (
+              <ItemMenuTrigger
+                triggerRef={menuTrigger}
+                label={t('recaps.menu')}
+                open={menuOpen}
+                onOpen={() => {
+                  playback.pause();
+                  setMenuOpen(true);
+                }}
+              />
+            ) : null}
+          </span>
         ) : null}
       </div>
       {query.isPending ? (
@@ -1316,21 +1346,27 @@ function RecapReader({
                   {t('recaps.gestureHint')}
                 </p>
               ) : null}
-              {/* Own words live on the closing page only; the selection stays
-                  editable from every page until the period is retained. */}
-              {capability.data && !value.savedAt ? (
-                <div className="recap-reader-tools">
-                  <button
-                    type="button"
-                    className="recap-text-button"
-                    onClick={() => setTask('selection')}
-                  >
-                    {t('recaps.edit')}
-                  </button>
-                </div>
-              ) : null}
             </>
           )}
+          <ItemMenuSheet
+            open={menuOpen && canAdjust}
+            title={recapPeriodLabel(value, resolvedLocale())}
+            restoreFocusRef={menuTrigger}
+            sheetRef={menuSheet}
+            onClose={() => setMenuOpen(false)}
+          >
+            <ItemMenuOption
+              icon="pen"
+              title={t('recaps.edit')}
+              onClick={() =>
+                leaveItemMenu(
+                  menuSheet,
+                  () => setTask('selection'),
+                  () => setMenuOpen(false),
+                )
+              }
+            />
+          </ItemMenuSheet>
           <RecapTasks
             key={`${recapId}:${task}`}
             task={task}

@@ -132,6 +132,7 @@ export default {
     PLAN: 'Gemeinsam erlebt',
   },
   edit: 'Auswahl anpassen',
+  menu: 'Menü des Rückblicks',
   selectionTitle: 'Was gehört für euch dazu?',
   selectionBody:
     'Wählt bis zu 24 gemeinsam sichtbare Inhalte aus diesem Zeitraum. Eure Auswahl bleibt bestehen.',

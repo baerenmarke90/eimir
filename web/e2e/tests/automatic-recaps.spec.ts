@@ -938,7 +938,7 @@ test('reduced motion opens Watch now paused and playback pauses for editing', as
   await page.getByRole('button', { name: copy.play, exact: true }).click();
   await page.clock.fastForward(90001);
   await expect(page).toHaveURL(/page=1/);
-  await page.getByRole('button', { name: copy.edit, exact: true }).click();
+  await openSelection(page);
   await expect(page.getByRole('dialog')).toBeVisible();
   await expect(page.locator('.recap-reader')).toHaveAttribute(
     'data-playing',
@@ -1144,7 +1144,7 @@ test('selection, private draft, explicit sharing, automatic retention and withdr
     .getByRole('link', { name: new RegExp(copy.open) })
     .first()
     .click();
-  await page.getByRole('button', { name: copy.edit, exact: true }).click();
+  await openSelection(page);
   const selection = page.getByRole('dialog');
   await selection.getByRole('checkbox').last().uncheck();
   await selection.getByRole('button', { name: copy.apply }).click();
@@ -1173,7 +1173,7 @@ test('selection, private draft, explicit sharing, automatic retention and withdr
   await page.reload();
   await expect(page.getByText(copy.savedHelp)).toBeVisible();
   await expect(
-    page.getByRole('button', { name: copy.edit, exact: true }),
+    page.getByRole('button', { name: copy.menu, exact: true }),
   ).toHaveCount(0);
   await expect(
     page.getByRole('button', { name: copy.ownWords, exact: true }).first(),
@@ -1212,7 +1212,7 @@ test('Free reads retained editions without preparing or exposing composition', a
   await expect(page.locator('.recap-spread h1')).toHaveText(
     fixtureCopy.previousHeadline,
   );
-  await expect(page.getByRole('button', { name: copy.edit })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: copy.menu })).toHaveCount(0);
   expect(state.prepares()).toBe(0);
 });
 
@@ -2047,6 +2047,15 @@ for (const [width, height, scheme, all] of [
 }
 
 /** The scene's stage name for evidence: its type, or 'climax' for the highlight. */
+/** Adjusting the selection lives in the reader's three-dot menu. */
+async function openSelection(page: Page) {
+  await page.getByRole('button', { name: copy.menu, exact: true }).click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: copy.edit, exact: true })
+    .click();
+}
+
 /** Turns to the reader's last page, where the closing offers own words. */
 async function openClosingPage(page: Page) {
   const next = page.getByRole('button', { name: copy.next, exact: true });

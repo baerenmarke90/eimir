@@ -260,6 +260,11 @@ a.recap-status-row:hover strong {
   font: var(--font-supporting-copy);
   color: var(--color-text-secondary);
 }
+.recap-reader-top-end {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
 .recap-progress {
   display: flex;
   gap: var(--space-1);
@@ -396,13 +401,6 @@ a.recap-status-row:hover strong {
   min-block-size: var(--touch-target-web);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-pill);
-}
-.recap-reader-tools {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--space-5);
-  margin-block: var(--space-5);
 }
 .recap-reflection {
   border-inline-start: 2px solid var(--color-shared);

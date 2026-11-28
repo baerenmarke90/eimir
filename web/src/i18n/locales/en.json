@@ -2985,6 +2985,7 @@
       "PLAN": "Experienced together"
     },
     "edit": "Adjust selection",
+    "menu": "Recap menu",
     "selectionTitle": "What belongs here for you?",
     "selectionBody": "Choose up to 24 mutually visible items from this period. Your selection is retained.",
     "selectionCount": "{{count}} of 24 selected",

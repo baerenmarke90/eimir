@@ -1,5 +1,4 @@
 const photoEdit = {
-  edit: 'Bearbeiten',
   editLabel: 'Foto bearbeiten: {{name}}',
   title: 'Foto bearbeiten',
   replacesSaved:

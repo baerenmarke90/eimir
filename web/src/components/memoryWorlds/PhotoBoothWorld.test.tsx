@@ -15,6 +15,7 @@ import { haptic } from '../../motion/haptics';
 import { entry } from './__fixtures__/stories';
 import { BOOTH_STYLE_KEY } from './boothStylePreference';
 import { boothStrips, PhotoBoothWorld } from './PhotoBoothWorld';
+import germanUi from '../../i18n/locales/de';
 
 vi.mock('../../motion/haptics', () => ({ haptic: vi.fn() }));
 
@@ -238,7 +239,7 @@ describe('PhotoBoothWorld modern', () => {
     const dialog = screen.getByRole('dialog', { name: SUMMER_2026 });
     expect(dialog.getAttribute('aria-modal')).toBe('true');
     const close = within(dialog).getByRole('button', {
-      name: booth.viewer.close,
+      name: germanUi.common.close,
     });
     expect(document.activeElement).toBe(close);
     // Every moment once, each one opening the diary.

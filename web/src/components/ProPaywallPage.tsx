@@ -210,7 +210,7 @@ export function ProPaywallPage({
           <h2>{t('proPaywall.active.title')}</h2>
           <p>{t('proPaywall.active.body')}</p>
           <button type="button" onClick={returnToOrigin}>
-            {t('proPaywall.active.continue')}
+            {t('common.continue')}
           </button>
           {channel.kind === 'available' && channel.manage ? (
             <button

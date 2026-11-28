@@ -135,6 +135,7 @@
   --motion-stagger-max-items: 4;
   --duration-gesture-sequence: 1800ms;
   --duration-connection-draw: 700ms;
+  --duration-handwriting: 3600ms;
   --duration-marker-sweep: 700ms;
   --duration-connection-beat: 450ms;
   --duration-connection-travel: 3200ms;
@@ -232,6 +233,7 @@
     --duration-stagger-module: 0ms;
     --duration-gesture-sequence: 0ms;
     --duration-connection-draw: 0ms;
+    --duration-handwriting: 0ms;
     --duration-marker-sweep: 0ms;
     --duration-connection-beat: 0ms;
     --duration-connection-travel: 0ms;

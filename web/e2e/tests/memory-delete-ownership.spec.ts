@@ -37,7 +37,7 @@ async function expectDeleteSheetContained(page: Page) {
 
 /** Deletion starts from the item menu of the detail page. */
 async function startMemoryDelete(page: Page) {
-  await deleteViaMenu(page, memoryProduct.delete);
+  await deleteViaMenu(page, de.common.delete);
   await expect(page.getByRole('alertdialog')).toBeVisible();
 }
 
@@ -189,7 +189,7 @@ for (const profile of [
       fullPage: true,
     });
     await confirm.click();
-    const pending = deleteSheetButton(page, memoryProduct.deleting);
+    const pending = deleteSheetButton(page, de.common.deleting);
     await expect(pending).toBeDisabled();
     await expect.poll(() => state.deletes.length).toBe(2);
     await captureScreenshot(page, info, `${prefix}-pending.png`, {

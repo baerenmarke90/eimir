@@ -1,7 +1,6 @@
 import { expect, type Page, test } from '@playwright/test';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import storyProducts from '../../src/i18n/locales/storyProducts';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import wishJourney from '../../src/i18n/locales/wishJourney';
 import AxeBuilder from '../support/axe';
 import { editViaMenu } from '../support/itemMenu';
@@ -15,6 +14,7 @@ import {
   SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
+import germanUi from '../../src/i18n/locales/de';
 
 const PLAN_ID = 'plan-picnic';
 const DESCRIPTION_URL = 'https://example.org/park';
@@ -263,7 +263,7 @@ for (const scenario of scenarios) {
       has: page.locator('.comment-author').getByText('Lea', { exact: true }),
     });
     await expect(
-      own.getByRole('button', { name: copy.edit, exact: true }),
+      own.getByRole('button', { name: germanUi.common.edit, exact: true }),
     ).toBeHidden();
     await expect(
       own
@@ -272,7 +272,7 @@ for (const scenario of scenarios) {
     ).toHaveCount(1);
     await own.getByLabel(copy.moreActions, { exact: true }).click();
     await expect(
-      own.getByRole('button', { name: copy.edit, exact: true }),
+      own.getByRole('button', { name: germanUi.common.edit, exact: true }),
     ).toBeVisible();
     if (scenario.width === 390 || scenario.width === 360)
       await captureScreenshot(
@@ -283,15 +283,17 @@ for (const scenario of scenarios) {
       );
     await own.getByLabel(copy.moreActions, { exact: true }).press('Escape');
     await expect(
-      own.getByRole('button', { name: copy.edit, exact: true }),
+      own.getByRole('button', { name: germanUi.common.edit, exact: true }),
     ).toBeHidden();
     await expect(
       own.getByLabel(copy.moreActions, { exact: true }),
     ).toBeFocused();
     await own.getByLabel(copy.moreActions, { exact: true }).click();
-    await own.getByRole('button', { name: copy.edit }).click();
+    await own.getByRole('button', { name: germanUi.common.edit }).click();
     await own.getByRole('textbox').fill(`Bring lunch and tea. ${COMMENT_URL}`);
-    await own.getByRole('button', { name: copy.save, exact: true }).click();
+    await own
+      .getByRole('button', { name: germanUi.common.save, exact: true })
+      .click();
     await expect(own.getByRole('textbox')).toHaveCount(0);
     await expect(
       own.getByLabel(copy.moreActions, { exact: true }),
@@ -342,10 +344,10 @@ for (const scenario of scenarios) {
       .locator('.comment-card')
       .filter({ hasText: 'Bring lunch and tea.' });
     await edited.getByLabel(copy.moreActions).click();
-    await edited.getByRole('button', { name: copy.delete }).click();
+    await edited.getByRole('button', { name: germanUi.common.delete }).click();
     await expect(panel.getByText(/Bring lunch and tea/)).toHaveCount(0);
     expect(state.calls.deletes).toBe(1);
-    await page.getByRole('button', { name: taskBoundary.back }).click();
+    await page.getByRole('button', { name: germanUi.common.back }).click();
     await expect(page).toHaveURL(/\/plan(?:#plans)?$/);
     await expect(page.locator('.planen-next-link')).toBeVisible();
     await expect(
@@ -405,10 +407,10 @@ test('Plan editing preserves a started reply and offline mode cannot submit it',
   const reply = panel.locator('form.comment-form').getByRole('textbox');
   await reply.click();
   await reply.fill('Keep this thought while checking our schedule.');
-  await editViaMenu(page, m5s3.common.edit);
+  await editViaMenu(page, germanUi.common.edit);
   await expect(panel).toBeHidden();
   await page
-    .getByRole('button', { name: taskBoundary.close, exact: true })
+    .getByRole('button', { name: germanUi.common.close, exact: true })
     .click();
   await expect(reply).toHaveValue(
     'Keep this thought while checking our schedule.',

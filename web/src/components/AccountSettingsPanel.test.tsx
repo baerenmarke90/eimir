@@ -7,6 +7,7 @@ import { AccountDeletionStatus } from '../api/generated/models/AccountDeletionSt
 import * as recentAuthentication from '../client/recentAuthentication';
 import accountSettings from '../i18n/locales/accountSettings';
 import { AccountSettingsPanel } from './AccountSettingsPanel';
+import germanUi from '../i18n/locales/de';
 
 function renderPanel(demoMode = false, onDeletionAccepted = vi.fn()) {
   const queryClient = new QueryClient({
@@ -34,7 +35,7 @@ function openConsequences() {
 
 async function completePasswordStepUp() {
   fireEvent.click(
-    screen.getByRole('button', { name: accountSettings.continueAction }),
+    screen.getByRole('button', { name: germanUi.common.continue }),
   );
   await screen.findByLabelText(accountSettings.reauthPasswordLabel);
   fireEvent.change(screen.getByLabelText(accountSettings.reauthPasswordLabel), {
@@ -94,7 +95,7 @@ describe('AccountSettingsPanel', () => {
 
     openConsequences();
     fireEvent.click(
-      screen.getByRole('button', { name: accountSettings.continueAction }),
+      screen.getByRole('button', { name: germanUi.common.continue }),
     );
     await screen.findByLabelText(accountSettings.reauthPasswordLabel);
     expect(deleteSpy).not.toHaveBeenCalled();
@@ -147,7 +148,7 @@ describe('AccountSettingsPanel', () => {
 
     openConsequences();
     fireEvent.click(
-      screen.getByRole('button', { name: accountSettings.continueAction }),
+      screen.getByRole('button', { name: germanUi.common.continue }),
     );
     await screen.findByText(accountSettings.reauthUnavailableTitle);
 

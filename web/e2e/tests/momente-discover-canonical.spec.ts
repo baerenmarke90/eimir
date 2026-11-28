@@ -273,7 +273,7 @@ async function walkStory(
   await page.locator('.momente-story-bubble').first().click();
   const viewer = page.locator('.momente-story-viewer');
   const open = viewer.getByRole('link', {
-    name: new RegExp(`^${story.open}:`),
+    name: new RegExp(`^${de.common.open}:`),
   });
   const hrefs: string[] = [];
   for (const title of titles) {

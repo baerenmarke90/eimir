@@ -1,7 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { expect, type Locator, type Page, test } from '@playwright/test';
-import dailyVibe from '../../src/i18n/locales/dailyVibe';
 import de from '../../src/i18n/locales/de';
 import onceMessages from '../../src/i18n/locales/onceMessages';
 import relationshipComponents from '../../src/i18n/locales/relationshipComponents';
@@ -341,7 +340,7 @@ test('badges show vibe and battery without numbers; the partner sheet keeps ever
   await expect(page.getByTestId('wir-checkin-note-dot')).toBeVisible();
   // The separate check-in section is gone from Wir.
   await expect(
-    page.getByRole('heading', { name: dailyVibe.question }),
+    page.getByRole('heading', { name: 'Wie geht es euch heute?' }),
   ).toHaveCount(0);
   await expectInsideViewport(page, 'wir-checkin-own-badge');
   await expectInsideViewport(page, 'wir-checkin-partner-badge');
@@ -466,7 +465,7 @@ test('Dein Tag saves vibe, energy and note independently and deletes each one', 
   await expect(note).toHaveValue('');
   await expect(partnerBadge).toHaveAttribute('data-state', 'hidden');
 
-  await panel.getByRole('button', { name: wirCheckIn.done }).click();
+  await panel.getByRole('button', { name: de.common.done }).click();
   await expect(panel).toBeHidden();
   await expect(ownAvatar(page)).toBeFocused();
   expect(state.unexpectedRequests).toEqual([]);
@@ -582,7 +581,7 @@ test('a failed save stays honest and retries; offline blocks writes', async ({
   await expect(page.getByTestId('wir-checkin-own-badge')).toContainText(
     wirCheckIn.ownPrompt,
   );
-  await panel.getByRole('button', { name: wirCheckIn.retry }).click();
+  await panel.getByRole('button', { name: de.common.retry }).click();
   await expect.poll(() => state.patches.length).toBe(2);
   expect(state.patches.at(-1)).toEqual({ vibe: 'VERY_GOOD' });
   await expect(
@@ -653,7 +652,7 @@ for (const { width, theme, large, reduced } of [
     });
     await page.waitForTimeout(400);
     await saveEvidence(page, `1790a-${label}-2-dein-tag`);
-    await panel.getByRole('button', { name: wirCheckIn.done }).click();
+    await panel.getByRole('button', { name: de.common.done }).click();
     await page.evaluate(() => window.scrollTo(0, 0));
 
     await partnerAvatar(page).click();
@@ -670,7 +669,7 @@ for (const { width, theme, large, reduced } of [
     await expect(page.getByTestId('wir-checkin-own-badge')).toContainText(
       wirCheckIn.ownPrompt,
     );
-    await panel.getByRole('button', { name: wirCheckIn.done }).click();
+    await panel.getByRole('button', { name: de.common.done }).click();
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.waitForTimeout(400);
     await saveEvidence(page, `1790a-${label}-4-after-deletion`);
@@ -710,7 +709,7 @@ for (const { width, theme } of [
     await ownAvatar(page).click();
     const panel = page.getByRole('dialog', { name: wirCheckIn.panelTitle });
     await fillOwnDay(panel);
-    await panel.getByRole('button', { name: wirCheckIn.done }).click();
+    await panel.getByRole('button', { name: de.common.done }).click();
 
     // Waiting for the server: all three hover in the top layer above the
     // sheet, the sheet stays, and nothing has landed on the badge yet.
@@ -757,7 +756,7 @@ test('a failed save returns the value and keeps Dein Tag open', async ({
   await ownAvatar(page).click();
   const panel = page.getByRole('dialog', { name: wirCheckIn.panelTitle });
   await panel.getByRole('button', { name: 'Fröhlich', exact: true }).click();
-  await panel.getByRole('button', { name: wirCheckIn.done }).click();
+  await panel.getByRole('button', { name: de.common.done }).click();
   await expect(panel.getByText(wirCheckIn.saveError)).toBeVisible();
   await expect(panel).toBeVisible();
   await expect(flightGhosts(page)).toHaveCount(0);
@@ -778,7 +777,7 @@ test('reduced motion closes calmly: no flight layer is ever created', async ({
   await ownAvatar(page).click();
   const panel = page.getByRole('dialog', { name: wirCheckIn.panelTitle });
   await fillOwnDay(panel);
-  await panel.getByRole('button', { name: wirCheckIn.done }).click();
+  await panel.getByRole('button', { name: de.common.done }).click();
   await expect(panel).toBeHidden();
   await expect(page.locator('.wir-checkin-flight-layer')).toHaveCount(0);
   const badge = page.getByTestId('wir-checkin-own-badge');
@@ -921,7 +920,18 @@ test('the Wir opening ends on its own and returning to Wir replays no entrance',
                 (animation) =>
                   animation instanceof CSSAnimation &&
                   animation.playState === 'running' &&
-                  animation.effect?.getComputedTiming().iterations === 1,
+                  animation.effect?.getComputedTiming().iterations === 1 &&
+                  // The Wir backdrop glow fades in with a tapped route
+                  // change by design (TodayPage.css); it is not a content
+                  // entrance.
+                  !(
+                    (animation.effect as KeyframeEffect).pseudoElement ===
+                      '::before' &&
+                    (
+                      (animation.effect as KeyframeEffect)
+                        .target as HTMLElement | null
+                    )?.classList.contains('today-page')
+                  ),
               )
               .map((animation) => (animation as CSSAnimation).animationName),
           );
@@ -940,7 +950,7 @@ test('Fertig without a change closes at once and flies nothing', async ({
   await signIn(page);
   await ownAvatar(page).click();
   const panel = page.getByRole('dialog', { name: wirCheckIn.panelTitle });
-  await panel.getByRole('button', { name: wirCheckIn.done }).click();
+  await panel.getByRole('button', { name: de.common.done }).click();
   await expect(panel).toBeHidden();
   await expect(page.locator('.wir-checkin-flight-layer')).toHaveCount(0);
 });

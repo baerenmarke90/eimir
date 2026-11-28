@@ -146,7 +146,7 @@ describe('Place map choice task', () => {
     await screen.findByText(i18n.t('states.server.title'));
     expect(screen.getByRole('searchbox').getAttribute('value')).toBe('Beach');
     fireEvent.click(
-      screen.getByRole('button', { name: i18n.t('taskSheets.close') }),
+      screen.getByRole('button', { name: i18n.t('common.close') }),
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(select).not.toHaveBeenCalled();

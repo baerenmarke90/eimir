@@ -1,7 +1,6 @@
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import copy from '../../src/i18n/locales/partnerLocation';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import AxeBuilder from '../support/axe';
 import { mockMapTiles } from '../support/mapTiles';
 import {
@@ -342,7 +341,7 @@ test('far distance opens the map task; the map shows an area and returns to Wir'
   await expectAxeClean(page, '.partner-map-sheet');
   await captureScreenshot(page, info, 'partner-distance-map-390.png');
 
-  await page.getByRole('button', { name: taskBoundary.back }).click();
+  await page.getByRole('button', { name: de.common.back }).click();
   await expect(page).toHaveURL('/today');
   await expect(line).toBeVisible();
   expect(server.settingsWrites).toBe(0);

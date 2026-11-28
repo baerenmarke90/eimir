@@ -16,13 +16,9 @@ const relationshipComponents = {
   partnerQuickActions: {
     trigger: 'Aktionen für {{partner}} öffnen',
     title: 'Für {{partner}}',
-    intro: 'Kleine Gesten direkt an deinen Partner.',
     thinking: 'Ich denke an dich',
-    thinkingHint: 'Ein kurzer lieber Gruß.',
     kiss: 'Kuss schicken',
-    kissHint: 'Eine kleine liebevolle Geste.',
     checkIn: 'Wie geht’s dir?',
-    checkInHint: 'Ein sanfter Check-in – ohne Vibe oder Status offenzulegen.',
     pro: 'Pro',
     premiumHint: 'Mit eimir. Pro verfügbar.',
     premiumAction: 'eimir. Pro ansehen',
@@ -45,7 +41,6 @@ const relationshipComponents = {
   partnerGestureReceipt: {
     label: 'Geste von {{name}}',
     labelAnon: 'Geste von deinem Partner',
-    close: 'Schließen',
     thinking: {
       title: '{{name}} denkt gerade an dich',
       titleAnon: 'Jemand denkt gerade an dich',

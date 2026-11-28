@@ -1003,7 +1003,7 @@ export function ServerAdminPage({
             onClick={refreshCurrentSection}
             disabled={refreshing}
           >
-            {t('serverAdmin.refresh')}
+            {t('common.refresh')}
           </button>
         </div>
 
@@ -1071,7 +1071,7 @@ export function ServerAdminPage({
                           type="button"
                           onClick={() => void overviewQuery.refetch()}
                         >
-                          {t('serverAdmin.refresh')}
+                          {t('common.refresh')}
                         </button>
                       }
                     />
@@ -1106,7 +1106,7 @@ export function ServerAdminPage({
                         type="button"
                         onClick={() => void settingsQuery.refetch()}
                       >
-                        {t('serverAdmin.refresh')}
+                        {t('common.refresh')}
                       </button>
                     }
                   />
@@ -1145,7 +1145,7 @@ export function ServerAdminPage({
                         type="button"
                         onClick={() => void overviewQuery.refetch()}
                       >
-                        {t('serverAdmin.refresh')}
+                        {t('common.refresh')}
                       </button>
                     }
                   />

@@ -241,7 +241,7 @@ export function PartnerIdentityPanel({
               >
                 {nicknameMutation.isPending
                   ? t('common.saving')
-                  : t('profiles.nickname.save')}
+                  : t('common.save')}
               </button>
               <button
                 type="button"

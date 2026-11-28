@@ -10,6 +10,7 @@ import privateArea from '../../src/i18n/locales/privateArea';
 import profileIdentity from '../../src/i18n/locales/profileIdentity';
 import profiles from '../../src/i18n/locales/profiles';
 import quietHints from '../../src/i18n/locales/quietHints';
+import germanFixture from '../fixtures/locales/de';
 import {
   expectFloatingAddAction,
   expectLabeledAddAction,
@@ -1150,7 +1151,7 @@ for (const view of [
     // Adding a preference starts from the profile menu at the top right.
     await page.getByRole('button', { name: profiles.menu }).click();
     await page
-      .getByRole('button', { name: profiles.addPreference, exact: false })
+      .getByRole('button', { name: profiles.addPreferenceShort, exact: false })
       .click();
     // Shared SELF_PROFILE preferences must never inherit the owner-only promise.
     await expect(dialog).not.toHaveAttribute('aria-describedby');
@@ -1428,7 +1429,7 @@ test.describe('Space configuration Daily Check-in modules', () => {
       name: profileIdentity.vibeCheckToggle,
     });
     const zoneSelect = page.getByRole('combobox', {
-      name: profileIdentity.dailyContextTimezoneLabel,
+      name: germanFixture.retiredCopy.sharedDayTimeZone,
     });
     await expect(energySwitch).toHaveAttribute('aria-checked', 'false');
     await expect(vibeSwitch).toHaveAttribute('aria-checked', 'false');
@@ -1657,7 +1658,7 @@ test.describe('Complete Settings pages reflow (#1162)', () => {
     await vibeSwitch.click();
     await expect(vibeSwitch).toHaveAttribute('aria-checked', 'true');
     const zoneSelect = page.getByRole('combobox', {
-      name: profileIdentity.dailyContextTimezoneLabel,
+      name: germanFixture.retiredCopy.sharedDayTimeZone,
     });
     await expect(zoneSelect).toHaveCount(0);
     expect(unexpectedRequests.spaceConfigurationPatches).toEqual([
@@ -2117,14 +2118,14 @@ test('Place, Collection, and Chapter editors honor browser focus and history', a
   await page.goto('/plan/collections/collection-1');
   const collectionEdit = itemMenuTrigger(page);
   await editViaMenu(page, de.common.edit);
-  await expect(page.getByLabel(m5s3.common.title)).toBeFocused();
+  await expect(page.getByLabel(de.common.title)).toBeFocused();
   await page.goBack();
   await expect(collectionEdit).toBeFocused();
 
   await page.goto('/plan/chapters/chapter-1');
   const chapterEdit = itemMenuTrigger(page);
   await editViaMenu(page, de.common.edit);
-  await expect(page.getByLabel(m5s3.common.title)).toBeFocused();
+  await expect(page.getByLabel(de.common.title)).toBeFocused();
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
   await page.screenshot({
@@ -2136,7 +2137,7 @@ test('Place, Collection, and Chapter editors honor browser focus and history', a
 
   await page.setViewportSize({ width: 1440, height: 900 });
   await editViaMenu(page, de.common.edit);
-  await expect(page.getByLabel(m5s3.common.title)).toBeFocused();
+  await expect(page.getByLabel(de.common.title)).toBeFocused();
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
   await page.screenshot({
@@ -2260,7 +2261,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         page.getByRole('button', { name: navigation.quickCreateTitle }),
       ).toBeVisible();
       await expect(
-        page.getByRole('button', { name: navigation.newContent }),
+        page.getByRole('button', { name: 'Neu festhalten' }),
       ).toHaveCount(0);
       await expectNoHorizontalOverflow(page);
       const inHeader = await navigationRegion.evaluate((element) =>

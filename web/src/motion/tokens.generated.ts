@@ -27,6 +27,9 @@ export const MOTION_CONSTANTS = {
       },
     },
   },
+  handwriting: {
+    penSpeedUnitsPerMs: 18,
+  },
   spring: {
     stiffness: 380,
     damping: 39,

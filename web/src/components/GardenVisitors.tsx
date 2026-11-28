@@ -128,10 +128,10 @@ function VisitorEditor({
       </div>
       <div className="garden-card-actions">
         <button type="button" className="secondary" onClick={onCancel}>
-          {t('games.garden.cancel')}
+          {t('common.cancel')}
         </button>
         <button type="submit" disabled={busy}>
-          {t('games.garden.growth.save')}
+          {t('common.save')}
         </button>
       </div>
     </form>

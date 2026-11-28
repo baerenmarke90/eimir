@@ -1082,7 +1082,7 @@ function WishSelectionTask({
         {t('wishSelection.selected', { count: totalSelected })}
       </p>
       <button type="button" onClick={() => setStep('hub')}>
-        {t('wishSelection.pickDone')}
+        {t('common.done')}
       </button>
     </div>
   );
@@ -1095,9 +1095,7 @@ function WishSelectionTask({
       >
         <TaskBackButton inline type="button" disabled={busy} onClick={goBack}>
           {t(
-            activeMode === 'plan'
-              ? 'wishSelection.toSelection'
-              : 'taskBoundary.back',
+            activeMode === 'plan' ? 'wishSelection.toSelection' : 'common.back',
           )}
         </TaskBackButton>
         <div>
@@ -1377,7 +1375,7 @@ function WishSelectionTask({
                   >
                     {t(
                       busy
-                        ? 'wishSelection.saving'
+                        ? 'common.saving'
                         : view.id
                           ? 'wishSelection.replace'
                           : 'wishSelection.start',
@@ -1870,7 +1868,7 @@ function WishSelectionTask({
             ) : null}
             <div className="wish-selection-actions">
               <button type="submit" disabled={busy || !planTitle.trim()}>
-                {t(busy ? 'wishSelection.saving' : 'wishSelection.savePlan')}
+                {t(busy ? 'common.saving' : 'wishSelection.savePlan')}
               </button>
               <p className="wish-selection-support">
                 {t('m5s3.plan.sharedBody')}

@@ -337,7 +337,7 @@ test('the Android app names what signing out deletes from the phone', async ({
     name: de.header.logoutDeviceTitle,
   });
   const cancel = sheet.getByRole('button', {
-    name: de.header.logoutDeviceCancel,
+    name: de.common.cancel,
   });
 
   await logout.click();

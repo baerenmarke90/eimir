@@ -2,13 +2,10 @@
 const sharedNotes = {
   sharedNotes: {
     title: 'Notizen',
-    destination: 'Gemeinsame Notizen',
-    destinationSubtitle: 'Adressen, Gedanken, Tipps für euch beide',
     untitled: 'Ohne Titel',
     audienceEditing: 'Für euch beide sichtbar',
     create: 'Notiz anlegen',
     createFirst: 'Erste Notiz anlegen',
-    back: 'Zurück zu den Notizen',
     scopeLabel: 'Notizen filtern',
     scope: {
       ALL: 'Alle',
@@ -24,7 +21,6 @@ const sharedNotes = {
     loading: 'Notizen werden geladen',
     loadMore: 'Weitere Notizen laden',
     loadingMore: 'Weitere Notizen werden geladen',
-    cached: 'Du siehst den zuletzt geladenen Stand.',
     empty: {
       title: 'Was ihr euch merken wollt, steht hier',
       body: 'Adressen, Gedanken, Tipps im Fließtext. Ihr beide seht und ergänzt sie.',
@@ -37,14 +33,12 @@ const sharedNotes = {
       title: 'Noch nichts angeheftet',
       body: 'Hefte wichtige Notizen im Menü einer Notiz an, dann stehen sie hier.',
     },
-    pinnedBadge: 'Angeheftet',
     editedBy: 'Zuletzt von {{name}} · {{when}}',
     writtenBy: 'Geschrieben von {{name}}',
     writtenByYou: 'Geschrieben von dir',
     changedBy: 'Zuletzt geändert von {{name}} · {{when}}',
     changedAt: 'Zuletzt geändert · {{when}}',
     read: {
-      edit: 'Bearbeiten',
       itemLabel: 'Gemeinsame Notiz',
       menu: 'Menü der Notiz',
       noBody: 'Diese Notiz hat noch keinen Text.',
@@ -60,7 +54,6 @@ const sharedNotes = {
       wirTitleOnlyHint: 'Gut für Türcodes und Passwörter',
       wirExcerpt: 'Auszug auf Wir zeigen',
       wirExcerptHint: 'Der Anfang des Textes steht auf Wir',
-      delete: 'Löschen',
     },
     toast: {
       saved: 'Gespeichert.',
@@ -76,25 +69,18 @@ const sharedNotes = {
       title: 'Notiz löschen?',
       body: '„{{title}}“ wird für euch beide gelöscht. Falls sie mit einem Plan verknüpft ist, verschwindet sie auch dort. Das lässt sich nicht rückgängig machen.',
       confirm: 'Endgültig löschen',
-      pending: 'Wird gelöscht …',
     },
     edit: {
       createTitle: 'Neue Notiz',
       editTitle: 'Notiz bearbeiten',
-      close: 'Schließen',
-      save: 'Speichern',
       saving: 'Speichert …',
-      titleLabel: 'Titel',
       titlePlaceholder: 'Titel (optional)',
       bodyLabel: 'Text',
       bodyPlaceholder: 'Was wollt ihr festhalten?',
-      tools: 'Notiz ergänzen',
       bullets: 'Aufzählung',
       needsContent: 'Schreibe einen Titel oder etwas Text.',
       offline: 'Nicht gespeichert, du bist offline. Dein Text bleibt erhalten.',
-      retry: 'Erneut versuchen',
       gone: 'Diese Notiz wurde gelöscht. Dein Text bleibt hier erhalten.',
-      draftKept: 'Dein Text bleibt erhalten.',
     },
     conflict: {
       message:
@@ -114,8 +100,6 @@ const sharedNotes = {
       open: 'Notiz „{{title}}“ öffnen',
       hiddenExcerpt: 'Auszug ausgeblendet',
       add: 'Ergänzen',
-      moreTile: 'Weitere Notizen',
-      loadError: 'Die Notizen konnten nicht geladen werden.',
     },
     dashboard: {
       settingsTitle: 'Angeheftete Notizen',
@@ -133,7 +117,6 @@ const sharedNotes = {
       linked_one: 'Notiz verknüpft.',
       linked_other: '{{count}} Notizen verknüpft.',
       immediate: 'Verknüpfungen gelten sofort, auch ohne Speichern.',
-      done: 'Fertig',
       openNote: 'Notiz „{{title}}“ öffnen',
     },
     notification: {

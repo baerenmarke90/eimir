@@ -15,7 +15,6 @@ import type { ReferenceApis } from '../client/referenceFlow';
 import { EDITOR_HISTORY_STATE_KEY } from '../client/useEditorHistoryEntry';
 import de from '../i18n/locales/de';
 import storyProducts from '../i18n/locales/storyProducts';
-import taskSheets from '../i18n/locales/taskSheets';
 import { StoryProductPage } from './StoryProductPage';
 
 let search = '';
@@ -113,7 +112,7 @@ describe('Timeline filter task', () => {
     expect(search).toContain('year=2025');
     expect(load).not.toHaveBeenCalled();
     fireEvent.click(
-      within(dialog).getByRole('button', { name: taskSheets.filterCancel }),
+      within(dialog).getByRole('button', { name: de.common.cancel }),
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(search).toContain('year=2025');
@@ -160,7 +159,7 @@ describe('Timeline filter task', () => {
       (within(dialog).getByLabelText(filters.year) as HTMLSelectElement).value,
     ).toBe('2025');
     fireEvent.click(
-      within(dialog).getByRole('button', { name: taskSheets.filterCancel }),
+      within(dialog).getByRole('button', { name: de.common.cancel }),
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(search).toContain('year=2025');

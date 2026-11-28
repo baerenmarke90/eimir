@@ -12,6 +12,7 @@ import { useTranslation } from '../i18n';
 import { ProMark } from './ProMark';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import './AppIconSettingsPanel.css';
+import './WirDesign.css';
 
 export function AppIconSettingsPanel() {
   const state = useAppIcon();
@@ -111,25 +112,30 @@ function AppIconSettings({
         <h2 id="app-icon-heading">{t('appIcon.title')}</h2>
         <p className="settings-section-intro">{t('appIcon.intro')}</p>
       </div>
-      <div className="app-icon-summary">
-        <img src={appIconImage(current)} width="64" height="64" alt="" />
-        <div>
+      <button
+        type="button"
+        className="design-palette-trigger app-icon-trigger"
+        aria-labelledby="app-icon-heading app-icon-value"
+        aria-haspopup="dialog"
+        ref={opener}
+        onClick={openSelector}
+      >
+        <img
+          className="app-icon-trigger-image"
+          src={appIconImage(current)}
+          width="64"
+          height="64"
+          alt=""
+        />
+        <span className="design-palette-trigger-copy" id="app-icon-value">
           <strong>{t(`appIcon.names.${current}`)}</strong>
           {current === 'original' ? (
             <span>{t('appIcon.free')}</span>
           ) : (
             <ProMark label={t('appIcon.pro')} />
           )}
-        </div>
-        <button
-          type="button"
-          ref={opener}
-          className="button-link"
-          onClick={openSelector}
-        >
-          {t('appIcon.all')}
-        </button>
-      </div>
+        </span>
+      </button>
       {preference.isPending ? (
         <p role="status">{t('appIcon.loading')}</p>
       ) : null}
@@ -141,7 +147,7 @@ function AppIconSettings({
             className="button-link"
             onClick={() => void preference.refetch()}
           >
-            {t('appIcon.retry')}
+            {t('common.retry')}
           </button>
         </div>
       ) : null}
@@ -171,7 +177,7 @@ function AppIconSettings({
                   className="button-link"
                   onClick={() => void preference.refetch()}
                 >
-                  {t('appIcon.retry')}
+                  {t('common.retry')}
                 </button>
               </div>
             ) : null}
@@ -186,7 +192,7 @@ function AppIconSettings({
                   className="button-link"
                   onClick={() => void capability.refetch()}
                 >
-                  {t('appIcon.retry')}
+                  {t('common.retry')}
                 </button>
               </div>
             ) : null}
@@ -244,7 +250,7 @@ function AppIconSettings({
                 onClick={() => void save()}
               >
                 {mutation.isPending
-                  ? t('appIcon.saving')
+                  ? t('common.saving')
                   : preview === current
                     ? t('appIcon.selected')
                     : t('appIcon.choose', { name: previewName })}

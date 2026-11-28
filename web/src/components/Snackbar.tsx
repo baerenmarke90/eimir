@@ -71,7 +71,7 @@ export function Snackbar() {
           type="button"
           className="snackbar-dismiss"
           onClick={() => setCurrent(null)}
-          aria-label={t('snackbar.dismiss')}
+          aria-label={t('common.close')}
         >
           ×
         </button>

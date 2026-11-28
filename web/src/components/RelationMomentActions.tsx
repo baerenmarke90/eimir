@@ -63,7 +63,7 @@ export function RelationMomentActions({
               >
                 {t(
                   pending
-                    ? 'm5s3.common.saving'
+                    ? 'common.saving'
                     : ownerKind === 'chapter'
                       ? 'm5s3.relations.unlink'
                       : 'm5s3.relations.unlinkPlace',

@@ -313,7 +313,7 @@ export function PlanWishLink({
           >
             {t(
               mutation.isPending
-                ? 'm5s3.common.saving'
+                ? 'common.saving'
                 : 'm5s3.plan.confirmWishLink',
             )}
           </button>

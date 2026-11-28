@@ -38,7 +38,7 @@ export function LogoutDeviceDataSheet({
           className="secondary"
           onClick={() => sheet.current?.requestClose()}
         >
-          {t('header.logoutDeviceCancel')}
+          {t('common.cancel')}
         </button>
         <button
           type="button"

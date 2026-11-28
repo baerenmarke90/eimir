@@ -6,7 +6,6 @@ import de from '../../src/i18n/locales/de';
 import mediaOverview from '../../src/i18n/locales/mediaOverview';
 import navigation from '../../src/i18n/locales/navigation';
 import storyProducts from '../../src/i18n/locales/storyProducts';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import voiceNotes from '../../src/i18n/locales/voiceNotes';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '../support/axe';
@@ -429,7 +428,7 @@ test('media overview: lazy variants, viewer Back, bounded originals and canonica
     }),
   ).toBeVisible();
   await page
-    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .getByRole('button', { name: de.common.back, exact: true })
     .first()
     .click();
   await expect(page).toHaveURL(/\/story\/photos$/);
@@ -463,7 +462,7 @@ test('media overview: viewer reopen and detail return reuse image bytes without 
   await expect
     .poll(() => binaries.filter((variant) => variant === 'original').length)
     .toBe(1);
-  await page.getByRole('button', { name: storyProducts.gallery.close }).click();
+  await page.getByRole('button', { name: de.common.close }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await selected.click();
   await expect(page.getByRole('dialog').locator('img').first()).toBeVisible();
@@ -477,7 +476,7 @@ test('media overview: viewer reopen and detail return reuse image bytes without 
   ).toBeVisible();
   expect(binaries).toEqual(['thumbnail', 'original']);
   await page
-    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .getByRole('button', { name: de.common.back, exact: true })
     .first()
     .click();
   await expect(page).toHaveURL(/\/story\/photos$/);
@@ -545,9 +544,7 @@ test('media overview: Compact/Expanded themes, 320px, 200% text and accessible g
         page.getByRole('button', { name: mediaOverview.source, exact: true }),
       ).toBeVisible();
       await screenshot(page, testInfo, 'story-photos-390-text-200-viewer.png');
-      await page
-        .getByRole('button', { name: storyProducts.gallery.close })
-        .click();
+      await page.getByRole('button', { name: de.common.close }).click();
       await expect(page.getByRole('dialog')).toHaveCount(0);
       await page.evaluate(() => window.scrollTo(0, 0));
     }
@@ -563,9 +560,7 @@ test('media overview: Compact/Expanded themes, 320px, 200% text and accessible g
     .getByRole('link', { name: de.more.destinations.media, exact: true })
     .click();
   await expect(page).toHaveURL(/\/story\/photos$/);
-  await page
-    .getByRole('button', { name: taskBoundary.back, exact: true })
-    .click();
+  await page.getByRole('button', { name: de.common.back, exact: true }).click();
   await expect(page).toHaveURL(/\/more$/);
   await page
     .getByRole('link', { name: de.more.destinations.media, exact: true })
@@ -649,7 +644,7 @@ test('media overview: a failed next page retains loaded photos and retries the s
   expect(cursors).toEqual(['second-page']);
   await screenshot(page, testInfo, 'story-photos-next-page-error.png');
   await page
-    .getByRole('button', { name: mediaOverview.retry, exact: true })
+    .getByRole('button', { name: de.common.retry, exact: true })
     .click();
   await expect(page.locator('.media-overview-tile')).toHaveCount(44);
   await expect(page.getByText(mediaOverview.pageError)).toHaveCount(0);
@@ -829,7 +824,7 @@ test('media overview: a return shows known photos in the first frame and a photo
     requestAnimationFrame(sample);
   });
   await page
-    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .getByRole('button', { name: de.common.back, exact: true })
     .first()
     .click();
   await expect(page).toHaveURL(/\/story\/photos$/);
@@ -959,9 +954,7 @@ test('media overview opens retained video and returns from a saved Plan photo', 
       player.evaluate((element: HTMLVideoElement) => element.videoWidth),
     )
     .toBeGreaterThan(0);
-  await viewer
-    .getByRole('button', { name: storyProducts.gallery.close })
-    .click();
+  await viewer.getByRole('button', { name: de.common.close }).click();
   await expect(viewer).toHaveCount(0);
   expect(
     reads
@@ -976,7 +969,7 @@ test('media overview opens retained video and returns from a saved Plan photo', 
   await expect(page).toHaveURL(/\/plan\/plans\/media-plan$/);
   await expect(page.getByRole('heading', { name: PLAN_TITLE })).toBeVisible();
   await page
-    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .getByRole('button', { name: de.common.back, exact: true })
     .first()
     .click();
   await expect(planTile).toBeFocused();
@@ -1027,7 +1020,7 @@ test('media overview keeps the private filter on return and requires authorizati
   await expect(page).toHaveURL(/\/story\/heart-moments\/private-heart$/);
   await expect(page.getByText(PRIVATE_HEART_TEXT)).toBeVisible();
   await page
-    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .getByRole('button', { name: de.common.back, exact: true })
     .first()
     .click();
   await expect(page).toHaveURL(/\/story\/photos\?visibility=private$/);

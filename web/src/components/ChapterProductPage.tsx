@@ -120,7 +120,7 @@ function ChapterEditor({
 
   return (
     <section className="planning-subsection free-composer">
-      <h2>{t('m5s3.common.edit')}</h2>
+      <h2>{t('common.edit')}</h2>
       {lifecycle.showDiscardConfirm ? (
         <PlanningDiscardConfirmation
           onKeepEditing={lifecycle.keepEditing}
@@ -159,9 +159,7 @@ function ChapterEditor({
         />
         <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
           <button type="submit" disabled={isPending || !draft.title.trim()}>
-            {updatePending
-              ? t('m5s3.common.saving')
-              : t('m5s3.common.saveChanges')}
+            {updatePending ? t('common.saving') : t('m5s3.common.saveChanges')}
           </button>
           <button
             type="button"
@@ -400,7 +398,7 @@ function ScopedChapterProductPage({
                   title: event.target.value,
                 }))
               }
-              aria-label={t('m5s3.common.title')}
+              aria-label={t('common.title')}
             />
           ) : undefined
         }
@@ -537,7 +535,7 @@ function ScopedChapterProductPage({
           <ItemMenuOption
             icon="trash"
             danger
-            title={t('m5s3.common.delete')}
+            title={t('common.delete')}
             onClick={() => {
               setMenuOpen(false);
               deleteMutation.reset();
@@ -553,7 +551,7 @@ function ScopedChapterProductPage({
         title={t('m5s3.common.deleteHeading')}
         body={t('m5s3.chapter.deleteConsequence')}
         confirmLabel={t('m5s3.common.confirmDelete')}
-        pendingLabel={t('m5s3.common.deleting')}
+        pendingLabel={t('common.deleting')}
         pending={deleteMutation.isPending}
         error={deleteMutation.error}
         restoreFocusRef={menuTriggerRef}

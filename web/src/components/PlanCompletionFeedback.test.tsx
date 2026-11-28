@@ -176,7 +176,7 @@ const completeButton = () =>
     ? within(screen.getByRole('dialog'))
     : screen
   ).getByRole('button', {
-    name: (name) => name === m5s3.plan.complete || name === m5s3.common.saving,
+    name: (name) => name === m5s3.plan.complete || name === de.common.saving,
   });
 const dateField = () => {
   if (!screen.queryByLabelText(m5s3.plan.experiencedOn))
@@ -220,7 +220,7 @@ it('claims the completion synchronously, names the day in one status and locks c
   expect(status.textContent).toBe(pendingCopy());
   expect(screen.getAllByRole('status')).toHaveLength(1);
   expect(completeButton().getAttribute('aria-disabled')).toBe('true');
-  expect(completeButton().textContent).toBe(m5s3.common.saving);
+  expect(completeButton().textContent).toBe(de.common.saving);
   expect((dateField() as HTMLInputElement).readOnly).toBe(true);
   expect((dateField() as HTMLInputElement).value).toBe(DAY);
   expect(await editIsDisabled()).toBe(true);
@@ -405,7 +405,7 @@ it('admits one editor save and locks inputs and completion until it finishes', a
     (form.elements.namedItem('plannedDate') as HTMLInputElement).disabled,
   ).toBe(true);
   expect(
-    (screen.getByLabelText(m5s3.common.title) as HTMLInputElement).matches(
+    (screen.getByLabelText(de.common.title) as HTMLInputElement).matches(
       ':disabled',
     ),
   ).toBe(true);

@@ -3,7 +3,6 @@ import AxeBuilder from '../support/axe';
 import { expect, test, type Page, type Route } from '@playwright/test';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import de from '../../src/i18n/locales/de';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import {
   expectFloatingAddAction,
@@ -224,10 +223,10 @@ const seed = () =>
     '2026-10-16',
   );
 const back = (page: Page) =>
-  page.getByRole('button', { name: taskBoundary.back, exact: true });
+  page.getByRole('button', { name: de.common.back, exact: true });
 const startEdit = (page: Page) => editViaMenu(page, de.common.edit);
 const titleField = (page: Page) =>
-  page.getByRole('textbox', { name: m5s3.common.title, exact: true });
+  page.getByRole('textbox', { name: de.common.title, exact: true });
 async function expectNoHorizontalOverflow(page: Page) {
   expect(
     await page.evaluate(
@@ -275,9 +274,7 @@ test('complete Chapter create, linked-moment read/unlink, edit, diary return and
     .getByLabel(m5s3.chapter.startOn, { exact: true })
     .fill('2026-10-12');
   await page.getByLabel(m5s3.chapter.endOn, { exact: true }).fill('2026-10-16');
-  await page
-    .getByRole('button', { name: m5s3.common.save, exact: true })
-    .click();
+  await page.getByRole('button', { name: de.common.save, exact: true }).click();
   await expect(
     page.getByRole('heading', {
       name: content.chapterExperience.createdTitle,
@@ -350,11 +347,11 @@ test('complete Chapter create, linked-moment read/unlink, edit, diary return and
   // Delete is no longer offered inside the editor; it starts from the menu.
   await startEdit(page);
   await expect(
-    page.getByRole('button', { name: m5s3.common.delete, exact: true }),
+    page.getByRole('button', { name: de.common.delete, exact: true }),
   ).toHaveCount(0);
   await back(page).click();
   await expect(titleField(page)).toHaveCount(0);
-  await deleteViaMenu(page, m5s3.common.delete);
+  await deleteViaMenu(page, de.common.delete);
   await page
     .getByRole('button', { name: m5s3.common.confirmDelete, exact: true })
     .click();
@@ -448,19 +445,15 @@ test('dirty Back, retained failed creation and If-Match conflict preserve author
     content.chapterExperience.pendingTitle,
   );
   state.failCreate = true;
-  await page
-    .getByRole('button', { name: m5s3.common.save, exact: true })
-    .click();
+  await page.getByRole('button', { name: de.common.save, exact: true }).click();
   await expect(
-    page.getByRole('button', { name: m5s3.common.save, exact: true }),
+    page.getByRole('button', { name: de.common.save, exact: true }),
   ).toBeEnabled();
   await expect(titleField(page)).toHaveValue(
     content.chapterExperience.pendingTitle,
   );
   state.failCreate = false;
-  await page
-    .getByRole('button', { name: m5s3.common.save, exact: true })
-    .click();
+  await page.getByRole('button', { name: de.common.save, exact: true }).click();
   await expect(
     page.getByRole('heading', {
       name: content.chapterExperience.pendingTitle,
@@ -550,10 +543,10 @@ for (const viewport of [
     ).toBeVisible();
     await expect(page.locator('[data-floating-create]')).toHaveCount(0);
     await expect(
-      page.getByText(m5s3.chapter.noPlace, { exact: true }),
+      page.getByText(content.retiredCopy.chapterNoPlace, { exact: true }),
     ).toHaveCount(0);
     await expect(
-      page.getByText(m5s3.chapter.noPeriod, { exact: true }),
+      page.getByText(content.retiredCopy.chapterNoPeriod, { exact: true }),
     ).toHaveCount(0);
     const add = page.getByRole('button', { name: m5s3.relations.addLabel });
     const first = page.getByRole('link', { name: /Breakfast by the canal/ });

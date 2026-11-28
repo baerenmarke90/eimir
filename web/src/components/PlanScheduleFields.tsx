@@ -533,7 +533,7 @@ export function PlanScheduleFields({
               if (reportValidity()) sheetRef.current?.requestClose();
             }}
           >
-            {t('experiences.finish')}
+            {t('common.done')}
           </button>
         }
       >

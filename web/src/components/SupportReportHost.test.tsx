@@ -25,12 +25,12 @@ import {
 } from '../client/supportReportLauncher';
 import { settleEditorHistory } from '../client/useEditorHistoryEntry';
 import supportReport from '../i18n/locales/supportReport';
-import taskSheets from '../i18n/locales/taskSheets';
 import { ProblemState } from './ProblemState';
 import {
   SupportReportHost,
   supportReportSheetModule,
 } from './SupportReportHost';
+import germanUi from '../i18n/locales/de';
 
 const API = 'http://api.example.test';
 
@@ -141,7 +141,7 @@ describe('SupportReportHost', () => {
     act(() => openSupportReport({ kind: 'FEEDBACK' }));
     const dialog = await openDialog(supportReport.title.FEEDBACK);
     fireEvent.click(
-      within(dialog).getByRole('button', { name: taskSheets.close }),
+      within(dialog).getByRole('button', { name: germanUi.common.close }),
     );
     // The sheet first removes its history entry, then reports the close.
     await waitFor(() => expect(currentSupportReportRequest()).toBeNull());

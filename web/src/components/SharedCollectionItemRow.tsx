@@ -139,7 +139,7 @@ export function SharedCollectionItemRow({
           )}
         </p>
         {isTogglePending ? (
-          <small role="status">{t('m5s3.common.saving')}</small>
+          <small role="status">{t('common.saving')}</small>
         ) : null}
         {waiting ? (
           <small className="shared-list-item-waiting">
@@ -232,11 +232,7 @@ export function SharedCollectionItemRow({
                     type="submit"
                     disabled={pending || !draft.trim() || !isDirty}
                   >
-                    {t(
-                      pending
-                        ? 'm5s3.common.saving'
-                        : 'm5s3.common.saveChanges',
-                    )}
+                    {t(pending ? 'common.saving' : 'm5s3.common.saveChanges')}
                   </button>
                   <button
                     type="button"
@@ -254,7 +250,7 @@ export function SharedCollectionItemRow({
                     disabled={pending}
                     onClick={() => setMode('delete')}
                   >
-                    {t('m5s3.common.delete')}
+                    {t('common.delete')}
                   </button>
                 ) : null}
               </form>
@@ -265,7 +261,7 @@ export function SharedCollectionItemRow({
                   className="tertiary danger-link"
                   onClick={() => setMode('delete')}
                 >
-                  {t('m5s3.common.delete')}
+                  {t('common.delete')}
                 </button>
               </div>
             ) : mode === 'delete' ? (
@@ -285,9 +281,7 @@ export function SharedCollectionItemRow({
                     }}
                   >
                     {t(
-                      pending
-                        ? 'm5s3.common.deleting'
-                        : 'm5s3.common.confirmDelete',
+                      pending ? 'common.deleting' : 'm5s3.common.confirmDelete',
                     )}
                   </button>
                   <button

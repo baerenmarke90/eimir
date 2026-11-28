@@ -3,8 +3,6 @@ import path from 'node:path';
 import AxeBuilder from '../support/axe';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
-import m5s3 from '../../src/i18n/locales/m5s3';
-import wishJourney from '../../src/i18n/locales/wishJourney';
 import wishRepeat from '../../src/i18n/locales/wishRepeat';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { fulfillFreeEntitlements } from '../support/freeEntitlements';
@@ -382,7 +380,7 @@ test.describe('repeat a completed wish (#1816)', () => {
       .getByRole('link', { name: 'Night train adventure', exact: true })
       .click();
     await page.getByRole('button', { name: wishRepeat.action }).click();
-    const title = page.getByLabel(wishRepeat.sheet.titleLabel);
+    const title = page.getByLabel(de.common.title);
     await expect(title).toHaveValue('Night train adventure');
 
     // Dismissing writes nothing.
@@ -392,9 +390,7 @@ test.describe('repeat a completed wish (#1816)', () => {
 
     // Create from an edited proposal: one request, one idempotency key.
     await page.getByRole('button', { name: wishRepeat.action }).click();
-    await page
-      .getByLabel(wishRepeat.sheet.titleLabel)
-      .fill('Night train in winter');
+    await page.getByLabel(de.common.title).fill('Night train in winter');
     await page.getByRole('button', { name: wishRepeat.sheet.create }).click();
     await expect(page).toHaveURL(new RegExp(`/plan/wishes/${REPEATED}$`));
     expect(state.repeatRequests).toHaveLength(1);
@@ -538,7 +534,7 @@ test.describe('repeat a completed wish (#1816)', () => {
       await shoot('wish');
 
       await page.getByRole('button', { name: wishRepeat.action }).click();
-      await expect(page.getByLabel(wishRepeat.sheet.titleLabel)).toBeVisible();
+      await expect(page.getByLabel(de.common.title)).toBeVisible();
       // Contrast is measured on the settled sheet, not mid-entry.
       await page.locator('dialog[open]').evaluate(async (node) => {
         await Promise.all(

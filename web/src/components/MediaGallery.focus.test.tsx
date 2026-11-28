@@ -41,7 +41,7 @@ describe('MediaGallery lightbox focus contract', () => {
     });
     const lightbox = within(dialog);
     const closeButton = lightbox.getByRole('button', {
-      name: i18n.t('gallery.close'),
+      name: i18n.t('common.close'),
     });
     const nextButton = lightbox.getByRole('button', {
       name: i18n.t('gallery.next'),

@@ -29,6 +29,7 @@ export type DurationRole =
   | 'gesture-moment'
   | 'gesture-sequence'
   | 'connection-draw'
+  | 'handwriting'
   | 'marker-sweep'
   | 'connection-beat'
   | 'connection-travel'

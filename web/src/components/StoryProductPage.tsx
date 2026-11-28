@@ -1228,7 +1228,7 @@ const StoryProductView = memo(function StoryProductView({
                   )
                 }
               >
-                {t('taskSheets.filterCancel')}
+                {t('common.cancel')}
               </button>
             </div>
           </ShortTaskSheet>

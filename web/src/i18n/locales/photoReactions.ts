@@ -1,5 +1,4 @@
 export default {
-  react: 'Reagieren',
   open: 'Auf dieses Foto reagieren',
   choose: 'Reaktion auswählen',
   summary: 'Reaktionen auf dieses Foto',

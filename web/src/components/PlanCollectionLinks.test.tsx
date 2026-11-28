@@ -196,9 +196,7 @@ describe('Plan-linked canonical lists', () => {
     );
     await waitFor(() => expect(createCollectionItem).toHaveBeenCalledTimes(1));
     await sheet.findByText('Bread');
-    fireEvent.click(
-      sheet.getByRole('button', { name: i18n.t('experiences.finish') }),
-    );
+    fireEvent.click(sheet.getByRole('button', { name: i18n.t('common.done') }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() =>
       expect(trigger.textContent).toContain(
@@ -246,7 +244,7 @@ describe('Plan-linked canonical lists', () => {
     });
     fireEvent.change(input, { target: { value: 'Do not lose this' } });
     fireEvent.click(
-      screen.getByRole('button', { name: i18n.t('experiences.finish') }),
+      screen.getByRole('button', { name: i18n.t('common.done') }),
     );
     expect(screen.getByRole('dialog', { name: 'Draft list' })).toBeTruthy();
     expect(screen.getByRole('alertdialog')).toBeTruthy();
@@ -257,7 +255,7 @@ describe('Plan-linked canonical lists', () => {
     expect(screen.queryByRole('alertdialog')).toBeNull();
     expect((input as HTMLInputElement).value).toBe('Do not lose this');
     fireEvent.click(
-      screen.getByRole('button', { name: i18n.t('experiences.finish') }),
+      screen.getByRole('button', { name: i18n.t('common.done') }),
     );
     fireEvent.click(
       screen.getByRole('button', {

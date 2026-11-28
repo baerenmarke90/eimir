@@ -14,13 +14,12 @@ import type { MilestoneDetail } from '../api/generated/models/MilestoneDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { ReferenceApis } from '../client/referenceFlow';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
-import navigation from '../i18n/locales/navigation';
 import storyProducts from '../i18n/locales/storyProducts';
-import taskBoundary from '../i18n/locales/taskBoundary';
 import { AppShell } from './AppShell';
 import { MilestoneProductPage } from './MilestoneProductPage';
+import germanUi from '../i18n/locales/de';
 
-const backToStoryName = taskBoundary.back;
+const backToStoryName = germanUi.common.back;
 
 beforeEach(() => {
   HTMLDialogElement.prototype.showModal = function () {
@@ -167,7 +166,7 @@ describe('Milestone create request identity', () => {
     const createMilestone = renderCreate();
     const user = userEvent.setup();
     await user.type(
-      screen.getByLabelText(storyProducts.milestoneProduct.titleLabel),
+      screen.getByLabelText(germanUi.common.title),
       'Our first home',
     );
     await user.click(
@@ -262,10 +261,10 @@ describe('Create Milestone continuity (#509)', () => {
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: 'Start create' }));
     expect(document.activeElement).not.toBe(
-      screen.getByLabelText(storyProducts.milestoneProduct.titleLabel),
+      screen.getByLabelText(germanUi.common.title),
     );
     await user.type(
-      screen.getByLabelText(storyProducts.milestoneProduct.titleLabel),
+      screen.getByLabelText(germanUi.common.title),
       'Our first home',
     );
     await user.click(
@@ -316,8 +315,12 @@ describe('Milestone detail header', () => {
       trigger,
     );
     // No separate Edit control outside the menu.
-    expect(screen.queryByRole('link', { name: copy.edit })).toBeNull();
-    expect(screen.queryByRole('button', { name: copy.edit })).toBeNull();
+    expect(
+      screen.queryByRole('link', { name: germanUi.common.edit }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: germanUi.common.edit }),
+    ).toBeNull();
     expect(
       screen.getByRole('heading', {
         level: 1,
@@ -333,8 +336,8 @@ describe('Milestone detail header', () => {
     await user.click(await screen.findByRole('button', { name: copy.menu }));
     const rows = [...document.querySelectorAll('.item-menu-option')];
     expect(rows.map((row) => row.textContent)).toEqual([
-      copy.edit,
-      copy.delete,
+      germanUi.common.edit,
+      germanUi.common.delete,
     ]);
     expect(rows[1]?.getAttribute('data-danger')).toBe('true');
     await user.click(rows[0] as HTMLElement);

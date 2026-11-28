@@ -13,6 +13,7 @@ import { ClientProblemError } from '../client/problemDetails';
 import { i18n } from '../i18n';
 import dailyQuote from '../i18n/locales/dailyQuote';
 import { DailyQuoteCard } from './DailyQuoteCard';
+import germanUi from '../i18n/locales/de';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -209,7 +210,7 @@ describe('DailyQuoteCard', () => {
         .getByRole('heading', { name: dailyQuote.title })
         .classList.contains('sr-only'),
     ).toBe(true);
-    expect(screen.queryByText(dailyQuote.kicker)).toBeNull();
+    expect(screen.queryByText('Euer Impuls')).toBeNull();
     expect(api.getDailyQuote).not.toHaveBeenCalled();
     expect(api.getDailyQuoteCatalog).not.toHaveBeenCalled();
     expect(
@@ -241,7 +242,7 @@ describe('DailyQuoteCard', () => {
     expect(
       screen.queryByText(dailyQuote.catalog.categories.together),
     ).toBeNull();
-    expect(screen.queryByText(dailyQuote.kicker)).toBeNull();
+    expect(screen.queryByText('Euer Impuls')).toBeNull();
     expect(document.querySelector('.daily-quote-card .pro-mark')).toBeNull();
     expect(
       screen.queryByRole('button', {
@@ -297,7 +298,7 @@ describe('DailyQuoteCard', () => {
     expect(await screen.findByText(dailyQuote.empty)).toBeTruthy();
     expect(screen.getByText(dailyQuote.emptyMeta)).toBeTruthy();
     expect(
-      screen.queryByRole('button', { name: dailyQuote.retry }),
+      screen.queryByRole('button', { name: germanUi.common.retry }),
     ).not.toBeTruthy();
   });
 
@@ -308,7 +309,9 @@ describe('DailyQuoteCard', () => {
     });
 
     expect(await screen.findByText(dailyQuote.unavailableOffline)).toBeTruthy();
-    await user.click(screen.getByRole('button', { name: dailyQuote.retry }));
+    await user.click(
+      screen.getByRole('button', { name: germanUi.common.retry }),
+    );
     expect(api.getEntitlements).toHaveBeenCalledTimes(2);
   });
 
@@ -319,7 +322,9 @@ describe('DailyQuoteCard', () => {
     });
 
     expect(await screen.findByText(dailyQuote.unavailable)).toBeTruthy();
-    await user.click(screen.getByRole('button', { name: dailyQuote.retry }));
+    await user.click(
+      screen.getByRole('button', { name: germanUi.common.retry }),
+    );
     expect(api.getDailyQuote).toHaveBeenCalledTimes(2);
   });
 
@@ -339,7 +344,9 @@ describe('DailyQuoteCard', () => {
         name: dailyQuote.catalog.categories.together,
       }),
     );
-    await user.click(screen.getByRole('button', { name: dailyQuote.done }));
+    await user.click(
+      screen.getByRole('button', { name: germanUi.common.done }),
+    );
 
     expect(await screen.findByText(dailyQuote.preferencesOffline)).toBeTruthy();
     expect(api.updateDailyQuotePreferencesRaw).not.toHaveBeenCalled();
@@ -362,7 +369,9 @@ describe('DailyQuoteCard', () => {
         name: dailyQuote.catalog.categories.together,
       }),
     );
-    await user.click(screen.getByRole('button', { name: dailyQuote.done }));
+    await user.click(
+      screen.getByRole('button', { name: germanUi.common.done }),
+    );
 
     await waitFor(() =>
       expect(api.updateDailyQuotePreferencesRaw).toHaveBeenCalledTimes(1),
@@ -398,7 +407,9 @@ describe('DailyQuoteCard', () => {
         name: dailyQuote.catalog.categories.together,
       }),
     );
-    await user.click(screen.getByRole('button', { name: dailyQuote.done }));
+    await user.click(
+      screen.getByRole('button', { name: germanUi.common.done }),
+    );
 
     expect(await screen.findByText(dailyQuote.conflict)).toBeTruthy();
     expect(
@@ -426,7 +437,9 @@ describe('DailyQuoteCard', () => {
       name: dailyQuote.catalog.categories.together,
     });
     await user.click(together);
-    await user.click(screen.getByRole('button', { name: dailyQuote.done }));
+    await user.click(
+      screen.getByRole('button', { name: germanUi.common.done }),
+    );
 
     await waitFor(() =>
       expect(api.updateDailyQuotePreferencesRaw).toHaveBeenCalledTimes(1),

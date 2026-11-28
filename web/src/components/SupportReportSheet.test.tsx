@@ -23,8 +23,8 @@ import { ApiRuntimeProvider } from '../client/apiRuntimeContext';
 import type { FailureReference } from '../client/failureReference';
 import type { SupportReportKind } from '../client/supportReport';
 import supportReport from '../i18n/locales/supportReport';
-import taskSheets from '../i18n/locales/taskSheets';
 import { SupportReportSheet } from './SupportReportSheet';
+import germanUi from '../i18n/locales/de';
 
 const FAILURE: FailureReference = {
   reference: 'PUT:/memories/{id}:network:web',
@@ -351,14 +351,14 @@ describe('SupportReportSheet', () => {
       supportReport.failed,
     );
     await act(async () => {
-      fireEvent.click(sendButton(supportReport.retry));
+      fireEvent.click(sendButton(germanUi.common.retry));
     });
     expect(createSupportReport).toHaveBeenCalledTimes(2);
   });
 
   it('no_close_x_but_handle_button_has_accessible_close_name', () => {
     const { onClose } = setup();
-    const close = screen.getByRole('button', { name: taskSheets.close });
+    const close = screen.getByRole('button', { name: germanUi.common.close });
     expect(close.querySelector('svg')).toBeNull();
     fireEvent.click(close);
     expect(onClose).toHaveBeenCalledTimes(1);
@@ -382,7 +382,7 @@ describe('SupportReportSheet', () => {
     expect(dialog.classList.contains('support-report-sheet-sent')).toBe(true);
     expect(dialog.querySelector('.support-report-success-mark')).toBeTruthy();
     const done = screen.getByRole('button', {
-      name: supportReport.success.done,
+      name: germanUi.common.done,
     });
     expect(document.activeElement).toBe(done);
     fireEvent.click(done);

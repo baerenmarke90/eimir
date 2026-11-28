@@ -3,12 +3,10 @@ import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import composer from '../../src/i18n/locales/composer';
 import de from '../../src/i18n/locales/de';
-import experiences from '../../src/i18n/locales/experiences';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import navigation from '../../src/i18n/locales/navigation';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
-import taskSheets from '../../src/i18n/locales/taskSheets';
 import { expectNaturalTextReflow } from '../support/addAction';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { resumeLegacyMemoryAttempt } from '../support/legacyMemoryDraft';
@@ -591,9 +589,7 @@ test('content and photo save opens the confirmed canonical Memory and returns to
     path: testInfo.outputPath('f2-confirmed-memory-390-light.png'),
     fullPage: true,
   });
-  await page
-    .getByRole('button', { name: taskBoundary.back, exact: true })
-    .click();
+  await page.getByRole('button', { name: de.common.back, exact: true }).click();
   await expect(page).toHaveURL(/\/story\?.*year=2025/);
   expect(new URL(page.url()).searchParams.get('tab')).toBe('timeline');
   expect(new URL(page.url()).searchParams.get('type')).toBe('MEMORY');
@@ -647,9 +643,7 @@ test('photo-only Quick Create saves a Memory without text and returns to its sco
     .toBeGreaterThan(0);
   expect(api.createRequests).toBe(1);
   expect(api.bindRequests).toBe(0);
-  await page
-    .getByRole('button', { name: taskBoundary.back, exact: true })
-    .click();
+  await page.getByRole('button', { name: de.common.back, exact: true }).click();
   await expect(page).toHaveURL(/\/story\?.*year=2025/);
   expect(new URL(page.url()).searchParams.get('type')).toBe('MEMORY');
   expect(api.unexpected).toEqual([]);
@@ -666,10 +660,10 @@ test('a pending submission retains its draft and cannot create twice or exit', a
   try {
     await expect.poll(() => api.createRequests).toBe(1);
     await expect(
-      page.getByRole('button', { name: de.memory.saving, exact: true }),
+      page.getByRole('button', { name: de.common.saving, exact: true }),
     ).toBeDisabled();
     await expect(
-      page.getByRole('button', { name: taskBoundary.close, exact: true }),
+      page.getByRole('button', { name: de.common.close, exact: true }),
     ).toBeDisabled();
     await page.keyboard.press('Escape');
     await expect(page.getByRole('alertdialog')).toHaveCount(0);
@@ -806,10 +800,8 @@ test('direct entry has a safe canonical return and no fabricated browsing origin
     page.getByRole('heading', { name: older.title, exact: true }),
   ).toBeVisible();
   await page
-    .getByRole('button', { name: memoryProduct.backToStory, exact: true })
-    .or(
-      page.getByRole('link', { name: memoryProduct.backToStory, exact: true }),
-    )
+    .getByRole('button', { name: de.common.back, exact: true })
+    .or(page.getByRole('link', { name: de.common.back, exact: true }))
     .click();
   await expect(page).toHaveURL(/\/story(?:\?tab=timeline)?$/);
 });
@@ -1079,7 +1071,7 @@ test('filter choices apply deliberately, cancel preserves scope, and no-match re
   await dialog.locator('#story-filter-order').selectOption('ASC');
   expect(new URL(page.url()).searchParams.get('year')).toBe('2025');
   await dialog
-    .getByRole('button', { name: taskSheets.filterCancel, exact: true })
+    .getByRole('button', { name: de.common.cancel, exact: true })
     .click();
   await expect(dialog).toHaveCount(0);
   await expect(trigger).toBeFocused();
@@ -1276,10 +1268,10 @@ test('unrecognized or external origin keys fall back to canonical Story', async 
     );
     await page.reload();
     await page
-      .getByRole('link', { name: memoryProduct.backToStory, exact: true })
+      .getByRole('link', { name: de.common.back, exact: true })
       .or(
         page.getByRole('button', {
-          name: memoryProduct.backToStory,
+          name: de.common.back,
           exact: true,
         }),
       )
@@ -1299,7 +1291,7 @@ test('an unsupported date stays editable and never starts a network save', async
   await date.fill('10000-01-01');
   await page
     .getByRole('dialog', { name: de.memory.dateLabel, exact: true })
-    .getByRole('button', { name: experiences.finish, exact: true })
+    .getByRole('button', { name: de.common.done, exact: true })
     .click();
   await expect(
     page.getByRole('alert').filter({ hasText: taskBoundary.invalidDate }),
@@ -1333,7 +1325,7 @@ test('edit header Back and Browser Back keep the selected Memory origin', async 
     page.getByRole('heading', { name: firstPage[0].title, exact: true }),
   ).toBeVisible();
   for (const exit of ['header', 'browser']) {
-    await editViaMenu(page, memoryProduct.edit);
+    await editViaMenu(page, de.common.edit);
     await expect(
       page.getByRole('heading', {
         name: memoryProduct.editHeading,
@@ -1343,19 +1335,17 @@ test('edit header Back and Browser Back keep the selected Memory origin', async 
     ).toBeVisible();
     if (exit === 'header')
       await page
-        .getByRole('link', { name: taskBoundary.back, exact: true })
+        .getByRole('link', { name: de.common.back, exact: true })
         .click();
     else await page.goBack();
     await expect(
       page.getByRole('heading', { name: firstPage[0].title, exact: true }),
     ).toBeVisible();
     await expect(
-      page.getByRole('button', { name: taskBoundary.back, exact: true }),
+      page.getByRole('button', { name: de.common.back, exact: true }),
     ).toBeVisible();
   }
-  await page
-    .getByRole('button', { name: taskBoundary.back, exact: true })
-    .click();
+  await page.getByRole('button', { name: de.common.back, exact: true }).click();
   await expect(page).toHaveURL(/\/story\?.*year=2025/);
   expect(new URL(page.url()).searchParams.get('type')).toBe('MEMORY');
   await expect(source).toBeFocused();
@@ -1377,7 +1367,7 @@ test('leaving the Memory editor reuses the detail entry so Back returns to the o
   });
   await expect(detailHeading).toBeVisible();
   const detailIndex = await page.evaluate(() => window.history.state?.idx);
-  await editViaMenu(page, memoryProduct.edit);
+  await editViaMenu(page, de.common.edit);
   await expect(
     page.getByRole('heading', {
       name: memoryProduct.editHeading,
@@ -1385,9 +1375,7 @@ test('leaving the Memory editor reuses the detail entry so Back returns to the o
       level: 1,
     }),
   ).toBeVisible();
-  await page
-    .getByRole('link', { name: taskBoundary.back, exact: true })
-    .click();
+  await page.getByRole('link', { name: de.common.back, exact: true }).click();
   await expect(detailHeading).toBeVisible();
   // The editor closed into the existing detail entry instead of a copy of it.
   expect(await page.evaluate(() => window.history.state?.idx)).toBe(
@@ -1430,7 +1418,7 @@ test('large text and a short Compact viewport keep task actions reachable', asyn
   await expect(diaryOptions).toBeVisible();
   await expectNoOverflow(page);
   await diaryOptions
-    .getByRole('button', { name: taskSheets.close, exact: true })
+    .getByRole('button', { name: de.common.close, exact: true })
     .click();
   await expect(diaryOptions).not.toBeVisible();
   await page.setViewportSize({ width: 320, height: 480 });

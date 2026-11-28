@@ -31,6 +31,7 @@ import privateArea from '../i18n/locales/privateArea';
 import { GiftIdeaDetailPage } from './GiftIdeasPage';
 import { PrivateCollectionDetailPage } from './PrivateCollectionsPage';
 import { PrivateNoteDetailPage } from './PrivateNotesPage';
+import germanUi from '../i18n/locales/de';
 
 const accountId = 'account-1';
 const spaceId = 'space-1';
@@ -191,7 +192,7 @@ for (const d of definitions) {
           }),
         );
         fireEvent.click(
-          await screen.findByRole('button', { name: privateArea.delete }),
+          await screen.findByRole('button', { name: germanUi.common.delete }),
         );
         fireEvent.click(
           await screen.findByRole('button', {

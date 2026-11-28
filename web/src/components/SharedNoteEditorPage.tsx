@@ -334,7 +334,7 @@ function NoteEditor({
             onClick={() => requestClose()}
             aria-disabled={save.isPending}
           >
-            {t('sharedNotes.edit.close')}
+            {t('common.close')}
           </TaskBackButton>
         }
         title={
@@ -349,9 +349,7 @@ function NoteEditor({
             data-saveable={saveable}
             aria-disabled={!saveable || save.isPending}
           >
-            {save.isPending
-              ? t('sharedNotes.edit.saving')
-              : t('sharedNotes.edit.save')}
+            {save.isPending ? t('sharedNotes.edit.saving') : t('common.save')}
           </button>
         }
       />
@@ -437,7 +435,7 @@ function NoteEditor({
                 className="tertiary"
                 onClick={() => submit()}
               >
-                {t('sharedNotes.edit.retry')}
+                {t('common.retry')}
               </button>
             </div>
           </section>
@@ -461,7 +459,7 @@ function NoteEditor({
       <form id="shared-note-form" onSubmit={onSubmit}>
         <div className="page-composer-writing composer-authored-surface">
           <label className="sr-only" htmlFor="shared-note-title">
-            {t('sharedNotes.edit.titleLabel')}
+            {t('common.title')}
           </label>
           <input
             ref={titleRef}

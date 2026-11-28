@@ -525,11 +525,12 @@ const serverAdmin = {
     next: 'Weiter',
     status: {
       label: 'Status',
-      all: 'Alle',
+      all: 'Alle (ohne gelöschte)',
       active: 'Aktiv',
       suspended: 'Gesperrt',
       pendingDeletion: 'Löschung ausstehend',
       deleted: 'Gelöscht',
+      deletionFailed: 'Löschung fehlgeschlagen',
     },
     verification: {
       label: 'E-Mail-Verifikation',
@@ -587,8 +588,12 @@ const serverAdmin = {
       deletionTitle: 'Account löschen',
       deletionWarning:
         'Die Löschung entfernt das Konto unwiderruflich und bereinigt private Daten gemäß dem autoritativen #520-Lifecycle.',
-      deletionNotice:
-        'Für diesen Account wurde eine unwiderrufliche Kontolöschung gestartet (#520).',
+      deletionPending:
+        'Die Löschung wurde am {{date}} angenommen und wird im Hintergrund abgeschlossen. Der Account kann nicht mehr verwendet werden.',
+      deletionCompleted:
+        'Gelöscht am {{date}}. Persönliche Daten und Anmeldedaten sind entfernt. Ein Datensatz ohne persönliche Angaben bleibt für den gemeinsamen Verlauf erhalten.',
+      deletionFailed:
+        'Ein Bereinigungsschritt ist am {{date}} fehlgeschlagen. Der Account bleibt gesperrt und unbenutzbar. Details stehen bei den fehlgeschlagenen Jobs.',
       deleteAccount: 'Account löschen',
     },
     deletionDialog: {

@@ -11,6 +11,8 @@ Name | Type
 `authMethods` | Array&lt;string&gt;
 `createdAt` | Date
 `deletionAcceptedAt` | Date
+`deletionCompletedAt` | Date
+`deletionFailedAt` | Date
 `deletionStatus` | [AccountDeletionStatus](AccountDeletionStatus.md)
 `disabledAt` | Date
 `displayName` | string
@@ -37,6 +39,8 @@ const example = {
   "authMethods": null,
   "createdAt": null,
   "deletionAcceptedAt": null,
+  "deletionCompletedAt": null,
+  "deletionFailedAt": null,
   "deletionStatus": null,
   "disabledAt": null,
   "displayName": null,

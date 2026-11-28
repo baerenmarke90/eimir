@@ -45,6 +45,7 @@ class ServerAdminAccountErrorCode:
     LOCAL_RECOVERY_UNAVAILABLE = "SERVER_ADMIN_LOCAL_RECOVERY_UNAVAILABLE"
     ACCOUNT_DISABLED = "SERVER_ADMIN_ACCOUNT_DISABLED"
     DEMO_ACCOUNT = "ACCOUNT_DELETION_DEMO_FORBIDDEN"
+    ACCOUNT_DELETED = "SERVER_ADMIN_ACCOUNT_DELETED"
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,6 +69,24 @@ def require_account(
     if account is None:
         raise NotFoundError("Account not found.", ServerAdminAccountErrorCode.NOT_FOUND)
     return account
+
+
+def reject_deleted_account(session: Session, account_id: UUID) -> None:
+    """Refuse operator actions on an Account whose deletion was accepted.
+
+    An accepted deletion is irreversible and fail-closed (#520). Unsuspending,
+    recovering, verifying or otherwise operating on its tombstone could clear
+    ``disabled_at`` or issue credentials for an Account that must never be
+    usable again.
+    """
+    accepted = session.execute(
+        select(AccountDeletion.account_id).where(AccountDeletion.account_id == account_id)
+    ).scalar_one_or_none()
+    if accepted is not None:
+        raise ValidationError(
+            "This Account was deleted and accepts no further operator actions.",
+            ServerAdminAccountErrorCode.ACCOUNT_DELETED,
+        )
 
 
 def primary_email(session: Session, account_id: UUID) -> AccountEmail | None:
@@ -117,6 +136,7 @@ def set_suspended(
     ServerAdmin set so two operators cannot race into a zero-admin state.
     """
     target = require_account(session, target_account_id, for_update=True)
+    reject_deleted_account(session, target.id)
     revoked_sessions = 0
 
     if suspended:
@@ -167,6 +187,7 @@ def revoke_account_sessions(
     target_account_id: UUID,
 ) -> int:
     target = require_account(session, target_account_id)
+    reject_deleted_account(session, target.id)
     revoked = sessions.revoke_all(session, target)
     administration.record_action(
         session,
@@ -189,6 +210,7 @@ def verify_account_email(
 ) -> AccountEmail:
     """Record an explicit operator assertion that one address was verified."""
     require_account(session, target_account_id)
+    reject_deleted_account(session, target_account_id)
     email_record = session.execute(
         select(AccountEmail)
         .where(
@@ -233,6 +255,7 @@ def issue_operator_recovery(
     returned by this request and must never be logged or audited.
     """
     target = require_account(session, target_account_id, for_update=True)
+    reject_deleted_account(session, target.id)
     if not target.is_active:
         raise ValidationError(
             "A suspended Account must be unsuspended before recovery.",

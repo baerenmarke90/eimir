@@ -15078,6 +15078,30 @@
             ],
             "title": "Deletionacceptedat"
           },
+          "deletionCompletedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deletioncompletedat"
+          },
+          "deletionFailedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deletionfailedat"
+          },
           "deletionStatus": {
             "anyOf": [
               {
@@ -24858,7 +24882,8 @@
               "enum": [
                 "all",
                 "active",
-                "suspended"
+                "suspended",
+                "deleted"
               ],
               "title": "Status",
               "type": "string"
@@ -25489,6 +25514,16 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
           }
         },
         "summary": "Revoke Server Admin Account Sessions",

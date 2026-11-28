@@ -1911,7 +1911,8 @@ export type GetServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGe
 export const ListServerAdminAccountsApiV1ServerAdminAccountsGetStatusEnum = {
     all: 'all',
     active: 'active',
-    suspended: 'suspended'
+    suspended: 'suspended',
+    deleted: 'deleted'
 } as const;
 export type ListServerAdminAccountsApiV1ServerAdminAccountsGetStatusEnum = typeof ListServerAdminAccountsApiV1ServerAdminAccountsGetStatusEnum[keyof typeof ListServerAdminAccountsApiV1ServerAdminAccountsGetStatusEnum];
 /**

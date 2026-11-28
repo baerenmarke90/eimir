@@ -399,6 +399,18 @@ for (const scenario of [
         await receiver.evaluate(() => {
           document.documentElement.style.fontSize = '200%';
         });
+      // A phone may deliver the observer's first report only after the
+      // writing began; an unchanged width must not end it.
+      await receiver.evaluate(() => {
+        const Native = window.ResizeObserver;
+        window.ResizeObserver = class extends Native {
+          constructor(callback: ResizeObserverCallback) {
+            super((entries, observer) => {
+              setTimeout(() => callback(entries, observer), 300);
+            });
+          }
+        };
+      });
       // Phase changes with their times: a writing that jumps to its end
       // still reaches `final`, so the end state alone proves nothing.
       await receiver.evaluate(() => {

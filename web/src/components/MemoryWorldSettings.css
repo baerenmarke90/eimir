@@ -5,6 +5,7 @@
   scroll-margin-block-start: var(--space-8);
 }
 .memory-world-summary-art {
+  max-inline-size: 100%;
   inline-size: calc(var(--space-12) * 2);
   aspect-ratio: 16 / 10;
   flex-shrink: 0;

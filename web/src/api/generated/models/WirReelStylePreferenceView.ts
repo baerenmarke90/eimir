@@ -22,7 +22,7 @@ import {
 } from './WirReelStyleId';
 
 /**
- * The caller's own presentation of the Wir reels "Neu für dich" and "Du bist dran".
+ * The caller's own presentation of the Wir reels (new-for-you notices and waiting games).
  * @export
  * @interface WirReelStylePreferenceView
  */

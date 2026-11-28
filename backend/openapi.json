@@ -20578,7 +20578,7 @@
         "type": "object"
       },
       "WirReelStyleId": {
-        "description": "A personal presentation of the Wir reels \"Neu für dich\" and \"Du bist dran\" (#2345).\n\nA style only changes how the same items are shown; the items, their order\nand their read state are identical. It is never shared with the partner.",
+        "description": "A personal presentation of the Wir reels: new-for-you notices and waiting games (#2345).\n\nA style only changes how the same items are shown; the items, their order\nand their read state are identical. It is never shared with the partner.",
         "enum": [
           "circles",
           "tiles",
@@ -20600,7 +20600,7 @@
         "type": "object"
       },
       "WirReelStylePreferenceView": {
-        "description": "The caller's own presentation of the Wir reels \"Neu für dich\" and \"Du bist dran\".",
+        "description": "The caller's own presentation of the Wir reels (new-for-you notices and waiting games).",
         "properties": {
           "styleId": {
             "$ref": "#/components/schemas/WirReelStyleId"

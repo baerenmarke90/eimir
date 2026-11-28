@@ -124,6 +124,20 @@
   font: var(--font-utility-heading);
 }
 
+/* #2372: an open message leads with its handwritten words; the page title
+   stays in the accessibility tree only, like `.sr-only`. */
+.once-page .page-heading.page-heading-secondary.once-heading-quiet h1 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /*
  * #2372: the opened message written by hand. Each stroke has
  * `pathLength="1"` and draws in with the catalogue's Enter `draw` keyframes

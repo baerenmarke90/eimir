@@ -3,7 +3,7 @@
 Captured with Playwright Chromium from `web/e2e/tests/once-messages.spec.ts`, run with `SCREENSHOT_EXPORT_DIR`. The messages are really encrypted between two browser contexts; the server is mocked.
 
 - `once-open-handwriting-writing-390-light.png`: about 1.1 s after opening. The partner's words are halfway written.
-- `once-open-390-light.png`, `once-open-360-dark.png` and `once-open-430-light.png`: the finished handwriting, wrapped to the reading width.
+- `once-open-390-light.png`, `once-open-360-dark.png` and `once-open-430-light.png`: the finished handwriting, wrapped to the reading width. While a message is open, the page title is visually hidden (Product Owner, 2026-11-28) and stays the page's heading for assistive technology, so the words lead below Back and the sender line.
 - `once-open-320-light-large-reduced.png`: 320 px with 200 % text and reduced motion. The handwriting appears finished at once and grows with the text size.
 - `once-voice-390-light.png` and `once-photo-390-light.png`: voice and photo-only messages, unchanged.
 

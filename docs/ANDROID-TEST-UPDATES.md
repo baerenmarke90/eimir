@@ -238,6 +238,33 @@ bury the active test channel below 10 newer unrelated releases. No eligible mark
 from “current”. Local package generation or an APK attachment does not establish
 that the public feed has been published or that native installation works.
 
+### Update location, asset repository and publisher repository
+
+Three repositories are involved, and the cut-over of
+[Decision 0019](decisions/0019-repository-split-and-cutover.md) (runbook step C17)
+moves them at different times. All three are `baerenmarke90/eimir` today.
+
+| Name | Meaning | Configured in |
+| --- | --- | --- |
+| Update location | Where an installed APK looks for its **next** release: feed, marker and APK URLs and the accepted feed links derive from it. | `UpdatePolicy.REPOSITORY`, the only place; it changes by one reviewed commit on this branch. The build records it as `updateRepository` in `eimir-test-build.json`. |
+| Asset repository | Where a release is **published**. Its marker's `asset.url` names it, because the installed predecessor compares that URL with its own update location. | Repository variable `EIMIR_ANDROID_TEST_ASSET_REPOSITORY`; `--asset-repository` of `scripts/android_test_release.py package` and `scripts/android_test_release_plan.py`. |
+| Publisher repository | Where this release branch, its plan, its required checks, the workflow and the `android-test-release` Environment live. | Repository variable `EIMIR_ANDROID_TEST_PUBLISHER_REPOSITORY`; the jobs run only there. |
+
+Unset variables mean `baerenmarke90/eimir`; a fork never runs the jobs. When the
+asset repository differs from the publisher repository, the publish job needs the
+Environment secret `EIMIR_ANDROID_TEST_RELEASE_TOKEN`: a fine-grained token limited
+to the asset repository with **Contents: read and write** and nothing else. The job
+checks that it can write there before the keystore is decoded, uses it only for the
+release writes, and never prints it; the preflight never sees it. The preflight
+also refuses a plan whose source commit is not a commit of the asset repository,
+because the release tag targets the exact APK source (runbook decision D7).
+
+The bridge release before the cut-over has update location `baerenmarke90/eimir-core`
+but asset repository `baerenmarke90/eimir`; later releases have both in
+`eimir-core`. A rehearsal publishes to a throwaway public asset repository by
+setting both variables in the rehearsal publisher repository; it must not use the
+real update location or consume a real version code.
+
 ## Native boundary and removal
 
 Only `android/app/src/sideload/` owns transport, package inspection, cache files,

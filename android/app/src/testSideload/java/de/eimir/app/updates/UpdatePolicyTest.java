@@ -27,6 +27,41 @@ public class UpdatePolicyTest {
         assertThrows(IllegalArgumentException.class, () -> UpdatePolicy.releaseUrl("v1.0.0", UpdatePolicy.MARKER));
     }
 
+    @Test public void theUpdateLocationIsOneValidRepositoryFromWhichEveryAddressDerives() {
+        // Until the Decision 0019 cut-over the updater reads the original public repository.
+        assertEquals("baerenmarke90/eimir", UpdatePolicy.REPOSITORY);
+        assertTrue(UpdatePolicy.validRepository(UpdatePolicy.REPOSITORY));
+        assertEquals(UpdatePolicy.feedUrl(UpdatePolicy.REPOSITORY), UpdatePolicy.FEED_URL);
+        assertEquals("https://github.com/baerenmarke90/eimir/releases.atom", UpdatePolicy.FEED_URL);
+        assertEquals(UpdatePolicy.releaseUrl(UpdatePolicy.REPOSITORY, TAG, UpdatePolicy.MARKER),
+            UpdatePolicy.releaseUrl(TAG, UpdatePolicy.MARKER));
+    }
+
+    @Test public void theCutoverLocationDerivesAllowedPublicAddresses() {
+        String core = "baerenmarke90/eimir-core";
+        assertTrue(UpdatePolicy.validRepository(core));
+        assertEquals("https://github.com/baerenmarke90/eimir-core/releases.atom", UpdatePolicy.feedUrl(core));
+        String marker = UpdatePolicy.releaseUrl(core, TAG, UpdatePolicy.MARKER);
+        assertEquals("https://github.com/baerenmarke90/eimir-core/releases/download/" + TAG + "/"
+            + UpdatePolicy.MARKER, marker);
+        assertEquals("https://github.com/baerenmarke90/eimir-core/releases/download/" + TAG + "/eimir-"
+            + TAG + ".apk", UpdatePolicy.releaseUrl(core, TAG, "eimir-" + TAG + ".apk"));
+        // The allowed hosts are the same for any public GitHub repository.
+        assertTrue(UpdatePolicy.allowedTransportUrl(UpdatePolicy.feedUrl(core)));
+        assertTrue(UpdatePolicy.allowedTransportUrl(marker));
+    }
+
+    @Test public void rejectsRepositoryNamesThatCouldEscapeTheReleasePath() {
+        for (String repository : new String[]{"", "eimir", "a/b/c", "../eimir", "owner/..", "owner/.",
+            "-owner/repo", "owner/repo?x=1", "owner/repo#x", "owner /repo", "owner/re po",
+            "evil.test/repo", "owner_x/repo", "https://github.com/o/r", null}) {
+            assertFalse(String.valueOf(repository), UpdatePolicy.validRepository(repository));
+            assertThrows(IllegalArgumentException.class, () -> UpdatePolicy.feedUrl(repository));
+            assertThrows(IllegalArgumentException.class,
+                () -> UpdatePolicy.releaseUrl(repository, TAG, UpdatePolicy.MARKER));
+        }
+    }
+
     private void validate(String packageName, String name, long code, long size, String hash, int sdk, String revision) {
         UpdatePolicy.validateMetadata(packageName, "de.sidebyside.app", name, TAG, code, size, hash, sdk, revision);
     }

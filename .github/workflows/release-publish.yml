@@ -1473,9 +1473,20 @@ jobs:
           retention-days: 30
           compression-level: 0
 
+  # Repositories of the Android test channel (Decision 0019 cut-over, runbook C17):
+  # - publisher repository: where this workflow, the release branch, its plan and the
+  #   signing Environment live; repository variable EIMIR_ANDROID_TEST_PUBLISHER_REPOSITORY.
+  #   The APK source commit and its required checks are read here.
+  # - asset repository: the public repository whose Releases hold the test releases and
+  #   their anonymous feed; repository variable EIMIR_ANDROID_TEST_ASSET_REPOSITORY.
+  # Both default to baerenmarke90/eimir, so nothing changes until a variable is set. A fork
+  # or an unconfigured repository never runs these jobs. Publishing to an asset repository
+  # other than the publisher needs the Environment secret EIMIR_ANDROID_TEST_RELEASE_TOKEN:
+  # a fine-grained token for that one repository with Contents read and write only.
+  # The update location compiled into the APK is separate: UpdatePolicy.REPOSITORY.
   android-test-preflight:
     if: >-
-      github.repository == 'baerenmarke90/eimir' &&
+      github.repository == (vars.EIMIR_ANDROID_TEST_PUBLISHER_REPOSITORY || 'baerenmarke90/eimir') &&
       github.event_name == 'push' &&
       github.ref == 'refs/heads/release/android-test.14-20261026'
     needs: contract
@@ -1493,7 +1504,8 @@ jobs:
       fresh_package: ${{ steps.plan.outputs.fresh_package }}
     env:
       CERTIFICATE: 1d403a18b4d3694f8e5fd9853906a60c012644d23e5a3a1ef40819b119cb1da9
-      GH_REPO: baerenmarke90/eimir
+      # The asset repository; gh release commands use it through GH_REPO.
+      GH_REPO: ${{ vars.EIMIR_ANDROID_TEST_ASSET_REPOSITORY || 'baerenmarke90/eimir' }}
     permissions:
       contents: read
       checks: read
@@ -1509,8 +1521,21 @@ jobs:
         id: plan
         run: |
           python3 scripts/android_test_release_plan.py admit \
-            --plan .github/android-test-release.json \
+            --plan .github/android-test-release.json --asset-repository "$GH_REPO" \
             --github-output "$GITHUB_OUTPUT" --github-env "$GITHUB_ENV"
+          echo "Publisher repository: \`$GITHUB_REPOSITORY\`; asset repository: \`$GH_REPO\`." >> "$GITHUB_STEP_SUMMARY"
+      - name: Confirm the asset repository can tag the planned source
+        if: steps.plan.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The release tag targets the exact APK source commit, and GitHub can only tag a
+          # commit that exists in the asset repository (runbook C17 and decision D7).
+          if [ "$GH_REPO" != "$GITHUB_REPOSITORY" ] &&
+            ! gh api "repos/$GH_REPO/commits/$SOURCE" --silent; then
+            echo "The APK source $SOURCE is not a commit of the asset repository $GH_REPO; its release tag cannot target it (runbook decision D7)." >&2
+            exit 1
+          fi
       - name: Verify the existing canonical FCM test signer
         env:
           GH_TOKEN: ${{ github.token }}
@@ -1562,7 +1587,8 @@ jobs:
           test "$(git rev-parse HEAD)" = "$SOURCE"
           test -z "$(git status --porcelain)"
           test -s "$NOTES_FILE"
-          gh api "repos/$GH_REPO/commits/$SOURCE/check-runs?per_page=100" > "$RUNNER_TEMP/checks.json"
+          # The required checks ran on the source commit in the publisher repository.
+          gh api "repos/$GITHUB_REPOSITORY/commits/$SOURCE/check-runs?per_page=100" > "$RUNNER_TEMP/checks.json"
           python3 - <<'PY'
           import json, os, re
           from pathlib import Path
@@ -1688,13 +1714,14 @@ jobs:
 
   android-test-publish:
     if: >-
-      github.repository == 'baerenmarke90/eimir' &&
+      github.repository == (vars.EIMIR_ANDROID_TEST_PUBLISHER_REPOSITORY || 'baerenmarke90/eimir') &&
       github.event_name == 'push' &&
       github.ref == 'refs/heads/release/android-test.14-20261026' &&
       needs.android-test-preflight.outputs.ready == 'true'
     env:
       CERTIFICATE: 1d403a18b4d3694f8e5fd9853906a60c012644d23e5a3a1ef40819b119cb1da9
-      GH_REPO: baerenmarke90/eimir
+      # The asset repository, as in android-test-preflight.
+      GH_REPO: ${{ vars.EIMIR_ANDROID_TEST_ASSET_REPOSITORY || 'baerenmarke90/eimir' }}
       ANDROID_FIREBASE_PROJECT_ID: eimir-production
       SOURCE: ${{ needs.android-test-preflight.outputs.source }}
       VERSION_NAME: ${{ needs.android-test-preflight.outputs.version_name }}
@@ -1737,6 +1764,23 @@ jobs:
       - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
         with:
           cache-read-only: true
+      - name: Confirm the publishing token for the asset repository
+        env:
+          RELEASE_TOKEN_SET: ${{ secrets.EIMIR_ANDROID_TEST_RELEASE_TOKEN != '' }}
+          GH_TOKEN: ${{ secrets.EIMIR_ANDROID_TEST_RELEASE_TOKEN || github.token }}
+        run: |
+          # Fail before any signing material is decoded. The token value is never printed.
+          if [ "$GH_REPO" != "$GITHUB_REPOSITORY" ] && [ "$RELEASE_TOKEN_SET" != true ]; then
+            echo "Publishing to $GH_REPO from $GITHUB_REPOSITORY needs the android-test-release Environment secret EIMIR_ANDROID_TEST_RELEASE_TOKEN (fine-grained, only $GH_REPO, Contents read and write)." >&2
+            exit 1
+          fi
+          if [ "$RELEASE_TOKEN_SET" = true ]; then
+            test "$(gh api "repos/$GH_REPO" --jq .permissions.push)" = true || {
+              echo "EIMIR_ANDROID_TEST_RELEASE_TOKEN cannot write to $GH_REPO." >&2
+              exit 1
+            }
+          fi
+          echo "Publishing from $GITHUB_REPOSITORY to the asset repository $GH_REPO."
       - name: Prepare clean source and original previous APK
         env:
           GH_TOKEN: ${{ github.token }}
@@ -1817,12 +1861,17 @@ jobs:
             --previous-apk "$RUNNER_TEMP/previous/$PREVIOUS_APK" \
             --certificate-sha256 "$CERTIFICATE" \
             --notes-file "$NOTES_FILE" \
+            --asset-repository "$GH_REPO" \
             --output-dir "$RUNNER_TEMP/release"
           python3 - <<'PY'
-          import json, os
+          import json, os, zipfile
           from pathlib import Path
           root = Path(os.environ['RUNNER_TEMP']) / 'release'
           marker = json.loads((root / 'eimir-test-update.json').read_text())
+          assert marker['asset']['url'].startswith(
+              f"https://github.com/{os.environ['GH_REPO']}/releases/download/")
+          with zipfile.ZipFile(root / os.environ['APK']) as archive:
+              identity = json.loads(archive.read('assets/public/eimir-test-build.json'))
           assert marker['sourceRevision'] == os.environ['SOURCE']
           assert marker['versionCode'] == int(os.environ['VERSION_CODE']) and marker['versionName'] == os.environ['VERSION_NAME']
           assert marker['packageName'] == 'de.eimir.app'
@@ -1837,7 +1886,9 @@ jobs:
               f"# Android {os.environ['VERSION_NAME']} automated release verification\n\n"
               f"APK source: `{os.environ['SOURCE']}`.\n\n"
               f"Orchestration: `{os.environ['GITHUB_SHA']}`; "
-              f"run https://github.com/{os.environ['GH_REPO']}/actions/runs/{os.environ['GITHUB_RUN_ID']}.\n\n"
+              f"run https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}.\n\n"
+              f"Asset repository: `{os.environ['GH_REPO']}`; update location compiled into the APK: "
+              f"`{identity['updateRepository']}`.\n\n"
               f"Certificate SHA-256: `{os.environ['CERTIFICATE']}`.\n\n"
               f"APK SHA-256: `{marker['asset']['sha256']}`; bytes: {marker['asset']['size']}.\n\n"
               'Passed: fixed-source required CI, Android source tests, unsigned sideload build, '
@@ -1855,7 +1906,7 @@ jobs:
           PY
       - name: Stage a complete draft, verify downloaded bytes, then publish
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.EIMIR_ANDROID_TEST_RELEASE_TOKEN || github.token }}
         run: |
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo 'Refusing to overwrite an existing release or draft.' >&2
@@ -1888,8 +1939,11 @@ jobs:
       - name: Verify the anonymous updater catalog and every public asset
         run: |
           python3 "$RUNNER_TEMP/android-test-release-plan.py" verify \
-            --plan "$RUNNER_TEMP/android-test-release.json" --expected-root "$RUNNER_TEMP/release"
+            --plan "$RUNNER_TEMP/android-test-release.json" --expected-root "$RUNNER_TEMP/release" \
+            --asset-repository "$GH_REPO" | tee "$RUNNER_TEMP/public-verification.json"
           echo "Published and verified: https://github.com/$GH_REPO/releases/tag/$TAG" >> "$GITHUB_STEP_SUMMARY"
+          python3 -c "import json,sys; r=json.load(open(sys.argv[1])); print('Update location compiled into the APK: \`' + r.get('updateRepository', 'not recorded') + '\`.')" \
+            "$RUNNER_TEMP/public-verification.json" >> "$GITHUB_STEP_SUMMARY"
       - name: Retain verified public APK bytes for the requested download
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

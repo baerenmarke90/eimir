@@ -1,5 +1,6 @@
 """Regressions for test-channel admission and actual APK identity parsing."""
 
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -13,6 +14,8 @@ from android_test_release import (
     TEST_ORIGIN,
     parse_badging,
     test_environment,
+    update_manifest,
+    update_repository,
     validate_identity,
     validate_upgrade,
     verify_signer,
@@ -49,9 +52,15 @@ class AndroidTestReleaseTests(unittest.TestCase):
             "sourceRevision": "a" * 40,
             "versionName": "0.2.0-test.1",
             "versionCode": 1,
+            "updateRepository": "baerenmarke90/eimir",
         }
         validate_identity(identity)
+        validate_identity({**identity, "updateRepository": "baerenmarke90/eimir-core"})
+        with self.assertRaises(ValueError):
+            validate_identity({key: value for key, value in identity.items() if key != "updateRepository"})
         for key, bad in [
+            ("updateRepository", "owner/../eimir"),
+            ("updateRepository", ""),
             ("apiOrigin", "https://elsewhere.test"),
             ("demoMode", True),
             ("demoResetTimer", True),
@@ -68,6 +77,39 @@ class AndroidTestReleaseTests(unittest.TestCase):
         ]:
             with self.subTest(key=key, value=bad), self.assertRaises(ValueError):
                 validate_identity({**identity, key: bad})
+
+    def test_build_records_the_single_update_location_of_the_updater(self):
+        # The real updater source on this branch; it changes only at the cut-over.
+        self.assertEqual(update_repository(), "baerenmarke90/eimir")
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "UpdatePolicy.java"
+            source.write_bytes(
+                b'public final class UpdatePolicy {\r\n'
+                b'    public static final String REPOSITORY = "baerenmarke90/eimir-core";\r\n}\r\n')
+            self.assertEqual(update_repository(source), "baerenmarke90/eimir-core")
+            for body in ('', 'public static final String REPOSITORY = "a/b";\n' * 2,
+                         'public static final String REPOSITORY = "owner/../x";\n'):
+                source.write_text(body, encoding="utf-8")
+                with self.subTest(body=body), self.assertRaises(ValueError):
+                    update_repository(source)
+
+    def test_marker_names_the_asset_repository_not_the_update_location(self):
+        identity = {"versionName": "0.2.0-test.104", "versionCode": 104,
+                    "sourceRevision": "a" * 40, "updateRepository": "baerenmarke90/eimir-core"}
+        apk = "eimir-android-test-v0.2.0-test.104.apk"
+        bridge = update_manifest(identity, "Notes", size=10, sha256="b" * 64,
+                                 asset_repository="baerenmarke90/eimir")
+        self.assertEqual(bridge["asset"]["url"], "https://github.com/baerenmarke90/eimir/releases/download/"
+                         "android-test-v0.2.0-test.104/" + apk)
+        moved = update_manifest(identity, "Notes", size=10, sha256="b" * 64,
+                                asset_repository="baerenmarke90/eimir-core")
+        self.assertEqual(moved["asset"]["url"], "https://github.com/baerenmarke90/eimir-core/releases/download/"
+                         "android-test-v0.2.0-test.104/" + apk)
+        self.assertEqual({key for key in bridge if key != "asset"}, {
+            "schemaVersion", "channel", "packageName", "versionName", "versionCode", "minSdk",
+            "sourceRevision", "releaseNotes"})
+        with self.assertRaises(ValueError):
+            update_manifest(identity, "Notes", size=10, sha256="b" * 64, asset_repository="owner/../x")
 
     def test_parses_the_built_apk_and_rejects_debug_or_missing_identity(self):
         badging = "package: name='de.sidebyside.app' versionCode='1' versionName='0.2.0-test.1'\nsdkVersion:'26'\n"

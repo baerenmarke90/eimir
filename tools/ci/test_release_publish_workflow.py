@@ -298,7 +298,13 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
         preflight = jobs["android-test-preflight"]
         publisher = jobs["android-test-publish"]
         for block in (preflight, publisher):
-            self.assertIn("github.repository == 'baerenmarke90/eimir'", block)
+            # Publisher and asset repository are variables that default to today's repository.
+            self.assertIn(
+                "github.repository == (vars.EIMIR_ANDROID_TEST_PUBLISHER_REPOSITORY || 'baerenmarke90/eimir')",
+                block)
+            self.assertIn(
+                "GH_REPO: ${{ vars.EIMIR_ANDROID_TEST_ASSET_REPOSITORY || 'baerenmarke90/eimir' }}", block)
+            self.assertNotIn("GH_REPO: baerenmarke90/eimir\n", block)
             self.assertIn("github.event_name == 'push'", block)
             self.assertIn("github.ref == 'refs/heads/release/android-test.14-20261026'", block)
             self.assertIn("ref: ${{ env.SOURCE }}", block)
@@ -318,6 +324,39 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
         self.assertIn("contents: write", publisher)
         self.assertIn("--previous-apk", publisher)
         self.assertIn('rm -f "$RUNNER_TEMP/eimir-test-release.jks"', publisher)
+
+    def test_android_test_release_names_its_repositories_and_scopes_the_token(self) -> None:
+        jobs = dict(re.findall(
+            r"(?ms)^  ([a-z][a-z0-9-]*):\n(.*?)(?=^  [a-z][a-z0-9-]*:\n|\Z)",
+            self.workflow.split("\njobs:\n", 1)[1],
+        ))
+        preflight = jobs["android-test-preflight"]
+        publisher = jobs["android-test-publish"]
+        # The plan checker, the marker and the public verification use the asset repository.
+        self.assertIn('--asset-repository "$GH_REPO" \\\n            --github-output', preflight)
+        self.assertIn('--asset-repository "$GH_REPO" \\\n            --output-dir "$RUNNER_TEMP/release"', publisher)
+        self.assertIn('--expected-root "$RUNNER_TEMP/release" \\\n            --asset-repository "$GH_REPO"', publisher)
+        # Required checks are read where the source commit and its checks live.
+        self.assertIn('gh api "repos/$GITHUB_REPOSITORY/commits/$SOURCE/check-runs', preflight)
+        self.assertNotIn('repos/$GH_REPO/commits/$SOURCE/check-runs', preflight)
+        # A source commit that the asset repository cannot tag fails before signing.
+        guard = preflight.index("Confirm the asset repository can tag the planned source")
+        self.assertIn('gh api "repos/$GH_REPO/commits/$SOURCE" --silent', preflight)
+        self.assertLess(guard, preflight.index("Validate the actual sideload build"))
+        # The cross-repository token is checked before the keystore is decoded and is used
+        # only for the release writes; it never reaches the preflight.
+        token = publisher.index("Confirm the publishing token for the asset repository")
+        self.assertLess(token, publisher.index("Decode the protected keystore"))
+        self.assertIn("RELEASE_TOKEN_SET: ${{ secrets.EIMIR_ANDROID_TEST_RELEASE_TOKEN != '' }}", publisher)
+        self.assertEqual(publisher.count("secrets.EIMIR_ANDROID_TEST_RELEASE_TOKEN || github.token"), 2)
+        stage = publisher.split("Stage a complete draft, verify downloaded bytes, then publish", 1)[1]
+        self.assertIn("GH_TOKEN: ${{ secrets.EIMIR_ANDROID_TEST_RELEASE_TOKEN || github.token }}",
+                      stage.split("run: |", 1)[0])
+        self.assertNotIn("EIMIR_ANDROID_TEST_RELEASE_TOKEN", preflight)
+        self.assertNotIn("echo \"$GH_TOKEN", publisher)
+        # The run link names the publisher; the acceptance record names both locations.
+        self.assertIn("os.environ['GITHUB_REPOSITORY']}/actions/runs/", publisher)
+        self.assertIn("update location compiled into the APK", publisher)
 
     def test_android_test_keeps_fcm_and_existing_canonical_signer(self) -> None:
         channel = self.workflow.split("\n  android-test-preflight:\n", 1)[1].split(

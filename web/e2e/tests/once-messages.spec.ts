@@ -214,6 +214,9 @@ async function enable(
 test('two devices exchange actual encrypted content, deliberately reveal once and clear it on leaving', async ({
   browser,
 }, info) => {
+  // Two devices, five widths and an axe scan, plus the greeting's writing
+  // (#2372): longer than the default budget under parallel load.
+  test.setTimeout(60_000);
   const senderContext = await browser.newContext({
     viewport: { width: 390, height: 844 },
     locale: 'de-DE',
@@ -264,6 +267,22 @@ test('two devices exchange actual encrypted content, deliberately reveal once an
     await expect(receiver.getByText(WORDS, { exact: true })).toBeVisible();
     expect(app.opens).toBe(1);
     expect(await nativeSecureScreen(receiver)).toBe(true);
+    // #2372: the handwritten greeting writes itself once, above the message
+    // that is readable from the start, and rests.
+    const greeting = receiver.locator('.once-greeting-strokes');
+    await expect(receiver.locator('.once-greeting .sr-only')).toHaveText(
+      copy.greeting,
+    );
+    await expect(greeting).toHaveAttribute('data-phase', 'playing');
+    await receiver.waitForTimeout(450);
+    await captureScreenshot(
+      receiver,
+      info,
+      'once-open-greeting-writing-390-light.png',
+    );
+    await expect(greeting).toHaveAttribute('data-phase', 'final', {
+      timeout: 5_000,
+    });
     await captureScreenshot(receiver, info, 'once-open-390-light.png');
     const stored = await receiver.evaluate(() =>
       JSON.stringify({
@@ -336,6 +355,75 @@ test('two devices exchange actual encrypted content, deliberately reveal once an
     await receiverContext.close();
   }
 });
+
+for (const scenario of [
+  { width: 360, theme: 'dark', large: false },
+  { width: 430, theme: 'light', large: false },
+  { width: 320, theme: 'light', large: true },
+] as const) {
+  const label = `${scenario.width}-${scenario.theme}${scenario.large ? '-large-reduced' : ''}`;
+  test(`the handwritten greeting on an opened message at ${label} (#2372)`, async ({
+    browser,
+  }, info) => {
+    const a = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      locale: 'de-DE',
+    });
+    const b = await browser.newContext({
+      viewport: { width: scenario.width, height: 844 },
+      locale: 'de-DE',
+      colorScheme: scenario.theme,
+      reducedMotion: scenario.large ? 'reduce' : 'no-preference',
+    });
+    const sender = await a.newPage(),
+      receiver = await b.newPage();
+    const app = server();
+    try {
+      await enable(sender, a, app, ACCOUNT_ID);
+      await enable(receiver, b, app, PARTNER_ID);
+      await sender.goto(`${ROOT}/new`);
+      await sender.getByLabel(copy.message, { exact: true }).fill(WORDS);
+      await sender
+        .getByRole('button', { name: copy.send, exact: true })
+        .click();
+      await expect(
+        sender.getByRole('heading', { name: copy.sent, exact: true }),
+      ).toBeVisible();
+      await receiver.goto(`${ROOT}/${MESSAGE}`);
+      if (scenario.large)
+        await receiver.evaluate(() => {
+          document.documentElement.style.fontSize = '200%';
+        });
+      await receiver
+        .getByRole('button', { name: copy.open, exact: true })
+        .click();
+      await expect(receiver.getByText(WORDS, { exact: true })).toBeVisible();
+      const greeting = receiver.locator('.once-greeting-strokes');
+      // Reduced motion shows the finished greeting at once.
+      if (scenario.large)
+        await expect(greeting).toHaveAttribute('data-phase', 'final');
+      await expect(greeting).toHaveAttribute('data-phase', 'final', {
+        timeout: 5_000,
+      });
+      expect(
+        await receiver.evaluate(
+          () =>
+            document.documentElement.scrollWidth -
+            document.documentElement.clientWidth,
+        ),
+      ).toBeLessThanOrEqual(0);
+      const accessibility = await new AxeBuilder({ page: receiver })
+        .include('.once-reading')
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+        .analyze();
+      expect(accessibility.violations).toEqual([]);
+      await captureScreenshot(receiver, info, `once-open-${label}.png`);
+    } finally {
+      await a.close();
+      await b.close();
+    }
+  });
+}
 
 test('temporary audio uses the shared player and stays outside durable HeartMoments', async ({
   browser,

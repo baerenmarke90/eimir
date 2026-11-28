@@ -45,6 +45,7 @@ import { VOICE_ACCEPT, voiceFile, voiceTime } from '../client/voiceNotes';
 import { useTranslation } from '../i18n';
 import { AddActionContent } from './AddAction';
 import { DraftExitPrompt } from './DraftExitPrompt';
+import { HandwrittenGreeting } from './HandwrittenGreeting';
 import { MediaActionGroup } from './MediaActionGroup';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
@@ -616,6 +617,9 @@ function OnceTask({
               className="once-reading"
               aria-label={t('onceMessages.message')}
             >
+              {messageId ? (
+                <HandwrittenGreeting messageKey={messageId} />
+              ) : null}
               <p className="once-from">
                 {sealed.data
                   ? t('onceMessages.from', {

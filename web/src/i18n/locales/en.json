@@ -6435,6 +6435,7 @@
   "onceMessages": {
     "title": "Only for you",
     "from": "From {{name}}",
+    "greeting": "for you",
     "for": "For {{name}}",
     "singleView": "View once",
     "message": "Your message",

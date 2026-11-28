@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import io
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 from PIL import Image
@@ -12,7 +12,8 @@ from sqlalchemy import select
 from eimir.attachments.models import Attachment, PhotoLocationDraft
 from eimir.outbox.models import OutboxEvent
 from eimir.places.models import Place
-from tests.conftest import auth, requires_database
+from eimir.relationship import service as relationship_service
+from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 from tests.integration import test_attachment_binding as binding
 from tests.integration.test_attachment_binding import couple as couple
 
@@ -171,6 +172,88 @@ def test_shared_heart_moment_rejects_legacy_disable(client, couple, session):  #
     assert partner.json() == {"enabled": True, "version": 0}
     second = binding.ready_attachment(client, couple, session)
     assert session.get(PhotoLocationDraft, UUID(second)) is not None
+
+
+@pytest.fixture
+def unit_of_work(production_client):  # type: ignore[no-untyped-def]
+    """The request session production uses: no autoflush before the photo Place lock.
+
+    The ordinary ``client`` session autoflushes, which hid #2353: a pending
+    gallery write was discarded when the photo Place re-read its target.
+    """
+    client, maker = production_client
+    with maker.begin() as session:
+        anna = make_account(session, "Anna")
+        ben = make_account(session, "Ben")
+        space = make_space(session, anna)
+        relationship_service.add_member(session, space.id, ben)
+        session.flush()
+        couple = {
+            "anna": anna,
+            "ben": ben,
+            "space": space,
+            "token_a": sign_in(session, anna),
+            "token_b": sign_in(session, ben),
+        }
+
+    def photo() -> str:
+        with maker.begin() as session:
+            return binding.ready_attachment(client, couple, session)
+
+    return client, couple, photo
+
+
+def test_photo_place_keeps_the_shared_heart_moment_gallery_and_cover(unit_of_work):  # type: ignore[no-untyped-def]
+    """Creating the photo Place must not drop the gallery it was derived from (#2353)."""
+    client, couple, ready_photo = unit_of_work
+    photo = ready_photo()
+    # The body and the request identity the Web client sends.
+    created = client.post(
+        f"{binding.base_path(couple['space'].id)}/heart-moments",
+        json={
+            "text": "",
+            "tags": [],
+            "emotion": "LOVED",
+            "visibility": "SHARED",
+            "happenedOn": "2025-06-13",
+            "attachments": [{"attachmentId": photo, "isSensitive": False, "position": 0}],
+            "selectedCoverAttachmentId": photo,
+        },
+        headers={**auth(couple["token_a"]), "Idempotency-Key": str(uuid4())},
+    )
+    assert created.status_code == 201
+    heart = created.json()
+    assert [item["id"] for item in heart["attachments"]] == [photo]
+    assert heart["selectedCoverAttachmentId"] == photo
+    assert len(places(client, couple, heart["id"], "heart-moments").json()["items"]) == 1
+
+    read = client.get(
+        f"{binding.base_path(couple['space'].id)}/heart-moments/{heart['id']}",
+        headers=auth(couple["token_b"]),
+    ).json()
+    assert [item["id"] for item in read["attachments"]] == [photo]
+    assert read["selectedCoverAttachmentId"] == photo
+
+
+def test_photo_place_keeps_the_memory_cover(unit_of_work):  # type: ignore[no-untyped-def]
+    client, couple, ready_photo = unit_of_work
+    first = ready_photo()
+    second = ready_photo()
+    memory = binding.memory(client, couple)
+    saved = client.put(
+        f"{binding.base_path(couple['space'].id)}/memories/{memory['id']}/attachments",
+        json={
+            "attachments": [
+                {"attachmentId": first, "position": 0},
+                {"attachmentId": second, "position": 1},
+            ],
+            "selectedCoverAttachmentId": second,
+        },
+        headers=binding.if_match(couple["token_a"], memory["version"]),
+    )
+    assert saved.status_code == 200
+    assert saved.json()["selectedCoverAttachmentId"] == second
+    assert len(places(client, couple, memory["id"]).json()["items"]) == 1
 
 
 def test_manual_correction_blocks_future_automatic_association(client, couple, session):  # type: ignore[no-untyped-def]

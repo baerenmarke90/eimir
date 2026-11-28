@@ -172,7 +172,7 @@ export function ServerAdminStorageQuotaSheet({
             className="primary-button"
             disabled={!valid || busy}
           >
-            {t('serverAdmin.quotaSheet.save')}
+            {t('common.save')}
           </button>
         </div>
       </form>

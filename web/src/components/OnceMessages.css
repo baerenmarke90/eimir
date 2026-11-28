@@ -124,6 +124,50 @@
   font: var(--font-utility-heading);
 }
 
+/*
+ * #2372: the opened message written by hand. Each stroke has
+ * `pathLength="1"` and draws in with the catalogue's Enter `draw` keyframes
+ * over its share of the writing time (`--handwriting-total`, from the pen
+ * speed and capped at `--duration-handwriting`), after the strokes before
+ * it, at one steady pen speed (`--easing-playback`). Only `playing`
+ * animates, so a return or remount shows the finished words.
+ */
+.once-handwriting {
+  min-width: 0;
+  color: var(--color-private);
+}
+
+.once-handwriting-strokes {
+  display: block;
+  max-inline-size: 100%;
+  block-size: auto;
+  overflow: visible;
+}
+
+.once-handwriting-strokes[data-phase="playing"] {
+  cursor: pointer;
+}
+
+.once-handwriting-strokes path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.25px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.once-handwriting-strokes[data-phase="before"] path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
+.once-handwriting-strokes[data-phase="playing"] path {
+  animation: eimir-motion-enter-draw
+    calc(var(--handwriting-total) * var(--stroke-share)) var(--easing-playback)
+    calc(var(--handwriting-total) * var(--stroke-start)) both;
+}
+
 .once-page button {
   max-width: 100%;
   white-space: normal;

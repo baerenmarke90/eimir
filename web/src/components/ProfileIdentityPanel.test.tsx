@@ -9,6 +9,7 @@ import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { ClientProblemError } from '../client/problemDetails';
 import profileIdentity from '../i18n/locales/profileIdentity';
 import { ProfileIdentityPanel } from './ProfileIdentityPanel';
+import germanUi from '../i18n/locales/de';
 
 const ACCOUNT_ID = 'account-1';
 const SPACE_ID = 'space-1';
@@ -49,14 +50,12 @@ function renderPanel() {
           account={{ id: ACCOUNT_ID, displayName: 'Account name' }}
           spaceId={SPACE_ID}
           onDisplayNameChanged={onDisplayNameChanged}
+          editRequest={1}
         />
       </MemoryRouter>
     </QueryClientProvider>,
   );
 
-  fireEvent.click(
-    screen.getByRole('button', { name: profileIdentity.editProfile }),
-  );
   return { onDisplayNameChanged };
 }
 
@@ -188,7 +187,8 @@ describe('ProfileIdentityPanel birthday editing', () => {
       profile(),
     );
 
-    render(
+    // The page's actions menu raises an edit request; it opens the editor.
+    const panel = (editRequest: number) => (
       <QueryClientProvider client={queryClient}>
         <MemoryRouter>
           <ProfileIdentityPanel
@@ -197,14 +197,12 @@ describe('ProfileIdentityPanel birthday editing', () => {
             account={{ id: ACCOUNT_ID, displayName: 'Account name' }}
             spaceId={SPACE_ID}
             onDisplayNameChanged={vi.fn()}
+            editRequest={editRequest}
           />
         </MemoryRouter>
-      </QueryClientProvider>,
+      </QueryClientProvider>
     );
-
-    fireEvent.click(
-      screen.getByRole('button', { name: profileIdentity.editProfile }),
-    );
+    const view = render(panel(1));
     const input = screen.getByLabelText(
       profileIdentity.birthdayLabel,
     ) as HTMLInputElement;
@@ -229,9 +227,7 @@ describe('ProfileIdentityPanel birthday editing', () => {
         birthday: new Date('1992-05-14T00:00:00Z'),
       },
     );
-    fireEvent.click(
-      screen.getByRole('button', { name: profileIdentity.editProfile }),
-    );
+    view.rerender(panel(2));
     const clearInput = screen.getByLabelText(
       profileIdentity.birthdayLabel,
     ) as HTMLInputElement;
@@ -258,7 +254,7 @@ describe('ProfileIdentityPanel single edit form', () => {
     renderPanel();
 
     const save = screen.getByRole('button', {
-      name: profileIdentity.saveProfile,
+      name: germanUi.common.save,
     }) as HTMLButtonElement;
     expect(save.disabled).toBe(true);
     fireEvent.change(screen.getByLabelText(profileIdentity.displayNameLabel), {

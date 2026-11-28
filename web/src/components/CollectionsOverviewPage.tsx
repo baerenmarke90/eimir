@@ -527,7 +527,7 @@ export function CollectionsOverviewPage({
                   onChange={setCreateKind}
                 />
                 <label htmlFor="create-collection-title">
-                  {t('m5s3.common.title')}
+                  {t('common.title')}
                 </label>
                 <input
                   ref={nameInputRef}
@@ -538,8 +538,8 @@ export function CollectionsOverviewPage({
                 />
                 <button type="submit" disabled={createCollection.isPending}>
                   {createCollection.isPending
-                    ? t('m5s3.common.saving')
-                    : t('m5s3.common.save')}
+                    ? t('common.saving')
+                    : t('common.save')}
                 </button>
                 {createCollection.error ? (
                   <ProblemState error={createCollection.error} />

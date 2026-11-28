@@ -10,7 +10,6 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import wishJourney from '../../src/i18n/locales/wishJourney';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import {
   chooseItemMenuRow,
   itemMenuRow,
@@ -523,7 +522,7 @@ test('Done dismisses the transient continuation and restores focus without offer
   await prepareCompletedScenario(page, visualScenarios[0]);
 
   const backLink = page.getByRole('button', { name: m5s3.common.back });
-  await page.getByRole('button', { name: m5s3.wish.completionDone }).click();
+  await page.getByRole('button', { name: de.common.done }).click();
 
   await expect(
     page.getByRole('heading', { name: m5s3.wish.completionTitle }),
@@ -659,7 +658,7 @@ for (const scenario of pendingScenarios) {
     }
     if (scenario.name === '390-light')
       await capturePendingEvidence(page, testInfo, 'confirmed-390-light');
-    await page.getByRole('button', { name: m5s3.wish.completionDone }).click();
+    await page.getByRole('button', { name: de.common.done }).click();
     await expect(page.getByText(m5s3.wish.completedBody)).toBeVisible();
     await expect(
       page.getByRole('button', { name: m5s3.common.back }),
@@ -906,10 +905,10 @@ for (const [width, colorScheme] of [
       .getByRole('button', { name: m5s3.wish.complete, exact: true })
       .click();
     await page
-      .getByRole('button', { name: m5s3.wish.completionDone, exact: true })
+      .getByRole('button', { name: de.common.done, exact: true })
       .click();
     await page
-      .getByRole('button', { name: taskBoundary.back, exact: true })
+      .getByRole('button', { name: de.common.back, exact: true })
       .click();
     const scope = page.getByRole('group', { name: m5s3.overview.wishScope });
     await scope
@@ -932,7 +931,7 @@ for (const [width, colorScheme] of [
     await wish.click();
     await expect(page.getByText(m5s3.wish.completedBody)).toBeVisible();
     await page
-      .getByRole('button', { name: taskBoundary.back, exact: true })
+      .getByRole('button', { name: de.common.back, exact: true })
       .click();
     await expect(
       scope.getByRole('button', {

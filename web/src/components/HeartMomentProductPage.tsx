@@ -671,6 +671,16 @@ export function HeartMomentProductPage({
           queryClient,
           saved.spaceId,
           saved.attachments ?? (saved.attachment ? [saved.attachment] : []),
+          {
+            previous:
+              current.attachments ??
+              (current.attachment ? [current.attachment] : []),
+            parent: {
+              apiClient: apis.attachments,
+              type: 'HEART_MOMENT',
+              id: saved.id,
+            },
+          },
         );
         await bindVideoTransferTargets(
           spaceId,
@@ -973,7 +983,7 @@ export function HeartMomentProductPage({
                   )}
                   aria-label={
                     createMutation.isPending
-                      ? t('heartMomentProduct.saving')
+                      ? t('common.saving')
                       : parentSaved
                         ? t('common.retry')
                         : t('heartMomentProduct.save')
@@ -989,8 +999,8 @@ export function HeartMomentProductPage({
                   }
                 >
                   {createMutation.isPending
-                    ? t('heartMomentProduct.saving')
-                    : t('m5s3.common.save')}
+                    ? t('common.saving')
+                    : t('common.save')}
                 </button>
               }
             />
@@ -1274,7 +1284,7 @@ export function HeartMomentProductPage({
                 to={heartMomentDetailPath(heartMoment.id)}
                 state={{ taskOriginKey: originKey }}
               >
-                {t('taskBoundary.back')}
+                {t('common.back')}
               </TaskBackLink>
             }
             title={t('heartMomentProduct.editHeading')}
@@ -1357,7 +1367,7 @@ export function HeartMomentProductPage({
               }}
               state={{ taskOriginKey: originKey }}
             >
-              {t('taskBoundary.back')}
+              {t('common.back')}
             </TaskBackLink>
           }
           title={t('heartMomentProduct.editHeading')}
@@ -1369,7 +1379,7 @@ export function HeartMomentProductPage({
               data-saveable={Boolean(editText.trim() || combinedEntries.length)}
               aria-label={
                 updateMutation.isPending
-                  ? t('heartMomentProduct.saving')
+                  ? t('common.saving')
                   : t('heartMomentProduct.save')
               }
               disabled={
@@ -1383,9 +1393,7 @@ export function HeartMomentProductPage({
                 deleteMutation.isBlocked
               }
             >
-              {updateMutation.isPending
-                ? t('heartMomentProduct.saving')
-                : t('m5s3.common.save')}
+              {updateMutation.isPending ? t('common.saving') : t('common.save')}
             </button>
           }
           sectionLabelledBy="heart-moment-edit-heading"
@@ -1759,6 +1767,7 @@ export function HeartMomentProductPage({
                 <MediaGallery
                   readingFrame
                   presentation="composer"
+                  directSensitiveToggle
                   initialMediaId={
                     heartMoment.selectedCoverAttachmentId ?? undefined
                   }
@@ -1905,7 +1914,7 @@ export function HeartMomentProductPage({
           {mayEdit ? (
             <ItemMenuOption
               icon="pen"
-              title={t('heartMomentProduct.edit')}
+              title={t('common.edit')}
               onClick={() =>
                 leaveItemMenu(
                   menuSheet,
@@ -1922,7 +1931,7 @@ export function HeartMomentProductPage({
             <ItemMenuOption
               icon="trash"
               danger
-              title={t('heartMomentProduct.delete')}
+              title={t('common.delete')}
               disabled={deleteMutation.isBlocked}
               onClick={() => {
                 deleteMutation.reset();
@@ -1938,7 +1947,7 @@ export function HeartMomentProductPage({
           title={t('heartMomentProduct.deleteConfirmTitle')}
           body={t('heartMomentProduct.deleteConfirmBody')}
           confirmLabel={t('heartMomentProduct.deleteConfirm')}
-          pendingLabel={t('heartMomentProduct.deleting')}
+          pendingLabel={t('common.deleting')}
           pending={deleteMutation.isPending}
           error={deleteMutation.error}
           restoreFocusRef={menuTrigger}

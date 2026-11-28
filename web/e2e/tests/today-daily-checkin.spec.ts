@@ -1,7 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { expect, type Page, test } from '@playwright/test';
-import dailyVibe from '../../src/i18n/locales/dailyVibe';
+import { expect, type Locator, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import onceMessages from '../../src/i18n/locales/onceMessages';
 import relationshipComponents from '../../src/i18n/locales/relationshipComponents';
@@ -341,7 +340,7 @@ test('badges show vibe and battery without numbers; the partner sheet keeps ever
   await expect(page.getByTestId('wir-checkin-note-dot')).toBeVisible();
   // The separate check-in section is gone from Wir.
   await expect(
-    page.getByRole('heading', { name: dailyVibe.question }),
+    page.getByRole('heading', { name: 'Wie geht es euch heute?' }),
   ).toHaveCount(0);
   await expectInsideViewport(page, 'wir-checkin-own-badge');
   await expectInsideViewport(page, 'wir-checkin-partner-badge');
@@ -466,7 +465,7 @@ test('Dein Tag saves vibe, energy and note independently and deletes each one', 
   await expect(note).toHaveValue('');
   await expect(partnerBadge).toHaveAttribute('data-state', 'hidden');
 
-  await panel.getByRole('button', { name: wirCheckIn.done }).click();
+  await panel.getByRole('button', { name: de.common.done }).click();
   await expect(panel).toBeHidden();
   await expect(ownAvatar(page)).toBeFocused();
   expect(state.unexpectedRequests).toEqual([]);
@@ -582,7 +581,7 @@ test('a failed save stays honest and retries; offline blocks writes', async ({
   await expect(page.getByTestId('wir-checkin-own-badge')).toContainText(
     wirCheckIn.ownPrompt,
   );
-  await panel.getByRole('button', { name: wirCheckIn.retry }).click();
+  await panel.getByRole('button', { name: de.common.retry }).click();
   await expect.poll(() => state.patches.length).toBe(2);
   expect(state.patches.at(-1)).toEqual({ vibe: 'VERY_GOOD' });
   await expect(
@@ -653,7 +652,7 @@ for (const { width, theme, large, reduced } of [
     });
     await page.waitForTimeout(400);
     await saveEvidence(page, `1790a-${label}-2-dein-tag`);
-    await panel.getByRole('button', { name: wirCheckIn.done }).click();
+    await panel.getByRole('button', { name: de.common.done }).click();
     await page.evaluate(() => window.scrollTo(0, 0));
 
     await partnerAvatar(page).click();
@@ -670,7 +669,7 @@ for (const { width, theme, large, reduced } of [
     await expect(page.getByTestId('wir-checkin-own-badge')).toContainText(
       wirCheckIn.ownPrompt,
     );
-    await panel.getByRole('button', { name: wirCheckIn.done }).click();
+    await panel.getByRole('button', { name: de.common.done }).click();
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.waitForTimeout(400);
     await saveEvidence(page, `1790a-${label}-4-after-deletion`);
@@ -710,7 +709,7 @@ for (const { width, theme } of [
     await ownAvatar(page).click();
     const panel = page.getByRole('dialog', { name: wirCheckIn.panelTitle });
     await fillOwnDay(panel);
-    await panel.getByRole('button', { name: wirCheckIn.done }).click();
+    await panel.getByRole('button', { name: de.common.done }).click();
 
     // Waiting for the server: all three hover in the top layer above the
     // sheet, the sheet stays, and nothing has landed on the badge yet.
@@ -757,7 +756,7 @@ test('a failed save returns the value and keeps Dein Tag open', async ({
   await ownAvatar(page).click();
   const panel = page.getByRole('dialog', { name: wirCheckIn.panelTitle });
   await panel.getByRole('button', { name: 'Fröhlich', exact: true }).click();
-  await panel.getByRole('button', { name: wirCheckIn.done }).click();
+  await panel.getByRole('button', { name: de.common.done }).click();
   await expect(panel.getByText(wirCheckIn.saveError)).toBeVisible();
   await expect(panel).toBeVisible();
   await expect(flightGhosts(page)).toHaveCount(0);
@@ -778,7 +777,7 @@ test('reduced motion closes calmly: no flight layer is ever created', async ({
   await ownAvatar(page).click();
   const panel = page.getByRole('dialog', { name: wirCheckIn.panelTitle });
   await fillOwnDay(panel);
-  await panel.getByRole('button', { name: wirCheckIn.done }).click();
+  await panel.getByRole('button', { name: de.common.done }).click();
   await expect(panel).toBeHidden();
   await expect(page.locator('.wir-checkin-flight-layer')).toHaveCount(0);
   const badge = page.getByTestId('wir-checkin-own-badge');
@@ -921,7 +920,18 @@ test('the Wir opening ends on its own and returning to Wir replays no entrance',
                 (animation) =>
                   animation instanceof CSSAnimation &&
                   animation.playState === 'running' &&
-                  animation.effect?.getComputedTiming().iterations === 1,
+                  animation.effect?.getComputedTiming().iterations === 1 &&
+                  // The Wir backdrop glow fades in with a tapped route
+                  // change by design (TodayPage.css); it is not a content
+                  // entrance.
+                  !(
+                    (animation.effect as KeyframeEffect).pseudoElement ===
+                      '::before' &&
+                    (
+                      (animation.effect as KeyframeEffect)
+                        .target as HTMLElement | null
+                    )?.classList.contains('today-page')
+                  ),
               )
               .map((animation) => (animation as CSSAnimation).animationName),
           );
@@ -940,7 +950,7 @@ test('Fertig without a change closes at once and flies nothing', async ({
   await signIn(page);
   await ownAvatar(page).click();
   const panel = page.getByRole('dialog', { name: wirCheckIn.panelTitle });
-  await panel.getByRole('button', { name: wirCheckIn.done }).click();
+  await panel.getByRole('button', { name: de.common.done }).click();
   await expect(panel).toBeHidden();
   await expect(page.locator('.wir-checkin-flight-layer')).toHaveCount(0);
 });
@@ -1148,11 +1158,33 @@ test('the important-day Moment plays once after the opening and rests for the da
   await expect(page.locator('.wir-bridge-occasion').first()).toHaveText(
     'Heute vor 3 Jahren',
   );
-  await expect(page.locator('.wir-bridge-occasion').nth(1)).toHaveText(
-    'An eurem 3. Jahrestag',
+  // #2370: below the heart, the days together roll into place and rest.
+  const [month, date] = monthDay.split('-').map(Number);
+  const days = new Intl.NumberFormat('de').format(
+    Math.round(
+      (Date.UTC(year, month - 1, date) - Date.UTC(year - 3, month - 1, date)) /
+        86_400_000,
+    ),
   );
+  const below = page.locator('.wir-bridge-occasion').nth(1);
+  await expect(below.locator('.rolling-count .sr-only')).toHaveText(days);
+  await expect(below).toHaveText(/Tage zusammen$/);
   await expect(page.locator('a.wir-bridge')).toHaveAccessibleName(
-    /^Heute vor 3 Jahren\./,
+    new RegExp(
+      `^Heute vor 3 Jahren\\. ${days.replace('.', '\\.')} Tage zusammen\\.`,
+    ),
+  );
+  expect(
+    await below
+      .locator('.rolling-count-strip')
+      .evaluateAll((strips) =>
+        strips.map((strip) => strip.getAnimations().length),
+      ),
+  ).toEqual(
+    days
+      .replace(/\D/g, '')
+      .split('')
+      .map(() => 0),
   );
 
   // A tab return shows the resting state at once and adds no hearts.
@@ -1194,6 +1226,154 @@ test('reduced motion shows the important day at once, without rising hearts', as
   );
   expect(await risingHearts()).toBe(0);
 });
+
+/** The relationship start `days` before the device's local today. */
+function startDaysAgo(days: number) {
+  const now = new Date();
+  const start = new Date(
+    Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) -
+      days * 86_400_000,
+  );
+  return start.toISOString().slice(0, 10);
+}
+
+async function rollingAnimations(line: Locator) {
+  return line
+    .locator('.rolling-count-strip')
+    .evaluateAll((strips) =>
+      strips.map((strip) => strip.getAnimations().length),
+    );
+}
+
+test('a round day together plays the Moment with a rolling count (#2370)', async ({
+  page,
+}) => {
+  await installMocks(page, { relationshipStartedOn: startDaysAgo(1000) });
+  await useConnectedDesign(page);
+  const risingHearts = await countRisingHearts(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page);
+
+  const stage = page.locator('.wir-stage');
+  await expect(stage).toHaveAttribute('data-important-day', 'playing', {
+    timeout: 10_000,
+  });
+  const middle = page.locator('.wir-bridge-occasion').first();
+  // The digits roll on their own clock while the Moment plays.
+  expect(await rollingAnimations(middle)).toEqual([1, 1, 1, 1]);
+  await expect(stage).toHaveAttribute('data-important-day', 'final', {
+    timeout: 10_000,
+  });
+  expect(await risingHearts()).toBe(6);
+  await expect(middle.locator('.rolling-count .sr-only')).toHaveText('1.000');
+  await expect(middle).toHaveText(/Tage zusammen$/);
+  await expect(page.locator('a.wir-bridge')).toHaveAccessibleName(
+    /^1\.000 Tage zusammen\./,
+  );
+  // Each strip rests on its digit (1, 0, 0, 0): the cell at the top of the
+  // clipped column is the visible one.
+  expect(
+    await middle.locator('.rolling-count-digit').evaluateAll((digits) =>
+      digits.map((digit) => {
+        const top = digit.getBoundingClientRect().top;
+        return [
+          ...digit.querySelectorAll('.rolling-count-strip > *'),
+        ].findIndex(
+          (cell) => Math.abs(cell.getBoundingClientRect().top - top) < 1,
+        );
+      }),
+    ),
+  ).toEqual([1, 0, 0, 0]);
+
+  // A tab return shows the number at rest, with no roll.
+  const navigation = page.getByRole('navigation', { name: 'Hauptnavigation' });
+  await navigation.getByRole('link', { name: 'Planen' }).click();
+  await expect(page).toHaveURL(/\/plan/);
+  await navigation.getByRole('link', { name: 'Wir' }).click();
+  await expect(stage).toHaveAttribute('data-important-day', 'final');
+  expect(await rollingAnimations(middle)).toEqual([0, 0, 0, 0]);
+});
+
+test('a count of days together that is not round is no occasion (#2370)', async ({
+  page,
+}) => {
+  await installMocks(page, { relationshipStartedOn: startDaysAgo(1001) });
+  await useConnectedDesign(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page);
+  await expect(page.locator('a.wir-bridge')).toBeVisible();
+  await expect(page.locator('.wir-stage')).not.toHaveAttribute(
+    'data-important-day',
+    /.*/,
+  );
+});
+
+for (const { width, theme, large, reduced } of [
+  { width: 360, theme: 'light', large: false, reduced: false },
+  { width: 360, theme: 'dark', large: false, reduced: false },
+  { width: 390, theme: 'light', large: false, reduced: false },
+  { width: 390, theme: 'dark', large: false, reduced: false },
+  { width: 430, theme: 'light', large: false, reduced: false },
+  { width: 430, theme: 'dark', large: false, reduced: false },
+  { width: 360, theme: 'light', large: true, reduced: false },
+  { width: 390, theme: 'dark', large: false, reduced: true },
+] as const) {
+  const label = `${width}-${theme}${large ? '-200-text' : ''}${reduced ? '-reduced-motion' : ''}`;
+  for (const occasion of ['round-day', 'anniversary'] as const) {
+    if (occasion === 'anniversary' && width !== 390) continue;
+    test(`visual evidence 2370 ${occasion} ${label}: the rolling days-together count`, async ({
+      page,
+    }) => {
+      const { year, monthDay } = localToday();
+      await installMocks(page, {
+        relationshipStartedOn:
+          occasion === 'round-day'
+            ? startDaysAgo(1000)
+            : `${year - 3}-${monthDay}`,
+      });
+      await useConnectedDesign(page);
+      await page.setViewportSize({ width, height: 800 });
+      await page.emulateMedia({
+        colorScheme: theme,
+        reducedMotion: reduced ? 'reduce' : 'no-preference',
+      });
+      if (large) {
+        await page.addInitScript(() => {
+          document.addEventListener('DOMContentLoaded', () => {
+            const style = document.createElement('style');
+            style.textContent = 'html { font-size: 200% !important; }';
+            document.head.append(style);
+          });
+        });
+      }
+      await signIn(page);
+      const stage = page.locator('.wir-stage');
+      if (!reduced) {
+        await expect(stage).toHaveAttribute('data-important-day', 'playing', {
+          timeout: 10_000,
+        });
+        await page.waitForTimeout(200);
+        await saveEvidence(page, `2370-${occasion}-${label}-1-rolling`);
+      }
+      await expect(stage).toHaveAttribute('data-important-day', 'final', {
+        timeout: 10_000,
+      });
+      await page.waitForTimeout(1_000);
+      await saveEvidence(page, `2370-${occasion}-${label}-2-rest`);
+      const copy = await page.evaluate(() =>
+        [...document.querySelectorAll('.wir-bridge-occasion')]
+          .map((element) => element.getBoundingClientRect())
+          .filter((box) => box.width > 0)
+          .map((box) => ({ left: box.left, right: box.right })),
+      );
+      expect(copy.length).toBeGreaterThan(0);
+      for (const box of copy) {
+        expect(box.left).toBeGreaterThanOrEqual(0);
+        expect(box.right).toBeLessThanOrEqual(width);
+      }
+    });
+  }
+}
 
 for (const { width, theme, large, reduced } of [
   { width: 360, theme: 'light', large: false, reduced: false },

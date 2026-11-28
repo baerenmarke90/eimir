@@ -142,7 +142,7 @@ function fixture(
 }
 async function open() {
   await waitFor(() => expect(screen.queryByText(t('loading'))).toBeNull());
-  fireEvent.click(screen.getByRole('button', { name: t('change') }));
+  fireEvent.click(screen.getByRole('button', { name: new RegExp(t('title')) }));
   await waitFor(() => expect(screen.queryByText(t('proLoading'))).toBeNull());
 }
 it('saves and resets the palette independently of the layout', async () => {
@@ -192,13 +192,13 @@ it('previews without writing, cancels, and saves once only after server confirma
     window.history.replaceState(null, '');
     window.dispatchEvent(new PopStateEvent('popstate'));
   });
-  fireEvent.click(screen.getByRole('button', { name: t('close') }));
+  fireEvent.click(screen.getByRole('button', { name: i18n.t('common.close') }));
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   expect(back).toHaveBeenCalledOnce();
   back.mockRestore();
   expect(
     screen.getByText(t('names.warm'), {
-      selector: '.wir-design-summary strong',
+      selector: '.wir-design-trigger strong',
     }),
   ).toBeTruthy();
   await open();

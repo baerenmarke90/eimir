@@ -71,7 +71,7 @@ it('saves map-picked coordinates even while technical details stay collapsed, in
   expect(details?.hasAttribute('open')).toBe(false);
   fireEvent.click(
     screen.getByRole('button', {
-      name: i18n.t('m5s3.common.save'),
+      name: i18n.t('common.save'),
     }),
   );
   await waitFor(() =>

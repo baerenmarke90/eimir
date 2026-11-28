@@ -17,9 +17,9 @@ import { i18n } from '../i18n';
 import de from '../i18n/locales/de';
 import memoryProduct from '../i18n/locales/memoryProduct';
 import photoPlaces from '../i18n/locales/photoPlaces';
-import taskBoundary from '../i18n/locales/taskBoundary';
 import { AppShell } from './AppShell';
 import { MemoryProductPage } from './MemoryProductPage';
+import germanFixture from '../../e2e/fixtures/locales/de';
 
 vi.mock('./CommentsPanel', () => ({ CommentsPanel: () => null }));
 beforeEach(() => {
@@ -154,12 +154,12 @@ describe('Memory editor return context', () => {
       fireEvent.click(screen.getByText('Edit selected Memory'));
       fireEvent.click(
         screen.getByRole('link', {
-          name: taskBoundary.back,
+          name: de.common.back,
         }),
       );
       fireEvent.click(
         await screen.findByRole('button', {
-          name: taskBoundary.back,
+          name: de.common.back,
         }),
       );
       const scope = new URLSearchParams(
@@ -263,13 +263,13 @@ describe('Memory detail edit action (#1014)', () => {
         await screen.findByRole('button', { name: memoryProduct.menu }),
       );
       expect(
-        await screen.findByRole('button', { name: memoryProduct.edit }),
+        await screen.findByRole('button', { name: de.common.edit }),
       ).toBeTruthy();
       expect(
         screen.queryByRole('button', { name: photoPlaces.add }),
       ).toBeNull();
       expect(
-        screen.queryByRole('button', { name: memoryProduct.delete }),
+        screen.queryByRole('button', { name: de.common.delete }),
       ).toBeNull();
       expect(list).toHaveBeenCalledWith(
         expect.objectContaining({ targetId: 'memory-1', kind: 'memories' }),
@@ -289,16 +289,14 @@ describe('Memory detail edit action (#1014)', () => {
       name: memoryProduct.menu,
     });
     // No separate Edit control outside the menu.
-    expect(screen.queryByRole('link', { name: memoryProduct.edit })).toBeNull();
-    expect(
-      screen.queryByRole('button', { name: memoryProduct.edit }),
-    ).toBeNull();
+    expect(screen.queryByRole('link', { name: de.common.edit })).toBeNull();
+    expect(screen.queryByRole('button', { name: de.common.edit })).toBeNull();
     fireEvent.click(trigger);
-    await screen.findByRole('button', { name: memoryProduct.edit });
+    await screen.findByRole('button', { name: de.common.edit });
     const rows = [...document.querySelectorAll('.item-menu-option')];
     expect(rows.map((row) => row.textContent)).toEqual([
-      memoryProduct.edit,
-      memoryProduct.delete,
+      de.common.edit,
+      de.common.delete,
     ]);
     expect(rows[1]?.getAttribute('data-danger')).toBe('true');
     fireEvent.click(rows[0] as HTMLElement);
@@ -317,7 +315,7 @@ describe('Memory detail edit action (#1014)', () => {
     expect(document.querySelectorAll('.item-menu-option')).toHaveLength(0);
     expect(
       document.querySelector('.item-menu-footnote')?.textContent,
-    ).toContain(memoryProduct.authorLabel);
+    ).toContain(germanFixture.retiredCopy.memoryAuthorLabel);
   });
 
   it('keeps the short date above content and an authored display title after media', async () => {

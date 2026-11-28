@@ -1,6 +1,3 @@
-const taskSheets = {
-  close: 'Schließen',
-  filterCancel: 'Abbrechen',
-} as const;
+const taskSheets = {} as const;
 
 export default taskSheets;

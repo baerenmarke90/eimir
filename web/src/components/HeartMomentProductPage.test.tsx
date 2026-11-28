@@ -26,14 +26,14 @@ import { AudioProcessingContext } from '../client/voiceNotes';
 import composer from '../i18n/locales/composer';
 import contextTags from '../i18n/locales/contextTags';
 import de from '../i18n/locales/de';
-import experiences from '../i18n/locales/experiences';
 import m5s3 from '../i18n/locales/m5s3';
-import navigation from '../i18n/locales/navigation';
 import relationshipComponents from '../i18n/locales/relationshipComponents';
+import sensitiveMedia from '../i18n/locales/sensitiveMedia';
 import storyProducts from '../i18n/locales/storyProducts';
 import taskBoundary from '../i18n/locales/taskBoundary';
 import { AppShell } from './AppShell';
 import { HeartMomentProductPage } from './HeartMomentProductPage';
+import germanFixture from '../../e2e/fixtures/locales/de';
 
 function CaptureLifecycle({ apis }: { apis: ReferenceApis }) {
   const { pathname } = useLocation();
@@ -55,7 +55,7 @@ function CaptureLifecycle({ apis }: { apis: ReferenceApis }) {
   );
 }
 
-const backToStoryName = taskBoundary.back;
+const backToStoryName = de.common.back;
 
 beforeEach(() => {
   HTMLDialogElement.prototype.showModal = function () {
@@ -233,7 +233,7 @@ async function selectSuggestedContext(
 ) {
   await user.click(screen.getByRole('button', { name: composer.tag }));
   await user.click(screen.getByRole('checkbox', { name: label }));
-  await user.click(screen.getByRole('button', { name: experiences.finish }));
+  await user.click(screen.getByRole('button', { name: de.common.done }));
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
 }
 
@@ -496,9 +496,7 @@ describe('Heart Moment create request identity', () => {
     await user.click(save);
     await waitFor(() => expect(createHeartMoment).toHaveBeenCalledOnce());
     expect(save.disabled).toBe(true);
-    expect(save.getAttribute('aria-label')).toBe(
-      storyProducts.heartMomentProduct.saving,
-    );
+    expect(save.getAttribute('aria-label')).toBe(de.common.saving);
     await user.click(save);
     expect(createHeartMoment).toHaveBeenCalledOnce();
     resolveCreate({ id: 'heart-new' });
@@ -510,7 +508,7 @@ describe('Heart Moment create request identity', () => {
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: composer.tag }));
     await user.type(screen.getByLabelText(contextTags.newLabel), 'Quiet time');
-    await user.click(screen.getByRole('button', { name: experiences.finish }));
+    await user.click(screen.getByRole('button', { name: de.common.done }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await user.click(
       screen.getByRole('button', {
@@ -774,6 +772,35 @@ describe('Heart Moment detail edit action and shared state (#1014)', () => {
     ).toBe('2026-08-25');
   });
 
+  it('reveals a sensitive photo in place with one tap instead of opening it still covered', async () => {
+    const user = userEvent.setup();
+    renderDetail(
+      undefined,
+      {
+        ...heartMoment,
+        attachments: orderedMediaHeart.attachments?.filter(
+          (item) => item.mediaType === 'IMAGE',
+        ),
+      },
+      'detail',
+      protectedMediaApis(),
+    );
+    // Tap the covered photo itself, not the small corner control.
+    await screen.findByText(sensitiveMedia.tapToReveal);
+    const photo = document
+      .querySelector(
+        '.media-gallery-carousel-slide:not(.is-clone) .sensitive-media-cover',
+      )
+      ?.closest('button');
+    if (!(photo instanceof HTMLButtonElement))
+      throw new Error('The covered photo is not a button.');
+    await user.click(photo);
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(
+      await screen.findByRole('button', { name: sensitiveMedia.hide }),
+    ).toBeTruthy();
+  });
+
   it('shows authored context without inventing prose for a textless result', async () => {
     renderDetail(undefined, { ...heartMoment, text: '', tags: ['everyday'] });
     expect(
@@ -790,14 +817,14 @@ describe('Heart Moment detail edit action and shared state (#1014)', () => {
     const copy = storyProducts.heartMomentProduct;
     const trigger = await screen.findByRole('button', { name: copy.menu });
     // No separate Edit control outside the menu.
-    expect(screen.queryByRole('link', { name: copy.edit })).toBeNull();
-    expect(screen.queryByRole('button', { name: copy.edit })).toBeNull();
+    expect(screen.queryByRole('link', { name: de.common.edit })).toBeNull();
+    expect(screen.queryByRole('button', { name: de.common.edit })).toBeNull();
     const user = userEvent.setup();
     await user.click(trigger);
     const rows = [...document.querySelectorAll('.item-menu-option')];
     expect(rows.map((row) => row.textContent)).toEqual([
-      copy.edit,
-      copy.delete,
+      de.common.edit,
+      de.common.delete,
     ]);
     expect(rows[1]?.getAttribute('data-danger')).toBe('true');
     await user.click(rows[0] as HTMLElement);
@@ -827,17 +854,17 @@ describe('Heart Moment detail edit action and shared state (#1014)', () => {
     );
     expect(
       screen.getByRole('button', {
-        name: storyProducts.heartMomentProduct.edit,
+        name: de.common.edit,
       }),
     ).toBeTruthy();
     expect(
       screen.queryByRole('button', {
-        name: storyProducts.heartMomentProduct.makePrivate,
+        name: germanFixture.retiredCopy.privateHeartMomentAction,
       }),
     ).toBeNull();
     expect(
       screen.queryByRole('button', {
-        name: storyProducts.heartMomentProduct.delete,
+        name: de.common.delete,
       }),
     ).toBeNull();
   });
@@ -898,7 +925,7 @@ describe('Heart Moment detail edit action and shared state (#1014)', () => {
     ).toBeTruthy();
     expect(
       screen.queryByRole('button', {
-        name: storyProducts.heartMomentProduct.makePrivate,
+        name: germanFixture.retiredCopy.privateHeartMomentAction,
       }),
     ).toBeNull();
     expect(
@@ -1187,7 +1214,7 @@ describe('Completed Plan handoff to HeartMoment', () => {
     await user.click(menu);
     await user.click(
       await screen.findByRole('button', {
-        name: storyProducts.heartMomentProduct.edit,
+        name: de.common.edit,
       }),
     );
     await act(settleEditorHistory);
@@ -1195,7 +1222,7 @@ describe('Completed Plan handoff to HeartMoment', () => {
       level: 1,
       name: storyProducts.heartMomentProduct.editHeading,
     });
-    await user.click(screen.getByRole('link', { name: taskBoundary.back }));
+    await user.click(screen.getByRole('link', { name: de.common.back }));
     await screen.findByRole('button', {
       name: storyProducts.heartMomentProduct.menu,
     });

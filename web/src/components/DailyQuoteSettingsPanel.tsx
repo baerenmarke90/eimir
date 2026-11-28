@@ -117,7 +117,7 @@ export function DailyQuoteSettingsPanel({
 
   const enabled = preferencesQuery.data?.preference.enabled ?? false;
   const status = mutation.isPending
-    ? t('dailyQuote.saving')
+    ? t('common.saving')
     : mutation.isSuccess
       ? t('dailyQuote.settingsSaved')
       : null;
@@ -156,7 +156,7 @@ export function DailyQuoteSettingsPanel({
                 void preferencesQuery.refetch();
               }}
             >
-              {t('dailyQuote.retry')}
+              {t('common.retry')}
             </button>
           </div>
         ) : null}
@@ -202,7 +202,7 @@ export function DailyQuoteSettingsPanel({
             className="button-link"
             onClick={() => void entitlementQuery.refetch()}
           >
-            {t('dailyQuote.retry')}
+            {t('common.retry')}
           </button>
         </div>
       ) : !hasCapability ? (
@@ -226,7 +226,7 @@ export function DailyQuoteSettingsPanel({
             className="button-link"
             onClick={() => void reload()}
           >
-            {t('dailyQuote.retry')}
+            {t('common.retry')}
           </button>
         </div>
       ) : preferencesQuery.data && variant !== 'categories' ? (

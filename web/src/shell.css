@@ -1277,27 +1277,21 @@
   inset-inline: 0;
   top: 0;
   display: grid;
+  /* 36px is the pull's travel distance (usePullToRefresh); keep them equal. */
   width: 36px;
   height: 36px;
   margin-inline: auto;
   place-items: center;
-  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: 50%;
-  background: var(--color-surface-raised);
-  /* The arrow reads on the raised disc in both themes: primary text while
-     pulling, the readable brand text once the pull is ready or refreshing.
-     The strong brand fill is a button background, not a glyph colour: in Dark
-     it nearly vanishes on the raised surface. */
-  color: var(--color-text);
+  /* A filled disc in the action colour with a light open ring, like the
+     refresh spinner of the platform's own apps; the ring turns while the
+     refresh runs. The glyph colour is the on-action colour, so it reads in
+     both themes. */
+  background: var(--color-action-primary);
+  color: var(--color-on-action-primary);
   box-shadow: var(--shadow-soft);
   opacity: 0;
   transform: translate3d(0, -100%, 0);
-}
-
-.app-pull-refresh-indicator.is-ready .app-pull-refresh-disc,
-.app-pull-refresh-indicator.is-refreshing .app-pull-refresh-disc {
-  border-color: var(--color-brand);
-  color: var(--color-brand-text);
 }
 
 html.app-pull-refresh-enabled,

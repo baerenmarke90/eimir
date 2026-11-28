@@ -5,12 +5,10 @@ import { expect, test } from '@playwright/test';
 import { DASHBOARD_MODULE_KEYS } from '../../src/client/dashboardModules';
 import composer from '../../src/i18n/locales/composer';
 import de from '../../src/i18n/locales/de';
-import experiences from '../../src/i18n/locales/experiences';
 import planningCopy from '../../src/i18n/locales/m5s3';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import copy from '../../src/i18n/locales/photoPlaces';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { mockMapTiles } from '../support/mapTiles';
 import { openComposerPlace } from '../support/memoryDiary';
 import { fulfillDefaultProductContext } from '../support/productContext';
@@ -167,7 +165,7 @@ for (const scenario of [
     const story = storyProducts.discoverStory;
     const storyViewer = page.locator('.momente-story-viewer');
     const storyOpen = storyViewer.getByRole('link', {
-      name: new RegExp(`^${story.open}:`),
+      name: new RegExp(`^${de.common.open}:`),
     });
     const storyHrefs = new Set<string>();
     let heartBadges = 0;
@@ -271,7 +269,7 @@ for (const scenario of [
         .locator('.composer-tool-row')
         .getByRole('button', { name: composer.place, exact: true }),
     ).toHaveCount(0);
-    await editViaMenu(page, memoryProduct.edit);
+    await editViaMenu(page, de.common.edit);
     await expect(page).toHaveURL(/\/story\/memories\/mem-canal\/edit$/);
     await openComposerPlace(page);
     const picker = page.getByRole('dialog', { name: copy.add });
@@ -287,7 +285,7 @@ for (const scenario of [
         .getByText(place.name, { exact: true }),
     ).toBeVisible();
     await picker
-      .getByRole('button', { name: experiences.finish, exact: true })
+      .getByRole('button', { name: de.common.done, exact: true })
       .click();
     await expect(picker).toBeHidden();
     await expect(page.getByText(place.name, { exact: true })).toBeVisible();
@@ -318,7 +316,7 @@ for (const scenario of [
       ).violations,
     ).toEqual([]);
     await page
-      .getByRole('button', { name: taskBoundary.back, exact: true })
+      .getByRole('button', { name: de.common.back, exact: true })
       .click();
     await expect(diary).toHaveAttribute('aria-selected', 'true');
     expect(unexpected).toEqual([]);
@@ -564,7 +562,7 @@ test('a created map Place survives a failed Memory save and retries only its sta
   await mockMapTiles(page, { fail: true });
   await signIn(page);
   await page.goto('/story/memories/mem-canal');
-  await editViaMenu(page, memoryProduct.edit);
+  await editViaMenu(page, de.common.edit);
   await expect(page).toHaveURL(/\/story\/memories\/mem-canal\/edit$/);
   await openComposerPlace(page);
   const picker = page.getByRole('dialog', { name: copy.add });
@@ -595,7 +593,7 @@ test('a created map Place survives a failed Memory save and retries only its sta
       .getByText(place.name, { exact: true }),
   ).toBeVisible();
   await picker
-    .getByRole('button', { name: experiences.finish, exact: true })
+    .getByRole('button', { name: de.common.done, exact: true })
     .click();
   await expect(picker).toBeHidden();
   await expect(page.getByText(place.name, { exact: true })).toBeVisible();

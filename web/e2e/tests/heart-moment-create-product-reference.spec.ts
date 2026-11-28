@@ -8,7 +8,6 @@ import navigation from '../../src/i18n/locales/navigation';
 import photoSources from '../../src/i18n/locales/photoSources';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
-import taskSheets from '../../src/i18n/locales/taskSheets';
 import {
   expectLabeledComposerTool,
   expectNaturalTextReflow,
@@ -537,7 +536,7 @@ async function openVisibilityJourney(page: Page, failSecond = true) {
 }
 
 async function openHeartEditor(page: Page) {
-  await editViaMenu(page, storyProducts.heartMomentProduct.edit);
+  await editViaMenu(page, de.common.edit);
   await expect(page).toHaveURL(/\/heart-moments\/[^/]+\/edit$/);
   await expect(
     page.getByLabel(storyProducts.heartMomentProduct.textLabel, {
@@ -548,8 +547,8 @@ async function openHeartEditor(page: Page) {
 
 async function returnToHeartDetail(page: Page) {
   await page
-    .getByRole('button', { name: taskBoundary.back, exact: true })
-    .or(page.getByRole('link', { name: taskBoundary.back, exact: true }))
+    .getByRole('button', { name: de.common.back, exact: true })
+    .or(page.getByRole('link', { name: de.common.back, exact: true }))
     .click();
   await expect(page).toHaveURL(/\/heart-moments\/[^/]+$/);
   await expect(
@@ -594,7 +593,7 @@ for (const exit of ['button', 'browser'] as const) {
       exit === 'browser'
         ? page.goBack()
         : page
-            .getByRole('button', { name: taskBoundary.back, exact: true })
+            .getByRole('button', { name: de.common.back, exact: true })
             .click();
     await close();
     const confirmation = page.getByRole('dialog', {
@@ -912,7 +911,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await (await nativeChooser).setFiles([]);
       await expect(sourceSheet).toBeVisible();
       await sourceSheet
-        .getByRole('button', { name: taskSheets.close, exact: true })
+        .getByRole('button', { name: de.common.close, exact: true })
         .last()
         .click();
       await expect(mediaTrigger).toBeFocused();
@@ -1283,7 +1282,7 @@ test('custom tag-only Heart Moment survives create, reload, edit and removal (#1
   });
   await page.reload();
   await expect(page.getByText('Ostsee', { exact: true })).toBeVisible();
-  await editViaMenu(page, storyProducts.heartMomentProduct.edit);
+  await editViaMenu(page, de.common.edit);
   await showContextTags(page);
   await page
     .getByRole('checkbox', {
@@ -1369,8 +1368,8 @@ test('photo-only Heart Moment saves without text and opens its photo (#509)', as
     )
     .toBeGreaterThan(0);
   await page
-    .getByRole('button', { name: taskBoundary.back, exact: true })
-    .or(page.getByRole('link', { name: taskBoundary.back, exact: true }))
+    .getByRole('button', { name: de.common.back, exact: true })
+    .or(page.getByRole('link', { name: de.common.back, exact: true }))
     .click();
   await expect(page).toHaveURL(/\/story$/);
 });
@@ -1410,11 +1409,11 @@ test('A contextual Heart Moment returns from a saved tag-only result to Today (#
       .click();
     await expect(page).toHaveURL(/\/story\/heart-moments\/new$/);
     await expect(
-      page.getByRole('button', { name: taskBoundary.back, exact: true }),
+      page.getByRole('button', { name: de.common.back, exact: true }),
     ).toBeVisible();
     await expect(page.locator('#heart-moment-text')).not.toBeFocused();
     await page
-      .getByRole('button', { name: taskBoundary.back, exact: true })
+      .getByRole('button', { name: de.common.back, exact: true })
       .click();
     await expect(page).toHaveURL(/\/today$/);
     await page
@@ -1461,8 +1460,8 @@ test('A contextual Heart Moment returns from a saved tag-only result to Today (#
     ).toBeVisible();
     await expect(page.locator('.comments-panel .ui-state')).toHaveCount(0);
     await page
-      .getByRole('button', { name: taskBoundary.back, exact: true })
-      .or(page.getByRole('link', { name: taskBoundary.back, exact: true }))
+      .getByRole('button', { name: de.common.back, exact: true })
+      .or(page.getByRole('link', { name: de.common.back, exact: true }))
       .click();
     await expect(page).toHaveURL(/\/today$/);
     await expect(

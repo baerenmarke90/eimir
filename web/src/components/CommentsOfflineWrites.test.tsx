@@ -110,7 +110,7 @@ async function prepare(operation: Operation) {
     if (operation === 'delete')
       await user.click(screen.getByLabelText(copy.moreActions));
     if (operation === 'update') {
-      await user.click(screen.getByRole('button', { name: copy.edit }));
+      await user.click(screen.getByRole('button', { name: de.common.edit }));
       await user.clear(screen.getByRole('textbox'));
       await user.type(screen.getByRole('textbox'), 'Edited comment');
     }
@@ -119,8 +119,8 @@ async function prepare(operation: Operation) {
     operation === 'create'
       ? copy.send
       : operation === 'update'
-        ? copy.save
-        : copy.delete;
+        ? de.common.save
+        : de.common.delete;
   const button = screen.getByRole<HTMLButtonElement>('button', { name });
   return () => {
     if (operation === 'delete') fireEvent.click(button);

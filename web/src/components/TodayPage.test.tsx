@@ -1213,7 +1213,7 @@ describe('TodayPage', () => {
     expect(html).toContain('Cooking Night');
     // The PO refinement keeps one upcoming heading instead of a repeated label.
     expect(html).not.toContain('today-section-kicker');
-    expect(html).not.toContain(m5s5.dashboard.upcomingKicker);
+    expect(html).not.toContain('Euer Ausblick');
     // Nothing qualifies for the contextual slot, so the section is omitted
     // entirely rather than rendered as an empty placeholder.
     expect(html).not.toContain('today-section-living');

@@ -621,10 +621,11 @@ decision for the project's own source code.
 | `backend/pro/src/eimir_pro/date_ideas/data/images/*.webp` (25 files) and `images.json` | Editorial date-idea images for #1892 (15 idea images, 10 category images, 1200×800 WebP), generated with OpenAI's built-in image generation without reference images; the manifest keeps alt texts and the exact prompts | eimir. project editorial workflow using ImageGen | project asset; no separate public license grant; served only through the Pro-gated API |
 | `docs/assets/roadmap/roadmap-overview.svg` | eimir. Roadmap | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
 | `docs/assets/roadmap/roadmap-tracks.svg` | eimir. Roadmap | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
+| `web/src/components/handwritingFont.ts` (single-stroke glyph table for handwritten once messages) | Converted for #2372 from the single-stroke font EMS Allure (`svg_fonts/EMSAllure.svg` in the npm package hersheytext 2.0.0, an MIT-licensed package; the font itself is SIL OFL 1.1). EMS Allure was created by Sheldon B. Michaels and converted by Windell H. Oskay; it derives from Allura by Rob Leuschke, TypeSETit (Copyright 2010 The Allura Project Authors). A one-off script rounded the glyph strokes into a compact table; no font file is shipped | eimir. project workflow from the font above | SIL Open Font License 1.1; notice and licence in `web/public/fonts/OFL-EMS-Allure.txt` and the file header |
 | `design/m2/m2-screenflow.svg` | M2 Client handoff | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
 | `docs/m2/m2-privacy-flow.svg` | M2 Privacy/Acceptance handoff | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
 
-No font or audio assets are currently documented in the repository.
+Apart from the handwriting glyph table above (#2372), no font or audio assets are documented in the repository. The product fonts are recorded in `docs/decisions/0005-typography-delivery.md`.
 
 ## Maintenance
 

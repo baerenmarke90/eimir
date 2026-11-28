@@ -481,8 +481,60 @@ a.recap-status-row:hover strong {
   block-size: 1rem;
 }
 .recap-layout-photo .recap-quote {
+  --recap-quote-marker: color-mix(
+    in srgb,
+    var(--color-shared) 55%,
+    transparent
+  );
   border-inline-start-color: var(--color-text-inverse-muted);
   color: var(--color-text-inverse);
+}
+
+/*
+ * #2373: the marker behind the partner's quoted words. The marker layer is a
+ * transparent copy of the line in the same grid cell, so its background
+ * (cloned per line) sits exactly behind each wrapped line; the readable
+ * words paint above it. The sweep uncovers the marker once the scene has
+ * entered (Playback domain `clip-path` on this one layer).
+ */
+.recap-quote {
+  --recap-quote-marker: color-mix(
+    in srgb,
+    var(--color-shared) 32%,
+    transparent
+  );
+}
+
+.recap-quote .recap-quote-line {
+  display: grid;
+}
+
+.recap-quote-line > * {
+  grid-area: 1 / 1;
+}
+
+.recap-quote-marker {
+  color: transparent;
+  pointer-events: none;
+  user-select: none;
+}
+
+.recap-quote-marker::before {
+  content: attr(data-text);
+  background: var(--recap-quote-marker);
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+.recap-quote-words {
+  position: relative;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .recap-quote-marker {
+    animation: eimir-motion-recap-marker-sweep var(--duration-marker-sweep)
+      var(--easing-standard) var(--duration-context) both;
+  }
 }
 .recap-layout-photo .recap-reaction-line {
   color: var(--color-text-inverse);
@@ -584,6 +636,27 @@ a.recap-status-row:hover strong {
 }
 .recap-reader .recap-progress {
   margin-block: var(--space-3) var(--space-4);
+}
+
+/* Full screen: the reader covers the shell (navigation, page margins) and
+   keeps its portrait layout; only the border around it goes. */
+.page.recap-reader[data-fullscreen] {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  max-inline-size: none;
+  min-block-size: 0;
+  margin: 0;
+  overflow-y: auto;
+  background: var(--color-background);
+  padding-block: max(var(--space-3), env(safe-area-inset-top, 0px))
+    max(var(--space-3), env(safe-area-inset-bottom, 0px));
+  padding-inline: max(var(--space-3), env(safe-area-inset-left, 0px))
+    max(var(--space-3), env(safe-area-inset-right, 0px));
+}
+.recap-fullscreen-toggle {
+  min-inline-size: 44px;
+  min-block-size: 44px;
 }
 .recap-scene-copy {
   position: relative;

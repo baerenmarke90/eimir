@@ -1053,7 +1053,9 @@
       "roots": [
         "web/src/components/TodayPage.tsx",
         "web/src/components/WirNewForYouModule.tsx",
-        "web/src/components/WirWaitingGamesModule.tsx"
+        "web/src/components/WirWaitingGamesModule.tsx",
+        "web/src/components/WirReelStyleSettings.tsx",
+        "web/src/client/wirReelStyleContext.tsx"
       ]
     },
     "video-attachments.spec.ts": {

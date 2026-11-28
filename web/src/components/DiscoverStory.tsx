@@ -763,7 +763,7 @@ export function DiscoverStory({
           })}
           onClick={(event) => onOpen(event, current.path)}
         >
-          {t('discoverStory.open')}
+          {t('common.open')}
         </Link>
       </div>
     </section>

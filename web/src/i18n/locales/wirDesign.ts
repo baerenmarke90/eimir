@@ -2,7 +2,6 @@ export default {
   title: 'App-Design',
   intro: 'So fühlt sich eimir. für dich an. Nur deine Ansicht ändert sich.',
   choices: 'Dein App-Design',
-  change: 'Design auswählen',
   palette: {
     title: 'Designfarben',
     choices: 'Designfarben auswählen',
@@ -83,12 +82,9 @@ export default {
   proLoading: 'Pro wird geprüft …',
   proUnavailable:
     'Pro konnte gerade nicht geprüft werden. Verbunden und Geborgen kannst du weiterhin auswählen.',
-  retry: 'Erneut versuchen',
   save: 'Auswahl speichern',
-  saving: 'Wird gespeichert …',
   selected: 'Bereits ausgewählt',
   saved: 'Dein App-Design ist gespeichert.',
-  close: 'Schließen',
   conflict:
     'Deine Darstellung wurde inzwischen geändert. Lade den aktuellen Stand und bestätige deine Auswahl danach erneut.',
   reload: 'Aktuellen Stand laden',

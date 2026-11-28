@@ -136,7 +136,7 @@ function GiftCodeRedeemSheetContent({
             className="button-link button-link-primary gift-code-redeem-action"
             onClick={close}
           >
-            {t('proPaywall.giftCode.done')}
+            {t('common.done')}
           </button>
         ) : (
           <button

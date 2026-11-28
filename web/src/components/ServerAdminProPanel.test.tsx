@@ -20,6 +20,7 @@ import { ServerAdminPage } from './ServerAdminPage';
 import { ServerAdminProPanel } from './ServerAdminProPanel';
 import { shortSpaceId } from './ServerAdminSpaceFile';
 import { sectionHref } from './serverAdminAreas';
+import germanUi from '../i18n/locales/de';
 
 const copy = serverAdmin.pro;
 const SPACE_SOON = '019b2e1a-7c3d-7f00-8a11-00000000000a';
@@ -401,7 +402,9 @@ describe('ServerAdminProPanel', () => {
     });
 
     expect(await screen.findByText(serverAdmin.states.errorTitle)).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: serverAdmin.refresh }));
+    fireEvent.click(
+      screen.getByRole('button', { name: germanUi.common.refresh }),
+    );
     await waitFor(() => expect(api.getProOverview).toHaveBeenCalledTimes(2));
   });
 });

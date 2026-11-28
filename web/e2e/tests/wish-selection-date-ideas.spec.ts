@@ -7,8 +7,6 @@ import {
   test,
 } from '@playwright/test';
 import dateIdeas from '../../src/i18n/locales/dateIdeas';
-import m5s3 from '../../src/i18n/locales/m5s3';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import copy from '../../src/i18n/locales/wishSelection';
 import {
   catalogIdea,
@@ -18,6 +16,7 @@ import {
   signIn,
 } from '../support/dateIdeas';
 import { captureScreenshot } from '../support/storyTimelineFixture';
+import germanUi from '../../src/i18n/locales/de';
 
 /*
  * #465 folded into #1535: curated Pro date ideas are typed candidates of the
@@ -189,7 +188,9 @@ function source(page: Page, title: string) {
   return page.getByRole('button', { name: new RegExp(title) });
 }
 async function finishPick(page: Page) {
-  await page.getByRole('button', { name: copy.pickDone, exact: true }).click();
+  await page
+    .getByRole('button', { name: germanUi.common.done, exact: true })
+    .click();
 }
 
 async function assertNoWcagViolations(page: Page): Promise<void> {
@@ -225,7 +226,7 @@ test('Free: Wish-only selection stays free and date ideas show the calm Pro hint
   expect(dates.catalogRequests).toBe(0);
   await page
     .locator('.wish-selection-heading')
-    .getByRole('button', { name: taskBoundary.back })
+    .getByRole('button', { name: germanUi.common.back })
     .click();
   await source(page, copy.sourceWishesTitle).click();
   await page.getByRole('checkbox', { name: SECOND_WISH.title }).check();
@@ -301,8 +302,19 @@ test('Pro: combine a Wish and date ideas, choose privately, plan the common idea
   expect(selection.rounds).toEqual([
     { wishIds: [WISH.id], dateIdeaIds: [FIRST.id, SECOND.id] },
   ]);
-  await page.getByRole('button', { name: FIRST.title, exact: true }).click();
-  await page.getByRole('button', { name: WISH.title, exact: true }).click();
+  // #2371: the deck shows the Wish first, then the ideas in round order.
+  const like = page.getByRole('button', { name: copy.deckLike, exact: true });
+  const skip = page.getByRole('button', { name: copy.deckSkip, exact: true });
+  await like.click();
+  await like.click();
+  await skip.click();
+  await expect(skip).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: FIRST.title, exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await expect(
+    page.getByRole('button', { name: WISH.title, exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
   await captureScreenshot(
     page,
     info,
@@ -342,7 +354,7 @@ test('Pro: combine a Wish and date ideas, choose privately, plan the common idea
   await expect(page.locator('#planning-create-title')).toHaveValue(
     FIRST.planTitle,
   );
-  await page.getByRole('button', { name: m5s3.common.save }).click();
+  await page.getByRole('button', { name: germanUi.common.save }).click();
   await expect(page).toHaveURL(/\/plan\/plans\/77777777-/);
   expect(dates.createdPlans).toHaveLength(1);
   expect(dates.createdPlans[0]).toMatchObject({

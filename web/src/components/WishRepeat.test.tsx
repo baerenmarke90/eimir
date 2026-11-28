@@ -165,7 +165,7 @@ describe('Nochmal erleben (#1816)', () => {
     const { repeatWish, convertWishToPlan } = renderCompleted();
 
     await user.click(action());
-    const title = screen.getByLabelText(i18n.t('wishRepeat.sheet.titleLabel'));
+    const title = screen.getByLabelText(i18n.t('common.title'));
     expect((title as HTMLInputElement).value).toBe(COMPLETED.title);
     await user.click(
       screen.getByRole('button', { name: i18n.t('wishRepeat.sheet.create') }),
@@ -191,7 +191,7 @@ describe('Nochmal erleben (#1816)', () => {
     const { repeatWish } = renderCompleted();
 
     await user.click(action());
-    const title = screen.getByLabelText(i18n.t('wishRepeat.sheet.titleLabel'));
+    const title = screen.getByLabelText(i18n.t('common.title'));
     await user.clear(title);
     await user.type(title, 'Baltic Sea in winter');
     await user.click(

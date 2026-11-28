@@ -8,7 +8,6 @@ import { chooseItemMenuRow } from '../support/itemMenu';
 import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { captureR3Evidence } from './r3-evidence';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
@@ -680,7 +679,7 @@ test('Wish conversion opens the authoritative Plan result and preserves return c
     title: 'Requested autumn Plan',
   });
 
-  await page.getByRole('button', { name: taskBoundary.back }).click();
+  await page.getByRole('button', { name: de.common.back }).click();
   await expect(page).toHaveURL(/\/plan#wishes$/);
   await expect(
     page.getByRole('tab', { name: m5s3.overview.segmentWishes }),
@@ -836,7 +835,7 @@ test('P2 Chapter to Place reads as relationship content and preserves return con
   await expect(locationDetails).not.toHaveAttribute('open', '');
   await captureR3Evidence(page, testInfo, 'planning-p2-place-390-light.png');
 
-  await page.getByRole('button', { name: taskBoundary.back }).click();
+  await page.getByRole('button', { name: de.common.back }).click();
   await expect(page).toHaveURL(new RegExp(`/plan/chapters/${CHAPTER_ID}$`));
 
   await page.setViewportSize({ width: 430, height: 860 });
@@ -999,7 +998,7 @@ for (const [width, theme] of [
       }),
     ).toBeVisible();
     await page
-      .getByRole('button', { name: taskBoundary.back, exact: true })
+      .getByRole('button', { name: de.common.back, exact: true })
       .click();
     await expect(experienced).toHaveAttribute('aria-pressed', 'true');
     await expect(completed).toBeFocused();

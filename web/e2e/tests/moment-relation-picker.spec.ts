@@ -2,8 +2,6 @@ import { fulfillDefaultProductContext } from '../support/productContext';
 import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import m5s3 from '../../src/i18n/locales/m5s3';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
-import taskSheets from '../../src/i18n/locales/taskSheets';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -13,6 +11,7 @@ import {
   signIn,
   SPACE_ID,
 } from '../support/storyTimelineFixture';
+import germanUi from '../../src/i18n/locales/de';
 
 const PLACE_ID = 'place-mobile-picker';
 const CHAPTER_ID = 'chapter-mobile-picker';
@@ -226,7 +225,7 @@ for (const scenario of [
     await page.getByRole('link', { name: new RegExp(MEMORY_TITLE) }).click();
     await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
     await page
-      .getByRole('button', { name: taskBoundary.back, exact: true })
+      .getByRole('button', { name: germanUi.common.back, exact: true })
       .click();
     await expect(page).toHaveURL(new RegExp(`${path}$`));
     await expect(
@@ -270,7 +269,7 @@ test('large-text picker searches shared history and cancels a staged choice safe
   expect(bounds).not.toBeNull();
   expect((bounds?.y ?? 0) + (bounds?.height ?? 0)).toBeLessThanOrEqual(800);
   await sheet
-    .getByRole('button', { name: taskSheets.close, exact: true })
+    .getByRole('button', { name: germanUi.common.close, exact: true })
     .click();
   await sheet
     .getByRole('button', { name: m5s3.relations.discard, exact: true })

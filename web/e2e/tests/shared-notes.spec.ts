@@ -238,9 +238,9 @@ test('browse, read, edit and save a shared note on a phone', async ({
   // and Delete is last.
   await openItemMenu(page);
   const menuRows = page.locator('.item-menu-option');
-  await expect(menuRows.first()).toContainText(copy.read.edit);
-  await expect(menuRows.last()).toContainText(copy.menu.delete);
-  await itemMenuRow(page, copy.read.edit).click();
+  await expect(menuRows.first()).toContainText(de.common.edit);
+  await expect(menuRows.last()).toContainText(de.common.delete);
+  await itemMenuRow(page, de.common.edit).click();
   const text = page.getByLabel(copy.edit.bodyLabel, { exact: true });
   await text.fill(
     'Key box next to the door.\nCheck-in from 3 pm.\n• Bins on Monday',
@@ -251,7 +251,7 @@ test('browse, read, edit and save a shared note on a phone', async ({
     'shared-notes-editor-compact-light.png',
     { animations: 'disabled' },
   );
-  await page.getByRole('button', { name: copy.edit.save, exact: true }).click();
+  await page.getByRole('button', { name: de.common.save, exact: true }).click();
 
   await expect(page.getByText(copy.toast.saved)).toBeVisible();
   await expect(page.getByText('Washing machine under the sink')).toHaveCount(0);
@@ -349,7 +349,7 @@ test.describe('reflow and reduced motion', () => {
     await largeText();
     expect(await horizontalOverflow()).toBe(false);
 
-    await editViaMenu(page, copy.read.edit);
+    await editViaMenu(page, de.common.edit);
     await expect(
       page.getByLabel(copy.edit.bodyLabel, { exact: true }),
     ).toBeVisible();
@@ -357,7 +357,7 @@ test.describe('reflow and reduced motion', () => {
     expect(await horizontalOverflow()).toBe(false);
     // With reduced motion the saved state is announced without relying on movement.
     await page
-      .getByRole('button', { name: copy.edit.save, exact: true })
+      .getByRole('button', { name: de.common.save, exact: true })
       .click();
     await expect(page.getByText(copy.toast.saved)).toBeVisible();
   });
@@ -424,9 +424,7 @@ test('a Plan is created with a shared note: chosen in the draft, linked after th
   );
 
   planCalls.failLinks = true;
-  await page
-    .getByRole('button', { name: m5s3.common.save, exact: true })
-    .click();
+  await page.getByRole('button', { name: de.common.save, exact: true }).click();
   await expect(page.getByText(composerCopy.planSavedLinkFailed)).toBeVisible();
   expect(planCalls.creates).toHaveLength(1);
   planCalls.failLinks = false;

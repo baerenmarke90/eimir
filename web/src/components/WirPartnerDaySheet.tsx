@@ -38,7 +38,7 @@ export function WirPartnerDaySheet({
         id={sheetId}
         open={open}
         title={t('wirCheckIn.partnerSheetTitle', { name: partnerName })}
-        closeLabel={t('wirCheckIn.partnerSheetClose')}
+        closeLabel={t('common.close')}
         onClose={() => setOpen(false)}
         restoreFocusRef={triggerRef}
         className="wir-checkin-partner-sheet"

@@ -22,6 +22,7 @@ import { PreferenceSwitch } from './PreferenceSwitch';
 import { ProMark } from './ProMark';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import './MemoryWorldSettings.css';
+import './WirDesign.css';
 
 /** Fragment that "Welt wechseln" in Momente › Erinnerungen links to. */
 export const MEMORY_WORLD_SETTINGS_ANCHOR = 'erinnerungswelten';
@@ -114,29 +115,28 @@ function Settings({
     >
       <h2 id="memory-world-title">{t('memoryWorldSettings.title')}</h2>
       <p className="settings-section-intro">{t('memoryWorldSettings.help')}</p>
-      <div className="memory-world-summary">
+      <button
+        type="button"
+        className="design-palette-trigger memory-world-trigger"
+        aria-labelledby="memory-world-title memory-world-value"
+        aria-haspopup="dialog"
+        ref={opener}
+        onClick={() => {
+          setDraft(world);
+          setSaved(false);
+          setError(null);
+          state.inspectCapability();
+          setOpen(true);
+        }}
+      >
         <span className="memory-world-summary-art" aria-hidden="true">
           <WorldArt world={world} />
         </span>
-        <div>
+        <span className="design-palette-trigger-copy" id="memory-world-value">
           <strong>{name(world)}</strong>
           <TierMark world={world} />
-        </div>
-        <button
-          type="button"
-          className="button-link"
-          ref={opener}
-          onClick={() => {
-            setDraft(world);
-            setSaved(false);
-            setError(null);
-            state.inspectCapability();
-            setOpen(true);
-          }}
-        >
-          {t('memoryWorldSettings.change')}
-        </button>
-      </div>
+        </span>
+      </button>
       {isProMemoryWorld(world) && free ? (
         <p className="memory-world-note">
           {t('memoryWorldSettings.kept', { name: name(world) })}
@@ -161,7 +161,7 @@ function Settings({
         ref={sheet}
         open={open}
         title={t('memoryWorldSettings.choices')}
-        closeLabel={t('memoryWorldSettings.close')}
+        closeLabel={t('common.close')}
         className="memory-world-sheet"
         initialFocusRef={initialFocus}
         restoreFocusRef={opener}
@@ -180,7 +180,7 @@ function Settings({
                   className="button-link"
                   onClick={() => void capability.refetch()}
                 >
-                  {t('memoryWorldSettings.retry')}
+                  {t('common.retry')}
                 </button>
               </div>
             ) : null}
@@ -219,7 +219,7 @@ function Settings({
                 onClick={() => void save()}
               >
                 {saving
-                  ? t('memoryWorldSettings.saving')
+                  ? t('common.saving')
                   : changed
                     ? t('memoryWorldSettings.choose', { name: name(draft) })
                     : t('memoryWorldSettings.selected')}

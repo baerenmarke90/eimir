@@ -91,9 +91,7 @@ function CollectionFields({
   const { t } = useTranslation();
   return (
     <div className="field-group">
-      <label htmlFor="private-collection-title">
-        {t('privateArea.collections.titleLabel')}
-      </label>
+      <label htmlFor="private-collection-title">{t('common.title')}</label>
       <input
         ref={titleValidation.inputRef}
         id="private-collection-title"
@@ -296,9 +294,7 @@ export function PrivateCollectionCreatePage({
               {t('common.cancel')}
             </button>
             <button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending
-                ? t('privateArea.saving')
-                : t('privateArea.save')}
+              {mutation.isPending ? t('common.saving') : t('common.save')}
             </button>
           </div>
         </form>
@@ -1091,7 +1087,7 @@ export function PrivateCollectionDetailPage({
                 htmlFor="private-collection-edit-title"
                 className="sr-only"
               >
-                {t('privateArea.collections.titleLabel')}
+                {t('common.title')}
               </label>
               <div className="planning-collection-title-row">
                 <input
@@ -1101,8 +1097,8 @@ export function PrivateCollectionDetailPage({
                   maxLength={200}
                   value={titleDraft}
                   onChange={(e) => setTitleDraft(e.target.value)}
-                  placeholder={t('privateArea.collections.titleLabel')}
-                  aria-label={t('privateArea.collections.titleLabel')}
+                  placeholder={t('common.title')}
+                  aria-label={t('common.title')}
                 />
                 <ListEntryIconButton
                   type="submit"
@@ -1328,9 +1324,7 @@ export function PrivateCollectionEditPage({ api, accountId, spaceId }: Props) {
               {t('common.cancel')}
             </button>
             <button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending
-                ? t('privateArea.saving')
-                : t('privateArea.save')}
+              {mutation.isPending ? t('common.saving') : t('common.save')}
             </button>
           </div>
         </form>

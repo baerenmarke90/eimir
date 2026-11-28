@@ -127,13 +127,13 @@ function ChapterCreateTask({ apis, spaceId, accountId }: Props) {
           }}
         >
           <div className="immersive-create-hero">
-            <label htmlFor="chapter-name">{t('m5s3.common.title')}</label>
+            <label htmlFor="chapter-name">{t('common.title')}</label>
             <input
               id="chapter-name"
               name="title"
               required
               maxLength={200}
-              placeholder={t('m5s3.common.title')}
+              placeholder={t('common.title')}
               className="immersive-create-title"
               value={draft.title}
               disabled={pending}
@@ -180,7 +180,7 @@ function ChapterCreateTask({ apis, spaceId, accountId }: Props) {
               type="submit"
               disabled={pending || placePending || !draft.title.trim()}
             >
-              {t(pending ? 'm5s3.common.saving' : 'm5s3.common.save')}
+              {t(pending ? 'common.saving' : 'common.save')}
             </button>
           </div>
         </form>

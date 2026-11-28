@@ -9,7 +9,6 @@ import m5s3 from '../../src/i18n/locales/m5s3';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import sources from '../../src/i18n/locales/photoSources';
 import storyProducts from '../../src/i18n/locales/storyProducts';
-import taskSheets from '../../src/i18n/locales/taskSheets';
 import fixtureCopy from '../fixtures/locales/de';
 import { expectLabeledComposerTool } from '../support/addAction';
 import { swipeCarousel } from '../support/mediaCarouselGesture';
@@ -353,9 +352,9 @@ test('Plans load on scroll and an Edit-only Wish link preserves the unsaved titl
     exact: true,
   });
   await expect(linkWish).toHaveCount(0);
-  await editViaMenu(page, m5s3.common.edit);
+  await editViaMenu(page, de.common.edit);
   await page
-    .getByRole('textbox', { name: m5s3.common.title, exact: true })
+    .getByRole('textbox', { name: de.common.title, exact: true })
     .fill(copy.edit);
   await linkWish.click();
   await page.getByRole('radio', { name: wishes[0].title, exact: true }).check();
@@ -368,7 +367,7 @@ test('Plans load on scroll and an Edit-only Wish link preserves the unsaved titl
   await page.getByRole('button', { name: m5s3.plan.confirmWishLink }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(
-    page.getByRole('textbox', { name: m5s3.common.title, exact: true }),
+    page.getByRole('textbox', { name: de.common.title, exact: true }),
   ).toHaveValue(copy.edit);
   await page
     .getByRole('button', { name: m5s3.common.saveChanges, exact: true })
@@ -414,7 +413,7 @@ test('Memory linking stays behind Edit and dropped photos join the existing save
   await expect(
     page.getByRole('button', { name: memoryProduct.planning.add }),
   ).toHaveCount(0);
-  await editViaMenu(page, memoryProduct.edit);
+  await editViaMenu(page, de.common.edit);
   await expect(
     page.getByRole('button', { name: memoryProduct.planning.add }),
   ).toBeVisible();
@@ -583,9 +582,7 @@ test.describe('free composer media preservation', () => {
           .replace('{{index}}', '1')
           .replace('{{count}}', '2'),
       );
-      await dialog
-        .getByRole('button', { name: storyProducts.gallery.close })
-        .click();
+      await dialog.getByRole('button', { name: de.common.close }).click();
       await expect(dialog).toHaveCount(0);
       // Latest PO correction removes composer arrangement/reset rows. The native
       // thumbnail selects the preview without changing cover identity or import order.
@@ -683,7 +680,7 @@ test.describe('integrated soft media choices', () => {
         `/plan/plans/${plans[0].id}`,
       ].entries()) {
         await page.goto(route);
-        if (index === 3) await editViaMenu(page, m5s3.common.edit);
+        if (index === 3) await editViaMenu(page, de.common.edit);
         if (scenario.large)
           await page.evaluate(() => {
             document.documentElement.style.fontSize = '200%';
@@ -804,7 +801,7 @@ test.describe('integrated soft media choices', () => {
           await page.emulateMedia({ forcedColors: 'none' });
         }
         await sheet
-          .getByRole('button', { name: taskSheets.close, exact: true })
+          .getByRole('button', { name: de.common.close, exact: true })
           .last()
           .click();
         await expect(sheet).toHaveCount(0);
@@ -993,7 +990,7 @@ for (const view of [
     await expect(rows.nth(3)).toContainText(sources.itemUnsupported);
     // One calm retry covers only what failed; nothing is imported twice.
     const retry = sheet.getByRole('button', {
-      name: sources.retryImport,
+      name: de.common.retry,
       exact: true,
     });
     await expect(retry).toBeVisible();
@@ -1022,7 +1019,7 @@ for (const view of [
     );
     await sheet
       .locator('.photo-source-footer')
-      .getByRole('button', { name: taskSheets.close, exact: true })
+      .getByRole('button', { name: de.common.close, exact: true })
       .click();
     await expect(sheet).toBeHidden();
     // Photo and both videos are in the unsaved draft, in the order Google returned them.

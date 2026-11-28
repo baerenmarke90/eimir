@@ -187,7 +187,7 @@ export function SignInMethodsPanel({
           className="secondary"
           onClick={() => void methods.refetch()}
         >
-          {t('accountSettings.signInMethodsRetry')}
+          {t('common.retry')}
         </button>
       </section>
     );

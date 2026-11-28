@@ -193,7 +193,7 @@ describe('PlaceProductPage editor lifecycle', () => {
     );
     await user.click(
       screen.getByRole('button', {
-        name: i18n.t('m5s3.common.save'),
+        name: i18n.t('common.save'),
       }),
     );
     await waitFor(() => expect(createPlace).toHaveBeenCalledTimes(1));
@@ -263,7 +263,7 @@ describe('PlaceProductPage editor lifecycle', () => {
       createdPlace.name,
     );
     await user.click(
-      screen.getByRole('button', { name: i18n.t('m5s3.common.save') }),
+      screen.getByRole('button', { name: i18n.t('common.save') }),
     );
     await waitFor(() => expect(createPlace).toHaveBeenCalledTimes(1));
     expect(createInvalidation).toHaveBeenCalledWith({
@@ -435,7 +435,7 @@ describe('PlaceProductPage editor lifecycle', () => {
     });
     await user.click(menuTrigger);
     await user.click(
-      await screen.findByRole('button', { name: i18n.t('m5s3.common.delete') }),
+      await screen.findByRole('button', { name: i18n.t('common.delete') }),
     );
     const confirmation = await screen.findByRole('alertdialog');
     expect(confirmation.textContent).toContain(
@@ -452,7 +452,7 @@ describe('PlaceProductPage editor lifecycle', () => {
 
     await user.click(menuTrigger);
     await user.click(
-      await screen.findByRole('button', { name: i18n.t('m5s3.common.delete') }),
+      await screen.findByRole('button', { name: i18n.t('common.delete') }),
     );
     await user.click(
       await screen.findByRole('button', {
@@ -482,13 +482,13 @@ describe('PlaceProductPage editor lifecycle', () => {
     expect(rows).toEqual([
       i18n.t('common.edit'),
       i18n.t('m5s3.place.archive'),
-      i18n.t('m5s3.common.delete'),
+      i18n.t('common.delete'),
     ]);
 
     await user.click(screen.getByText(i18n.t('common.edit')));
     await screen.findByRole('textbox', { name: i18n.t('m5s3.place.name') });
     expect(
-      screen.queryByRole('button', { name: i18n.t('m5s3.common.delete') }),
+      screen.queryByRole('button', { name: i18n.t('common.delete') }),
     ).toBeNull();
     expect(
       screen.queryByRole('button', { name: i18n.t('m5s3.place.archive') }),

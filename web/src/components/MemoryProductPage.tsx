@@ -457,6 +457,14 @@ export function MemoryProductPage({
           queryClient,
           updated.spaceId,
           updated.attachments,
+          {
+            previous: memory.attachments,
+            parent: {
+              apiClient: apis.attachments,
+              type: 'MEMORY',
+              id: updated.id,
+            },
+          },
         );
         await bindVideoTransferTargets(
           spaceId,
@@ -702,7 +710,7 @@ export function MemoryProductPage({
                 to={memoryDetailPath(memory.id)}
                 state={{ taskOriginKey: originKey }}
               >
-                {t('taskBoundary.back')}
+                {t('common.back')}
               </TaskBackLink>
             }
             title={
@@ -779,7 +787,7 @@ export function MemoryProductPage({
             }}
             state={{ taskOriginKey: originKey }}
           >
-            {t('taskBoundary.back')}
+            {t('common.back')}
           </TaskBackLink>
         }
         title={
@@ -796,7 +804,7 @@ export function MemoryProductPage({
               className="composer-save-action"
               aria-label={
                 updateMutation.isPending
-                  ? t('memoryProduct.saving')
+                  ? t('common.saving')
                   : t('memoryProduct.save')
               }
               disabled={
@@ -808,9 +816,7 @@ export function MemoryProductPage({
                 deleteMutation.isBlocked
               }
             >
-              {updateMutation.isPending
-                ? t('memoryProduct.saving')
-                : t('m5s3.common.save')}
+              {updateMutation.isPending ? t('common.saving') : t('common.save')}
             </button>
           ) : undefined
         }
@@ -1067,9 +1073,7 @@ export function MemoryProductPage({
                   className="field-group"
                   hidden={Boolean(memory.experienceKind)}
                 >
-                  <label htmlFor="memory-edit-title">
-                    {t('memory.titleLabel')}
-                  </label>
+                  <label htmlFor="memory-edit-title">{t('common.title')}</label>
                   <input
                     id="memory-edit-title"
                     name="title"
@@ -1260,7 +1264,7 @@ export function MemoryProductPage({
                   }
                 >
                   {updateMutation.isPending
-                    ? t('memoryProduct.saving')
+                    ? t('common.saving')
                     : t('memoryProduct.save')}
                 </button>
               </div>
@@ -1623,7 +1627,7 @@ export function MemoryProductPage({
         {mayEdit ? (
           <ItemMenuOption
             icon="pen"
-            title={t('memoryProduct.edit')}
+            title={t('common.edit')}
             onClick={() =>
               leaveItemMenu(
                 menuSheet,
@@ -1640,7 +1644,7 @@ export function MemoryProductPage({
           <ItemMenuOption
             icon="trash"
             danger
-            title={t('memoryProduct.delete')}
+            title={t('common.delete')}
             disabled={deleteMutation.isBlocked}
             onClick={() => {
               deleteMutation.reset();
@@ -1656,7 +1660,7 @@ export function MemoryProductPage({
         title={t('memoryProduct.deleteConfirmTitle')}
         body={t('memoryProduct.deleteConfirmBody')}
         confirmLabel={t('memoryProduct.deleteConfirm')}
-        pendingLabel={t('memoryProduct.deleting')}
+        pendingLabel={t('common.deleting')}
         pending={deleteMutation.isPending}
         error={deleteMutation.error}
         restoreFocusRef={menuTrigger}

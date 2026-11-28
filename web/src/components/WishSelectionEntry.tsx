@@ -94,9 +94,7 @@ export function WishSelectionEntry({
           });
         }}
       >
-        {t(
-          running ? 'wishSelection.entryContinue' : 'wishSelection.entryStart',
-        )}
+        {t(running ? 'common.continue' : 'wishSelection.entryStart')}
       </Link>
     </section>
   );

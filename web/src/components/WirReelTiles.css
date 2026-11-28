@@ -1,0 +1,304 @@
+/*
+ * The tiles style of the Wir reels (#2345, a Pro presentation; the tiles of
+ * #2349): larger tiles with a real content preview. The deep warm tint and the
+ * game palette are the local roles of the circle reels
+ * (`--wir-notice-deep-*`, `--wir-game-*`); every other value is a token.
+ */
+.wir-notice-tiles.wir-reel-tiles {
+  --wir-notice-width: 10.75rem;
+}
+
+.wir-waiting-games.wir-reel-tiles {
+  --wir-game-tile-width: 9.25rem;
+}
+
+.wir-ntile,
+.wir-gtile {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border-radius: var(--radius-card);
+  color: var(--color-text);
+  text-decoration: none;
+  box-shadow: var(--shadow-soft);
+  background: var(--color-surface-raised);
+}
+
+.wir-ntile {
+  width: var(--wir-notice-width);
+  min-height: 14rem;
+  padding: var(--space-4);
+}
+
+.wir-gtile {
+  width: var(--wir-game-tile-width);
+  min-height: 11.75rem;
+  padding: var(--space-3);
+  background: linear-gradient(
+    160deg,
+    var(--color-surface-raised),
+    var(--color-surface)
+  );
+}
+
+.wir-ntile:focus-visible,
+.wir-gtile:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .wir-ntile,
+  .wir-gtile {
+    transition: transform var(--duration-feedback) var(--easing-standard);
+  }
+
+  .wir-ntile:active,
+  .wir-gtile:active {
+    transform: scale(0.97);
+  }
+}
+
+.wir-ntile-warm,
+.wir-gtile-warm {
+  background: linear-gradient(
+    160deg,
+    var(--color-person-rose-surface),
+    var(--color-surface-raised)
+  );
+}
+
+.wir-ntile-cool,
+.wir-gtile-cool {
+  background: linear-gradient(
+    160deg,
+    var(--color-surface-raised),
+    var(--color-person-blue-surface)
+  );
+}
+
+.wir-ntile-paper {
+  background: linear-gradient(
+    160deg,
+    var(--color-surface-raised),
+    var(--color-surface)
+  );
+}
+
+.wir-gtile-shared {
+  background: linear-gradient(
+    160deg,
+    var(--color-person-rose-surface),
+    var(--color-person-blue-surface)
+  );
+}
+
+.wir-gtile-garden {
+  background: linear-gradient(
+    160deg,
+    var(--wir-game-tint-garden),
+    var(--wir-game-tint-garden-end)
+  );
+}
+
+/* The action pair keeps its contrast in every app design and theme. */
+.wir-ntile-brand,
+.wir-ntile-deep-cool {
+  background: var(--color-action-primary);
+  color: var(--color-on-action-primary);
+}
+
+.wir-ntile-deep-warm {
+  background: linear-gradient(
+    160deg,
+    var(--wir-notice-deep-warm),
+    var(--wir-notice-deep-warm-end)
+  );
+  color: var(--wir-notice-ink-inverse);
+}
+
+.wir-ntile-kind {
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.86;
+}
+
+.wir-ntile-body {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.wir-ntile-title,
+.wir-gtile-title {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 650;
+  line-height: 1.2;
+  overflow-wrap: break-word;
+}
+
+.wir-gtile-title {
+  font-size: 1.05rem;
+}
+
+.wir-ntile-time {
+  font-family: var(--font-display);
+  font-size: 2.3rem;
+  font-weight: 650;
+  line-height: 1;
+}
+
+.wir-ntile-line,
+.wir-gtile-line {
+  margin-top: auto;
+  font-family: var(--font-ui);
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: break-word;
+}
+
+.wir-ntile-warm .wir-ntile-line,
+.wir-ntile-cool .wir-ntile-line,
+.wir-ntile-paper .wir-ntile-line,
+.wir-gtile-line {
+  color: var(--color-text-secondary);
+}
+
+.wir-ntile-leaf {
+  display: grid;
+  justify-items: center;
+  width: 4rem;
+  overflow: hidden;
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  box-shadow: var(--shadow-soft);
+}
+
+.wir-ntile-leaf-weekday {
+  justify-self: stretch;
+  padding: 0.15rem 0;
+  background: var(--color-person-rose);
+  /* Dark rosé in Light, light rosé in Dark: the raised surface reads on both. */
+  color: var(--color-surface-raised);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.wir-ntile-leaf-day {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  font-weight: 650;
+  line-height: 1.15;
+}
+
+.wir-ntile-leaf-time {
+  padding-bottom: 0.35rem;
+  color: var(--color-text-secondary);
+  font-size: 0.7rem;
+  font-weight: 650;
+}
+
+/* The list preview inside a list tile (not the `paper` tone of a note tile). */
+.wir-ntile-list {
+  display: grid;
+  gap: 0.35rem;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-medium);
+  background: color-mix(in srgb, var(--color-surface-raised) 85%, transparent);
+  color: var(--color-text);
+  font-size: 0.84rem;
+}
+
+.wir-ntile-check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.wir-ntile-box {
+  flex: 0 0 auto;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 0.3rem;
+  background: var(--color-person-blue-surface);
+}
+
+.wir-ntile-more {
+  color: var(--color-text-secondary);
+}
+
+.wir-ntile-bubble {
+  display: -webkit-box;
+  overflow: hidden;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-large) var(--radius-large) var(--radius-large)
+    0.35rem;
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  line-height: 1.35;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+}
+
+.wir-ntile-reaction {
+  font-size: 2.4rem;
+  line-height: 1;
+}
+
+.wir-ntile-heart {
+  width: 3.6rem;
+  height: 3.6rem;
+  fill: currentcolor;
+}
+
+.wir-ntile-canvas {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 4.5rem;
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-raised);
+}
+
+.wir-ntile-canvas svg {
+  width: 6rem;
+  height: 3.6rem;
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.wir-ntile-stroke-cool {
+  stroke: var(--identity-icon-cool);
+}
+
+.wir-ntile-stroke-accent {
+  stroke: var(--identity-icon-accent);
+}
+
+/* The game picture gets the tile's own stage; its strokes come from the
+   circle reel's `.wir-game-art-*` roles. */
+.wir-gtile .wir-game-art {
+  height: 5.25rem;
+  border-radius: var(--radius-large);
+  background: color-mix(in srgb, var(--color-surface-raised) 72%, transparent);
+}
+
+.wir-gtile .wir-game-art svg {
+  width: 6.5rem;
+  height: 4rem;
+  stroke-width: 3;
+}

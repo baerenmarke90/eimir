@@ -2,9 +2,7 @@ import AxeBuilder from '../support/axe';
 import { expect, type Page, test } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import contextTags from '../../src/i18n/locales/contextTags';
-import experiences from '../../src/i18n/locales/experiences';
 import copy from '../../src/i18n/locales/storyProducts';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { showContextTags } from '../support/memoryDiary';
 import { fulfillEmptyMomentPlaces } from '../support/photoSources';
 import { fulfillDefaultProductContext } from '../support/productContext';
@@ -18,6 +16,7 @@ import {
   SPACE_ID,
 } from '../support/storyTimelineFixture';
 import { editViaMenu } from '../support/itemMenu';
+import germanUi from '../../src/i18n/locales/de';
 
 const EMOTIONS = [
   'LOVED',
@@ -364,7 +363,7 @@ for (const scenario of scenarios) {
         page.locator('.moment-metadata .visibility-private'),
       ).toBeVisible();
     }
-    await editViaMenu(page, copy.heartMomentProduct.edit);
+    await editViaMenu(page, germanUi.common.edit);
     const field = page.getByRole('textbox', {
       name: copy.heartMomentProduct.textLabel,
       exact: true,
@@ -391,8 +390,8 @@ for (const scenario of scenarios) {
       `heart-reading-saved-${scenario.width}-${scenario.theme}.png`,
     );
     await page
-      .getByRole('button', { name: taskBoundary.back, exact: true })
-      .or(page.getByRole('link', { name: taskBoundary.back, exact: true }))
+      .getByRole('button', { name: germanUi.common.back, exact: true })
+      .or(page.getByRole('link', { name: germanUi.common.back, exact: true }))
       .click();
     await expect(page).toHaveURL(/\/story(?:\?.*)?$/);
     await expect(page.locator('#momente-diary')).toBeVisible();
@@ -482,7 +481,7 @@ for (const theme of ['light', 'dark'] as const) {
       .getByLabel(contextTags.newLabel, { exact: true })
       .fill('Evening');
     await page
-      .getByRole('button', { name: experiences.finish, exact: true })
+      .getByRole('button', { name: germanUi.common.done, exact: true })
       .click();
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await page.screenshot({
@@ -495,7 +494,7 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(page.locator('.heart-moment-detail-text')).toHaveText(TEXT);
     await expectFeelingSurface(page, 'GRATEFUL', true);
     expect(creates).toBe(1);
-    await editViaMenu(page, copy.heartMomentProduct.edit);
+    await editViaMenu(page, germanUi.common.edit);
     const editColors = new Set<string>();
     await expectFeelingSurface(page, 'GRATEFUL');
     for (const emotion of EMOTIONS)

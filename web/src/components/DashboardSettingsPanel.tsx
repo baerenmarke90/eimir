@@ -668,7 +668,7 @@ export function DashboardSettingsPanel({
     pendingVisibility[`${settingsScope}:${UPCOMING_MODULE_KEY}`] !==
       undefined || pendingVisibilityMutations.includes(UPCOMING_MODULE_KEY);
   const status = isLimitPending
-    ? t('profileIdentity.dashboardUpcomingSaving')
+    ? t('common.saving')
     : savedLimitScope === settingsScope
       ? t('profileIdentity.dashboardUpcomingSaved')
       : preferencesQuery.isPending
@@ -680,7 +680,7 @@ export function DashboardSettingsPanel({
     Object.keys(pendingVisibility).some((key) =>
       key.startsWith(`${settingsScope}:`),
     )
-      ? t('profileIdentity.dashboardModuleSaving')
+      ? t('common.saving')
       : savedModuleKey
         ? t('profileIdentity.dashboardModuleSaved')
         : null;

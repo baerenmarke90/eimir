@@ -621,7 +621,7 @@ test('personal Daily Quote preferences stay caller-only and round-trip If-Match'
     path: testInfo.outputPath('today-daily-quote-preferences-390-light.png'),
     fullPage: true,
   });
-  await page.getByRole('button', { name: dailyQuote.done }).click();
+  await page.getByRole('button', { name: de.common.done }).click();
 
   await expect.poll(() => requests.patches.length).toBe(1);
   await expect(
@@ -648,7 +648,7 @@ test('personal visibility hides the Wir card and Settings -> Wir restores it', a
       name: dailyQuote.enabledLabel,
     }),
   ).toHaveCount(0);
-  await page.getByRole('button', { name: dailyQuote.cancel }).click();
+  await page.getByRole('button', { name: de.common.cancel }).click();
 
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(
@@ -737,9 +737,9 @@ test('Pro no-quote response is neutral and does not become an error prompt', asy
 
   await expect(page.getByText(dailyQuote.empty)).toBeVisible();
   await expect(page.getByText(dailyQuote.emptyMeta)).toBeVisible();
-  await expect(
-    page.getByRole('button', { name: dailyQuote.retry }),
-  ).toHaveCount(0);
+  await expect(page.getByRole('button', { name: de.common.retry })).toHaveCount(
+    0,
+  );
   await expectQuoteSurfaceAccessible(page);
   await page.screenshot({
     path: testInfo.outputPath('today-daily-quote-empty-390-light.png'),
@@ -758,7 +758,7 @@ test('a quote service failure keeps Today usable and a retry restores the quote'
   await expect(page.getByText('A calm thought for today.')).toHaveCount(0);
   await expect(page.locator('.today-section-upcoming')).toBeVisible();
   await expectQuoteSurfaceAccessible(page);
-  await page.getByRole('button', { name: dailyQuote.retry }).click();
+  await page.getByRole('button', { name: de.common.retry }).click();
 
   await expect(page.getByText('A calm thought for today.')).toBeVisible();
   expect(requests.quote).toBe(2);
@@ -782,7 +782,7 @@ test('losing the quote capability shows discovery and restores personal preferen
     .getByText(dailyQuote.catalog.categories.together, { exact: true })
     .click();
   await expect(together).toBeChecked();
-  await page.getByRole('button', { name: dailyQuote.done }).click();
+  await page.getByRole('button', { name: de.common.done }).click();
   await expect.poll(() => requests.patches.length).toBe(1);
   await openQuoteSettings(page);
   await expect(
@@ -793,7 +793,7 @@ test('losing the quote capability shows discovery and restores personal preferen
   const personalReads = requests.preferences;
 
   requests.capabilities.splice(0);
-  await page.getByRole('button', { name: dailyQuote.cancel }).click();
+  await page.getByRole('button', { name: de.common.cancel }).click();
   await page.getByRole('link', { name: navigation.today, exact: true }).click();
   await page.reload();
   await expect(page.getByText(dailyQuote.discovery)).toBeVisible();
@@ -832,7 +832,7 @@ test('signing into the partner account cannot reuse the previous account quote o
       name: new RegExp(dailyQuote.catalog.categories.together, 'u'),
     }),
   ).toBeChecked();
-  await page.getByRole('button', { name: dailyQuote.done }).click();
+  await page.getByRole('button', { name: de.common.done }).click();
   await expect.poll(() => requests.patches.length).toBe(1);
 
   await page.getByRole('link', { name: navigation.more, exact: true }).click();
@@ -1116,7 +1116,7 @@ test('borderless surfaces retain selection, saved preferences, keyboard focus an
       fullPage: true,
     });
   }
-  const save = sheet.getByRole('button', { name: dailyQuote.done });
+  const save = sheet.getByRole('button', { name: de.common.done });
   await page.keyboard.press('Tab');
   await save.focus();
   expect(

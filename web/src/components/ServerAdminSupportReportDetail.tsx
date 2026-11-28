@@ -169,9 +169,7 @@ function TicketDialog({
           {t('serverAdmin.reports.ticketDialog.intro')}
         </p>
         <form className="server-admin-report-form" onSubmit={submit}>
-          <label htmlFor={`${baseId}-title-input`}>
-            {t('serverAdmin.reports.ticketDialog.titleLabel')}
-          </label>
+          <label htmlFor={`${baseId}-title-input`}>{t('common.title')}</label>
           <input
             ref={titleRef}
             id={`${baseId}-title-input`}
@@ -233,7 +231,7 @@ function TicketDialog({
               disabled={pending}
               onClick={onCancel}
             >
-              {t('serverAdmin.reports.ticketDialog.cancel')}
+              {t('common.cancel')}
             </button>
             <button type="submit" disabled={invalid || pending}>
               {pending
@@ -332,7 +330,7 @@ function DeleteDialog({
             disabled={pending}
             onClick={onCancel}
           >
-            {t('serverAdmin.reports.deleteDialog.cancel')}
+            {t('common.cancel')}
           </button>
           <button
             type="button"
@@ -341,7 +339,7 @@ function DeleteDialog({
             onClick={onConfirm}
           >
             {pending
-              ? t('serverAdmin.reports.deleteDialog.deleting')
+              ? t('common.deleting')
               : t('serverAdmin.reports.deleteDialog.confirm')}
           </button>
         </div>
@@ -1172,7 +1170,7 @@ export function ServerAdminSupportReportDetail({
             onClick={() => archiveMutation.mutate(!report.archivedAt)}
           >
             {archiveMutation.isPending
-              ? t('serverAdmin.reports.manage.saving')
+              ? t('common.saving')
               : t(
                   report.archivedAt
                     ? 'serverAdmin.reports.manage.unarchive'

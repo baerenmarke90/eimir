@@ -32,12 +32,9 @@ const wirCheckIn = {
   noteDelete: 'Notiz löschen',
   noteDeleted: 'Notiz gelöscht',
   undo: 'Rückgängig',
-  done: 'Fertig',
-  saving: 'Wird gespeichert …',
   offline:
     'Offline – du kannst deinen Tag ändern, sobald du wieder verbunden bist.',
   saveError: 'Das konnte nicht gespeichert werden.',
-  retry: 'Erneut versuchen',
   unavailable: 'Dein Tag ist gerade nicht verfügbar.',
   vibeDisabled:
     'Gefühle sind gerade ausgeschaltet. Du kannst dein geteiltes Gefühl noch entfernen.',
@@ -47,7 +44,6 @@ const wirCheckIn = {
   partnerNone: '{{name}} hat heute noch nichts geteilt.',
   partnerEnergyAria: 'Akku {{value}} Prozent',
   partnerSheetTitle: 'Für {{name}}',
-  partnerSheetClose: 'Schließen',
 } as const;
 
 export default wirCheckIn;

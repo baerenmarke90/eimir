@@ -14,6 +14,7 @@ import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import { PersonColoursProvider } from '../client/personColoursContext';
 import personColours from '../i18n/locales/personColours';
 import { PersonColoursSettings } from './PersonColoursSettings';
+import germanUi from '../i18n/locales/de';
 
 const ACCOUNT_ID = 'account-1';
 const SPACE_ID = 'space-1';
@@ -57,7 +58,11 @@ function renderSettings(
 }
 
 async function openSheet() {
-  fireEvent.click(await screen.findByText(personColours.change));
+  fireEvent.click(
+    await screen.findByRole('button', {
+      name: new RegExp(personColours.title),
+    }),
+  );
   await screen.findByRole('group', { name: personColours.choices });
 }
 
@@ -128,7 +133,7 @@ describe('Settings > Appearance: person colour pair (Product Owner decision 2026
       }),
     );
     const save = await screen.findByRole('button', {
-      name: personColours.save,
+      name: germanUi.common.save,
     });
     await waitFor(() =>
       expect((save as HTMLButtonElement).disabled).toBe(false),
@@ -165,7 +170,7 @@ describe('Settings > Appearance: person colour pair (Product Owner decision 2026
 
     fireEvent.click(screen.getAllByRole('radio')[2] as HTMLInputElement);
     const save = await screen.findByRole('button', {
-      name: personColours.save,
+      name: germanUi.common.save,
     });
     await waitFor(() =>
       expect((save as HTMLButtonElement).disabled).toBe(false),
@@ -209,7 +214,7 @@ describe('Settings > Appearance: person colour pair (Product Owner decision 2026
       await screen.findByRole('button', { name: personColours.discover }),
     ).toBeDefined();
     expect(
-      screen.queryByRole('button', { name: personColours.save }),
+      screen.queryByRole('button', { name: germanUi.common.save }),
     ).toBeNull();
     expect(update).not.toHaveBeenCalled();
 
@@ -230,6 +235,8 @@ describe('Settings > Appearance: person colour pair (Product Owner decision 2026
 
   it('shows nothing outside a signed-in Space', () => {
     render(<PersonColoursSettings />);
-    expect(screen.queryByText(personColours.change)).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: new RegExp(personColours.title) }),
+    ).toBeNull();
   });
 });

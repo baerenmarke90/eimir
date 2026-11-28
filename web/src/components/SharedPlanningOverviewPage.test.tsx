@@ -234,7 +234,7 @@ describe('SharedPlanningOverviewPage', () => {
     expect(idle).not.toContain('href="/plan/ideas"');
     const running = render({ id: 'round-1' });
     expect(running).toContain(i18n.t('wishSelection.entryRunning'));
-    expect(running).toContain(`>${i18n.t('wishSelection.entryContinue')}</a>`);
+    expect(running).toContain(`>${i18n.t('common.continue')}</a>`);
   });
 
   it('renders only the shared M3 planning product areas', () => {

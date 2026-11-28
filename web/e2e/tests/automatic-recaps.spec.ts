@@ -5,7 +5,6 @@ import { recapDetailPath } from '../../src/client/routes';
 import de from '../../src/i18n/locales/de';
 import navigation from '../../src/i18n/locales/navigation';
 import copy from '../../src/i18n/locales/recaps';
-import taskSheets from '../../src/i18n/locales/taskSheets';
 import fixtures from '../fixtures/locales/de';
 import AxeBuilder from '../support/axe';
 import { fulfillDefaultProductContext } from '../support/productContext';
@@ -829,7 +828,7 @@ for (const [width, theme] of [
     const state = await setup(page, { start: 'wir', pro: false });
     const invitation = page.locator('.monthly-recap-invitation');
     await expect(
-      page.getByRole('link', { name: copy.allRecaps, exact: true }),
+      page.getByRole('link', { name: 'Alle Rückblicke', exact: true }),
     ).toHaveCount(0);
     await expect(
       invitation.getByRole('link', { name: new RegExp(copy.watchNow) }),
@@ -922,6 +921,27 @@ test('Watch now advances automatically and finishes without looping', async ({
   expect(state.unexpected).toEqual([]);
 });
 
+test('the reader covers the shell in full screen and keeps its page', async ({
+  page,
+}) => {
+  const state = await setup(page, { start: 'wir', pro: false });
+  const reader = page.locator('.recap-reader');
+  await page.getByRole('link', { name: new RegExp(copy.watchNow) }).click();
+  await expect(page).toHaveURL(/\/story\/recaps\/october$/);
+  await expect(reader).not.toHaveAttribute('data-fullscreen', /.*/);
+  await reader.getByRole('button', { name: copy.fullscreen }).click();
+  await expect(reader).toHaveAttribute('data-fullscreen', 'true');
+  // Portrait stays: the page fills the viewport width and height.
+  const viewport = page.viewportSize();
+  const box = await reader.boundingBox();
+  expect(box?.width).toBe(viewport?.width);
+  expect(box?.height).toBe(viewport?.height);
+  await reader.getByRole('button', { name: copy.fullscreenClose }).click();
+  await expect(reader).not.toHaveAttribute('data-fullscreen', /.*/);
+  await expect(page).toHaveURL(/\/story\/recaps\/october/);
+  expect(state.unexpected).toEqual([]);
+});
+
 test('reduced motion opens Watch now paused and playback pauses for editing', async ({
   page,
 }, info) => {
@@ -947,7 +967,7 @@ test('reduced motion opens Watch now paused and playback pauses for editing', as
   await page.clock.fastForward(90001);
   await expect(page).toHaveURL(/page=1/);
   await page
-    .getByRole('button', { name: taskSheets.close, exact: true })
+    .getByRole('button', { name: de.common.close, exact: true })
     .click();
   await page.addStyleTag({ content: 'html { font-size: 200%; }' });
   // On a photo the toggle is an icon on the picture; large text must keep it
@@ -1391,7 +1411,7 @@ test('large text and an unsaved offline draft preserve the editing task', async 
   );
   await expect(words.locator('.ui-state')).toBeVisible();
   await words
-    .getByRole('button', { name: new RegExp(taskSheets.close) })
+    .getByRole('button', { name: new RegExp(de.common.close) })
     .click();
   await expect(page.getByRole('alertdialog')).toBeVisible();
   await page.getByRole('button', { name: copy.keep, exact: true }).click();
@@ -1717,6 +1737,74 @@ for (const [width, theme] of [
       (await new AxeBuilder({ page }).include('.recap-reader').analyze())
         .violations,
     ).toEqual([]);
+    expect(state.writes()).toBe(0);
+    expect(state.unexpected).toEqual([]);
+  });
+}
+
+for (const [width, theme] of [
+  [360, 'light'],
+  [390, 'dark'],
+] as const) {
+  test(`a marker sweeps behind the quoted words once the scene has entered at ${width} ${theme} (#2373)`, async ({
+    page,
+  }, info) => {
+    await page.setViewportSize({ width, height: 844 });
+    await page.emulateMedia({
+      colorScheme: theme,
+      reducedMotion: 'no-preference',
+    });
+    await page.addInitScript(
+      (value) => localStorage.setItem('eimir-theme', value),
+      theme,
+    );
+    const words = fixtureCopy.ownWords;
+    const state = await setup(page, { dense: true, ownWords: true });
+    await page
+      .getByRole('link', { name: new RegExp(copy.open) })
+      .first()
+      .click();
+    const stage = page.locator('.recap-spread');
+    const next = page.getByRole('button', { name: copy.next, exact: true });
+    await next.click();
+    await next.click();
+    const quote = `Ben: „${words.photoQuote}“`;
+    // The words exist once; the marker is drawn from `data-text`.
+    await expect(stage.locator('.recap-quote')).toHaveText(quote);
+    const marker = stage.locator('.recap-quote-marker');
+    await expect(marker).toHaveAttribute('data-text', quote);
+    await expect(marker).toHaveAttribute('aria-hidden', 'true');
+    expect(
+      await marker.evaluate((element) =>
+        element
+          .getAnimations()
+          .map((animation) => (animation as CSSAnimation).animationName),
+      ),
+    ).toEqual(['eimir-motion-recap-marker-sweep']);
+    await page.waitForTimeout(550);
+    await captureScreenshot(
+      page,
+      info,
+      `recaps-quote-marker-sweeping-${width}-${theme}.png`,
+    );
+    // The sweep ends on its own clock with the whole marker uncovered.
+    await expect
+      .poll(() =>
+        marker.evaluate((element) =>
+          element.getAnimations().map((animation) => animation.playState),
+        ),
+      )
+      .toEqual(['finished']);
+    expect(
+      await marker.evaluate((element) => getComputedStyle(element).clipPath),
+    ).toMatch(/^inset\(0px( 0%? ?0px 0px)?\)$|^inset\(0px 0% 0px 0px\)$/);
+    await captureScreenshot(
+      page,
+      info,
+      `recaps-quote-marker-rest-${width}-${theme}.png`,
+    );
+    // Axe covers the same scene with its static marker in the reduced-motion
+    // quote test above; here playback keeps turning pages under the scan.
     expect(state.writes()).toBe(0);
     expect(state.unexpected).toEqual([]);
   });

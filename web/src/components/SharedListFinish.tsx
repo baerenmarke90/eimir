@@ -68,7 +68,7 @@ export function SharedListTripEnd({
   const { t } = useTranslation();
   const dismiss = (
     <button type="button" className="tertiary" onClick={onDismiss}>
-      {t('m5s3.collection.endState.dismiss')}
+      {t('common.close')}
     </button>
   );
   if (end.celebrate) {

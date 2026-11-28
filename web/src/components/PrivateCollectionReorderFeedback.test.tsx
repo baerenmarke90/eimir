@@ -141,7 +141,7 @@ function setup() {
       name: privateArea.menuLabel.replace('{{name}}', 'Travel preparations'),
     }),
   );
-  fireEvent.click(screen.getByRole('button', { name: privateArea.edit }));
+  fireEvent.click(screen.getByRole('button', { name: de.common.edit }));
   return {
     queryClient,
     write,
@@ -218,9 +218,7 @@ it('keeps the released order immediately, blocks rapid writes and uses the confi
 
 it('keeps the pending order across reads and narrowly rolls back without erasing item content or the title draft', async () => {
   const h = setup();
-  const title = screen.getByLabelText(
-    privateArea.collections.titleLabel,
-  ) as HTMLInputElement;
+  const title = screen.getByLabelText(de.common.title) as HTMLInputElement;
   fireEvent.change(title, { target: { value: 'My travel draft' } });
   moveAlbumFirst();
   await waitFor(() => expect(h.reorder).toHaveBeenCalledTimes(1));
@@ -492,11 +490,7 @@ it('keeps late callbacks scoped and never recreates a removed private cache', as
   h.view.rerender(h.tree('owner-2', 'space-2'));
   await waitFor(() =>
     expect(
-      (
-        screen.getByLabelText(
-          privateArea.collections.titleLabel,
-        ) as HTMLInputElement
-      ).value,
+      (screen.getByLabelText(de.common.title) as HTMLInputElement).value,
     ).toBe(next.title),
   );
   h.queryClient.removeQueries({ queryKey: key, exact: true });

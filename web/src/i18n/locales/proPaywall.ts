@@ -228,6 +228,10 @@ const proPaywall = {
         title: 'Weitere App-Designs',
         body: 'Gestaltet euer eigenes eimir. mit „Seite an Seite“, „Klar & modern“ oder „Klassisch“.',
       },
+      wirReelStyles: {
+        title: 'Kacheln und Chips auf Wir',
+        body: 'Wähle, ob dir Wir Neues und deine Züge als Kacheln oder Chips statt als Kreise zeigt.',
+      },
       appIcons: {
         title: 'Alternative App-Symbole',
         body: 'Wählt ein anderes eimir.-Symbol, wo eure App oder euer Browser diese Auswahl unterstützt.',
@@ -302,7 +306,6 @@ const proPaywall = {
   active: {
     title: 'eimir. Pro ist für euch aktiv.',
     body: 'Euer Pro-Zugang gilt für euren gemeinsamen Bereich und damit für euch beide.',
-    continue: 'Weiter',
   },
   statusUnknown:
     'Euer Pro-Status konnte gerade nicht geprüft werden. Eure Inhalte sind davon nicht betroffen.',
@@ -355,7 +358,6 @@ const proPaywall = {
         body: 'Ihr habt eimir. Pro jetzt bis {{date}}.',
       },
     },
-    done: 'Fertig',
     errors: {
       invalid:
         'Dieser Code ist ungültig oder abgelaufen. Prüft bitte die Schreibweise.',
@@ -368,7 +370,6 @@ const proPaywall = {
       network: 'Das hat gerade nicht geklappt. Versucht es noch einmal.',
     },
   },
-  settingsAction: 'Tarife ansehen',
   contextAction: 'Mit eimir. Pro entdecken',
 };
 

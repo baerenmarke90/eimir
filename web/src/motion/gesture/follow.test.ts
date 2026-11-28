@@ -216,3 +216,80 @@ describe('attachGestureFollow', () => {
     expect(follow.offset).toBe(0);
   });
 });
+
+describe('attachGestureFollow, two-sided (#2371)', () => {
+  function card() {
+    const element = document.createElement('div');
+    document.body.append(element);
+    const onCommit = vi.fn();
+    const onCancel = vi.fn();
+    const onSettled = vi.fn();
+    const follow = attachGestureFollow(element, {
+      axis: 'x',
+      direction: 'both',
+      size: () => 300,
+      threshold: 'pager',
+      range: () => ({ min: -Infinity, max: Infinity }),
+      committedOffset: (side) => side * 348,
+      onCommit,
+      onCancel,
+      onSettled,
+    });
+    const swipe = (xs: number[], release: number) => {
+      element.dispatchEvent(pointer('pointerdown', 0, 0, xs[0]));
+      xs.slice(1).forEach((x, index) => {
+        element.dispatchEvent(pointer('pointermove', (index + 1) * 16, 0, x));
+      });
+      element.dispatchEvent(pointer('pointerup', xs.length * 16, 0, release));
+    };
+    return { element, follow, onCommit, onCancel, onSettled, swipe };
+  }
+
+  it('commits to the right and to the left, each to its own side', async () => {
+    const right = card();
+    right.swipe([0, 30, 70, 110], 110);
+    expect(right.onCommit).toHaveBeenCalledWith(1);
+    expect(right.element.style.transform).toBe('translateX(348px)');
+
+    const left = card();
+    left.swipe([0, -30, -70, -110], -110);
+    expect(left.onCommit).toHaveBeenCalledWith(-1);
+    expect(left.element.style.transform).toBe('translateX(-348px)');
+
+    // The decided card reports when it has left, not before.
+    expect(left.onSettled).not.toHaveBeenCalled();
+    fake.animations.at(-1)?.finish();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(left.onSettled).toHaveBeenCalledWith(-1);
+  });
+
+  it('cancels a short slow swipe on either side and returns to rest', () => {
+    const { element, onCommit, onCancel, onSettled, swipe } = card();
+    swipe([0, -12, -20, -24], -24);
+    expect(onCommit).not.toHaveBeenCalled();
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(onSettled).not.toHaveBeenCalled();
+    expect(element.style.transform).toBe('translateX(0px)');
+  });
+
+  it('commits without a gesture for buttons and keys, at once with reduced motion', () => {
+    reduced.set(true);
+    const { element, follow, onCommit, onSettled } = card();
+    follow.commit(-1);
+    expect(onCommit).toHaveBeenCalledWith(-1);
+    expect(onSettled).toHaveBeenCalledWith(-1);
+    expect(element.style.transform).toBe('translateX(-348px)');
+    expect(fake.animations).toHaveLength(0);
+  });
+
+  it('does not report a settle that a cancel interrupted', async () => {
+    const { follow, onSettled } = card();
+    follow.commit(1);
+    follow.cancel();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(onSettled).not.toHaveBeenCalled();
+    expect(follow.offset).toBe(0);
+  });
+});

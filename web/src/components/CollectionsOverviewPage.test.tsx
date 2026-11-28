@@ -8,6 +8,7 @@ import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { i18n } from '../i18n';
 import m5s3 from '../i18n/locales/m5s3';
 import { CollectionsOverviewPage } from './CollectionsOverviewPage';
+import germanUi from '../i18n/locales/de';
 
 describe('CollectionsOverviewPage creating a list (#1808)', () => {
   let listCollections: ReturnType<typeof vi.fn>;
@@ -74,10 +75,12 @@ describe('CollectionsOverviewPage creating a list (#1808)', () => {
       screen.getByRole('button', { name: m5s3.collection.kind.SHOPPING }),
     );
     await user.type(
-      screen.getByLabelText(m5s3.common.title, { exact: true }),
+      screen.getByLabelText(germanUi.common.title, { exact: true }),
       'Einkauf',
     );
-    await user.click(screen.getByRole('button', { name: m5s3.common.save }));
+    await user.click(
+      screen.getByRole('button', { name: germanUi.common.save }),
+    );
 
     await waitFor(() => expect(createCollection).toHaveBeenCalledTimes(1));
     expect(createCollection.mock.calls[0][0].collectionCreate).toEqual({
@@ -91,10 +94,12 @@ describe('CollectionsOverviewPage creating a list (#1808)', () => {
     const user = await openCreate();
 
     await user.type(
-      screen.getByLabelText(m5s3.common.title, { exact: true }),
+      screen.getByLabelText(germanUi.common.title, { exact: true }),
       'Reisepläne',
     );
-    await user.click(screen.getByRole('button', { name: m5s3.common.save }));
+    await user.click(
+      screen.getByRole('button', { name: germanUi.common.save }),
+    );
 
     await waitFor(() => expect(createCollection).toHaveBeenCalledTimes(1));
     expect(createCollection.mock.calls[0][0].collectionCreate).toEqual({

@@ -30,6 +30,7 @@ import memoryMap from './locales/memoryMap';
 import memoryProduct from './locales/memoryProduct';
 import memoryWorldSettings from './locales/memoryWorldSettings';
 import memoryWorlds from './locales/memoryWorlds';
+import motionSettings from './locales/motionSettings';
 import navigation from './locales/navigation';
 import notificationSettings from './locales/notificationSettings';
 import occasionMarks from './locales/occasionMarks';
@@ -46,10 +47,10 @@ import photoReactions from './locales/photoReactions';
 import photoSources from './locales/photoSources';
 import planFiles from './locales/planFiles';
 import privateArea from './locales/privateArea';
-import quietHints from './locales/quietHints';
 import profileIdentity from './locales/profileIdentity';
 import profiles from './locales/profiles';
 import proPaywall from './locales/proPaywall';
+import quietHints from './locales/quietHints';
 import recaps from './locales/recaps';
 import rediscovery from './locales/rediscovery';
 import relationshipComponents from './locales/relationshipComponents';
@@ -62,7 +63,6 @@ import spaceOffboarding from './locales/spaceOffboarding';
 import storageQuota from './locales/storageQuota';
 import storyProducts from './locales/storyProducts';
 import supportReport from './locales/supportReport';
-import motionSettings from './locales/motionSettings';
 import taskBoundary from './locales/taskBoundary';
 import taskSheets from './locales/taskSheets';
 import uploadFailure from './locales/uploadFailure';
@@ -72,9 +72,10 @@ import webViewNotice from './locales/webViewNotice';
 import wirCheckIn from './locales/wirCheckIn';
 import wirDesign from './locales/wirDesign';
 import wirNotices from './locales/wirNotices';
+import wirReelStyleSettings from './locales/wirReelStyleSettings';
+import wishConcealment from './locales/wishConcealment';
 import wishDateProposal from './locales/wishDateProposal';
 import wishJourney from './locales/wishJourney';
-import wishConcealment from './locales/wishConcealment';
 import wishRepeat from './locales/wishRepeat';
 import wishSelection from './locales/wishSelection';
 
@@ -122,6 +123,7 @@ export const germanResources = {
   memoryProduct,
   memoryWorlds,
   memoryWorldSettings,
+  wirReelStyleSettings,
   mediaDrop,
   partnerConnection,
   partnerLocation,

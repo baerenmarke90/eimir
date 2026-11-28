@@ -6,6 +6,7 @@ import type { ServerAdminSupportReportsApi } from '../api/generated/apis/ServerA
 import type { SupportReplyTemplateView } from '../api/generated/models/SupportReplyTemplateView';
 import serverAdmin from '../i18n/locales/serverAdmin';
 import { ServerAdminReplyTemplateChips } from './ServerAdminReplyTemplateChips';
+import germanUi from '../i18n/locales/de';
 
 const templates = serverAdmin.templates;
 
@@ -81,7 +82,7 @@ describe('ServerAdminReplyTemplateChips', () => {
     );
 
     fireEvent.click(
-      await screen.findByRole('button', { name: templates.edit }),
+      await screen.findByRole('button', { name: germanUi.common.edit }),
     );
 
     expect(onEdit).toHaveBeenCalledTimes(1);
@@ -121,6 +122,8 @@ describe('ServerAdminReplyTemplateChips', () => {
 
     await screen.findByRole('button', { name: 'Thanks' });
 
-    expect(screen.queryByRole('button', { name: templates.edit })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: germanUi.common.edit }),
+    ).toBeNull();
   });
 });

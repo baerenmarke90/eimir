@@ -157,7 +157,7 @@ async function edit(panel: Locator, body: string) {
     .locator('.comment-card')
     .filter({ has: panel.page().getByText(body, { exact: true }) });
   await card.getByLabel(copy.moreActions, { exact: true }).click();
-  await card.getByRole('button', { name: copy.edit, exact: true }).click();
+  await card.getByRole('button', { name: de.common.edit, exact: true }).click();
   return panel.locator('.comment-edit-form').getByRole('textbox');
 }
 
@@ -185,11 +185,11 @@ for (const scenario of cases) {
       const field = await edit(state.panel, 'Still smiling about this.');
       await field.fill('The first submitted thought.');
       await state.panel
-        .getByRole('button', { name: copy.save, exact: true })
+        .getByRole('button', { name: de.common.save, exact: true })
         .click();
       await expect.poll(() => state.writes.length).toBe(1);
       await expect(
-        state.panel.getByRole('button', { name: copy.saving }),
+        state.panel.getByRole('button', { name: de.common.saving }),
       ).toBeDisabled();
       await field.fill('A later thought stays with me.');
       state.release(outcome === 'failure');
@@ -198,7 +198,7 @@ for (const scenario of cases) {
           state.panel.getByText(de.states.server.title, { exact: true }),
         ).toBeVisible();
       await expect(
-        state.panel.getByRole('button', { name: copy.save, exact: true }),
+        state.panel.getByRole('button', { name: de.common.save, exact: true }),
       ).toBeEnabled();
       await expect(field).toHaveValue('A later thought stays with me.');
       expect(state.writes).toEqual([
@@ -242,7 +242,7 @@ for (const scenario of cases) {
           );
       }
       await state.panel
-        .getByRole('button', { name: copy.save, exact: true })
+        .getByRole('button', { name: de.common.save, exact: true })
         .click();
       await expect(
         state.panel.locator('.comment-edit-form').getByRole('textbox'),
@@ -286,7 +286,7 @@ test('confirmed comment edit retains a newer draft when its refresh fails', asyn
   const field = await edit(state.panel, 'Still smiling about this.');
   await field.fill('The first submitted thought.');
   await state.panel
-    .getByRole('button', { name: copy.save, exact: true })
+    .getByRole('button', { name: de.common.save, exact: true })
     .click();
   await expect.poll(() => state.writes.length).toBe(1);
   await field.fill('Keep this after the failed refresh.');
@@ -295,7 +295,7 @@ test('confirmed comment edit retains a newer draft when its refresh fails', asyn
     state.panel.getByText(de.states.server.title, { exact: true }),
   ).toBeVisible();
   await expect(
-    state.panel.getByRole('button', { name: copy.save, exact: true }),
+    state.panel.getByRole('button', { name: de.common.save, exact: true }),
   ).toBeEnabled();
   await expect(field).toHaveValue('Keep this after the failed refresh.');
   await accessible(page);
@@ -307,7 +307,7 @@ test('confirmed comment edit retains a newer draft when its refresh fails', asyn
   );
   expect(state.writes).toHaveLength(1);
   await state.panel
-    .getByRole('button', { name: copy.save, exact: true })
+    .getByRole('button', { name: de.common.save, exact: true })
     .click();
   await expect(
     state.panel.locator('.comment-edit-form').getByRole('textbox'),
@@ -335,7 +335,7 @@ for (const outcome of ['success', 'failure'] as const) {
     const first = await edit(state.panel, 'Still smiling about this.');
     await first.fill('The first submitted thought.');
     await state.panel
-      .getByRole('button', { name: copy.save, exact: true })
+      .getByRole('button', { name: de.common.save, exact: true })
       .click();
     await expect.poll(() => state.writes.length).toBe(1);
     const next = await edit(state.panel, 'Another thought of mine.');
@@ -356,10 +356,10 @@ for (const outcome of ['success', 'failure'] as const) {
       state.panel.getByText(de.states.server.title, { exact: true }),
     ).toHaveCount(0);
     await expect(
-      state.panel.getByRole('button', { name: copy.save, exact: true }),
+      state.panel.getByRole('button', { name: de.common.save, exact: true }),
     ).toBeEnabled();
     await state.panel
-      .getByRole('button', { name: copy.save, exact: true })
+      .getByRole('button', { name: de.common.save, exact: true })
       .click();
     await expect(
       state.panel.getByText('A separate edit is still here.', { exact: true }),

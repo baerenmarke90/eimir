@@ -2,6 +2,12 @@
 // the partner: in a couple's Space everything comes from them.
 const wirNotices = {
   title: 'Neu für dich',
+  // The one-line text of a chip in the chips style (#2345, draft C).
+  chip: {
+    quoteOn: '„{{quote}}“ {{title}}',
+    dated: '{{title}} {{weekday}} {{day}}',
+    timed: '{{time}} {{title}}',
+  },
   kinds: {
     today: 'Heute',
     date: 'Terminvorschlag',

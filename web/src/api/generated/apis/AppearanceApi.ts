@@ -58,6 +58,16 @@ import {
     WirDesignPreferenceViewFromJSON,
     WirDesignPreferenceViewToJSON,
 } from '../models/WirDesignPreferenceView';
+import {
+    type WirReelStylePreferencePatch,
+    WirReelStylePreferencePatchFromJSON,
+    WirReelStylePreferencePatchToJSON,
+} from '../models/WirReelStylePreferencePatch';
+import {
+    type WirReelStylePreferenceView,
+    WirReelStylePreferenceViewFromJSON,
+    WirReelStylePreferenceViewToJSON,
+} from '../models/WirReelStylePreferenceView';
 
 export interface GetAppIconPreferenceRequest {
     spaceId: string;
@@ -72,6 +82,10 @@ export interface GetPersonColoursPreferenceRequest {
 }
 
 export interface GetWirDesignPreferenceRequest {
+    spaceId: string;
+}
+
+export interface GetWirReelStylePreferenceRequest {
     spaceId: string;
 }
 
@@ -97,6 +111,12 @@ export interface UpdateWirDesignPreferenceRequest {
     spaceId: string;
     ifMatch: string;
     wirDesignPreferencePatch: WirDesignPreferencePatch;
+}
+
+export interface UpdateWirReelStylePreferenceRequest {
+    spaceId: string;
+    ifMatch: string;
+    wirReelStylePreferencePatch: WirReelStylePreferencePatch;
 }
 
 /**
@@ -289,6 +309,53 @@ export class AppearanceApi extends runtime.BaseAPI {
      */
     async getWirDesignPreference(requestParameters: GetWirDesignPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WirDesignPreferenceView> {
         const response = await this.getWirDesignPreferenceRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getWirReelStylePreference without sending the request
+     */
+    async getWirReelStylePreferenceRequestOpts(requestParameters: GetWirReelStylePreferenceRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getWirReelStylePreference().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/appearance/wir-reels`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Read only the caller\'s own Wir reel style, including after Pro expiry.
+     * Get Wir Reel Style Preference
+     */
+    async getWirReelStylePreferenceRaw(requestParameters: GetWirReelStylePreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WirReelStylePreferenceView>> {
+        const requestOptions = await this.getWirReelStylePreferenceRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => WirReelStylePreferenceViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Read only the caller\'s own Wir reel style, including after Pro expiry.
+     * Get Wir Reel Style Preference
+     */
+    async getWirReelStylePreference(requestParameters: GetWirReelStylePreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WirReelStylePreferenceView> {
+        const response = await this.getWirReelStylePreferenceRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -561,6 +628,74 @@ export class AppearanceApi extends runtime.BaseAPI {
      */
     async updateWirDesignPreference(requestParameters: UpdateWirDesignPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WirDesignPreferenceView> {
         const response = await this.updateWirDesignPreferenceRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for updateWirReelStylePreference without sending the request
+     */
+    async updateWirReelStylePreferenceRequestOpts(requestParameters: UpdateWirReelStylePreferenceRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling updateWirReelStylePreference().'
+            );
+        }
+
+        if (requestParameters['ifMatch'] == null) {
+            throw new runtime.RequiredError(
+                'ifMatch',
+                'Required parameter "ifMatch" was null or undefined when calling updateWirReelStylePreference().'
+            );
+        }
+
+        if (requestParameters['wirReelStylePreferencePatch'] == null) {
+            throw new runtime.RequiredError(
+                'wirReelStylePreferencePatch',
+                'Required parameter "wirReelStylePreferencePatch" was null or undefined when calling updateWirReelStylePreference().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['ifMatch'] != null) {
+            headerParameters['If-Match'] = String(requestParameters['ifMatch']);
+        }
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/appearance/wir-reels`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+            body: WirReelStylePreferencePatchToJSON(requestParameters['wirReelStylePreferencePatch']),
+        };
+    }
+
+    /**
+     * Save a known style. Circles are Free; tiles and chips require Pro.  Membership precedes the capability check. Reads never delete or revert a saved style when a grant expires, and returning to circles stays free. The style is a personal presentation and is not shared with the partner.
+     * Update Wir Reel Style Preference
+     */
+    async updateWirReelStylePreferenceRaw(requestParameters: UpdateWirReelStylePreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WirReelStylePreferenceView>> {
+        const requestOptions = await this.updateWirReelStylePreferenceRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => WirReelStylePreferenceViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Save a known style. Circles are Free; tiles and chips require Pro.  Membership precedes the capability check. Reads never delete or revert a saved style when a grant expires, and returning to circles stays free. The style is a personal presentation and is not shared with the partner.
+     * Update Wir Reel Style Preference
+     */
+    async updateWirReelStylePreference(requestParameters: UpdateWirReelStylePreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WirReelStylePreferenceView> {
+        const response = await this.updateWirReelStylePreferenceRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

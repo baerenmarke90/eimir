@@ -397,6 +397,14 @@ Motion that follows the finger (or mouse, pen, scroll) instead of a clock. On `m
 
 **As built (#2076).** All gesture owners use the building block's rules from `motion/gesture/`: `resolveOwnership`, `rubberBand`, `commitDistance` with the `pager`, `sheet` and `pull` presets, `decideRelease`, the tuned `VelocityTracker` and the sampled settle spring. Owners that must keep their own event plumbing (touch events with `preventDefault`, CSS offset properties, two moving pages) call these functions instead of `attachGestureFollow`.
 
+**Two-sided card deck (#2371, Product Owner 2026-11-28).** The favourite step of the shared Wish selection (`WishSelectionDeck.tsx`) is the first owner of `attachGestureFollow` itself. It uses the block's two-sided mode:
+
+- `direction: 'both'` measures travel from rest in either direction, and `onCommit(side)` and `committedOffset(side)` receive the side;
+- `onSettled(side)` reports the end of a committed settle; it is not called when a grab or `cancel()` interrupts the settle;
+- `commit(side)` runs the same commit and settle without a gesture, for the visible buttons and the arrow keys.
+
+Swipe right makes a candidate a private favourite, and swipe left leaves it out. The decision is recorded at release (M10). The decided card settles off screen, and the next card rises from the stack (`translate` and `opacity`, `--duration-transition`). The stage clips only while a card leaves. After the last card, the summary list takes over after `--duration-transition`. With reduced motion nothing travels. The non-gesture alternatives are the skip and favourite buttons, Arrow Left and Arrow Right on the focused card, and the previous-card button.
+
 | Gesture | Owner | Release handoff | Interruption | Haptics | Non-gesture alternative |
 | --- | --- | --- | --- | --- | --- |
 | Primary-tab pager | `useNavigationMotion.ts` | the current page and the neighbouring panel translate together on one sampled spring, starting at the release velocity. The panel keeps moving when its content finishes loading | a touch on settling pages stops them where they are and continues the same swipe. A touch that cannot start a swipe lets the settle land | one commit pulse per page change | the tab bar |
@@ -719,6 +727,7 @@ Legend:
 | Paywall and purchase success (`ProPaywallPage.tsx`) | The paywall opens with Enter. Purchase success is Feedback `success` only after the store confirms it. No celebration Moment, so monetization stays calm (Freemium matrix, presentation rules) | rule |
 | Important days and birthdays (`OccasionMark.tsx`, `ImportantDatesPanel.tsx`, Wir) | Enter for the mark. On Wir, the approved **important-day Moment** (4.7, [#2072](https://github.com/baerenmarke90/eimir/issues/2072)) plays once per local day per device, after the opening. It never surfaces private or surprise dates. A "Gratulieren" action is out of scope by PO decision (2026-11-20) | covered |
 | Insights, recaps and the recap film | Enter `draw`/`fade` for insights; Playback for the recap film and the reader's quote marker (#2373, 4.8) | covered |
+| Wish selection favourites as a card deck (`WishSelectionDeck.tsx`, #2371) | Gesture follow, two-sided (4.6), with the commit haptic; the next card rises with Replace `crossfade` timing; the summary list is the existing Feedback `toggle` list | covered |
 | Wish selection draw (`WishSelection.css` roll) | A Loading-like draw that runs only until the result is known, then Feedback `success`. Instant with reduced motion | rule |
 | Games: garden, Heart Hunt, Picture Ping-Pong, Who of us, wish detective, remote games | Scenes domain | covered |
 | Voice notes and audio playback (`VoiceNotePlayer.tsx`) | The slider is Gesture follow. Playback progress updates the position directly, without per-tick animation | rule |
@@ -1200,6 +1209,7 @@ In addition to Motion Guideline section 10, a pull request with new or changed m
 | Version | Date | Change |
 | --- | --- | --- |
 | 1.25 | 2026-11-28 | Recap reader quote marker (#2373, Product Owner 2026-11-28): a Playback `clip-path` wipe on the marker behind a highlight's quoted words (4.8), and the token `motion.duration.markerSweep`. |
+| 1.23 | 2026-11-28 | Gesture follow two-sided mode (`direction: 'both'`, `onSettled`, `commit(side)`) and its first owner, the Wish selection card deck (#2371, Product Owner 2026-11-28; 4.6, 4.12). |
 | 1.22 | 2026-11-28 | Important-day Moment (#2370, Product Owner 2026-11-28): round days together become an occasion, and the days-together count rolls into place on the anniversary and on round days (4.7, keyframes `eimir-motion-value-roll`). |
 | 1.21 | 2026-11-26 | Fluid tab switching: hidden kept tabs skip rendering with `content-visibility: hidden` instead of `display: none`, so their CSS animations never restart and the per-reveal `getAnimations()` settle is gone (M4). While the pages slide sideways, the bar and the Wir marks pause their backdrop blur (Product Owner, 2026-11-26). The root-tab entrance never plays in a tab that a swipe reveals or that is built in the background, and a segment panel's fade no longer restarts when the entrance ends (the cold-start blink on Planen). Enter `module`: one entrance for every module on every page, with the tokens `motion.duration.moduleEnter` and `motion.module.rise` (Product Owner, 2026-11-26). |
 | 1.20 | 2026-11-26 | Pro showcase (#2310): four decorative Ambient scenes on the Pro paywall (4.5). Their keyframes and roles are in `motion/pro-showcase.css`; they run finite cycles, pause in place while they are not current or not seen, and are absent with reduced motion (M8). |

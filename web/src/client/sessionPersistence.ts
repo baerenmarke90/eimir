@@ -10,6 +10,7 @@ import {
 import { loadReferenceClientConfig } from './config';
 import { clearFailureReference } from './failureReference';
 import { clearMemoryDiaryDrafts } from './memoryDiaryDraft';
+import { clearMemoryWorldPreferences } from './memoryWorld';
 import {
   isNativeSessionStorageAvailable,
   readNativeSessionSnapshot,
@@ -17,13 +18,13 @@ import {
 } from './nativeSessionStorage';
 import { clearPersonalSettingsSyncState } from './personalSettingsBus';
 import { clearPersonColourPreferences } from './personColoursStore';
-import { clearMemoryWorldPreferences } from './memoryWorld';
 import { normalizeClientError } from './problemDetails';
 import { createReferenceApis } from './referenceFlow';
 import { clearSupportReportDrafts } from './supportReportDraftCleanup';
 import { clearRetrospectiveDismissal } from './todayRetrospectiveDismissal';
 import { clearWirDesignPreferences } from './wirDesignPreferenceStore';
 import { clearWirDistanceSeen } from './wirDistanceSeen';
+import { clearWirReelStylePreferences } from './wirReelStyle';
 
 export const SESSION_STORAGE_KEY = SESSION_LANGUAGE_KEY;
 export const LEGACY_SESSION_STORAGE_KEY = 'sidebyside-session-v1';
@@ -332,6 +333,7 @@ export function clearStoredSession(): Promise<void> {
   clearWirDistanceSeen();
   clearPersonColourPreferences();
   clearMemoryWorldPreferences();
+  clearWirReelStylePreferences();
   clearPersonalSettingsSyncState();
   clearMemoryDiaryDrafts();
   clearSupportReportDrafts();

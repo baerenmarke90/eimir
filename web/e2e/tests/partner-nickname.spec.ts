@@ -1,10 +1,10 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import fs from 'node:fs';
 import path from 'node:path';
-import { expect, test, type Page, type TestInfo } from '@playwright/test';
+import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import navigation from '../../src/i18n/locales/navigation';
 import profiles from '../../src/i18n/locales/profiles';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 
 const ACCOUNT_ID = '00000000-0000-4000-8000-000000000001';
 const PARTNER_ID = '00000000-0000-4000-8000-000000000002';
@@ -254,7 +254,9 @@ test('partner nickname remains private to the viewer and follows profile edits i
   await page.getByRole('link', { name: navigation.profile }).click();
   await expect(page).toHaveURL(/\/more\/profile$/);
   await openPartnerDetails(page);
-  await editor.getByRole('button', { name: profiles.nickname.edit }).click();
+  // Editing an existing nickname also starts from the profile menu (#2366).
+  await page.getByRole('button', { name: profiles.menu }).click();
+  await page.getByRole('button', { name: profiles.nickname.edit }).click();
   await editor.getByRole('button', { name: profiles.nickname.remove }).click();
   await expect(
     editor.getByText(profiles.nickname.fallback.replace('{{name}}', 'Alex')),

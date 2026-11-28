@@ -14,8 +14,19 @@ import type { DashboardItem } from '../api/generated/models/DashboardItem';
 import type { WirNotice } from '../api/generated/models/WirNotice';
 import { notificationUnreadCountQueryKey } from '../client/notificationQueries';
 import { MORE_NOTIFICATIONS_ROUTE } from '../client/routes';
-import { i18n } from '../i18n';
+import { i18n, resolvedLocale } from '../i18n';
 import { WirNewForYouModule } from './WirNewForYouModule';
+
+// The reel style comes from the personal appearance (#2345); `null` is circles.
+const reelStyle = vi.hoisted(() => ({
+  value: null as null | {
+    style: 'circles' | 'tiles' | 'chips';
+    pending: boolean;
+  },
+}));
+vi.mock('../client/wirReelStyleContext', () => ({
+  useWirReelStyleId: () => reelStyle.value,
+}));
 
 const SPACE = 'space';
 const ME = 'me';
@@ -99,6 +110,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  reelStyle.value = null;
 });
 
 describe('WirNewForYouModule (#2345 B)', () => {
@@ -235,5 +247,176 @@ describe('WirNewForYouModule (#2345 B)', () => {
     renderModule({ items });
     const again = await screen.findByText(i18n.t('wirNotices.titles.heart'));
     expect(again.closest('li')?.className).not.toContain('wir-card-arrive');
+  });
+
+  it('shows larger tiles with up to three list entries in the tiles style (#2345)', async () => {
+    reelStyle.value = { style: 'tiles', pending: false };
+    const { markNotificationRead } = renderModule({
+      items: [
+        notice({
+          id: 'n-list',
+          kind: 'COLLECTION_SENT',
+          targetType: 'COLLECTION',
+          targetId: 'list-1',
+          target: {
+            targetType: 'COLLECTION',
+            targetId: 'list-1',
+            title: 'Groceries',
+          },
+          preview: { items: ['Strawberries', 'Baguette'], moreItems: 5 },
+        }),
+        notice({
+          id: 'n-date',
+          kind: 'WISH_DATE_PROPOSED',
+          targetType: 'WISH',
+          targetId: 'wish-1',
+          target: { targetType: 'WISH', targetId: 'wish-1', title: 'Picnic' },
+          appointmentStart: new Date('2026-11-29T10:00:00Z'),
+        }),
+      ],
+    });
+    const section = await screen.findByRole('region', {
+      name: i18n.t('wirNotices.title'),
+    });
+    await screen.findByText('Groceries');
+    expect(section.querySelector('ul')?.className).toContain('wir-reel-tiles');
+    const list = screen.getByText('Groceries').closest('a');
+    expect(list?.className).toContain('wir-ntile');
+    expect(list?.textContent).toContain('Strawberries');
+    expect(list?.textContent).toContain('Baguette');
+    expect(list?.textContent).toContain(
+      i18n.t('wirNotices.lines.moreItems', { count: 5 }),
+    );
+    const date = screen.getByText('Picnic').closest('a');
+    expect(date?.textContent).toContain(
+      new Intl.DateTimeFormat(resolvedLocale(), { day: 'numeric' }).format(
+        new Date('2026-11-29T10:00:00Z'),
+      ),
+    );
+    if (!list) throw new Error('missing tile');
+    fireEvent.click(list);
+    await waitFor(() =>
+      expect(markNotificationRead).toHaveBeenCalledWith({
+        spaceId: SPACE,
+        notificationId: 'n-list',
+      }),
+    );
+  });
+
+  it('renders nothing while the reel style is not known yet', async () => {
+    reelStyle.value = { style: 'circles', pending: true };
+    const { container, getWirNotices } = renderModule({
+      items: [notice({ id: 'n-heart', kind: 'HEART_HUNT_FOUND' })],
+    });
+    await waitFor(() => expect(getWirNotices).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(container.innerHTML).toBe('');
+  });
+
+  it('shows compact chips with a short line per kind in the chips style (#2345)', async () => {
+    reelStyle.value = { style: 'chips', pending: false };
+    const at = new Date('2026-11-27T17:30:00Z');
+    const day = new Date('2026-11-29T10:00:00Z');
+    renderModule({
+      upcoming: [
+        {
+          type: 'PLAN',
+          id: 'plan-1',
+          titleOrText: 'Dinner with Lena',
+          occurredOn: null,
+          scheduledOn: null,
+          scheduledAt: at,
+          createdAt: null,
+        } as DashboardItem,
+      ],
+      items: [
+        notice({
+          id: 'n-comment',
+          kind: 'COMMENT_CREATED',
+          targetType: 'MEMORY',
+          targetId: 'memory-1',
+          target: {
+            targetType: 'MEMORY',
+            targetId: 'memory-1',
+            title: 'Sunday by the sea',
+          },
+          preview: { text: 'Again!', items: [], moreItems: 0 },
+        }),
+        notice({
+          id: 'n-date',
+          kind: 'WISH_DATE_PROPOSED',
+          targetType: 'WISH',
+          targetId: 'wish-1',
+          target: { targetType: 'WISH', targetId: 'wish-1', title: 'Picnic' },
+          appointmentStart: day,
+        }),
+      ],
+    });
+    const section = await screen.findByRole('region', {
+      name: i18n.t('wirNotices.title'),
+    });
+    await waitFor(() =>
+      expect(section.querySelectorAll('a.wir-nchip')).toHaveLength(3),
+    );
+    expect(section.querySelector('ul')?.className).toContain('wir-reel-chips');
+    // Unlike draft C, the chips keep the visible title (Product Owner 2026-11-28).
+    expect(section.querySelector('h2')?.className).not.toContain('sr-only');
+    const texts = [...section.querySelectorAll('.wir-nchip-text')].map(
+      (element) => element.textContent,
+    );
+    const locale = resolvedLocale();
+    const time = new Intl.DateTimeFormat(locale, {
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(at);
+    expect(texts[0]).toBe(
+      i18n.t('wirNotices.chip.timed', { time, title: 'Dinner with Lena' }),
+    );
+    expect(texts[1]).toBe(
+      i18n.t('wirNotices.chip.quoteOn', {
+        quote: 'Again!',
+        title: 'Sunday by the sea',
+      }),
+    );
+    expect(texts[2]).toBe(
+      i18n.t('wirNotices.chip.dated', {
+        title: 'Picnic',
+        weekday: new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(
+          day,
+        ),
+        day: new Intl.DateTimeFormat(locale, { day: 'numeric' }).format(day),
+      }),
+    );
+    // The link still reads the title, the kind, the quote and the line.
+    const comment = screen.getByRole('link', { name: /Sunday by the sea/ });
+    expect(comment.textContent).toContain(i18n.t('wirNotices.kinds.comment'));
+    expect(comment.textContent).toContain('Again!');
+  });
+
+  it('renders repeated list entries without key clashes in the tiles style', async () => {
+    reelStyle.value = { style: 'tiles', pending: false };
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    renderModule({
+      items: [
+        notice({
+          id: 'n-list',
+          kind: 'COLLECTION_SENT',
+          targetType: 'COLLECTION',
+          targetId: 'list-1',
+          target: {
+            targetType: 'COLLECTION',
+            targetId: 'list-1',
+            title: 'Groceries',
+          },
+          preview: { items: ['Milk', 'Milk', 'Bread'], moreItems: 0 },
+        }),
+      ],
+    });
+    const list = (await screen.findByText('Groceries')).closest('a');
+    expect(list?.querySelectorAll('.wir-ntile-check')).toHaveLength(3);
+    expect(
+      error.mock.calls.some((call) => String(call[0]).includes('same key')),
+    ).toBe(false);
+    error.mockRestore();
   });
 });

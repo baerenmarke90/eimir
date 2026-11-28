@@ -2,11 +2,12 @@ import { useTranslation } from '../i18n';
 import { AppIconSettingsPanel } from './AppIconSettingsPanel';
 import { HapticsSettings } from './HapticsSettings';
 import { LanguageSettings } from './LanguageSettings';
-import { MomentsLayoutSettings } from './MomentsLayoutSettings';
 import { MemoryWorldSettings } from './MemoryWorldSettings';
+import { MomentsLayoutSettings } from './MomentsLayoutSettings';
 import { PersonColoursSettings } from './PersonColoursSettings';
 import { ThemeControl } from './ThemeControl';
 import { DesignPaletteSettings, WirDesignSettings } from './WirDesignSettings';
+import { WirReelStyleSettings } from './WirReelStyleSettings';
 
 /** Appearance belongs to the centralized personal settings hierarchy. */
 export function ProfileAppearancePanel({
@@ -36,6 +37,7 @@ export function ProfileAppearancePanel({
       <PersonColoursSettings />
       <DesignPaletteSettings />
       <WirDesignSettings />
+      <WirReelStyleSettings />
       <MomentsLayoutSettings />
       <MemoryWorldSettings />
       <HapticsSettings />

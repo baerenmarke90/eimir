@@ -228,6 +228,10 @@ const proPaywall = {
         title: 'Weitere App-Designs',
         body: 'Gestaltet euer eigenes eimir. mit „Seite an Seite“, „Klar & modern“ oder „Klassisch“.',
       },
+      wirReelStyles: {
+        title: 'Kacheln und Chips auf Wir',
+        body: 'Wähle, ob dir Wir Neues und deine Züge als Kacheln oder Chips statt als Kreise zeigt.',
+      },
       appIcons: {
         title: 'Alternative App-Symbole',
         body: 'Wählt ein anderes eimir.-Symbol, wo eure App oder euer Browser diese Auswahl unterstützt.',

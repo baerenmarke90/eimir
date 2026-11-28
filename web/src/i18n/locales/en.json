@@ -1694,6 +1694,45 @@
       "moss": "Moss green"
     }
   },
+  "wirReelStyleSettings": {
+    "title": "New for you & Your turn",
+    "help": "How Wir shows you what is new and where it is your turn – only in your own view.",
+    "intro": "Circles are included, tiles and chips are part of Pro. Your partner chooses their own presentation.",
+    "choices": "Choose a presentation",
+    "change": "Change",
+    "close": "Close",
+    "current": "Active",
+    "free": "Included",
+    "pro": "Pro",
+    "choose": "Choose {{name}}",
+    "selected": "Selected",
+    "saving": "Saving …",
+    "saved": "Wir now shows you what is new as {{name}}.",
+    "kept": "{{name}} stay yours without Pro too. Another Pro presentation needs Pro.",
+    "proHint": "{{name}} are part of eimir. Pro. Your current presentation stays until you change it.",
+    "discover": "Discover Pro",
+    "proLoading": "Checking Pro …",
+    "proUnavailable": "Pro could not be checked right now. You can still choose circles.",
+    "retry": "Try again",
+    "denied": "A Pro presentation needs Pro. Your current presentation stays.",
+    "offline": "You are offline right now. Your choice stays here; save it once you are connected again.",
+    "conflict": "Your presentation was just changed on another device. Open the choice again.",
+    "saveError": "The presentation could not be saved.",
+    "styles": {
+      "circles": {
+        "name": "Circles",
+        "sentence": "Small round previews, calm below the hero."
+      },
+      "tiles": {
+        "name": "Tiles",
+        "sentence": "Larger cards that show more of each item."
+      },
+      "chips": {
+        "name": "Chips",
+        "sentence": "Compact strips with a picture and a few words."
+      }
+    }
+  },
   "memoryWorldSettings": {
     "title": "Memory worlds",
     "help": "How your memories meet you in Moments › Memories – only in your own view.",
@@ -7099,6 +7138,10 @@
         "appIcons": {
           "title": "Alternative app icons",
           "body": "Choose a different eimir. icon where your app or browser supports this option."
+        },
+        "wirReelStyles": {
+          "title": "Tiles and chips on Wir",
+          "body": "Choose whether Wir shows you what is new and your turns as tiles or chips instead of circles."
         },
         "personColours": {
           "title": "Personal colours",

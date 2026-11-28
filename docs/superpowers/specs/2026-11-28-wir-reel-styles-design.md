@@ -112,7 +112,7 @@ The Product Owner picked approach 1 and one shared setting for both reels (2026-
   - a pill with a tinted fill (no border), a 34 px round face with the same content face as the circle (time, leaf, list paper, bubble, emoji, heart, picture), and one line of text. The full text stays in the accessible name.
   - The text follows draft C, which showed for example "„Xyz" zum Strauß", "Picknick So 29.", "Einkauf", "Strauß für dich", "Saatgut" and "Pingpong". Notices show their title on one line, ending in an ellipsis at a maximum chip width. A comment also gets its quote before the title, a date proposal gets its weekday and day after it, and a Heute item gets its time before it. Games use the existing short labels (`games.waiting.labels.*`). No new notice labels are added. (Builder's call, from draft C.)
   - Notices and games stay two rows.
-  - Draft C had no headings. The visible section titles are hidden in this style; the regions keep their accessible names. (Builder's call to verify the design looks right; the Product Owner reviews the result.)
+  - Draft C had no headings, but the Product Owner wants the section titles visible in this style too (review, 2026-11-28).
 - Shared for all styles:
   - the link target and `onFollow` read;
   - the card arrival (`useCardArrivals`, per item key; a style switch does not replay seen items);

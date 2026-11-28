@@ -4,6 +4,7 @@ import { expect, type Page, type Route, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import games from '../../src/i18n/locales/games';
 import wirNotices from '../../src/i18n/locales/wirNotices';
+import reelCopy from '../../src/i18n/locales/wirReelStyleSettings';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '../support/axe';
 import { waitForSettledMotion } from '../support/settledMotion';
@@ -76,12 +77,27 @@ interface Server {
   notices: Record<string, unknown>[];
   reads: string[];
   games: Record<string, unknown>[];
+  /** #2345: the personal reel style and whether the Space has Pro. */
+  reelStyle: string;
+  reelVersion: number;
+  pro: boolean;
 }
 
-async function installMocks(page: Page): Promise<Server> {
+interface ReelOptions {
+  reelStyle?: 'circles' | 'tiles' | 'chips';
+  pro?: boolean;
+}
+
+async function installMocks(
+  page: Page,
+  options: ReelOptions = {},
+): Promise<Server> {
   const server: Server = {
     notices: [DATE, LIST],
     reads: [],
+    reelStyle: options.reelStyle ?? 'circles',
+    reelVersion: options.reelStyle ? 1 : 0,
+    pro: options.pro ?? true,
     games: [
       {
         game: 'PICTURE_PING_PONG',
@@ -96,10 +112,32 @@ async function installMocks(page: Page): Promise<Server> {
     ],
   };
   await page.route('**/api/v1/**', async (route: Route) => {
-    if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
+    // The reel style is stateful here, ahead of the shared default.
+    if (pathname === `${SPACE}/appearance/wir-reels`) {
+      if (method === 'PATCH') {
+        const body = request.postDataJSON() as { styleId: string };
+        expect(request.headers()['if-match']).toBe(
+          `"reel:${server.reelVersion}"`,
+        );
+        if (body.styleId !== 'circles' && !server.pro)
+          throw new Error('Unexpected paid write from a Free account');
+        server.reelStyle = body.styleId;
+        server.reelVersion += 1;
+      }
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        headers: { ETag: `"reel:${server.reelVersion}"` },
+        body: JSON.stringify({
+          styleId: server.reelStyle,
+          version: server.reelVersion,
+        }),
+      });
+    }
+    if (await fulfillDefaultAppIcon(route)) return;
     const json = (body: unknown, status = 200) =>
       route.fulfill({
         status,
@@ -194,7 +232,15 @@ async function installMocks(page: Page): Promise<Server> {
         },
       });
     if (method === 'GET' && pathname === `${SPACE}/entitlements`)
-      return json({ tier: 'PREMIUM', capabilities: ['games.couple'] });
+      return json(
+        server.pro
+          ? {
+              spaceId: SPACE_ID,
+              tier: 'PREMIUM',
+              capabilities: ['games.couple', 'theme.bespoke_packs'],
+            }
+          : { spaceId: SPACE_ID, tier: 'FREE', capabilities: [] },
+      );
     if (method === 'GET' && pathname === `${SPACE}/games/waiting`)
       return json({ items: server.games });
     if (method === 'GET' && pathname === `${SPACE}/notifications/unread-count`)
@@ -241,6 +287,7 @@ async function openWir(
   width: number,
   theme: 'light' | 'dark',
   reduced = false,
+  options: ReelOptions = {},
 ) {
   await page.clock.setFixedTime(NOW);
   await page.setViewportSize({ width, height: 844 });
@@ -248,7 +295,7 @@ async function openWir(
     colorScheme: theme,
     reducedMotion: reduced ? 'reduce' : 'no-preference',
   });
-  const server = await installMocks(page);
+  const server = await installMocks(page, options);
   await page.goto('/today');
   await page.getByLabel(de.login.email).fill('anna@example.org');
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
@@ -384,4 +431,132 @@ test('a turn played in a game leaves Du bist dran on the way back (#2345)', asyn
   await expect(page).toHaveURL(/\/today$/);
   await expect(pingPong).toHaveCount(0);
   await expect(gamesReel.getByRole('link')).toHaveCount(1);
+});
+
+// #2345: the personal reel style (Settings › Darstellung).
+
+async function inApp(page: Page, to: string) {
+  await page.evaluate((target) => {
+    window.history.pushState({}, '', target);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  }, to);
+}
+
+async function runningReelAnimations(page: Page) {
+  return page.evaluate(
+    () =>
+      document
+        .getAnimations()
+        .filter(
+          (animation) =>
+            animation.playState === 'running' &&
+            animation.effect instanceof KeyframeEffect &&
+            animation.effect.target instanceof Element &&
+            animation.effect.target.closest('.wir-tile-reel') !== null,
+        ).length,
+  );
+}
+
+async function openReelSheet(page: Page) {
+  await inApp(page, '/more/settings/appearance');
+  const settings = page.locator('.wir-reel-style-settings');
+  await settings.getByRole('button', { name: reelCopy.change }).click();
+  return page.getByRole('dialog', { name: reelCopy.choices });
+}
+
+test('switching the style shows it on Wir without a reload or replay', async ({
+  page,
+}) => {
+  const server = await openWir(page, 390, 'light');
+  await expect(reel(page).getByText('Picnic by the lake')).toBeVisible();
+  await waitForSettledMotion(page);
+  const dialog = await openReelSheet(page);
+  await dialog.getByText(reelCopy.styles.tiles.name, { exact: true }).click();
+  await dialog
+    .getByRole('button', {
+      name: reelCopy.choose.replace('{{name}}', reelCopy.styles.tiles.name),
+    })
+    .click();
+  await expect.poll(() => server.reelStyle).toBe('tiles');
+  await expect(dialog).toBeHidden();
+  await expect(page).toHaveURL(/\/more\/settings\/appearance$/);
+  // Back to the kept Wir tab, as the bottom navigation does.
+  await inApp(page, '/today');
+  await expect(page).toHaveURL(/\/today$/);
+  await expect(reel(page).locator('ul')).toHaveClass(/wir-reel-tiles/);
+  await expect(
+    page.getByRole('region', { name: games.waiting.title }).locator('ul'),
+  ).toHaveClass(/wir-reel-tiles/);
+  // Seen cards keep their place: nothing in the reels plays again.
+  expect(await runningReelAnimations(page)).toBe(0);
+});
+
+for (const reelStyle of ['tiles', 'chips'] as const) {
+  for (const { width, theme } of [
+    { width: 360, theme: 'light' as const },
+    { width: 390, theme: 'light' as const },
+    { width: 390, theme: 'dark' as const },
+    { width: 430, theme: 'dark' as const },
+  ]) {
+    test(`the ${reelStyle} style at ${width} ${theme}`, async ({ page }) => {
+      await openWir(page, width, theme, false, { reelStyle });
+      const section = reel(page);
+      await expect(section.locator('ul')).toHaveClass(
+        new RegExp(`wir-reel-${reelStyle}`),
+      );
+      await expect(section.getByRole('link')).toHaveCount(3);
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      );
+      expect(overflow).toBeLessThanOrEqual(0);
+      const axe = await new AxeBuilder({ page })
+        .include('.today-section-new-for-you')
+        .include('.today-section-waiting-games')
+        .analyze();
+      expect(axe.violations).toEqual([]);
+      await saveEvidence(page, `reel-${reelStyle}-${width}-${theme}`);
+    });
+  }
+
+  test(`the ${reelStyle} style keeps the page in place with large text`, async ({
+    page,
+  }) => {
+    await openWir(page, 360, 'light', false, { reelStyle });
+    await expect(reel(page).getByRole('link')).toHaveCount(3);
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '200%';
+    });
+    await waitForSettledMotion(page);
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(0);
+    await saveEvidence(page, `reel-${reelStyle}-360-large-text`);
+  });
+
+  test(`the ${reelStyle} style is simply there with reduced motion`, async ({
+    page,
+  }) => {
+    await openWir(page, 390, 'light', true, { reelStyle });
+    await expect(reel(page).getByRole('link')).toHaveCount(3);
+    expect(await runningReelAnimations(page)).toBe(0);
+  });
+}
+
+test('a Free account sees the Pro styles and is led to Pro', async ({
+  page,
+}) => {
+  await openWir(page, 390, 'light', false, { pro: false });
+  await expect(reel(page).getByText('Picnic by the lake')).toBeVisible();
+  const dialog = await openReelSheet(page);
+  for (const name of [reelCopy.styles.tiles.name, reelCopy.styles.chips.name])
+    await expect(dialog.locator('label', { hasText: name })).toContainText(
+      reelCopy.pro,
+    );
+  await expect(
+    dialog.locator('label', { hasText: reelCopy.styles.circles.name }),
+  ).toContainText(reelCopy.free);
+  await dialog.getByText(reelCopy.styles.chips.name, { exact: true }).click();
+  await dialog.getByRole('button', { name: reelCopy.discover }).click();
+  await expect(page).toHaveURL(/\/pro/);
 });

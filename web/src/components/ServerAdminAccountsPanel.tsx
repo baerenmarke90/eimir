@@ -664,7 +664,7 @@ export function ServerAdminAccountsPanel({
                     </th>
                     <th scope="col">{t('serverAdmin.accounts.sessions')}</th>
                     <th scope="col">{t('serverAdmin.accounts.auth')}</th>
-                    <th scope="col">{t('serverAdmin.accounts.open')}</th>
+                    <th scope="col">{t('common.open')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -696,7 +696,7 @@ export function ServerAdminAccountsPanel({
                           className="text-button"
                           onClick={() => setSelectedAccountId(account.id)}
                         >
-                          {t('serverAdmin.accounts.open')}
+                          {t('common.open')}
                         </button>
                       </td>
                     </tr>
@@ -737,7 +737,7 @@ export function ServerAdminAccountsPanel({
                 className="text-button"
                 onClick={() => setSelectedAccountId(null)}
               >
-                {t('serverAdmin.accounts.detail.close')}
+                {t('common.close')}
               </button>
             </div>
             {detailQuery.isPending ? (

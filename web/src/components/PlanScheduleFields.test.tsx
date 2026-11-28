@@ -253,7 +253,7 @@ describe('PlanScheduleFields', () => {
       );
     const done = async () => {
       fireEvent.click(
-        screen.getByRole('button', { name: i18n.t('experiences.finish') }),
+        screen.getByRole('button', { name: i18n.t('common.done') }),
       );
       await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     };
@@ -340,7 +340,7 @@ describe('PlanScheduleFields', () => {
     expect(screen.queryByLabelText(i18n.t('m5s3.plan.endTime'))).toBeNull();
     expect(screen.queryByLabelText(i18n.t('m5s3.plan.endDate'))).toBeNull();
     fireEvent.click(
-      screen.getByRole('button', { name: i18n.t('experiences.finish') }),
+      screen.getByRole('button', { name: i18n.t('common.done') }),
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(Object.fromEntries(new FormData(form))).toEqual({
@@ -402,7 +402,7 @@ describe('PlanScheduleFields', () => {
     expect(document.activeElement).toBe(endTime);
     expect(endTime.validity.customError).toBe(true);
     fireEvent.click(
-      screen.getByRole('button', { name: i18n.t('experiences.finish') }),
+      screen.getByRole('button', { name: i18n.t('common.done') }),
     );
     expect(screen.getByRole('dialog')).not.toBeNull();
     fireEvent.click(
@@ -435,7 +435,7 @@ describe('PlanScheduleFields', () => {
       target: { value: '' },
     });
     fireEvent.click(
-      screen.getByRole('button', { name: i18n.t('taskSheets.close') }),
+      screen.getByRole('button', { name: i18n.t('common.close') }),
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     let valid = true;

@@ -186,7 +186,7 @@ export function SpaceOffboardingPanel({
                     className="secondary"
                     onClick={closeDialog}
                   >
-                    {t('spaceOffboarding.cancelAction')}
+                    {t('common.cancel')}
                   </button>
                   <button
                     type="button"
@@ -197,7 +197,7 @@ export function SpaceOffboardingPanel({
                       setStep('confirm');
                     }}
                   >
-                    {t('spaceOffboarding.continueAction')}
+                    {t('common.continue')}
                   </button>
                 </div>
               </>
@@ -267,7 +267,7 @@ export function SpaceOffboardingPanel({
                     }}
                     disabled={mutation.isPending}
                   >
-                    {t('spaceOffboarding.backAction')}
+                    {t('common.back')}
                   </button>
                   <button
                     type="button"
@@ -275,7 +275,7 @@ export function SpaceOffboardingPanel({
                     onClick={closeDialog}
                     disabled={mutation.isPending}
                   >
-                    {t('spaceOffboarding.cancelAction')}
+                    {t('common.cancel')}
                   </button>
                   <button
                     type="submit"

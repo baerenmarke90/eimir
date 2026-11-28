@@ -598,7 +598,7 @@ test('operator_triages_a_report_replies_once_and_creates_a_ticket', async ({
     .click();
   const dialog = page.getByRole('dialog', { name: reports.ticketDialog.title });
   await expect(dialog).toBeVisible();
-  const titleField = dialog.getByLabel(reports.ticketDialog.titleLabel, {
+  const titleField = dialog.getByLabel(de.common.title, {
     exact: true,
   });
   await expect(titleField).toBeFocused();
@@ -724,11 +724,9 @@ test('operator_archives_restores_and_permanently_deletes_a_report', async ({
   await expect(dialog).toContainText(reports.deleteDialog.consequence);
   await expect(dialog).not.toContainText(reports.deleteDialog.ticketStays);
   await expect(
-    dialog.getByRole('button', { name: reports.deleteDialog.cancel }),
+    dialog.getByRole('button', { name: de.common.cancel }),
   ).toBeFocused();
-  await dialog
-    .getByRole('button', { name: reports.deleteDialog.cancel })
-    .click();
+  await dialog.getByRole('button', { name: de.common.cancel }).click();
   await expect(dialog).toBeHidden();
   expect(data).toHaveLength(2);
 
@@ -856,7 +854,7 @@ test('operator_keeps_reply_templates_and_answers_with_one', async ({
   await sheet.getByLabel(templates.sheet.textLabel).fill(TEMPLATE_TEXT);
   await captureThemes(page, info, '21-template-sheet-390', '[role="dialog"]');
   await sheet
-    .getByRole('button', { name: templates.sheet.save, exact: true })
+    .getByRole('button', { name: de.common.save, exact: true })
     .click();
   await expect(sheet).toBeHidden();
   await expect(templatesSection.getByText(templates.saved)).toBeVisible();
@@ -916,7 +914,7 @@ test('operator_keeps_reply_templates_and_answers_with_one', async ({
   await reportsSection.filter('all').click();
   await reportsSection.row('FEEDBACK').click();
   await report
-    .getByRole('button', { name: templates.edit, exact: true })
+    .getByRole('button', { name: de.common.edit, exact: true })
     .click();
   await expect(page).toHaveURL(/[?&]section=replyTemplates\b/);
   await list.getByRole('button', { name: new RegExp(TEMPLATE_NAME) }).click();
@@ -925,7 +923,7 @@ test('operator_keeps_reply_templates_and_answers_with_one', async ({
   });
   await editSheet.getByLabel(templates.sheet.textLabel).fill(CHANGED_TEXT);
   await editSheet
-    .getByRole('button', { name: templates.sheet.save, exact: true })
+    .getByRole('button', { name: de.common.save, exact: true })
     .click();
   await expect(editSheet).toBeHidden();
   expect(replyTemplates[0]?.text).toBe(CHANGED_TEXT);
@@ -933,7 +931,7 @@ test('operator_keeps_reply_templates_and_answers_with_one', async ({
   page.once('dialog', (dialog) => void dialog.accept());
   await page
     .getByRole('dialog', { name: templates.sheet.editTitle })
-    .getByRole('button', { name: templates.sheet.delete, exact: true })
+    .getByRole('button', { name: de.common.delete, exact: true })
     .click();
   await expect(templatesSection.getByText(templates.deleted)).toBeVisible();
   await expect(templatesSection).toContainText(templates.emptyTitle);

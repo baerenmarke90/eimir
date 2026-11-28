@@ -1,7 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 import contextTags from '../../src/i18n/locales/contextTags';
 import de from '../../src/i18n/locales/de';
-import experiences from '../../src/i18n/locales/experiences';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import photoPlaces from '../../src/i18n/locales/photoPlaces';
 import { expectNaturalTextReflow } from './addAction';
@@ -38,7 +37,7 @@ export async function closeContextTags(page: Page): Promise<void> {
   const sheet = page.locator('dialog.composer-tag-sheet');
   if (!(await sheet.isVisible())) return;
   await sheet
-    .getByRole('button', { name: experiences.finish, exact: true })
+    .getByRole('button', { name: de.common.done, exact: true })
     .click();
   await expect(sheet).toHaveCount(0);
 }
@@ -106,9 +105,7 @@ export async function closeComposerDate(
   label = de.memory.dateLabel,
 ) {
   const task = page.getByRole('dialog', { name: label, exact: true });
-  await task
-    .getByRole('button', { name: experiences.finish, exact: true })
-    .click();
+  await task.getByRole('button', { name: de.common.done, exact: true }).click();
   await expect(task).toHaveCount(0);
 }
 
@@ -166,9 +163,7 @@ export async function closePlanSchedule(page: Page) {
     name: m5s3.plan.schedule,
     exact: true,
   });
-  await task
-    .getByRole('button', { name: experiences.finish, exact: true })
-    .click();
+  await task.getByRole('button', { name: de.common.done, exact: true }).click();
   await expect(task).toHaveCount(0);
 }
 

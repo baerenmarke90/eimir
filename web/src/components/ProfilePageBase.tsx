@@ -363,7 +363,7 @@ export function RelationshipSettingsSection({
           <div className="form-actions relationship-form-actions">
             <button type="submit" disabled={!isDirty || mutation.isPending}>
               {mutation.isPending
-                ? t('profiles.saving')
+                ? t('common.saving')
                 : t('profiles.saveChanges')}
             </button>
             {saved && !isDirty ? (
@@ -626,7 +626,7 @@ export function PreferenceDialog({
                 onClick={onDelete}
                 disabled={pending || deletePending}
               >
-                {deletePending ? t('profiles.deleting') : t('profiles.delete')}
+                {deletePending ? t('common.deleting') : t('common.delete')}
               </button>
             ) : null}
 
@@ -641,7 +641,7 @@ export function PreferenceDialog({
               </button>
               <button type="submit" disabled={pending || deletePending}>
                 {pending
-                  ? t('profiles.saving')
+                  ? t('common.saving')
                   : renderedPreference
                     ? t('profiles.saveChanges')
                     : t('profiles.create')}

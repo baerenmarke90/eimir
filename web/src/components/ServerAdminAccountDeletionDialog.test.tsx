@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ServerAdminApi } from '../api/generated/apis/ServerAdminApi';
 import type { ServerAdminAccountDetail } from '../api/generated/models/ServerAdminAccountDetail';
 import { ClientProblemError } from '../client/problemDetails';
 import serverAdmin from '../i18n/locales/serverAdmin';
 import { ServerAdminAccountDeletionDialog } from './ServerAdminAccountDeletionDialog';
+import germanUi from '../i18n/locales/de';
 
 const accountId = '00000000-0000-0000-0000-000000000101';
 const emailId = '00000000-0000-0000-0000-000000000102';
@@ -171,7 +172,7 @@ describe('ServerAdminAccountDeletionDialog', () => {
 
     fireEvent.click(
       screen.getAllByRole('button', {
-        name: serverAdmin.accounts.deletionDialog.cancel,
+        name: germanUi.common.cancel,
       })[0],
     );
     expect(onClose).toHaveBeenCalled();

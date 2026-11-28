@@ -488,7 +488,7 @@ test('the operator creates gift codes, copies one and finds the batch again', as
 
   // Return: the batch waits in the list and opens the same sheet again.
   await sheet
-    .getByRole('button', { name: serverAdmin.sheet.close, exact: true })
+    .getByRole('button', { name: de.common.close, exact: true })
     .click();
   await expect(sheet).toHaveCount(0);
   const row = page.getByRole('button', {
@@ -714,7 +714,7 @@ test('a couple redeems a gift code on the Pro page and sees Pro active', async (
 
   // Return: closing shows the Pro page in its active state.
   await confirmed
-    .getByRole('button', { name: giftCode.done, exact: true })
+    .getByRole('button', { name: de.common.done, exact: true })
     .click();
   await expect(confirmed).toHaveCount(0);
   await expect(page.getByText(proPaywall.active.title)).toBeVisible();

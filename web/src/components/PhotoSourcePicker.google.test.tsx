@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
 import {
-  act,
   cleanup,
   fireEvent,
   render,
@@ -18,6 +17,7 @@ import {
 } from 'vitest';
 import photoSources from '../i18n/locales/photoSources';
 import { PhotoSourcePicker } from './PhotoSourcePicker';
+import germanUi from '../i18n/locales/de';
 
 const api = {
   startPhotoSelection: vi.fn(),
@@ -218,7 +218,7 @@ describe('Google Photos selection task', () => {
       screen.queryByRole('button', { name: new RegExp(photoSources.google) }),
     ).toBeNull();
     expect(
-      screen.queryByRole('button', { name: photoSources.retryImport }),
+      screen.queryByRole('button', { name: germanUi.common.retry }),
     ).toBeNull();
   });
 
@@ -253,7 +253,7 @@ describe('Google Photos selection task', () => {
     );
     await openGoogle();
     const retry = await screen.findByRole('button', {
-      name: photoSources.retryImport,
+      name: germanUi.common.retry,
     });
     expect(first.commit).toHaveBeenCalledTimes(1);
     expect(first.commit.mock.calls[0][0]).toHaveLength(1);
@@ -290,7 +290,7 @@ describe('Google Photos selection task', () => {
     const selection = renderPicker();
     await openGoogle();
     const retry = await screen.findByRole('button', {
-      name: photoSources.retryImport,
+      name: germanUi.common.retry,
     });
     expect(selection.commit).not.toHaveBeenCalled();
     fireEvent.click(retry);

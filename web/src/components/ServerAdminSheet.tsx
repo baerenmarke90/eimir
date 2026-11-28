@@ -67,7 +67,7 @@ export function ServerAdminSheet({
             disabled={busy}
             onClick={onClose}
           >
-            {t('serverAdmin.sheet.close')}
+            {t('common.close')}
           </button>
         </div>
         {children}

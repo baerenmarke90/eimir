@@ -148,11 +148,11 @@ function deleteSheetButton(page: Page, name: string) {
 
 /** Opens the confirmation twice: the first time it is cancelled without effect. */
 async function startDelete(page: Page) {
-  await deleteViaMenu(page, copy.delete);
+  await deleteViaMenu(page, de.common.delete);
   await expect(page.getByRole('alertdialog')).toBeVisible();
   await deleteSheetButton(page, de.common.cancel).click();
   await expect(page.getByRole('alertdialog')).toHaveCount(0);
-  await deleteViaMenu(page, copy.delete);
+  await deleteViaMenu(page, de.common.delete);
   await expect(page.getByRole('alertdialog')).toBeVisible();
 }
 
@@ -218,7 +218,7 @@ for (const profile of [
       });
     await startDelete(page);
     await confirm(page);
-    await expect(deleteSheetButton(page, copy.deleting)).toBeDisabled();
+    await expect(deleteSheetButton(page, de.common.deleting)).toBeDisabled();
     await state.respond(503);
     await expect(
       page.getByText(de.states.server.title, { exact: true }),
@@ -231,7 +231,7 @@ for (const profile of [
       `heart-delete-failure-${profile.width}-${profile.theme}-${profile.visibility}`,
     );
     await deleteSheetButton(page, copy.deleteConfirm).click();
-    await expect(deleteSheetButton(page, copy.deleting)).toBeDisabled();
+    await expect(deleteSheetButton(page, de.common.deleting)).toBeDisabled();
     await inspect(
       page,
       info,
@@ -243,7 +243,7 @@ for (const profile of [
       await page.goBack();
       await expect(page).toHaveURL(new RegExp(`${detailPath}$`));
       await expect(page.getByRole('alertdialog')).toBeVisible();
-      await expect(deleteSheetButton(page, copy.deleting)).toBeDisabled();
+      await expect(deleteSheetButton(page, de.common.deleting)).toBeDisabled();
       await inspect(page, info, 'heart-delete-return-pending-390-light');
     }
     const response = page.waitForResponse(
@@ -290,7 +290,7 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(deleteSheetButton(page, copy.deleteConfirm)).toBeEnabled();
     expect(state.deletes).toEqual([]);
     await deleteSheetButton(page, copy.deleteConfirm).click();
-    await expect(deleteSheetButton(page, copy.deleting)).toBeDisabled();
+    await expect(deleteSheetButton(page, de.common.deleting)).toBeDisabled();
     await state.respond(204);
     // Deleting returns to the Timeline scope the item was opened from (#1907).
     await expect(page).toHaveURL(/\/story\?tab=timeline$/);

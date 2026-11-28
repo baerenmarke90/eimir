@@ -1242,7 +1242,7 @@ export function useWirDailyCheckIn({
     : ownVibe
       ? [...DAILY_VIBE_FEELINGS, ownVibe]
       : DAILY_VIBE_FEELINGS;
-  const savingText = vibePending || energyPending ? t('wirCheckIn.saving') : '';
+  const savingText = vibePending || energyPending ? t('common.saving') : '';
 
   const panel = (
     <ShortTaskSheet
@@ -1469,7 +1469,7 @@ export function useWirDailyCheckIn({
                 disabled={disabled || failedWriter.isPending}
                 onClick={retryFailed}
               >
-                {t('wirCheckIn.retry')}
+                {t('common.retry')}
               </button>
             ) : null}
           </div>
@@ -1489,7 +1489,7 @@ export function useWirDailyCheckIn({
               finishPanel();
             }}
           >
-            {t('wirCheckIn.done')}
+            {t('common.done')}
           </button>
         </div>
       </div>

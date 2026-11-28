@@ -1,5 +1,4 @@
 import composer from '../../src/i18n/locales/composer';
-import taskSheets from '../../src/i18n/locales/taskSheets';
 import { expectFloatingAddAction } from '../support/addAction';
 import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
 import { fulfillEmptyPlanComments } from '../support/planComments';
@@ -13,7 +12,6 @@ import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import games from '../../src/i18n/locales/games';
 import navigation from '../../src/i18n/locales/navigation';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -467,12 +465,12 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     });
 
     const closeButton = dialog.getByRole('button', {
-      name: taskSheets.close,
+      name: de.common.close,
     });
     await expect(momentChoices.first()).toBeFocused();
     await page.keyboard.press('Shift+Tab');
     await expect(closeButton).toBeFocused();
-    await expect(closeButton).toHaveAttribute('title', taskSheets.close);
+    await expect(closeButton).toHaveAttribute('title', de.common.close);
     await expect(closeButton).toHaveText('');
 
     const closeBox = await closeButton.boundingBox();
@@ -642,7 +640,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
       expect(box.x + box.width).toBeLessThanOrEqual(width);
       await expectNoHorizontalOverflow(page);
 
-      await dialog.getByRole('button', { name: taskSheets.close }).click();
+      await dialog.getByRole('button', { name: de.common.close }).click();
       await expect(dialog).toHaveCount(0);
       await expect(trigger).toBeFocused();
     }
@@ -690,7 +688,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await expect(lastChoice).toBeInViewport();
 
     const closeButton = dialog.getByRole('button', {
-      name: taskSheets.close,
+      name: de.common.close,
     });
     await closeButton.click();
     await expect(dialog).toHaveCount(0);
@@ -859,7 +857,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
 
     const saveButton = page.getByRole('button', { name: de.memory.save });
     const cancelButton = page.getByRole('button', {
-      name: taskBoundary.close,
+      name: de.common.close,
       exact: true,
     });
     await expect(saveButton).toBeVisible();
@@ -1007,7 +1005,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
         ),
     );
     const cancelButton = page.getByRole('button', {
-      name: taskBoundary.close,
+      name: de.common.close,
       exact: true,
     });
     const zoomShell = page.locator('.mobile-bottom-shell');
@@ -1048,7 +1046,7 @@ test.describe('Docked Bottom Navigation (PO follow-up to #882/#905)', () => {
     await signIn(page);
     await page.waitForURL('**/today');
     await expect(
-      page.getByRole('button', { name: navigation.newContent }),
+      page.getByRole('button', { name: 'Neu festhalten' }),
     ).toHaveCount(0);
     await expect(
       page.getByRole('button', { name: navigation.quickCreateTitle }),

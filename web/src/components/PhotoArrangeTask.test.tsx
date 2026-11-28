@@ -64,7 +64,7 @@ it('keeps single-pointer changes local until Finish and preserves selection focu
     'third',
   );
   fireEvent.click(
-    within(dialog).getByRole('button', { name: i18n.t('experiences.finish') }),
+    within(dialog).getByRole('button', { name: i18n.t('common.done') }),
   );
   await vi.waitFor(() =>
     expect(finish).toHaveBeenCalledExactlyOnceWith([
@@ -87,7 +87,7 @@ it('cancel does not publish a locally changed order', () => {
     screen.getByRole('button', { name: i18n.t('experiences.last') }),
   );
   fireEvent.click(
-    screen.getByRole('button', { name: i18n.t('experiences.cancel') }),
+    screen.getByRole('button', { name: i18n.t('common.cancel') }),
   );
   expect(finish).not.toHaveBeenCalled();
 });

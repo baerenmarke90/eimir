@@ -26,8 +26,6 @@ export default {
   versionNewer:
     'Mit euren nachgetragenen Momenten gibt es eine neuere Fassung dieses Rückblicks.',
   versionOpen: 'Neuere Fassung ansehen',
-  periodMonth: '{{month}} {{year}}',
-  periodYear: 'Euer Jahr {{year}}',
   partial: 'Bis {{date}} · wächst mit euch',
   partialThrough: 'Stand {{date}}',
   complete: 'Abgeschlossener Zeitraum',
@@ -36,7 +34,6 @@ export default {
   open: 'Rückblick öffnen',
   watchNow: 'Jetzt ansehen',
   watchMonth: '{{period}} zum Anschauen',
-  allRecaps: 'Alle Rückblicke',
   play: 'Abspielen',
   pause: 'Pause',
   replay: 'Nochmal ansehen',
@@ -46,7 +43,6 @@ export default {
   preparing: 'Wird gerade für euch zusammengestellt.',
   generationPaused: 'Zusammenstellung pausiert',
   back: 'Alle Rückblicke',
-  backMore: 'Zurück zu Mehr',
   pendingTitle: 'Eure Geschichte nimmt Form an.',
   pendingBody:
     'Wir stellen euren Rückblick im Hintergrund zusammen. Ihr könnt später hier weiterlesen.',
@@ -55,7 +51,6 @@ export default {
   paused:
     'Die automatische Zusammenstellung pausiert. Eure gespeicherten Rückblicke bleiben erhalten.',
   retry: 'Stand laden',
-  refresh: 'Erneut zusammenstellen',
   emptyTitle: 'Hier beginnt eure Geschichte.',
   emptyBody:
     'Für diesen Zeitraum gibt es noch keine gemeinsam sichtbaren Inhalte. Mit euren Erinnerungen, Herzensmomenten und Meilensteinen wächst auch euer Rückblick.',
@@ -119,7 +114,6 @@ export default {
   previous: 'Vorherige Seite',
   next: 'Nächste Seite',
   page: 'Seite {{page}} von {{count}}',
-  begin: 'Losblättern',
   finishTitle: 'Was bleibt euch davon?',
   finishBody: 'Eure eigenen Worte machen diesen Rückblick zu eurem.',
   sourceUnavailable: 'Dieser Inhalt ist hier nicht mehr verfügbar.',
@@ -141,7 +135,6 @@ export default {
   selectionCount: '{{count}} von 24 ausgewählt',
   apply: 'Auswahl übernehmen',
   alternate: 'Andere Zusammenstellung',
-  alternative: 'Zusammenstellung {{number}}',
   ownWords: 'Eigene Worte ergänzen',
   reflectionTitle: 'Was möchtest du festhalten?',
   reflectionLabel: 'Deine Worte zu diesem Rückblick',
@@ -157,7 +150,6 @@ export default {
   shared: 'Deine Worte sind jetzt gemeinsam sichtbar.',
   savedHelp:
     'Dieser Rückblick ist abgeschlossen und bleibt euch erhalten. Eigene Worte könnt ihr weiterhin ergänzen. Die Sichtbarkeit seiner Originale gilt weiterhin.',
-  cancel: 'Abbrechen',
   discardTitle: 'Änderungen verwerfen?',
   discardBody: 'Dein noch nicht gespeicherter Entwurf geht dabei verloren.',
   discard: 'Verwerfen',
@@ -165,7 +157,6 @@ export default {
   conflict:
     'Der Rückblick wurde inzwischen verändert. Dein Entwurf bleibt offen. Lade den aktuellen Stand und prüfe deine Auswahl erneut.',
   reload: 'Aktuellen Stand laden',
-  details: 'Euer Anfang & nächste Anlässe',
   about: 'Wie entstehen eure Rückblicke?',
   aboutBody:
     'Wir wählen aus gemeinsam sichtbaren Inhalten des gesamten Zeitraums. Unterschiedliche Monate, Arten von Momenten und verknüpfte Kapitel sorgen für Abwechslung. Private Inhalte und Entwürfe werden dafür nicht verwendet.',

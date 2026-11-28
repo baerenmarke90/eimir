@@ -1195,7 +1195,7 @@ describe('CollectionProductPage', () => {
       ).toBe('true'),
     );
     expect(screen.getByRole('status').textContent).toContain(
-      i18n.t('m5s3.common.saving'),
+      i18n.t('common.saving'),
     );
     // The checked entry moves into the tray, so its button is a new element.
     const checked = screen.getByRole('button', {
@@ -1530,7 +1530,7 @@ describe('CollectionProductPage', () => {
 
     await startTitleEdit();
     const title = screen.getByRole('textbox', {
-      name: i18n.t('m5s3.common.title'),
+      name: i18n.t('common.title'),
     });
     expect(document.activeElement).toBe(title);
     expect(window.history.state?.[EDITOR_HISTORY_STATE_KEY]).toBeTruthy();
@@ -1573,7 +1573,7 @@ describe('CollectionProductPage', () => {
 
     await waitFor(() =>
       expect(
-        screen.queryByRole('textbox', { name: i18n.t('m5s3.common.title') }),
+        screen.queryByRole('textbox', { name: i18n.t('common.title') }),
       ).toBeNull(),
     );
     expect(document.activeElement).toBe(
@@ -1586,7 +1586,7 @@ describe('CollectionProductPage', () => {
     await user.keyboard('{Escape}');
     await waitFor(() =>
       expect(
-        screen.queryByRole('textbox', { name: i18n.t('m5s3.common.title') }),
+        screen.queryByRole('textbox', { name: i18n.t('common.title') }),
       ).toBeNull(),
     );
   });
@@ -1603,7 +1603,7 @@ describe('CollectionProductPage', () => {
     });
     await user.click(menuTrigger);
     await user.click(
-      await screen.findByRole('button', { name: i18n.t('m5s3.common.delete') }),
+      await screen.findByRole('button', { name: i18n.t('common.delete') }),
     );
     const confirmation = await screen.findByRole('alertdialog');
     expect(confirmation.textContent).toContain(
@@ -1619,7 +1619,7 @@ describe('CollectionProductPage', () => {
 
     await user.click(menuTrigger);
     await user.click(
-      await screen.findByRole('button', { name: i18n.t('m5s3.common.delete') }),
+      await screen.findByRole('button', { name: i18n.t('common.delete') }),
     );
     await user.click(
       await screen.findByRole('button', {
@@ -1631,7 +1631,7 @@ describe('CollectionProductPage', () => {
     expect(
       (
         screen.getByRole('button', {
-          name: i18n.t('m5s3.common.deleting'),
+          name: i18n.t('common.deleting'),
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(true);
@@ -1819,7 +1819,7 @@ describe('CollectionProductPage', () => {
     );
     openListMenu();
     await user.click(
-      await screen.findByRole('button', { name: i18n.t('m5s3.common.delete') }),
+      await screen.findByRole('button', { name: i18n.t('common.delete') }),
     );
     await user.click(
       await screen.findByRole('button', {

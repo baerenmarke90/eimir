@@ -10,9 +10,7 @@ const m5s5 = {
       'Hier entsteht euer gemeinsamer Ort. Sobald dein Mensch dazukommt, seid ihr hier zu zweit.',
     partnerPlace: 'Dein Mensch',
     // The visible landing area is Übersicht; the stable route ID remains `today`.
-    eyebrow: 'Übersicht',
     title: 'Euer gemeinsamer Ort',
-    intro: 'Das Wichtigste aus eurem gemeinsamen Raum auf einen Blick.',
     partner: 'Gemeinsam mit {{name}}',
     durationTitle: 'Eure Zeit',
     durationAutomaticDays: '{{days}} zusammen',
@@ -25,24 +23,12 @@ const m5s5 = {
     durationYearUnit_other: 'Jahre',
     durationMonthUnit_one: 'Monat',
     durationMonthUnit_other: 'Monate',
-    durationSince: 'Seit {{date}}',
-    durationEmpty:
-      'Sobald ihr euer gemeinsames Startdatum hinterlegt habt, seht ihr eure Zeit hier.',
     openRelationshipSettings: 'Beziehungseinstellungen öffnen',
-    railAria: 'Weitere Übersicht',
-    retrospectiveTitle: 'Weißt du noch?',
-    retrospectiveEmpty:
-      'Hier erscheint eine gemeinsame Erinnerung, sobald es etwas Passendes gibt.',
-    upcomingKicker: 'Euer Ausblick',
     upcomingTitle: 'Was bei euch ansteht',
-    upcomingEmpty: 'Gerade steht nichts Gemeinsames bevor.',
     pinnedCollectionSettingsTitle: 'Eure Liste',
-    recentKicker: 'Aktivitäten',
     recentTitle: 'Neues bei euch',
     allActivityAction: 'Alle Aktivitäten ansehen',
-    recentEmpty: 'Noch keine gemeinsamen Einträge vorhanden.',
     storySummaryTitle: 'Eure Geschichte',
-    storySummarySettingsTitle: 'Eure Geschichte in Zahlen',
     storySummaryMemories: 'Erinnerungen',
     storySummaryMemoriesCount_one: '{{count}} Erinnerung',
     storySummaryMemoriesCount_other: '{{count}} Erinnerungen',
@@ -86,17 +72,10 @@ const m5s5 = {
   today: {
     roles: {
       hero: 'Ihr beide',
-      relationshipSignal: 'Bei euch passiert',
-      sharedContent: 'Aktivitäten',
-      editorial: 'Rückblick',
     },
     keepsake: {
       kicker: 'Euer Moment',
       title: 'Euer Moment',
-      compactTitle: 'Euer nächster gemeinsamer Moment',
-      compactBody:
-        'Sobald ihr ein Foto zu einer Erinnerung legt, steht es hier groß.',
-      compactAction: 'Moment festhalten',
       textContext: 'Ein Gedanke aus eurer Geschichte',
       sharedTextContext: 'Von euch festgehalten',
     },
@@ -140,7 +119,6 @@ const m5s5 = {
       allAriaLabel: 'Alle gemeinsamen Momente ansehen',
     },
     relationshipSignal: {
-      kicker: 'Bei euch passiert',
       title: 'Neues von euch',
       partnerCommentedMemory:
         '{{name}} hat etwas zu einer Erinnerung geschrieben.',
@@ -154,7 +132,6 @@ const m5s5 = {
       'Aktuelle Beziehungssignale konnten nicht geladen werden. Eure übrigen Inhalte bleiben verfügbar.',
   },
   search: {
-    eyebrow: 'Suche',
     title: 'Suche',
     intro: 'Durchsuche gemeinsame Inhalte und deine eigenen privaten Einträge.',
     label: 'Suchbegriff',
@@ -188,9 +165,7 @@ const m5s5 = {
     you: 'Du',
   },
   notifications: {
-    eyebrow: 'Benachrichtigungen',
     title: 'Benachrichtigungen',
-    intro: 'Benachrichtigungen aus eurem gemeinsamen Raum.',
     previewTitle: 'Benachrichtigungen',
     emptyPreview: 'Keine neuen Benachrichtigungen',
     showAll: 'Alle Benachrichtigungen anzeigen →',
@@ -200,7 +175,6 @@ const m5s5 = {
     markingAllRead: 'Wird aktualisiert …',
     emptyTitle: 'Keine Benachrichtigungen',
     emptyBody: 'Hier gibt es gerade nichts Neues für dich.',
-    unread: 'Ungelesen',
     read: 'Gelesen',
     markRead: 'Als gelesen markieren',
     markingRead: 'Wird als gelesen markiert …',
@@ -208,11 +182,6 @@ const m5s5 = {
     loadingMore: 'Ältere Benachrichtigungen werden geladen …',
   },
   common: {
-    open: 'Öffnen',
-    noDirectLink: 'In dieser Ansicht nicht direkt verlinkt',
-    refresh: 'Aktualisieren',
-    refreshing: 'Wird aktualisiert …',
-    occurredOn: '{{date}}',
     today: 'Heute',
     tomorrow: 'Morgen',
     yesterday: 'Gestern',
@@ -291,12 +260,7 @@ const m5s5 = {
     SHARED_NOTE_CHANGED: 'hast eine gemeinsame Notiz überarbeitet',
   },
   notificationKind: {
-    REMINDER_CREATED: 'Neue Erinnerung',
     COMMENT_CREATED: 'Neuer Kommentar',
-    THINKING_OF_YOU: 'Denkt an dich',
-    PARTNER_KISS: 'Kuss',
-    PARTNER_CHECK_IN: 'Check-in',
-    REMINDER_DUE: 'Erinnerung fällig',
     generic: 'Neue Benachrichtigung',
   },
   reminderDetail: {

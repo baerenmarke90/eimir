@@ -25,6 +25,7 @@ import memoryWorldSettings from '../i18n/locales/memoryWorldSettings';
 import proPaywall from '../i18n/locales/proPaywall';
 import { PRO_MEMORY_WORLD_IDS } from './ProFeatureCatalogue';
 import { ProPaywallPage } from './ProPaywallPage';
+import germanUi from '../i18n/locales/de';
 
 const session = vi.hoisted(() => ({
   data: undefined as { tier: string } | undefined,
@@ -251,7 +252,7 @@ describe('ProPaywallPage', () => {
     expect(screen.getByText(proPaywall.active.title)).toBeTruthy();
     expect(screen.queryByRole('radio')).toBeNull();
     fireEvent.click(
-      screen.getByRole('button', { name: proPaywall.active.continue }),
+      screen.getByRole('button', { name: germanUi.common.continue }),
     );
     expect(screen.getByText('Planning home')).toBeTruthy();
   });

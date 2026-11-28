@@ -196,7 +196,7 @@ export function ServerAdminGiftCodeBatchSheet({
           body={t('serverAdmin.states.errorBody')}
           action={
             <button type="button" onClick={() => void query.refetch()}>
-              {t('serverAdmin.refresh')}
+              {t('common.refresh')}
             </button>
           }
         />
@@ -294,7 +294,7 @@ export function ServerAdminGiftCodeBatchSheet({
                     disabled={revoke.isPending}
                     onClick={() => setConfirmingRevoke(false)}
                   >
-                    {t('serverAdmin.pro.batch.revokeCancel')}
+                    {t('common.cancel')}
                   </button>
                   <button
                     type="button"

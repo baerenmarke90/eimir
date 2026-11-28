@@ -74,9 +74,7 @@ export function WishRepeatSheet({
     >
       <form className="form-grid wish-repeat-form" onSubmit={onSubmit}>
         <p className="wish-repeat-intro">{t('wishRepeat.sheet.intro')}</p>
-        <label htmlFor="wish-repeat-title">
-          {t('wishRepeat.sheet.titleLabel')}
-        </label>
+        <label htmlFor="wish-repeat-title">{t('common.title')}</label>
         <input
           id="wish-repeat-title"
           ref={titleInput}

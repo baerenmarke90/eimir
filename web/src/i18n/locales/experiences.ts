@@ -7,8 +7,6 @@ const experiences = {
   dragFinished: 'Reihenfolge im Entwurf geändert.',
   arrangeHelp:
     'Halte den Griff gedrückt und ziehe das Medium. Oder wähle es aus und verschiebe es mit den Tasten.',
-  finish: 'Fertig',
-  cancel: 'Abbrechen',
   moveHandle: '{{name}} verschieben',
   first: 'An den Anfang',
   last: 'Ans Ende',

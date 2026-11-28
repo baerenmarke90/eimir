@@ -9,7 +9,6 @@ import {
 } from '@tanstack/react-query';
 import {
   type FormEvent,
-  type RefObject,
   useEffect,
   useRef,
   useState,
@@ -445,7 +444,7 @@ export function WishProductPage({
       className="back-link tertiary"
       onClick={() => requestReturn(originKey, `${appRoutePath('plan')}#wishes`)}
     >
-      {t(resolveOrigin(originKey) ? 'taskBoundary.back' : 'm5s3.common.back')}
+      {t(resolveOrigin(originKey) ? 'common.back' : 'm5s3.common.back')}
     </TaskBackButton>
   );
 
@@ -632,7 +631,7 @@ export function WishProductPage({
                 className="tertiary"
                 onClick={dismissCompletionContinuation}
               >
-                {t('m5s3.wish.completionDone')}
+                {t('common.done')}
               </button>
             </div>
           </section>
@@ -818,7 +817,7 @@ export function WishProductPage({
           <ItemMenuOption
             icon="trash"
             danger
-            title={t('m5s3.common.delete')}
+            title={t('common.delete')}
             disabled={writesPending}
             onClick={() => {
               if (isWishWritePending()) return;
@@ -836,7 +835,7 @@ export function WishProductPage({
         title={t('m5s3.common.deleteHeading')}
         body={t('m5s3.wish.deleteConsequence')}
         confirmLabel={t('m5s3.common.confirmDelete')}
-        pendingLabel={t('m5s3.common.deleting')}
+        pendingLabel={t('common.deleting')}
         pending={deleteMutation.isPending}
         error={deleteMutation.error}
         restoreFocusRef={menuTrigger}

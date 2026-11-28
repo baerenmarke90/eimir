@@ -9,6 +9,7 @@ import type { ServerAdminAccountSummary } from '../api/generated/models/ServerAd
 import { ClientProblemError } from '../client/problemDetails';
 import serverAdmin from '../i18n/locales/serverAdmin';
 import { ServerAdminAccountsPanel } from './ServerAdminAccountsPanel';
+import germanUi from '../i18n/locales/de';
 
 const accountId = '00000000-0000-0000-0000-000000000101';
 const emailId = '00000000-0000-0000-0000-000000000102';
@@ -105,7 +106,7 @@ function renderPanel({
 async function openAccountDetail() {
   fireEvent.click(
     await screen.findByRole('button', {
-      name: serverAdmin.accounts.open,
+      name: germanUi.common.open,
     }),
   );
   await screen.findByRole('heading', {

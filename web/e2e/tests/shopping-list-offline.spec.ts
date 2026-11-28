@@ -4,7 +4,6 @@ import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
-import taskSheets from '../../src/i18n/locales/taskSheets';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 import { expectToday } from '../support/today';
@@ -974,14 +973,14 @@ test('a shopping list is created from the list overview', async ({
   await dialog
     .getByRole('button', { name: m5s3.collection.kind.SHOPPING })
     .click();
-  await dialog.getByLabel(m5s3.common.title, { exact: true }).fill('Einkauf');
+  await dialog.getByLabel(de.common.title, { exact: true }).fill('Einkauf');
   await page.screenshot({
     path: testInfo.outputPath('shopping-list-create-390-light.png'),
     animations: 'disabled',
   });
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations).toEqual([]);
-  await dialog.getByRole('button', { name: m5s3.common.save }).click();
+  await dialog.getByRole('button', { name: de.common.save }).click();
 
   await expect(page).toHaveURL(
     new RegExp(`/plan/collections/${COLLECTION_ID}`),
@@ -1044,7 +1043,7 @@ test('a shopping list opens from its Wir tile as a sheet with the cart bar at it
   await page.keyboard.press('Escape');
   await expect(sheet.getByRole('heading', { name: 'Einkauf' })).toBeVisible();
 
-  await sheet.getByRole('button', { name: taskSheets.close }).click();
+  await sheet.getByRole('button', { name: de.common.close }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page).toHaveURL(/\/today$/);
 });

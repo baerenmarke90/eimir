@@ -18,7 +18,6 @@ const onceMessages = {
   sentLifetime:
     'Einmal öffnen. Ungeöffnet verfällt die Nachricht nach 24 Stunden.',
   back: 'Zurück zu Wir',
-  close: 'Schließen',
   loading: 'Wird geladen …',
   refreshFailed: 'Aktualisierung fehlgeschlagen.',
   notification: 'Eine Nachricht wartet auf dich.',

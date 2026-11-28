@@ -117,7 +117,7 @@ describe('PlanStoryContinuation', () => {
   it('hands Memory capture to the canonical R1 route without rendering a second editor', () => {
     renderContinuation();
 
-    expect(screen.queryByLabelText(i18n.t('m5s3.common.title'))).toBeNull();
+    expect(screen.queryByLabelText(i18n.t('common.title'))).toBeNull();
     fireEvent.click(
       screen.getByRole('button', {
         name: i18n.t('m5s3.planStory.memoryAction'),

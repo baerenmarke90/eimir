@@ -19,6 +19,7 @@ import { i18n } from '../i18n';
 import copy from '../i18n/locales/sharedNotes';
 import { PlanNoteLinks } from './PlanNoteLinks';
 import { sharedNote } from './sharedNoteFixtures';
+import germanUi from '../i18n/locales/de';
 
 vi.mock('../client/snackbar', () => ({ postSnackbar: vi.fn() }));
 
@@ -163,7 +164,9 @@ describe('PlanNoteLinks', () => {
       }),
     );
     expect(await screen.findByText('bins on Monday')).toBeTruthy();
-    await user.click(screen.getByRole('button', { name: text.read.edit }));
+    await user.click(
+      screen.getByRole('button', { name: germanUi.common.edit }),
+    );
     expect(await screen.findByText('editor page')).toBeTruthy();
     expect(screen.getByTestId('where').textContent).toContain(
       '/more/notes/a/edit',

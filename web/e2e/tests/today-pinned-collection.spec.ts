@@ -3,7 +3,6 @@ import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
-import taskSheets from '../../src/i18n/locales/taskSheets';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '../support/axe';
 import { fulfillFreeEntitlements } from '../support/freeEntitlements';
@@ -633,7 +632,7 @@ test('shows an optimistic collection-detail check, rolls back a failed write and
     'true',
   );
   await expect(row.getByRole('button', { name: markOpen })).toBeDisabled();
-  await expect(row.getByRole('status')).toHaveText(m5s3.common.saving);
+  await expect(row.getByRole('status')).toHaveText(de.common.saving);
   await expectNoHorizontalOverflow(page);
   await page.screenshot({
     path: testInfo.outputPath(
@@ -751,7 +750,7 @@ for (const outcome of ['failure', 'success'] as const) {
       })
       .click();
     await expect.poll(() => Boolean(releaseWrite)).toBe(true);
-    await expect(row.getByRole('status')).toHaveText(m5s3.common.saving);
+    await expect(row.getByRole('status')).toHaveText(de.common.saving);
     await expect(
       row.getByRole('button', {
         name: m5s3.collection.markOpen.replace('{{title}}', 'Milch'),
@@ -1333,7 +1332,7 @@ test('pins a shared Collection personally and shows it as a tile that opens the 
   });
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
-  await sheet.getByRole('button', { name: taskSheets.close }).click();
+  await sheet.getByRole('button', { name: de.common.close }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(
     pinnedSection.getByRole('link', { name: openListName }),

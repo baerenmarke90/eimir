@@ -277,7 +277,7 @@ export function PlanFilesList({
                 type="button"
                 className="tertiary"
                 aria-label={t('planFiles.openNamed', { name: file.name })}
-                title={t('planFiles.open')}
+                title={t('common.open')}
                 disabled={!online || busyId !== null}
                 onClick={() => void open(file)}
               >

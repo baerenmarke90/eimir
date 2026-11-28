@@ -363,7 +363,7 @@ test('the operator finds a Space, sets an individual quota and removes it again'
   await expect(
     dialog.getByText(fill(quotaSheet.belowPlan, { tier: '50 GB' })),
   ).toHaveCount(0);
-  await dialog.getByRole('button', { name: quotaSheet.save }).click();
+  await dialog.getByRole('button', { name: de.common.save }).click();
 
   // Observe: the Space file shows the individual quota.
   await expect(dialog).toHaveCount(0);

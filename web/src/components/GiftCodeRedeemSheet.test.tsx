@@ -26,12 +26,12 @@ import { spaceEntitlementQueryKey } from '../client/spaceEntitlement';
 import { instanceStatusQueryOptions } from '../client/supportReportsAvailability';
 import { resolvedLocale } from '../i18n';
 import proPaywall from '../i18n/locales/proPaywall';
-import taskSheets from '../i18n/locales/taskSheets';
 import {
   GiftCodeRedeemEntry,
   GiftCodeRedeemSheet,
 } from './GiftCodeRedeemSheet';
 import { ProSettingsRow } from './ProSettingsRow';
+import germanUi from '../i18n/locales/de';
 
 const platform = vi.hoisted(() => ({ native: false }));
 vi.mock('../pwa', async (importOriginal) => ({
@@ -221,7 +221,9 @@ describe('GiftCodeRedeemEntry', () => {
     expect(screen.getByRole('dialog', { name: copy.title })).toBeTruthy();
     expect((codeField() as HTMLInputElement).value).toBe('EIMIR-AB2C');
 
-    fireEvent.click(screen.getByRole('button', { name: taskSheets.close }));
+    fireEvent.click(
+      screen.getByRole('button', { name: germanUi.common.close }),
+    );
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(screen.queryByRole('button', { name: copy.title })).toBeNull();
   });
@@ -310,7 +312,7 @@ describe('GiftCodeRedeemSheet', () => {
     });
     expect(screen.queryByRole('textbox')).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: copy.done }));
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.done }));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
@@ -330,7 +332,7 @@ describe('GiftCodeRedeemSheet', () => {
     const { rerenderOpen } = setup();
     fireEvent.change(codeField(), { target: { value: 'EIMIR-AB2C-D3EF' } });
     await submit();
-    fireEvent.click(screen.getByRole('button', { name: copy.done }));
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.done }));
     rerenderOpen(false);
     rerenderOpen(true);
     expect((codeField() as HTMLInputElement).value).toBe('');

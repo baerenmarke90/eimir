@@ -45,6 +45,7 @@ import {
   FOREGROUND_NOTIFICATION_VISIBLE_MS,
   ForegroundNotificationHost,
 } from './PartnerGestureReceipt';
+import germanUi from '../i18n/locales/de';
 
 const notifications = {
   getNotifications: vi.fn(),
@@ -443,7 +444,9 @@ describe('ForegroundNotificationHost', () => {
       expect(surface.textContent).toContain('RO');
 
       // The same ID never animates again after a later count change.
-      fireEvent.click(screen.getByRole('button', { name: copy.close }));
+      fireEvent.click(
+        screen.getByRole('button', { name: germanUi.common.close }),
+      );
       finishExit();
       rerender(2);
       await waitFor(() =>
@@ -548,7 +551,7 @@ describe('ForegroundNotificationHost', () => {
     rerender(1);
     const surface = await screen.findByTestId('partner-gesture-receipt');
     expect(document.activeElement).toBe(document.body);
-    const close = screen.getByRole('button', { name: copy.close });
+    const close = screen.getByRole('button', { name: germanUi.common.close });
     act(() => close.focus());
     await act(async () =>
       vi.advanceTimersByTimeAsync(FOREGROUND_NOTIFICATION_VISIBLE_MS + 100),

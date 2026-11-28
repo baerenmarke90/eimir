@@ -9,16 +9,12 @@ import composer from '../../src/i18n/locales/composer';
 import navigation from '../../src/i18n/locales/navigation';
 import privateArea from '../../src/i18n/locales/privateArea';
 import storyProducts from '../../src/i18n/locales/storyProducts';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
 const PROFILE_ID = '33333333-3333-4333-8333-333333333333';
 const TEST_NOW = '2026-09-01T10:00:00Z';
-const backToStoryName = new RegExp(
-  storyProducts.milestoneProduct.backToStory.replace(/^←\s*/, ''),
-  'i',
-);
+const backToStoryName = new RegExp(de.common.back.replace(/^←\s*/, ''), 'i');
 
 /**
  * Browser harness for the #810/#839 Quick Create destination contract:
@@ -334,11 +330,8 @@ async function openContextualCreate(page: Page, action: string): Promise<void> {
       .click();
     return;
   }
-  if (
-    action === navigation.quickCreatePrivateNote ||
-    action === navigation.quickCreateGiftIdea
-  ) {
-    const note = action === navigation.quickCreatePrivateNote;
+  if (action === 'Notiz' || action === 'Geschenkidee') {
+    const note = action === 'Notiz';
     await page.goto(note ? '/more/private/notes' : '/more/private/gift-ideas');
     await page
       .getByRole('link', {
@@ -351,8 +344,7 @@ async function openContextualCreate(page: Page, action: string): Promise<void> {
   const sheet = page.getByRole('dialog', { name: navigation.quickCreateTitle });
   await sheet
     .getByRole('link', {
-      name:
-        action === navigation.quickCreateMemory ? composer.diaryEntry : action,
+      name: action === 'Erinnerung' ? composer.diaryEntry : action,
       exact: true,
     })
     .click();
@@ -489,31 +481,31 @@ async function expectMemoryMediaBeforeAuthoredContent(page: Page) {
 test.describe('Creation entry points and dedicated routes: land at the correct start position', () => {
   const dedicatedDestinations = [
     {
-      action: () => navigation.quickCreateMemory,
+      action: () => 'Erinnerung',
       urlPattern: /\/story\/memories\/new$/,
       heading: () => de.memory.heading,
       primaryFieldSelector: '#body',
     },
     {
-      action: () => navigation.quickCreateHeartMoment,
+      action: () => 'Herzmoment',
       urlPattern: /\/story\/heart-moments\/new$/,
       heading: () => storyProducts.heartMomentProduct.createHeading,
       primaryFieldSelector: '#heart-moment-text',
     },
     {
-      action: () => navigation.quickCreateMilestone,
+      action: () => 'Meilenstein',
       urlPattern: /\/story\/milestones\/new$/,
       heading: () => storyProducts.milestoneProduct.createHeading,
       primaryFieldSelector: '#milestone-title',
     },
     {
-      action: () => navigation.quickCreatePrivateNote,
+      action: () => 'Notiz',
       urlPattern: /\/more\/private\/notes\/new$/,
       heading: () => privateArea.notes.createTitle,
       primaryFieldSelector: '#private-note-title',
     },
     {
-      action: () => navigation.quickCreateGiftIdea,
+      action: () => 'Geschenkidee',
       urlPattern: /\/more\/private\/gift-ideas\/new$/,
       heading: () => privateArea.gifts.createTitle,
       primaryFieldSelector: '#gift-title',
@@ -613,7 +605,7 @@ test.describe('Creation entry points and dedicated routes: land at the correct s
     await page.goto('/today');
     await signIn(page);
 
-    await openContextualCreate(page, navigation.quickCreatePrivateNote);
+    await openContextualCreate(page, 'Notiz');
 
     await expect(page.locator('#private-note-title')).toBeInViewport();
 
@@ -631,7 +623,7 @@ test.describe('Creation entry points and dedicated routes: land at the correct s
     await page.goto('/today');
     await signIn(page);
 
-    await openContextualCreate(page, navigation.quickCreateGiftIdea);
+    await openContextualCreate(page, 'Geschenkidee');
 
     await expect(page).toHaveURL(/\/more\/private\/gift-ideas\/new$/);
     // On a 390x520 viewport the page's own content (heading + intro text)
@@ -654,7 +646,7 @@ test.describe('Creation entry points and dedicated routes: land at the correct s
     await page.goto('/today');
     await signIn(page);
 
-    await openContextualCreate(page, navigation.quickCreatePrivateNote);
+    await openContextualCreate(page, 'Notiz');
 
     await expect(page.locator('#private-note-title')).toBeInViewport();
     await expect(page.locator('#private-note-title')).not.toBeFocused();
@@ -668,7 +660,7 @@ test.describe('Creation entry points and dedicated routes: land at the correct s
     await page.goto('/today');
     await signIn(page);
 
-    await openContextualCreate(page, navigation.quickCreatePrivateNote);
+    await openContextualCreate(page, 'Notiz');
     await expect(page).toHaveURL(/\/more\/private\/notes\/new$/);
 
     await page.goBack();
@@ -739,13 +731,13 @@ for (const viewport of [
     await expect(page).toHaveURL(/\/story\/milestones\/new$/);
     await expect(page.locator('#milestone-title')).not.toBeFocused();
     await expect(
-      page.getByRole('button', { name: taskBoundary.back, exact: true }),
+      page.getByRole('button', { name: de.common.back, exact: true }),
     ).toBeVisible();
     await page.screenshot({
       path: testInfo.outputPath(`shell-milestone-task-${viewport.width}.png`),
       fullPage: true,
     });
-    await page.getByRole('button', { name: taskBoundary.back }).click();
+    await page.getByRole('button', { name: de.common.back }).click();
     await expect(page).toHaveURL(/\/today$/);
 
     await trigger.click();
@@ -774,13 +766,13 @@ for (const viewport of [
       fullPage: true,
     });
 
-    await editViaMenu(page, storyProducts.milestoneProduct.edit);
+    await editViaMenu(page, de.common.edit);
     await expect(page).toHaveURL(/\/edit$/);
     await page.getByRole('link', { name: de.common.cancel }).click();
     await expect(page).toHaveURL(
       /\/story\/milestones\/44444444-4444-4444-8444-444444444444$/,
     );
-    await editViaMenu(page, storyProducts.milestoneProduct.edit);
+    await editViaMenu(page, de.common.edit);
     await page.locator('#milestone-title').fill('Our next home');
     await page
       .getByRole('button', { name: storyProducts.milestoneProduct.save })

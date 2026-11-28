@@ -2,7 +2,6 @@ import { readFileSync } from 'node:fs';
 import { expect, type Page, test } from '@playwright/test';
 import copy from '../../src/i18n/locales/coupleExperiences';
 import m5s3 from '../../src/i18n/locales/m5s3';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import localizedFixture from '../fixtures/locales/de';
 import { installNativeAppLifecycle } from '../support/nativeAppLifecycle';
 import { fulfillDefaultProductContext } from '../support/productContext';
@@ -17,6 +16,7 @@ import {
   signIn,
 } from '../support/storyTimelineFixture';
 import { pinDiaryLayout } from '../support/diaryLayout';
+import germanUi from '../../src/i18n/locales/de';
 
 // These checks describe the compact composition, not the Album default.
 test.beforeEach(async ({ page }) => {
@@ -571,7 +571,7 @@ test('opening a current partner comment consumes only that event and moves it in
   await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
   await page
     .locator('.composer-header')
-    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .getByRole('button', { name: germanUi.common.back, exact: true })
     .click();
   await expect(page).toHaveURL(/\/today$/);
   await expect(signal).toHaveCount(0);

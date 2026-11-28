@@ -406,7 +406,7 @@ describe('StoryProductPage', () => {
       const open = /<a [^>]*momente-story-open[^>]*>/.exec(html)?.[0] ?? '';
       expect(open).toContain('href="/story/memories/mem-1"');
       expect(open).toContain(
-        `aria-label="${storyProducts.discoverStory.open}: ${de.story.featuredHighlight} „Summer Lake Vacation“"`,
+        `aria-label="${de.common.open}: ${de.story.featuredHighlight} „Summer Lake Vacation“"`,
       );
       expect(html).toContain('data-story-slide="heart" data-state="upcoming"');
     });

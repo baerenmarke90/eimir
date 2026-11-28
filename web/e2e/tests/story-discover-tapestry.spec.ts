@@ -448,7 +448,7 @@ async function walkStory(
   await pauseStory(page);
   const viewer = page.locator('.momente-story-viewer');
   const open = viewer.getByRole('link', {
-    name: new RegExp(`^${story.open}:`),
+    name: new RegExp(`^${de.common.open}:`),
   });
   const steps = [];
   for (let index = 0; index < total; index++) {
@@ -787,7 +787,7 @@ test('Momente Discover Fotostory autoplays only with motion, pauses on request a
 
   // Keyboard paging once the viewer has focus.
   const open = viewer.getByRole('link', {
-    name: new RegExp(`^${story.open}:`),
+    name: new RegExp(`^${de.common.open}:`),
   });
   await expect(open).toHaveAttribute('href', '/story/heart-moments/hm-1');
   await viewer.focus();
@@ -888,7 +888,7 @@ test('Momente Discover lead plays first and its photo develops, not under reduce
     ),
   ).toHaveCSS('animation-duration', '8s');
   await expect(
-    viewer.getByRole('link', { name: new RegExp(`^${story.open}:`) }),
+    viewer.getByRole('link', { name: new RegExp(`^${de.common.open}:`) }),
   ).toHaveAttribute('href', '/story/memories/mem-1');
 
   // Reduced motion: the photo is shown at once.
@@ -1384,7 +1384,9 @@ test('Discover renewal confirms alternatives, guards duplicate activation and pr
   const oldLead = page.locator('.momente-hero-highlight');
   await expect(oldLead).toContainText('Danke');
   await expect(
-    page.getByText(de.story.discoverNewDay, { exact: true }),
+    page.getByText(localizedFixture.retiredCopy.discoverNewDay, {
+      exact: true,
+    }),
   ).toHaveCount(0);
   let requests = 0;
   let release: () => void = () => {};
@@ -1430,7 +1432,9 @@ test('Discover renewal confirms alternatives, guards duplicate activation and pr
     'Konzertabend',
   );
   await expect(
-    page.getByText(de.story.discoverNewDay, { exact: true }),
+    page.getByText(localizedFixture.retiredCopy.discoverNewDay, {
+      exact: true,
+    }),
   ).toHaveCount(0);
   await expect(
     page.getByRole('status').filter({ hasText: de.story.discoverRenewed }),

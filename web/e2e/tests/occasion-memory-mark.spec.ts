@@ -3,7 +3,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, type Page, test } from '@playwright/test';
 import occasionMarks from '../../src/i18n/locales/occasionMarks';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import {
   ACCOUNT_ID,
   CAPABILITIES,
@@ -14,6 +13,7 @@ import {
   SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
+import germanUi from '../../src/i18n/locales/de';
 
 /**
  * #1907 F2: a moment that happened on one of the couple's occasions says so
@@ -242,7 +242,7 @@ test.describe('occasion mark on moments (#1907 F2)', () => {
     await expect(detailMark).toHaveText(anniversary);
     await evidence(page, '21-impl-detail-390-light.jpg');
 
-    await page.getByRole('button', { name: taskBoundary.back }).click();
+    await page.getByRole('button', { name: germanUi.common.back }).click();
     await expect(page).toHaveURL(/\/story/u);
     await expect(
       card(page, 'Lakeside picnic').locator('.occasion-mark'),

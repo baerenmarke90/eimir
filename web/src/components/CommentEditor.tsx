@@ -151,7 +151,7 @@ export function CommentEditor({
         />
         <div className="comment-edit-actions">
           <button type="submit" disabled={pending}>
-            {pending ? t('comments.saving') : t('comments.save')}
+            {pending ? t('common.saving') : t('common.save')}
           </button>
           <button
             type="button"
@@ -159,7 +159,7 @@ export function CommentEditor({
             onClick={onClose}
             disabled={pending}
           >
-            {t('comments.cancel')}
+            {t('common.cancel')}
           </button>
         </div>
       </form>

@@ -139,7 +139,7 @@ export function ServerAdminAccountDeletionDialog({
             disabled={busy}
             onClick={onClose}
           >
-            {t('serverAdmin.accounts.deletionDialog.cancel')}
+            {t('common.cancel')}
           </button>
         </div>
 
@@ -188,7 +188,7 @@ export function ServerAdminAccountDeletionDialog({
                 className="secondary-button"
                 onClick={onClose}
               >
-                {t('serverAdmin.accounts.deletionDialog.cancel')}
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
@@ -242,7 +242,7 @@ export function ServerAdminAccountDeletionDialog({
                 disabled={busy}
                 onClick={() => setStage('review')}
               >
-                {t('serverAdmin.accounts.deletionDialog.back')}
+                {t('common.back')}
               </button>
               <button
                 type="button"
@@ -250,7 +250,7 @@ export function ServerAdminAccountDeletionDialog({
                 disabled={busy}
                 onClick={onClose}
               >
-                {t('serverAdmin.accounts.deletionDialog.cancel')}
+                {t('common.cancel')}
               </button>
               <button
                 type="submit"

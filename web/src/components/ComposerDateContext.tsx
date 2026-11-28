@@ -257,7 +257,7 @@ export function ComposerDateContext({
               if (reportValidity()) sheet.current?.requestClose();
             }}
           >
-            {t('experiences.finish')}
+            {t('common.done')}
           </button>
         }
       >

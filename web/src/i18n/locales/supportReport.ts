@@ -41,7 +41,6 @@ const supportReport = {
   sending: 'Wird gesendet …',
   sendLater: 'Später senden',
   sendNow: 'Jetzt senden',
-  retry: 'Erneut versuchen',
   offline: {
     title: 'Du bist offline.',
     body: 'Dein Text bleibt gespeichert. Sende ihn, sobald du wieder online bist.',
@@ -53,7 +52,6 @@ const supportReport = {
   success: {
     title: 'Danke, angekommen.',
     body: 'Wir lesen jede Meldung. Wenn wir etwas zurückschreiben, bekommst du eine Benachrichtigung.',
-    done: 'Fertig',
   },
   reply: {
     title: 'Antwort auf deine Meldung',

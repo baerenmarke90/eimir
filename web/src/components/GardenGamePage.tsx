@@ -1176,7 +1176,7 @@ export function GardenGamePage({
           className="secondary"
           onClick={() => setWatering(false)}
         >
-          {t('games.garden.cancel')}
+          {t('common.cancel')}
         </button>
       </section>
     );
@@ -1495,7 +1495,7 @@ export function GardenGamePage({
               className="secondary garden-story-close"
               onClick={() => setSelected(null)}
             >
-              {t('games.garden.close')}
+              {t('common.close')}
             </button>
           </div>
           <p>

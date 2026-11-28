@@ -37,6 +37,7 @@ import { resetPlayRegistryForTests } from '../motion/playRegistry';
 import { resetStagesForTests, useStage } from '../motion/stage';
 import { useWirDailyCheckIn } from './WirDailyCheckIn';
 import { WIR_STAGE } from './wirStageMotion';
+import germanUi from '../i18n/locales/de';
 
 function Opening() {
   const ref = useStage<HTMLDivElement>(WIR_STAGE, { duration: 150 });
@@ -390,7 +391,7 @@ describe('WirDailyCheckIn daily invitation beside the plus', () => {
     await screen.findByTestId('wir-checkin-own-prompt');
     fireEvent.click(screen.getByTestId('own-trigger'));
     expect(promptLine()).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: wirCheckIn.done }));
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.done }));
     await waitFor(() =>
       expect(
         screen.getByTestId('own-trigger').getAttribute('aria-expanded'),
@@ -545,7 +546,7 @@ describe('WirDailyCheckIn panel', () => {
     });
 
     fireEvent.click(trigger);
-    fireEvent.click(screen.getByRole('button', { name: wirCheckIn.done }));
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.done }));
     await waitFor(() => {
       expect(trigger.getAttribute('aria-expanded')).toBe('false');
       expect(document.activeElement).toBe(trigger);
@@ -859,7 +860,7 @@ describe('WirDailyCheckIn panel', () => {
     fireEvent.change(slider(), { target: { value: '80' } });
     fireEvent.pointerUp(slider());
     await waitFor(() =>
-      expect(screen.getByText(wirCheckIn.saving)).not.toBeNull(),
+      expect(screen.getByText(germanUi.common.saving)).not.toBeNull(),
     );
     expect(
       screen.getByTestId('wir-checkin-own-badge').getAttribute('data-pending'),
@@ -896,8 +897,10 @@ describe('WirDailyCheckIn panel', () => {
     renderCheckIn({ api });
     await openPanel();
     fireEvent.click(vibeButton('SAD'));
-    fireEvent.click(screen.getByRole('button', { name: wirCheckIn.done }));
-    const retry = await screen.findByRole('button', { name: wirCheckIn.retry });
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.done }));
+    const retry = await screen.findByRole('button', {
+      name: germanUi.common.retry,
+    });
     expect(
       screen.getByTestId('own-trigger').getAttribute('aria-expanded'),
     ).toBe('true');
@@ -1362,7 +1365,7 @@ describe('WirDailyCheckIn send flight (Fertig)', () => {
     await openPanel();
     fireEvent.click(vibeButton('GOOD'));
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    fireEvent.click(screen.getByRole('button', { name: wirCheckIn.done }));
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.done }));
 
     // Waiting for the server: the values hover, the sheet stays, nothing lands.
     await waitFor(() => expect(ghosts().length).toBeGreaterThan(0));
@@ -1407,16 +1410,16 @@ describe('WirDailyCheckIn send flight (Fertig)', () => {
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
     held.resolve(rawResponse(projection({ ownVibe: 'GOOD' }), '"today:2"'));
     await waitFor(() =>
-      expect(screen.queryByText(wirCheckIn.saving)).toBeNull(),
+      expect(screen.queryByText(germanUi.common.saving)).toBeNull(),
     );
     fireEvent.change(slider(), { target: { value: '70' } });
     fireEvent.pointerUp(slider());
     await waitFor(() => expect(update).toHaveBeenCalledTimes(2));
     await waitFor(() =>
-      expect(screen.queryByText(wirCheckIn.saving)).toBeNull(),
+      expect(screen.queryByText(germanUi.common.saving)).toBeNull(),
     );
     fireEvent.change(noteField(), { target: { value: 'Hallo' } });
-    fireEvent.click(screen.getByRole('button', { name: wirCheckIn.done }));
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.done }));
     await waitFor(() => expect(ghosts().length).toBe(3));
     await waitFor(() =>
       expect(
@@ -1438,7 +1441,7 @@ describe('WirDailyCheckIn send flight (Fertig)', () => {
     renderCheckIn({ api });
     await openPanel();
     fireEvent.click(vibeButton('SAD'));
-    fireEvent.click(screen.getByRole('button', { name: wirCheckIn.done }));
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.done }));
     await screen.findByText(wirCheckIn.saveError);
     expect(
       screen.getByTestId('own-trigger').getAttribute('aria-expanded'),
@@ -1453,7 +1456,7 @@ describe('WirDailyCheckIn send flight (Fertig)', () => {
     const { api } = apiFor(projection({ ownVibe: 'GOOD' }));
     renderCheckIn({ api });
     await openPanel();
-    fireEvent.click(screen.getByRole('button', { name: wirCheckIn.done }));
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.done }));
     expect(ghosts()).toHaveLength(0);
     await waitFor(() =>
       expect(
@@ -1482,7 +1485,7 @@ describe('WirDailyCheckIn send flight (Fertig)', () => {
     renderCheckIn({ api });
     await openPanel();
     fireEvent.click(vibeButton('GOOD'));
-    fireEvent.click(screen.getByRole('button', { name: wirCheckIn.done }));
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.done }));
     await waitFor(() =>
       expect(
         screen.getByTestId('own-trigger').getAttribute('aria-expanded'),
@@ -1501,7 +1504,7 @@ describe('WirDailyCheckIn send flight (Fertig)', () => {
     await openPanel();
     fireEvent.click(vibeButton('GOOD'));
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
-    fireEvent.click(screen.getByRole('button', { name: wirCheckIn.done }));
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.done }));
     await waitFor(() => expect(ghosts().length).toBeGreaterThan(0));
     fireEvent.keyDown(screen.getByRole('dialog', { hidden: true }), {
       key: 'Escape',
@@ -1745,7 +1748,7 @@ describe('WirDailyCheckIn partner arrival', () => {
     );
     // The partner's values are revealed behind the open sheet: no arrival yet.
     expect(document.querySelector('.is-arrival')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: wirCheckIn.done }));
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.done }));
     await waitFor(() => expect(ghosts().length).toBeGreaterThan(0));
     expect(document.querySelector('.is-arrival')).toBeNull();
     // Once the own flight has landed, the partner's values arrive.

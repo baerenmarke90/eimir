@@ -2,8 +2,6 @@ const appIcon = {
   title: 'App-Icon',
   intro: 'Ein kleines Detail, das zu dir passt.',
   colorMode: 'Farbmodus',
-  all: 'Alle Icons ansehen',
-  current: 'Deine Auswahl',
   choices: 'Dein App-Icon auswählen',
   close: 'Icon-Auswahl schließen',
   free: 'Standard',
@@ -16,7 +14,6 @@ const appIcon = {
   discover: 'eimir. Pro ansehen',
   loading: 'Deine Auswahl wird geladen …',
   proLoading: 'Pro wird geprüft …',
-  saving: 'Wird gespeichert …',
   saved: 'Auswahl gespeichert.',
   browser:
     'Deine Auswahl gilt im Browser. Das Icon auf deinem Startbildschirm bleibt vorerst gleich.',
@@ -37,7 +34,6 @@ const appIcon = {
     'Deine Auswahl wurde inzwischen geändert. Lade den aktuellen Stand, bevor du erneut speicherst.',
   denied:
     'Für dieses Icon brauchst du eimir. Pro. Deine bisherige Auswahl bleibt erhalten.',
-  retry: 'Erneut versuchen',
   reload: 'Aktuelle Auswahl laden',
   names: {
     original: 'Original',

@@ -23,9 +23,9 @@ import {
 } from '../client/useEditorHistoryEntry';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import taskBoundary from '../i18n/locales/taskBoundary';
-import taskSheets from '../i18n/locales/taskSheets';
 import { DraftExitPrompt } from './DraftExitPrompt';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
+import germanUi from '../i18n/locales/de';
 
 function DestinationDraftTask({
   onDefaultExit,
@@ -514,7 +514,9 @@ describe('ShortTaskSheet history ownership', () => {
     trigger.focus();
     fireEvent.click(trigger);
     expect(document.body.style.overflow).toBe('hidden');
-    fireEvent.click(screen.getByRole('button', { name: taskSheets.close }));
+    fireEvent.click(
+      screen.getByRole('button', { name: germanUi.common.close }),
+    );
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() => expect(document.activeElement).toBe(trigger));
     expect(document.body.style.overflow).toBe('auto');
@@ -625,8 +627,10 @@ describe('ShortTaskSheet history ownership', () => {
     render(<Task onExit={vi.fn()} onDiscard={vi.fn()} />);
     fireEvent.click(screen.getByText('Task choices'));
 
-    const closeButton = screen.getByRole('button', { name: taskSheets.close });
-    expect(closeButton.getAttribute('title')).toBe(taskSheets.close);
+    const closeButton = screen.getByRole('button', {
+      name: germanUi.common.close,
+    });
+    expect(closeButton.getAttribute('title')).toBe(germanUi.common.close);
     expect(closeButton.classList.contains('short-task-sheet-drag-zone')).toBe(
       true,
     );
@@ -697,8 +701,10 @@ describe('ShortTaskSheet history ownership', () => {
       </ShortTaskSheet>,
     );
 
-    const closeButton = screen.getByRole('button', { name: taskSheets.close });
-    expect(closeButton.getAttribute('title')).toBe(taskSheets.close);
+    const closeButton = screen.getByRole('button', {
+      name: germanUi.common.close,
+    });
+    expect(closeButton.getAttribute('title')).toBe(germanUi.common.close);
     expect(closeButton.querySelector('svg')).toBeNull();
     expect(
       closeButton.querySelector('.short-task-sheet-drag-handle'),
@@ -721,7 +727,9 @@ describe('ShortTaskSheet history ownership', () => {
     fireEvent.click(trigger);
 
     const dialog = screen.getByRole('dialog') as HTMLDialogElement;
-    fireEvent.click(screen.getByRole('button', { name: taskSheets.close }));
+    fireEvent.click(
+      screen.getByRole('button', { name: germanUi.common.close }),
+    );
 
     await waitFor(() =>
       expect(dialog.getAttribute('data-presence')).toBe('exiting'),
@@ -1269,7 +1277,9 @@ describe('ShortTaskSheet history ownership', () => {
       </ShortTaskSheet>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: taskSheets.close }));
+    fireEvent.click(
+      screen.getByRole('button', { name: germanUi.common.close }),
+    );
     expect(onDiscardRequested).toHaveBeenCalledTimes(1);
     expect(onClose).not.toHaveBeenCalled();
     expect(screen.getByRole('dialog')).toBeDefined();
@@ -1286,7 +1296,9 @@ describe('ShortTaskSheet history ownership', () => {
       </ShortTaskSheet>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: taskSheets.close }));
+    fireEvent.click(
+      screen.getByRole('button', { name: germanUi.common.close }),
+    );
     expect(onCloseBlocked).toHaveBeenCalledTimes(1);
     expect(onClose).not.toHaveBeenCalled();
     expect(screen.getByRole('dialog')).toBeDefined();

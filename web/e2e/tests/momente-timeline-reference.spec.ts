@@ -1,7 +1,6 @@
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import storyProducts from '../../src/i18n/locales/storyProducts';
-import taskSheets from '../../src/i18n/locales/taskSheets';
 import AxeBuilder from '../support/axe';
 import { pinDiaryLayout } from '../support/diaryLayout';
 import { waitForSettledMotion } from '../support/settledMotion';
@@ -94,7 +93,7 @@ async function expectCompactCommentHandoff(page: Page): Promise<void> {
     exact: true,
   });
   const cancelButton = panel.getByRole('button', {
-    name: storyProducts.comments.cancel,
+    name: de.common.cancel,
     exact: true,
   });
   const action = inline
@@ -216,7 +215,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     );
     const browseSheet = await openDiaryOptions(page);
     await browseSheet
-      .getByRole('button', { name: taskSheets.close, exact: true })
+      .getByRole('button', { name: de.common.close, exact: true })
       .click();
     await expect(browseSheet).not.toBeVisible();
 
@@ -377,7 +376,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     );
     const browseSheet = await openDiaryOptions(page);
     await browseSheet
-      .getByRole('button', { name: taskSheets.close, exact: true })
+      .getByRole('button', { name: de.common.close, exact: true })
       .click();
     await expect(browseSheet).not.toBeVisible();
 
@@ -448,7 +447,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     );
     const browseSheet = await openDiaryOptions(page);
     await browseSheet
-      .getByRole('button', { name: taskSheets.close, exact: true })
+      .getByRole('button', { name: de.common.close, exact: true })
       .click();
     await expect(browseSheet).not.toBeVisible();
 

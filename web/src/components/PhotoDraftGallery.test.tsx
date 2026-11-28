@@ -196,7 +196,7 @@ it('keeps composer stage controls present while thumbnail selection only changes
   expect(view.sensitive).not.toHaveBeenCalled();
   expect(view.container.querySelector('.is-managing')).toBeNull();
   expect(
-    screen.queryByRole('button', { name: i18n.t('experiences.finish') }),
+    screen.queryByRole('button', { name: i18n.t('common.done') }),
   ).toBeNull();
   expect(view.container.querySelector('.photo-draft-inspector')).toBeNull();
   expect(within(view.strip()).getAllByRole('button')).toHaveLength(4);
@@ -324,7 +324,7 @@ it('keeps legacy arrangement Cancel/Finish and automatic cover reset unchanged',
   moveThirdFirst();
   fireEvent.click(
     within(screen.getByRole('dialog')).getByRole('button', {
-      name: i18n.t('experiences.cancel'),
+      name: i18n.t('common.cancel'),
     }),
   );
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
@@ -334,7 +334,7 @@ it('keeps legacy arrangement Cancel/Finish and automatic cover reset unchanged',
   moveThirdFirst();
   fireEvent.click(
     within(screen.getByRole('dialog')).getByRole('button', {
-      name: i18n.t('experiences.finish'),
+      name: i18n.t('common.done'),
     }),
   );
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());

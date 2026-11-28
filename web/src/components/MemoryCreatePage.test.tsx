@@ -210,7 +210,7 @@ describe('Memory capture mutation ownership', () => {
         .hasAttribute('disabled'),
     ).toBe(false);
     fireEvent.click(
-      screen.getByRole('button', { name: i18n.t('experiences.finish') }),
+      screen.getByRole('button', { name: i18n.t('common.done') }),
     );
     enterTitle();
     submit();
@@ -701,7 +701,7 @@ describe('Confirmed Plan handoff to Memory capture', () => {
     });
     expect(read).toHaveBeenCalledTimes(2);
     fireEvent.click(
-      screen.getByRole('button', { name: i18n.t('experiences.finish') }),
+      screen.getByRole('button', { name: i18n.t('common.done') }),
     );
     await waitFor(() => expect(screen.queryByText(place.name)).toBeNull());
   });

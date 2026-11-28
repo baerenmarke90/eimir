@@ -1,7 +1,6 @@
 import { fulfillDefaultProductContext } from '../support/productContext';
 import { expect, test } from '@playwright/test';
 import copy from '../../src/i18n/locales/storyProducts';
-import m5s3 from '../../src/i18n/locales/m5s3';
 import wishJourney from '../../src/i18n/locales/wishJourney';
 import memoryCopy from '../../src/i18n/locales/memoryProduct';
 import {
@@ -13,6 +12,7 @@ import {
   signIn,
 } from '../support/storyTimelineFixture';
 import { itemMenuRow, openItemMenu } from '../support/itemMenu';
+import germanUi from '../../src/i18n/locales/de';
 
 for (const [width, theme, large] of [
   [360, 'light', false],
@@ -196,9 +196,11 @@ test('partner edits shared words while author identity and destructive controls 
   // The partner may edit the shared words, but the menu offers no deletion.
   await openItemMenu(page);
   await expect(
-    page.locator('.item-menu-option').filter({ hasText: memoryCopy.delete }),
+    page
+      .locator('.item-menu-option')
+      .filter({ hasText: germanUi.common.delete }),
   ).toHaveCount(0);
-  await itemMenuRow(page, memoryCopy.edit).click();
+  await itemMenuRow(page, germanUi.common.edit).click();
   await page
     .locator('textarea[name="body"]')
     .fill('The original words, with a thought from the partner.');

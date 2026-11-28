@@ -128,7 +128,7 @@ async function edit(body = 'Original words') {
   const user = userEvent.setup();
   const card = screen.getByText(body, { selector: 'p' }).closest('li');
   if (!card) throw new Error('Expected comment card');
-  await user.click(within(card).getByRole('button', { name: copy.edit }));
+  await user.click(within(card).getByRole('button', { name: de.common.edit }));
   const field = within(card).getByRole<HTMLTextAreaElement>('textbox');
   fireEvent.change(field, { target: { value: 'Submitted words' } });
   const form = field.closest('form');
@@ -238,7 +238,7 @@ describe('comment editor task and resource ownership', () => {
     const next = await edit();
     expect(next.field).not.toBe(first.field);
     expect(
-      screen.getByRole<HTMLButtonElement>('button', { name: copy.saving })
+      screen.getByRole<HTMLButtonElement>('button', { name: de.common.saving })
         .disabled,
     ).toBe(true);
     fireEvent.submit(next.form);

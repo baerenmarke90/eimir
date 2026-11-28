@@ -19,7 +19,9 @@ async function signIn(page: Page, path = '/more/settings/appearance') {
   await page.getByRole('button', { name: de.login.submit }).click();
   await expect(page.getByLabel(de.login.email)).toHaveCount(0);
   if (path.startsWith('/more/'))
-    await expect(page.getByRole('button', { name: copy.change })).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: new RegExp(`^${copy.title}`) }),
+    ).toBeVisible();
 }
 
 const CAPABILITIES = { canEdit: true, canDelete: true, canComment: true };
@@ -245,9 +247,11 @@ test('Free sees every world, keeps Pro worlds unsaved and saves Stapel', async (
   const writes = await installMocks(page, false);
   await page.setViewportSize({ width: 390, height: 844 });
   await signIn(page);
-  await expect(page.locator('.memory-world-summary strong')).toHaveText(story);
+  await expect(page.locator('.memory-world-trigger strong')).toHaveText(story);
   await capture(page, info, 'memory-worlds-free-390-light.png');
-  const opener = page.getByRole('button', { name: copy.change });
+  const opener = page.getByRole('button', {
+    name: new RegExp(`^${copy.title}`),
+  });
   await opener.click();
   const dialog = page.getByRole('dialog', { name: copy.choices });
   await expect(dialog.getByRole('radio')).toHaveCount(12);
@@ -264,7 +268,7 @@ test('Free sees every world, keeps Pro worlds unsaved and saves Stapel', async (
     .click();
   await expect(dialog).toHaveCount(0);
   expect(writes).toEqual(['stack']);
-  await expect(page.locator('.memory-world-summary strong')).toHaveText(stack);
+  await expect(page.locator('.memory-world-trigger strong')).toHaveText(stack);
   await expect(opener).toBeFocused();
 });
 
@@ -275,7 +279,9 @@ test('Pro saves the Plattenkiste, keeps it after reload and returns to Story', a
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ colorScheme: 'dark' });
   await signIn(page);
-  await page.getByRole('button', { name: copy.change }).click();
+  await page
+    .getByRole('button', { name: new RegExp(`^${copy.title}`) })
+    .click();
   const dialog = page.getByRole('dialog', { name: copy.choices });
   await dialog.getByRole('radio', { name: new RegExp(crate) }).check();
   await dialog
@@ -285,8 +291,10 @@ test('Pro saves the Plattenkiste, keeps it after reload and returns to Story', a
   expect(writes).toEqual(['crate']);
   await capture(page, info, 'memory-worlds-pro-saved-390-dark.png');
   await page.reload();
-  await expect(page.locator('.memory-world-summary strong')).toHaveText(crate);
-  await page.getByRole('button', { name: copy.change }).click();
+  await expect(page.locator('.memory-world-trigger strong')).toHaveText(crate);
+  await page
+    .getByRole('button', { name: new RegExp(`^${copy.title}`) })
+    .click();
   await dialog.getByRole('radio', { name: new RegExp(story) }).check();
   await dialog
     .getByRole('button', { name: copy.choose.replace('{{name}}', story) })
@@ -294,8 +302,10 @@ test('Pro saves the Plattenkiste, keeps it after reload and returns to Story', a
   expect(writes).toEqual(['crate', 'story']);
   // Wait for save and sheet-history cleanup before starting another navigation.
   await expect(dialog).toHaveCount(0);
-  await expect(page.locator('.memory-world-summary strong')).toHaveText(story);
-  await expect(page.getByRole('button', { name: copy.change })).toBeFocused();
+  await expect(page.locator('.memory-world-trigger strong')).toHaveText(story);
+  await expect(
+    page.getByRole('button', { name: new RegExp(`^${copy.title}`) }),
+  ).toBeFocused();
   // In Story the round switch ends the row of theme circles.
   await page.goto('/story?tab=discover');
   await expect(
@@ -310,9 +320,11 @@ test('a kept Pro world after a downgrade is named and stays selected', async ({
 }) => {
   const writes = await installMocks(page, false, 'crate');
   await signIn(page);
-  await expect(page.locator('.memory-world-summary strong')).toHaveText(crate);
+  await expect(page.locator('.memory-world-trigger strong')).toHaveText(crate);
   // Opening the sheet reads Pro; the summary then names the kept world.
-  await page.getByRole('button', { name: copy.change }).click();
+  await page
+    .getByRole('button', { name: new RegExp(`^${copy.title}`) })
+    .click();
   const dialog = page.getByRole('dialog', { name: copy.choices });
   await expect(
     dialog.getByRole('radio', { name: new RegExp(crate) }),
@@ -331,7 +343,9 @@ test('world sheet reflows at 320, 430 and Expanded with reduced motion and large
   await installMocks(page, true);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await signIn(page);
-  await page.getByRole('button', { name: copy.change }).click();
+  await page
+    .getByRole('button', { name: new RegExp(`^${copy.title}`) })
+    .click();
   const dialog = page.getByRole('dialog', { name: copy.choices });
   for (const size of [
     { width: 320, height: 568 },
@@ -409,7 +423,7 @@ test('Erinnerungen shows the saved world and its switch leads to the setting', a
   await expect(page).toHaveURL(
     /\/more\/settings\/appearance#erinnerungswelten$/,
   );
-  await expect(page.locator('.memory-world-summary strong')).toHaveText(crate);
+  await expect(page.locator('.memory-world-trigger strong')).toHaveText(crate);
 });
 
 test('Erinnerungen shows the Stapel with its position', async ({

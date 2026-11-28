@@ -10,6 +10,7 @@ import { identityBuildVariable } from './client/identityEnvironment';
 import { releaseLaunchScreenWhenPainted } from './client/launchScreen';
 import { isNativeSessionStorageAvailable } from './client/nativeSessionStorage';
 import { startNativeSystemTheme } from './client/nativeSystemTheme';
+import { startSystemColors } from './client/systemColors';
 import { planPathFromCalendarLink } from './client/routes';
 import { restoreNativeSession } from './client/sessionPersistence';
 import { useControlPressFeedback } from './client/useControlPressFeedback';
@@ -52,6 +53,7 @@ import './design/identity-roles.css';
 import './design/person-colors.css';
 import './design/identity-components.css';
 import './design/app-designs.css';
+import './design/system-colors.css';
 import { dateAwareStructuralSharing } from './client/structuralSharing';
 
 // Resolve calendar links before the router and sign-in read the entry URL.
@@ -65,6 +67,7 @@ markNativeRuntime();
 void registerNativeHaptics();
 initializeTheme();
 startNativeSystemTheme();
+startSystemColors();
 registerProductionServiceWorker();
 
 const queryClient = new QueryClient({

@@ -5,7 +5,6 @@ import de from '../../src/i18n/locales/de';
 import en from '../../src/i18n/locales/en.json' with { type: 'json' };
 import language from '../../src/i18n/locales/languageSettings';
 import profileIdentity from '../../src/i18n/locales/profileIdentity';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import AxeBuilder from '../support/axe';
 import { fulfillSettingsOverviewStatuses } from '../support/settingsOverview';
 import {
@@ -216,7 +215,7 @@ for (const [width, colorScheme] of [
       page.getByRole('combobox', { name: language.title, exact: true }),
     ).toHaveValue('auto');
     await page
-      .getByRole('button', { name: taskBoundary.back, exact: true })
+      .getByRole('button', { name: de.common.back, exact: true })
       .click();
     await expect(page).toHaveURL(/\/more\/settings$/);
     await expect(

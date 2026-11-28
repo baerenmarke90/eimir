@@ -46,7 +46,7 @@ export function ServerAdminReplyTemplateChips({
             className="server-admin-template-edit"
             onClick={onEdit}
           >
-            {t('serverAdmin.templates.edit')}
+            {t('common.edit')}
           </button>
         ) : null}
       </div>

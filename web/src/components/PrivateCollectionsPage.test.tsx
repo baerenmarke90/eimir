@@ -46,9 +46,7 @@ function menuTrigger(title = 'Packing list') {
 
 async function startEditing(title = 'Packing list') {
   fireEvent.click(menuTrigger(title));
-  fireEvent.click(
-    await screen.findByRole('button', { name: privateArea.edit }),
-  );
+  fireEvent.click(await screen.findByRole('button', { name: de.common.edit }));
   // The menu sheet hands over to the editor once it has left.
   await waitFor(() => expect(document.querySelector('.item-menu')).toBeNull());
   await act(async () => {});
@@ -316,9 +314,7 @@ describe('PrivateCollectionsPage', () => {
     expect(input).toBeDefined();
 
     // Deletion belongs to the item menu, never to the edit mode.
-    expect(
-      screen.queryByRole('button', { name: privateArea.delete }),
-    ).toBeNull();
+    expect(screen.queryByRole('button', { name: de.common.delete })).toBeNull();
     expect(
       screen.queryByRole('button', { name: privateArea.deleteConfirm }),
     ).toBeNull();

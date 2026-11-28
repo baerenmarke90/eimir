@@ -95,33 +95,31 @@ function Settings({
       <h2 id="person-colours-title">{t('personColours.title')}</h2>
       <p className="settings-section-intro">{t('personColours.help')}</p>
       <SystemColorsOverrideNote />
-      <div className="person-colours-summary">
+      <button
+        type="button"
+        className="design-palette-trigger"
+        aria-labelledby="person-colours-title person-colours-value"
+        aria-haspopup="dialog"
+        ref={opener}
+        onClick={() => {
+          setDraft(colours);
+          setSaved(false);
+          setError(null);
+          state.inspectCapability();
+          setOpen(true);
+        }}
+      >
         <Swatches own={current.own} partner={current.partner} />
-        <div>
-          <strong>{label(colours)}</strong>
-          <span>
-            {colours === null ? (
-              t('personColours.standard')
-            ) : (
+        <span id="person-colours-value">
+          {label(colours)}
+          {colours !== null ? (
+            <>
+              {' '}
               <ProMark label={t('personColours.pro')} />
-            )}
-          </span>
-        </div>
-        <button
-          type="button"
-          className="button-link"
-          ref={opener}
-          onClick={() => {
-            setDraft(colours);
-            setSaved(false);
-            setError(null);
-            state.inspectCapability();
-            setOpen(true);
-          }}
-        >
-          {t('personColours.change')}
-        </button>
-      </div>
+            </>
+          ) : null}
+        </span>
+      </button>
       {saved && !open ? <p role="status">{t('personColours.saved')}</p> : null}
       <ShortTaskSheet
         ref={sheet}

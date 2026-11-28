@@ -1,7 +1,6 @@
 const personColours = {
   title: 'Eure Farben',
   choices: 'Farben auswählen',
-  change: 'Farben auswählen',
   close: 'Schließen',
   current: 'Aktuell',
   help: 'Wähle die Farben, in denen du dich und deine Partnerperson siehst – nur für deine Ansicht.',

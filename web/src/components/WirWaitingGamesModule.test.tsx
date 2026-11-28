@@ -208,4 +208,25 @@ describe('WirWaitingGamesModule', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(container.innerHTML).toBe('');
   });
+
+  it('shows a chip with the short game label in the chips style (#2345)', async () => {
+    reelStyle.value = { style: 'chips', pending: false };
+    renderModule({
+      waiting: {
+        items: [{ game: 'PICTURE_PING_PONG', reason: 'DRAW', since: SINCE }],
+      },
+    });
+    const section = await screen.findByRole('region', {
+      name: i18n.t('games.waiting.title'),
+    });
+    expect(section.querySelector('ul')?.className).toContain('wir-reel-chips');
+    expect(section.querySelector('h2')?.className).toContain('sr-only');
+    const chip = section.querySelector('a.wir-gchip');
+    expect(chip?.querySelector('.wir-gchip-text')?.textContent).toBe(
+      i18n.t('games.waiting.labels.PICTURE_PING_PONG'),
+    );
+    expect(chip?.textContent).toContain(
+      i18n.t('games.waiting.reasons.PICTURE_PING_PONG'),
+    );
+  });
 });

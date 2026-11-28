@@ -25,6 +25,7 @@ import { WirNoticeTileBody } from './WirNoticeTile';
 import './WirCardArrival.css';
 import './WirLists.css';
 import './WirNewForYouModule.css';
+import './WirReelChips.css';
 
 type Art =
   | 'today'
@@ -412,7 +413,10 @@ export function WirNewForYouModule({
       aria-labelledby={headingId}
     >
       <div className="today-section-header">
-        <h2 id={headingId} className="today-section-title">
+        <h2
+          id={headingId}
+          className={`today-section-title${reelStyle === 'chips' ? ' sr-only' : ''}`}
+        >
           {t('wirNotices.title')}
         </h2>
       </div>
@@ -424,7 +428,35 @@ export function WirNewForYouModule({
             key={tile.key}
             className={`wir-notice-item${cardArrivalClass(arrivals.get(tile.key))}`}
           >
-            {reelStyle === 'tiles' ? (
+            {reelStyle === 'chips' ? (
+              <TodayDestinationLink
+                to={tile.path}
+                className={`wir-nchip wir-nchip-${tile.tone} wir-notice-tone-${tile.tone}`}
+                selectedKey={`wir-notice-${tile.key}`}
+                onFollow={() => open(tile)}
+              >
+                <span
+                  className="wir-notice-face wir-nchip-face"
+                  aria-hidden="true"
+                >
+                  <TileFace tile={tile} />
+                </span>
+                <span className="wir-nchip-text" aria-hidden="true">
+                  {chipText(tile, t)}
+                </span>
+                <span className="sr-only">
+                  {[
+                    tile.title,
+                    tile.kind,
+                    tile.quote,
+                    tile.line,
+                    tile.moreItems,
+                  ]
+                    .filter(Boolean)
+                    .join(': ')}
+                </span>
+              </TodayDestinationLink>
+            ) : reelStyle === 'tiles' ? (
               <TodayDestinationLink
                 to={tile.path}
                 className={`wir-ntile wir-ntile-${tile.tone}`}
@@ -460,11 +492,29 @@ export function WirNewForYouModule({
   );
 }
 
+/** The one line a chip shows (#2345, draft C); the link reads the full text. */
+function chipText(tile: Tile, t: TranslateText): string {
+  if (tile.art === 'today' && tile.time)
+    return t('wirNotices.chip.timed', { time: tile.time, title: tile.title });
+  if (tile.art === 'bubble' && tile.quote)
+    return t('wirNotices.chip.quoteOn', {
+      quote: tile.quote,
+      title: tile.title,
+    });
+  if (tile.art === 'date' && tile.weekday && tile.day)
+    return t('wirNotices.chip.dated', {
+      title: tile.title,
+      weekday: tile.weekday,
+      day: tile.day,
+    });
+  return tile.title;
+}
+
 /**
  * What a circle shows: a real piece of the content, never only a symbol
  * (Product Owner 2026-11-27). Decorative; the link reads the full text.
  */
-function TileFace({ tile }: { tile: Tile }) {
+export function TileFace({ tile }: { tile: Tile }) {
   switch (tile.art) {
     case 'today':
       return tile.time ? (

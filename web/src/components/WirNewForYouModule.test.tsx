@@ -312,4 +312,83 @@ describe('WirNewForYouModule (#2345 B)', () => {
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(container.innerHTML).toBe('');
   });
+
+  it('shows compact chips with a short line per kind in the chips style (#2345)', async () => {
+    reelStyle.value = { style: 'chips', pending: false };
+    const at = new Date('2026-11-27T17:30:00Z');
+    const day = new Date('2026-11-29T10:00:00Z');
+    renderModule({
+      upcoming: [
+        {
+          type: 'PLAN',
+          id: 'plan-1',
+          titleOrText: 'Dinner with Lena',
+          occurredOn: null,
+          scheduledOn: null,
+          scheduledAt: at,
+          createdAt: null,
+        } as DashboardItem,
+      ],
+      items: [
+        notice({
+          id: 'n-comment',
+          kind: 'COMMENT_CREATED',
+          targetType: 'MEMORY',
+          targetId: 'memory-1',
+          target: {
+            targetType: 'MEMORY',
+            targetId: 'memory-1',
+            title: 'Sunday by the sea',
+          },
+          preview: { text: 'Again!', items: [], moreItems: 0 },
+        }),
+        notice({
+          id: 'n-date',
+          kind: 'WISH_DATE_PROPOSED',
+          targetType: 'WISH',
+          targetId: 'wish-1',
+          target: { targetType: 'WISH', targetId: 'wish-1', title: 'Picnic' },
+          appointmentStart: day,
+        }),
+      ],
+    });
+    const section = await screen.findByRole('region', {
+      name: i18n.t('wirNotices.title'),
+    });
+    await waitFor(() =>
+      expect(section.querySelectorAll('a.wir-nchip')).toHaveLength(3),
+    );
+    expect(section.querySelector('ul')?.className).toContain('wir-reel-chips');
+    expect(section.querySelector('h2')?.className).toContain('sr-only');
+    const texts = [...section.querySelectorAll('.wir-nchip-text')].map(
+      (element) => element.textContent,
+    );
+    const locale = resolvedLocale();
+    const time = new Intl.DateTimeFormat(locale, {
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(at);
+    expect(texts[0]).toBe(
+      i18n.t('wirNotices.chip.timed', { time, title: 'Dinner with Lena' }),
+    );
+    expect(texts[1]).toBe(
+      i18n.t('wirNotices.chip.quoteOn', {
+        quote: 'Again!',
+        title: 'Sunday by the sea',
+      }),
+    );
+    expect(texts[2]).toBe(
+      i18n.t('wirNotices.chip.dated', {
+        title: 'Picnic',
+        weekday: new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(
+          day,
+        ),
+        day: new Intl.DateTimeFormat(locale, { day: 'numeric' }).format(day),
+      }),
+    );
+    // The link still reads the title, the kind, the quote and the line.
+    const comment = screen.getByRole('link', { name: /Sunday by the sea/ });
+    expect(comment.textContent).toContain(i18n.t('wirNotices.kinds.comment'));
+    expect(comment.textContent).toContain('Again!');
+  });
 });

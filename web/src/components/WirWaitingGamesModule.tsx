@@ -33,6 +33,7 @@ import './WirCardArrival.css';
 import './WirLists.css';
 import './WirWaitingGamesModule.css';
 import './WirReelTiles.css';
+import './WirReelChips.css';
 
 /**
  * Lives under the Dashboard key so every Wir refresh, and every game notice
@@ -173,7 +174,10 @@ export function WirWaitingGamesModule({
       aria-labelledby={headingId}
     >
       <div className="today-section-header">
-        <h2 id={headingId} className="today-section-title">
+        <h2
+          id={headingId}
+          className={`today-section-title${reelStyle === 'chips' ? ' sr-only' : ''}`}
+        >
           {t('games.waiting.title')}
         </h2>
       </div>
@@ -187,7 +191,23 @@ export function WirWaitingGamesModule({
               key={item.game}
               className={`wir-game-tile-item${cardArrivalClass(arrivals.get(turnKey(item)))}`}
             >
-              {reelStyle === 'tiles' ? (
+              {reelStyle === 'chips' ? (
+                <TodayDestinationLink
+                  to={game.route}
+                  className={`wir-gchip wir-gchip-${game.tone} wir-game-tile-${game.tone}`}
+                  selectedKey={`wir-waiting-${item.game}`}
+                >
+                  <span className="wir-game-face wir-gchip-face">
+                    <WirGameTileArt game={item.game} />
+                  </span>
+                  <span className="wir-gchip-text" aria-hidden="true">
+                    {t(`games.waiting.labels.${item.game}`)}
+                  </span>
+                  <span className="sr-only">
+                    {`${t(`games.entries.${game.entry}.title`)}: ${t(`games.waiting.reasons.${item.game}`)}`}
+                  </span>
+                </TodayDestinationLink>
+              ) : reelStyle === 'tiles' ? (
                 <TodayDestinationLink
                   to={game.route}
                   className={`wir-gtile wir-gtile-${game.tone}`}

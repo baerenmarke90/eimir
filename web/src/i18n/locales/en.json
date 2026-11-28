@@ -1817,6 +1817,11 @@
   },
   "wirNotices": {
     "title": "New for you",
+    "chip": {
+      "quoteOn": "“{{quote}}” {{title}}",
+      "dated": "{{title}} {{weekday}} {{day}}",
+      "timed": "{{time}} {{title}}"
+    },
     "kinds": {
       "today": "Today",
       "date": "Date suggestion",

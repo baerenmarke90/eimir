@@ -19,6 +19,7 @@ import memoryProduct from '../i18n/locales/memoryProduct';
 import photoPlaces from '../i18n/locales/photoPlaces';
 import { AppShell } from './AppShell';
 import { MemoryProductPage } from './MemoryProductPage';
+import germanFixture from '../../e2e/fixtures/locales/de';
 
 vi.mock('./CommentsPanel', () => ({ CommentsPanel: () => null }));
 beforeEach(() => {
@@ -314,7 +315,7 @@ describe('Memory detail edit action (#1014)', () => {
     expect(document.querySelectorAll('.item-menu-option')).toHaveLength(0);
     expect(
       document.querySelector('.item-menu-footnote')?.textContent,
-    ).toContain('Festgehalten von');
+    ).toContain(germanFixture.retiredCopy.memoryAuthorLabel);
   });
 
   it('keeps the short date above content and an authored display title after media', async () => {

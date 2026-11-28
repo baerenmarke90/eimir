@@ -9,6 +9,7 @@ import type { CommentDetail } from '../api/generated/models/CommentDetail';
 import storyProducts from '../i18n/locales/storyProducts';
 import { CommentsPanel } from './CommentsPanel';
 import germanUi from '../i18n/locales/de';
+import germanFixture from '../../e2e/fixtures/locales/de';
 
 afterEach(cleanup);
 
@@ -266,7 +267,7 @@ describe('CommentsPanel', () => {
     expect(html).toContain('<strong>Alex</strong>');
     expect(html).not.toContain('Philipp Reis');
     expect(html).not.toContain('Alex Winter');
-    expect(html).not.toContain('von dir');
+    expect(html).not.toContain(germanFixture.retiredCopy.commentAuthorSelf);
   });
 
   describe('"Kommentieren" sits at the end of the comment flow (#1015)', () => {

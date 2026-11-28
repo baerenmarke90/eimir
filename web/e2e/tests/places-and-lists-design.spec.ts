@@ -343,7 +343,7 @@ for (const scenario of [
         }
 
         await expect(
-          page.getByText('Noch keine Beschreibung zu diesem Ort.'),
+          page.getByText(deFixture.retiredCopy.placeNoDescription),
         ).toHaveCount(0);
         await expect(
           page.getByRole('link', { name: '© OpenStreetMap' }),

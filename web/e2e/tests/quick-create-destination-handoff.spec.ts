@@ -14,7 +14,7 @@ const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
 const PROFILE_ID = '33333333-3333-4333-8333-333333333333';
 const TEST_NOW = '2026-09-01T10:00:00Z';
-const backToStoryName = new RegExp('Zurück'.replace(/^←\s*/, ''), 'i');
+const backToStoryName = new RegExp(de.common.back.replace(/^←\s*/, ''), 'i');
 
 /**
  * Browser harness for the #810/#839 Quick Create destination contract:

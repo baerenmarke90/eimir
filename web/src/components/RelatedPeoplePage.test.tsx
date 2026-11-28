@@ -22,6 +22,7 @@ import {
   RelatedPeoplePage,
 } from './RelatedPeoplePage';
 import germanUi from '../i18n/locales/de';
+import germanFixture from '../../e2e/fixtures/locales/de';
 
 afterEach(() => {
   cleanup();
@@ -253,8 +254,12 @@ describe('shared People profiles and focused tasks', () => {
     await screen.findByRole('link', { name: /^Lisa/ });
     expect(container.querySelector('.people-portrait-list')).not.toBeNull();
     expect(container.querySelector('.story-surface')).toBeNull();
-    expect(screen.queryByText('Für uns beide')).toBeNull();
-    expect(screen.queryByText('Nur für mich')).toBeNull();
+    expect(
+      screen.queryByText(germanFixture.retiredCopy.sharedPersonVisibility),
+    ).toBeNull();
+    expect(
+      screen.queryByText(germanFixture.retiredCopy.privatePersonVisibility),
+    ).toBeNull();
     expect(
       api.listImportantDatesApiV1SpacesSpaceIdImportantDatesGet,
     ).not.toHaveBeenCalled();

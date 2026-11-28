@@ -19,6 +19,7 @@ import taskBoundary from '../i18n/locales/taskBoundary';
 import { PlanningCreatePage } from './PlanningCreatePage';
 import { sharedNote } from './sharedNoteFixtures';
 import germanUi from '../i18n/locales/de';
+import germanFixture from '../../e2e/fixtures/locales/de';
 
 function LocationTracker({ locations }: { locations: string[] }) {
   const location = useLocation();
@@ -256,9 +257,7 @@ describe('PlanningCreatePage', () => {
     const { unmount } = renderCreate('wish');
 
     expect(
-      screen.queryByText(
-        'Dieser Wunsch ist automatisch für euch beide sichtbar.',
-      ),
+      screen.queryByText(germanFixture.retiredCopy.sharedWishHint),
     ).toBeNull();
     expect(screen.queryByText(m5s3.plan.sharedBody)).toBeNull();
 
@@ -267,9 +266,7 @@ describe('PlanningCreatePage', () => {
 
     expect(screen.queryByText(m5s3.plan.sharedBody)).toBeNull();
     expect(
-      screen.queryByText(
-        'Dieser Wunsch ist automatisch für euch beide sichtbar.',
-      ),
+      screen.queryByText(germanFixture.retiredCopy.sharedWishHint),
     ).toBeNull();
   });
 

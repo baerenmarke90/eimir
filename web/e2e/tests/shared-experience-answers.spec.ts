@@ -174,7 +174,9 @@ for (const [width, theme] of [
     const comments = page.locator('.comment-card');
     await expect(comments.nth(0)).toContainText('Still smiling about this.');
     await expect(comments.nth(1)).toContainText('Me too.');
-    await expect(page.locator('.comment-list')).not.toContainText('von dir');
+    await expect(page.locator('.comment-list')).not.toContainText(
+      localizedFixture.retiredCopy.commentAuthorSelf,
+    );
     const violations = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
       .analyze();

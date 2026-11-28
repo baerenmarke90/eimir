@@ -1095,11 +1095,11 @@ for (const [width, theme] of [
     await expect(
       surface.getByText('Kleine Gesten direkt an deinen Partner.'),
     ).toHaveCount(0);
-    await expect(surface.getByText('Ein kurzer lieber Gruß.')).toHaveCount(0);
     await expect(
-      surface.getByText(
-        'Ein sanfter Check-in – ohne Vibe oder Status offenzulegen.',
-      ),
+      surface.getByText(localizedFixtures.retiredCopy.kissHint),
+    ).toHaveCount(0);
+    await expect(
+      surface.getByText(localizedFixtures.retiredCopy.checkInHint),
     ).toHaveCount(0);
     const entry = surface.getByRole('link', {
       name: new RegExp(onceCopy.title),

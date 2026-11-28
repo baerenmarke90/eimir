@@ -17,6 +17,7 @@ import { fulfillNoOccasionSources } from '../support/occasionSources';
 import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
+import germanFixture from '../fixtures/locales/de';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const PARTNER_ID = '44444444-4444-4444-8444-444444444444';
@@ -721,8 +722,16 @@ test('People opens profiles and whole photos, saves the actual result and hands 
   await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
   const unknown = await installPeopleApiMocks(page);
   await signInAndOpenPeople(page);
-  await expect(page.getByText('Für uns beide', { exact: true })).toHaveCount(0);
-  await expect(page.getByText('Nur für mich', { exact: true })).toHaveCount(0);
+  await expect(
+    page.getByText(germanFixture.retiredCopy.sharedPersonVisibility, {
+      exact: true,
+    }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText(germanFixture.retiredCopy.privatePersonVisibility, {
+      exact: true,
+    }),
+  ).toHaveCount(0);
   await expect(page.getByText(LONG_DATE_LABEL)).toHaveCount(0);
   const addPerson = page.getByRole('link', {
     name: people.addPersonAction,

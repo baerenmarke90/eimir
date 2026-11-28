@@ -8,6 +8,7 @@ import profileIdentity from '../i18n/locales/profileIdentity';
 import profiles from '../i18n/locales/profiles';
 import spaceOffboarding from '../i18n/locales/spaceOffboarding';
 import { SettingsPage } from './SettingsPage';
+import germanFixture from '../../e2e/fixtures/locales/de';
 
 const SPACE_ID = 'space-1';
 const ACCOUNT_ID = 'account-1';
@@ -164,7 +165,9 @@ describe('SettingsPage', () => {
     expect(html).toContain(
       `<h3 id="account-settings-title">${accountSettings.dangerTitle}</h3>`,
     );
-    expect(html).not.toContain('Mit Bedacht');
+    expect(html).not.toContain(
+      germanFixture.retiredCopy.sensitiveSettingsEyebrow,
+    );
     expect(html).toContain(accountSettings.deleteAction);
     expect(html).toContain('space-offboarding-panel');
     expect(html).toContain(spaceOffboarding.action);

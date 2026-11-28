@@ -543,10 +543,10 @@ for (const viewport of [
     ).toBeVisible();
     await expect(page.locator('[data-floating-create]')).toHaveCount(0);
     await expect(
-      page.getByText('Kein Ort mit diesem Kapitel verknüpft.', { exact: true }),
+      page.getByText(content.retiredCopy.chapterNoPlace, { exact: true }),
     ).toHaveCount(0);
     await expect(
-      page.getByText('Kein Zeitraum hinterlegt.', { exact: true }),
+      page.getByText(content.retiredCopy.chapterNoPeriod, { exact: true }),
     ).toHaveCount(0);
     const add = page.getByRole('button', { name: m5s3.relations.addLabel });
     const first = page.getByRole('link', { name: /Breakfast by the canal/ });

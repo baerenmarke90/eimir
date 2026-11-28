@@ -21,6 +21,7 @@ import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillNoWishSelectionRound } from '../support/productContext';
 import { expectVisibleFieldBoundary } from '../support/renderedContrast';
+import germanFixture from '../fixtures/locales/de';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -1428,7 +1429,7 @@ test.describe('Space configuration Daily Check-in modules', () => {
       name: profileIdentity.vibeCheckToggle,
     });
     const zoneSelect = page.getByRole('combobox', {
-      name: 'Zeitzone für euren gemeinsamen Tag',
+      name: germanFixture.retiredCopy.sharedDayTimeZone,
     });
     await expect(energySwitch).toHaveAttribute('aria-checked', 'false');
     await expect(vibeSwitch).toHaveAttribute('aria-checked', 'false');
@@ -1657,7 +1658,7 @@ test.describe('Complete Settings pages reflow (#1162)', () => {
     await vibeSwitch.click();
     await expect(vibeSwitch).toHaveAttribute('aria-checked', 'true');
     const zoneSelect = page.getByRole('combobox', {
-      name: 'Zeitzone für euren gemeinsamen Tag',
+      name: germanFixture.retiredCopy.sharedDayTimeZone,
     });
     await expect(zoneSelect).toHaveCount(0);
     expect(unexpectedRequests.spaceConfigurationPatches).toEqual([

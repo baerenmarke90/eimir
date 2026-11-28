@@ -800,8 +800,8 @@ test('direct entry has a safe canonical return and no fabricated browsing origin
     page.getByRole('heading', { name: older.title, exact: true }),
   ).toBeVisible();
   await page
-    .getByRole('button', { name: 'Zurück', exact: true })
-    .or(page.getByRole('link', { name: 'Zurück', exact: true }))
+    .getByRole('button', { name: de.common.back, exact: true })
+    .or(page.getByRole('link', { name: de.common.back, exact: true }))
     .click();
   await expect(page).toHaveURL(/\/story(?:\?tab=timeline)?$/);
 });
@@ -1268,10 +1268,10 @@ test('unrecognized or external origin keys fall back to canonical Story', async 
     );
     await page.reload();
     await page
-      .getByRole('link', { name: 'Zurück', exact: true })
+      .getByRole('link', { name: de.common.back, exact: true })
       .or(
         page.getByRole('button', {
-          name: 'Zurück',
+          name: de.common.back,
           exact: true,
         }),
       )

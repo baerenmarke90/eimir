@@ -1384,10 +1384,9 @@ test('Discover renewal confirms alternatives, guards duplicate activation and pr
   const oldLead = page.locator('.momente-hero-highlight');
   await expect(oldLead).toContainText('Danke');
   await expect(
-    page.getByText(
-      'Für heute wartet eine neue Auswahl. Mit „Neu entdecken“ könnt ihr sie ansehen.',
-      { exact: true },
-    ),
+    page.getByText(localizedFixture.retiredCopy.discoverNewDay, {
+      exact: true,
+    }),
   ).toHaveCount(0);
   let requests = 0;
   let release: () => void = () => {};
@@ -1433,10 +1432,9 @@ test('Discover renewal confirms alternatives, guards duplicate activation and pr
     'Konzertabend',
   );
   await expect(
-    page.getByText(
-      'Für heute wartet eine neue Auswahl. Mit „Neu entdecken“ könnt ihr sie ansehen.',
-      { exact: true },
-    ),
+    page.getByText(localizedFixture.retiredCopy.discoverNewDay, {
+      exact: true,
+    }),
   ).toHaveCount(0);
   await expect(
     page.getByRole('status').filter({ hasText: de.story.discoverRenewed }),

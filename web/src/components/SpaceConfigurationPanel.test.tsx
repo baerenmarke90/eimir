@@ -14,6 +14,7 @@ import type { SpaceConfigurationView } from '../api/generated/models/SpaceConfig
 import { ClientProblemError } from '../client/problemDetails';
 import profileIdentity from '../i18n/locales/profileIdentity';
 import { SpaceConfigurationPanel } from './SpaceConfigurationPanel';
+import germanFixture from '../../e2e/fixtures/locales/de';
 
 afterEach(() => cleanup());
 
@@ -215,7 +216,9 @@ describe('SpaceConfigurationPanel', () => {
         ),
       ),
     ).toHaveLength(2);
-    expect(screen.queryByText('Zeitzone für euren gemeinsamen Tag')).toBeNull();
+    expect(
+      screen.queryByText(germanFixture.retiredCopy.sharedDayTimeZone),
+    ).toBeNull();
     expect(
       screen.queryByText(profileIdentity.spaceModulesKeepDataNote),
     ).toBeNull();
@@ -310,7 +313,7 @@ describe('SpaceConfigurationPanel', () => {
       });
       expect(
         screen.queryByRole('combobox', {
-          name: 'Zeitzone für euren gemeinsamen Tag',
+          name: germanFixture.retiredCopy.sharedDayTimeZone,
         }),
       ).toBeNull();
     } finally {
@@ -424,7 +427,7 @@ describe('SpaceConfigurationPanel', () => {
     });
     expect(screen.queryByRole('combobox')).toBeNull();
     expect(
-      screen.queryByLabelText('Zeitzone für euren gemeinsamen Tag'),
+      screen.queryByLabelText(germanFixture.retiredCopy.sharedDayTimeZone),
     ).toBeNull();
   });
 

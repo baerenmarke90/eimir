@@ -19,6 +19,7 @@ import {
 } from '../support/itemMenu';
 import { captureR3Evidence } from './r3-evidence';
 import { expectLabeledComposerTool } from '../support/addAction';
+import germanFixture from '../fixtures/locales/de';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -387,7 +388,7 @@ test('the Wish composer creates, edits and returns through the saved Wish', asyn
   await page.getByRole('link', { name: m5s3.overview.addWish }).click();
 
   await expect(
-    page.getByText('Dieser Wunsch ist automatisch für euch beide sichtbar.'),
+    page.getByText(germanFixture.retiredCopy.sharedWishHint),
   ).toHaveCount(0);
   await expect(page.getByText(m5s3.plan.sharedBody)).toHaveCount(0);
   expect(

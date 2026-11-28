@@ -33,6 +33,7 @@ import storyProducts from '../i18n/locales/storyProducts';
 import taskBoundary from '../i18n/locales/taskBoundary';
 import { AppShell } from './AppShell';
 import { HeartMomentProductPage } from './HeartMomentProductPage';
+import germanFixture from '../../e2e/fixtures/locales/de';
 
 function CaptureLifecycle({ apis }: { apis: ReferenceApis }) {
   const { pathname } = useLocation();
@@ -858,7 +859,7 @@ describe('Heart Moment detail edit action and shared state (#1014)', () => {
     ).toBeTruthy();
     expect(
       screen.queryByRole('button', {
-        name: 'Nur für mich behalten',
+        name: germanFixture.retiredCopy.privateHeartMomentAction,
       }),
     ).toBeNull();
     expect(
@@ -924,7 +925,7 @@ describe('Heart Moment detail edit action and shared state (#1014)', () => {
     ).toBeTruthy();
     expect(
       screen.queryByRole('button', {
-        name: 'Nur für mich behalten',
+        name: germanFixture.retiredCopy.privateHeartMomentAction,
       }),
     ).toBeNull();
     expect(

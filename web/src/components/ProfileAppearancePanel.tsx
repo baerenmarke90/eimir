@@ -5,6 +5,7 @@ import { LanguageSettings } from './LanguageSettings';
 import { MemoryWorldSettings } from './MemoryWorldSettings';
 import { MomentsLayoutSettings } from './MomentsLayoutSettings';
 import { PersonColoursSettings } from './PersonColoursSettings';
+import { SystemColorsSettings } from './SystemColorsSettings';
 import { ThemeControl } from './ThemeControl';
 import { DesignPaletteSettings, WirDesignSettings } from './WirDesignSettings';
 import { WirReelStyleSettings } from './WirReelStyleSettings';
@@ -36,6 +37,7 @@ export function ProfileAppearancePanel({
       ) : null}
       <PersonColoursSettings />
       <DesignPaletteSettings />
+      <SystemColorsSettings />
       <WirDesignSettings />
       <WirReelStyleSettings />
       <MomentsLayoutSettings />

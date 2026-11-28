@@ -17,7 +17,9 @@ async function signIn(page: Page) {
   await page.getByLabel(de.login.email).fill('lea@example.org');
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
-  await expect(page.getByRole('button', { name: copy.all })).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: new RegExp(`^${copy.title}`) }),
+  ).toBeVisible();
   await expect(page.getByText(copy.loading, { exact: true })).toHaveCount(0);
 }
 
@@ -184,7 +186,9 @@ test('Free previews the complete catalog without saving a paid choice', async ({
   await page.setViewportSize({ width: 390, height: 844 });
   await signIn(page);
   await capture(page, info, 'app-icons-free-390-light.png');
-  const opener = page.getByRole('button', { name: copy.all });
+  const opener = page.getByRole('button', {
+    name: new RegExp(`^${copy.title}`),
+  });
   await opener.click();
   const dialog = page.getByRole('dialog', { name: copy.choices });
   await expect(dialog.getByRole('radio')).toHaveCount(11);
@@ -216,7 +220,9 @@ test('Pro explicitly saves, survives reload and resets to adaptive Original', as
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ colorScheme: 'dark' });
   await signIn(page);
-  await page.getByRole('button', { name: copy.all }).click();
+  await page
+    .getByRole('button', { name: new RegExp(`^${copy.title}`) })
+    .click();
   const dialog = page.getByRole('dialog', { name: copy.choices });
   await expect(dialog.locator('.pro-mark')).toHaveCount(0);
   await dialog.getByRole('radio', { name: 'Salbei' }).check();
@@ -239,13 +245,15 @@ test('Pro explicitly saves, survives reload and resets to adaptive Original', as
   await capture(page, info, 'app-icons-pro-saved-390-dark.png');
   await page.keyboard.press('Escape');
   await page.reload();
-  await expect(page.locator('.app-icon-summary strong')).toHaveText('Salbei');
+  await expect(page.locator('.app-icon-trigger strong')).toHaveText('Salbei');
   await page.getByLabel('Darstellung', { exact: true }).selectOption('light');
   await expect(page.locator('#app-favicon')).toHaveAttribute(
     'href',
     /identity\/favicon\/sage\.png$/,
   );
-  await page.getByRole('button', { name: copy.all }).click();
+  await page
+    .getByRole('button', { name: new RegExp(`^${copy.title}`) })
+    .click();
   await dialog.getByRole('radio', { name: 'Original Standard' }).check();
   await dialog.getByRole('button', { name: 'Original auswählen' }).click();
   await expect(page.locator('#app-favicon')).toHaveAttribute(
@@ -266,7 +274,9 @@ test('catalog reflows at 320, 430 and Expanded with reduced motion and large tex
   await installMocks(page, true);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await signIn(page);
-  await page.getByRole('button', { name: copy.all }).click();
+  await page
+    .getByRole('button', { name: new RegExp(`^${copy.title}`) })
+    .click();
   const dialog = page.getByRole('dialog', { name: copy.choices });
   await expect(dialog.locator('.pro-mark')).toHaveCount(0);
   for (const size of [
@@ -320,7 +330,9 @@ test('pending save blocks duplicate submission and Escape until authoritative co
       headers: { ETag: '"icon:1"' },
     });
   });
-  await page.getByRole('button', { name: copy.all }).click();
+  await page
+    .getByRole('button', { name: new RegExp(`^${copy.title}`) })
+    .click();
   const dialog = page.getByRole('dialog', { name: copy.choices });
   await expect(dialog.locator('.pro-mark')).toHaveCount(0);
   await dialog.getByRole('radio', { name: 'Salbei' }).check();
@@ -372,7 +384,9 @@ test('conflict reload preserves preview and a revoked grant keeps the prior choi
       },
     });
   });
-  await page.getByRole('button', { name: copy.all }).click();
+  await page
+    .getByRole('button', { name: new RegExp(`^${copy.title}`) })
+    .click();
   const dialog = page.getByRole('dialog', { name: copy.choices });
   await expect(dialog.locator('.pro-mark')).toHaveCount(0);
   await dialog.getByRole('radio', { name: 'Salbei' }).check();
@@ -416,7 +430,9 @@ test('expired Pro keeps its saved choice without an upgrade prompt and permits f
     'href',
     /identity\/favicon\/sage\.png$/,
   );
-  await page.getByRole('button', { name: copy.all }).click();
+  await page
+    .getByRole('button', { name: new RegExp(`^${copy.title}`) })
+    .click();
   const dialog = page.getByRole('dialog', { name: copy.choices });
   await expect(dialog.getByRole('radio', { name: 'Salbei Pro' })).toBeChecked();
   await expect(
@@ -493,7 +509,9 @@ test('Android applies only the saved choice and retries a native failure without
   await expect(
     page.getByText(copy.nativeApplied, { exact: true }),
   ).toBeVisible();
-  await page.getByRole('button', { name: copy.all }).click();
+  await page
+    .getByRole('button', { name: new RegExp(`^${copy.title}`) })
+    .click();
   const dialog = page.getByRole('dialog', { name: copy.choices });
   await expect(dialog.locator('.pro-mark')).toHaveCount(0);
   await dialog.getByRole('radio', { name: 'Sand', exact: true }).check();
@@ -551,7 +569,9 @@ test('Android applies only the saved choice and retries a native failure without
     'app-icons-android-native-applied-320-large-text.png',
   );
   await page.keyboard.press('Escape');
-  await expect(page.getByRole('button', { name: copy.all })).toBeFocused();
+  await expect(
+    page.getByRole('button', { name: new RegExp(`^${copy.title}`) }),
+  ).toBeFocused();
 });
 
 /**

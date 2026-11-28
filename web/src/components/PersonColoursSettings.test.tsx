@@ -58,7 +58,11 @@ function renderSettings(
 }
 
 async function openSheet() {
-  fireEvent.click(await screen.findByText(personColours.change));
+  fireEvent.click(
+    await screen.findByRole('button', {
+      name: new RegExp(personColours.title),
+    }),
+  );
   await screen.findByRole('group', { name: personColours.choices });
 }
 
@@ -231,6 +235,8 @@ describe('Settings > Appearance: person colour pair (Product Owner decision 2026
 
   it('shows nothing outside a signed-in Space', () => {
     render(<PersonColoursSettings />);
-    expect(screen.queryByText(personColours.change)).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: new RegExp(personColours.title) }),
+    ).toBeNull();
   });
 });

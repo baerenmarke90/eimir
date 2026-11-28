@@ -56,6 +56,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(VoiceSharePlugin.class);
         registerPlugin(BackgroundMediaUploadsPlugin.class);
         registerPlugin(SystemThemePlugin.class);
+        registerPlugin(SystemColorsPlugin.class);
         registerPlugin(ApproximateLocationPlugin.class);
         registerPlugin(PasskeysPlugin.class);
         registerPlugin(ScreenOrientationPlugin.class);

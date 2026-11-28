@@ -142,7 +142,7 @@ function fixture(
 }
 async function open() {
   await waitFor(() => expect(screen.queryByText(t('loading'))).toBeNull());
-  fireEvent.click(screen.getByRole('button', { name: t('change') }));
+  fireEvent.click(screen.getByRole('button', { name: new RegExp(t('title')) }));
   await waitFor(() => expect(screen.queryByText(t('proLoading'))).toBeNull());
 }
 it('saves and resets the palette independently of the layout', async () => {
@@ -198,7 +198,7 @@ it('previews without writing, cancels, and saves once only after server confirma
   back.mockRestore();
   expect(
     screen.getByText(t('names.warm'), {
-      selector: '.wir-design-summary strong',
+      selector: '.wir-design-trigger strong',
     }),
   ).toBeTruthy();
   await open();

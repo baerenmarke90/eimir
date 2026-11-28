@@ -282,7 +282,9 @@ async function fixture(
 async function open(page: Page) {
   await page.goto('/more/settings/appearance');
   await expect(page.getByText(copy.loading, { exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: copy.change }).click();
+  await page
+    .getByRole('button', { name: new RegExp(`^${copy.title}`) })
+    .click();
   await expect(page.getByRole('dialog', { name: copy.choices })).toBeVisible();
   await expect(page.getByText(copy.proLoading, { exact: true })).toHaveCount(0);
 }

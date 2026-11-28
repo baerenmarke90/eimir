@@ -1,7 +1,6 @@
 const personColours = {
   title: 'Eure Farben',
   choices: 'Farben auswählen',
-  change: 'Farben auswählen',
   help: 'Wähle die Farben, in denen du dich und deine Partnerperson siehst – nur für deine Ansicht.',
   order:
     'Zuerst deine Farbe, dann die deiner Partnerperson. Deine Partnerperson wählt ihre eigene. Automatisch ist immer verfügbar, eigene Farbpaare kannst du mit Pro auswählen. Ein gespeichertes Paar bleibt auch danach erhalten.',

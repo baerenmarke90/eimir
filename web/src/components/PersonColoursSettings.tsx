@@ -10,9 +10,11 @@ import {
   clientProblemKind,
 } from '../client/problemDetails';
 import { proPaywallPath } from '../client/routes';
+import { setSystemColorsEnabled } from '../client/systemColors';
 import { useTranslation } from '../i18n';
 import { PersonColourChoice, Swatches } from './PersonColourChoice';
 import { ProMark } from './ProMark';
+import { SystemColorsOverrideNote } from './SystemColorsOverrideNote';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import './PersonColourChoice.css';
 
@@ -75,6 +77,8 @@ function Settings({
     setSaved(false);
     try {
       await state.save(draft);
+      // A colour pair chosen here replaces the system colours.
+      setSystemColorsEnabled(false);
       setSaved(true);
     } catch (caught) {
       setError(caught);
@@ -90,33 +94,32 @@ function Settings({
     >
       <h2 id="person-colours-title">{t('personColours.title')}</h2>
       <p className="settings-section-intro">{t('personColours.help')}</p>
-      <div className="person-colours-summary">
+      <SystemColorsOverrideNote />
+      <button
+        type="button"
+        className="design-palette-trigger"
+        aria-labelledby="person-colours-title person-colours-value"
+        aria-haspopup="dialog"
+        ref={opener}
+        onClick={() => {
+          setDraft(colours);
+          setSaved(false);
+          setError(null);
+          state.inspectCapability();
+          setOpen(true);
+        }}
+      >
         <Swatches own={current.own} partner={current.partner} />
-        <div>
-          <strong>{label(colours)}</strong>
-          <span>
-            {colours === null ? (
-              t('personColours.standard')
-            ) : (
+        <span id="person-colours-value">
+          {label(colours)}
+          {colours !== null ? (
+            <>
+              {' '}
               <ProMark label={t('personColours.pro')} />
-            )}
-          </span>
-        </div>
-        <button
-          type="button"
-          className="button-link"
-          ref={opener}
-          onClick={() => {
-            setDraft(colours);
-            setSaved(false);
-            setError(null);
-            state.inspectCapability();
-            setOpen(true);
-          }}
-        >
-          {t('personColours.change')}
-        </button>
-      </div>
+            </>
+          ) : null}
+        </span>
+      </button>
       {saved && !open ? <p role="status">{t('personColours.saved')}</p> : null}
       <ShortTaskSheet
         ref={sheet}

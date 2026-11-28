@@ -1382,7 +1382,6 @@
     "title": "App icon",
     "intro": "A little detail that suits you.",
     "colorMode": "Colour mode",
-    "all": "See all icons",
     "choices": "Choose your app icon",
     "close": "Close icon selection",
     "free": "Standard",
@@ -1426,7 +1425,6 @@
   "personColours": {
     "title": "Your colours",
     "choices": "Choose colours",
-    "change": "Choose colours",
     "help": "Choose the colours you see yourself and your partner in – only for your own view.",
     "order": "First your colour, then your partner's. Your partner chooses their own. Automatic is always available, you can choose your own colour pair with Pro. A saved pair stays after that.",
     "automatic": "Automatic",
@@ -1494,7 +1492,6 @@
     "help": "How your memories meet you in Moments › Memories – only in your own view.",
     "intro": "Story and Stack are included, every other world is part of Pro. Your partner chooses their own world.",
     "choices": "Choose a world",
-    "change": "All worlds",
     "current": "Active",
     "free": "Included",
     "pro": "Pro",
@@ -1618,7 +1615,6 @@
     "title": "App design",
     "intro": "How eimir. feels for you. Only your view changes.",
     "choices": "Your app design",
-    "change": "Choose design",
     "palette": {
       "title": "Design colours",
       "choices": "Choose design colours",
@@ -5467,6 +5463,13 @@
     "title": "Touch",
     "label": "Haptic feedback",
     "hint": "A light vibration when you swipe, drop and send. Applies to this device only."
+  },
+  "systemColors": {
+    "title": "System colours (beta)",
+    "label": "System colours (Material You, beta)",
+    "hint": "Buttons and accents take the colours of your Android wallpaper. They replace your own and partner colours and the design colours. Surfaces and backgrounds stay as they are. Applies to this device only.",
+    "overrides": "Your system colours currently replace these colours. If you change and save something here, the system colours are switched off.",
+    "unsuitable": "Your device's system colours do not have enough contrast for eimir. and are not used."
   },
   "momentsLayout": {
     "title": "Moments design",

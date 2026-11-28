@@ -514,7 +514,7 @@ export function MediaOverviewPage({
                       : mediaQuery.refetch())
                   }
                 >
-                  {t('mediaOverview.retry')}
+                  {t('common.retry')}
                 </button>
               }
             />

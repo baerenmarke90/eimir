@@ -16,6 +16,7 @@ import type { ServerAdminSpaceFile as SpaceFile } from '../api/generated/models/
 import serverAdmin from '../i18n/locales/serverAdmin';
 import { giftEnd } from './ServerAdminPremiumGiftSheet';
 import { ServerAdminSpaceFile, shortSpaceId } from './ServerAdminSpaceFile';
+import germanUi from '../i18n/locales/de';
 
 const SPACE_ID = '019b2e1a-7c3d-7f00-8a11-0123456789ab';
 const GB = 1024 ** 3;
@@ -170,7 +171,7 @@ describe('ServerAdminSpaceFile', () => {
     expect(
       (
         screen.getByRole('button', {
-          name: copy.quotaSheet.save,
+          name: germanUi.common.save,
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(true);
@@ -186,7 +187,7 @@ describe('ServerAdminSpaceFile', () => {
     expect(
       screen.queryByText(/50 GB/, { selector: '.server-admin-sheet-note' }),
     ).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: copy.quotaSheet.save }));
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.save }));
 
     await waitFor(() =>
       expect(api.setServerAdminSpaceStorageQuota).toHaveBeenCalledWith({

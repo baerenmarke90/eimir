@@ -5,7 +5,6 @@ const serverAdmin = {
     'Betriebszustand, Benutzerverwaltung und sichere Anwendungsinformationen dieser eimir.-Installation.',
   backToApp: 'Zur Übersicht',
   logout: 'Abmelden',
-  refresh: 'Aktualisieren',
   navigation: {
     aria: 'Bereiche der Serververwaltung',
     overview: 'Übersicht',
@@ -117,9 +116,6 @@ const serverAdmin = {
     pushBody:
       'Dieselben Warnungen als Push-Nachricht auf die Geräte der ServerAdmins. Die Nachricht nennt das Thema; was der Sperrbildschirm zeigt, entscheidet die Einstellung des Geräts.',
   },
-  sheet: {
-    close: 'Schließen',
-  },
   people: {
     title: 'Menschen finden',
     label: 'E-Mail oder ID',
@@ -212,7 +208,6 @@ const serverAdmin = {
       'Das ist weniger, als der Space schon belegt ({{used}}). Gelöscht wird nichts, aber neue Fotos und Videos passen nicht mehr hinein.',
     saveFailed: 'Das hat nicht geklappt. Versuche es noch einmal.',
     remove: 'Individuellen Speicher entfernen',
-    save: 'Speichern',
   },
   giftSheet: {
     title: 'Premium schenken',
@@ -300,7 +295,6 @@ const serverAdmin = {
       revokeConfirm:
         'Alle noch nicht eingelösten Codes werden ungültig. Eingelöste Geschenke laufen weiter.',
       revokeConfirmAction: 'Zurückziehen',
-      revokeCancel: 'Abbrechen',
       failed: 'Das hat nicht geklappt. Versuche es noch einmal.',
     },
   },
@@ -333,10 +327,8 @@ const serverAdmin = {
       'Mindestens ein Eintrag der ServerAdmin-Allowlist passt zu keinem aktiven Account mit verifizierter E-Mail-Adresse.',
     mailVerification:
       'Der E-Mail-Versand ist deaktiviert, gleichzeitig existieren unverifizierte Accounts. Verifikation und Recovery können Betreiberunterstützung benötigen.',
-    failedJobs: 'Es liegen fehlgeschlagene Hintergrundjobs vor.',
     supportReportsUnread:
       'Es liegen Meldungen seit mehr als 14 Tagen ungelesen vor.',
-    openReports: 'Neue Meldungen ansehen',
   },
   health: {
     title: 'Systemzustand',
@@ -346,8 +338,6 @@ const serverAdmin = {
     media: 'Medien-Backend',
     ok: 'Verfügbar',
     unavailable: 'Nicht verfügbar',
-    noHeartbeat: 'Kein Heartbeat-Signal vorhanden',
-    notProbed: 'Keine aktive Zustandsprüfung vorhanden',
     unknown: 'Unbekannt',
   },
   usage: {
@@ -520,7 +510,6 @@ const serverAdmin = {
     email: 'E-Mail',
     sessions: 'Sitzungen',
     auth: 'Anmeldung',
-    open: 'Öffnen',
     previous: 'Zurück',
     next: 'Weiter',
     status: {
@@ -542,7 +531,6 @@ const serverAdmin = {
       eyebrow: 'Accountverwaltung',
       loading: 'Account-Details werden geladen …',
       error: 'Die Account-Details konnten nicht geladen werden.',
-      close: 'Schließen',
       createdAt: 'Erstellt',
       lastSession: 'Letzte Sitzungsaktivität',
       sessions: 'Aktive Sitzungen',
@@ -616,8 +604,6 @@ const serverAdmin = {
       stage3InputLabel: 'Bestätigungstext',
       stage3Placeholder: 'Bestätigungstext eingeben',
       stage3Submit: 'Account endgültig löschen',
-      cancel: 'Abbrechen',
-      back: 'Zurück',
       pending: 'Löschung wird verarbeitet …',
       lockoutSelf:
         'Du kannst deinen eigenen ServerAdmin-Account nicht löschen.',
@@ -632,23 +618,7 @@ const serverAdmin = {
     audit: {
       title: 'Privilegierte Account-Aktionen',
       body: 'Technischer Audit-Verlauf der ServerAdmin-Aktionen. Passwörter, Recovery-Tokens und private Inhalte werden nicht protokolliert.',
-      loading: 'Privilegierte Aktionen werden geladen …',
-      error:
-        'Der Audit-Verlauf der Account-Aktionen konnte nicht geladen werden.',
-      empty: 'Noch keine privilegierten Account-Aktionen vorhanden.',
       action: 'Aktion',
-      target: 'Ziel-Account',
-      actor: 'ServerAdmin',
-      effect: 'Betroffene Sitzungen',
-      time: 'Zeitpunkt',
-      suspended: 'Account gesperrt',
-      unsuspended: 'Account entsperrt',
-      sessionsRevoked: 'Sitzungen widerrufen',
-      emailVerified: 'E-Mail vom Betreiber verifiziert',
-      recoveryEmail: 'Recovery-E-Mail angefordert',
-      operatorRecovery: 'Betreiber-Recovery erzeugt',
-      deletionRequested: 'Kontolöschung angefordert',
-      unknown: 'Unbekannte Aktion',
       openUnified: 'Alle privilegierten Aktionen anzeigen',
     },
   },
@@ -663,17 +633,10 @@ const serverAdmin = {
     empty: 'Keine passenden Spaces gefunden.',
     spaceId: 'Space-ID',
     lifecycleLabel: 'Lifecycle',
-    memberships: 'Memberships gesamt',
     activeMemberships: 'Aktive Memberships',
     historicalMemberships: 'Historische Memberships',
-    leftMemberships: 'Verlassen',
-    removedMemberships: 'Entfernt',
-    createdAt: 'Space erstellt',
-    firstMembership: 'Erste Membership',
     lastLifecycleChange: 'Letzte Lifecycle-Änderung',
-    latestEndedMembership: 'Letzte beendete Membership',
     actions: 'Details',
-    open: 'Öffnen',
     previous: 'Zurück',
     next: 'Weiter',
     status: {
@@ -696,7 +659,6 @@ const serverAdmin = {
         'Dieser Space besitzt mehr aktive Memberships als das Domain-Maximum erlaubt.',
     },
     detail: {
-      eyebrow: 'Privacy-safe Operator-Metadaten',
       title: 'Space-Details',
       loading: 'Space-Details werden geladen …',
       error: 'Die Space-Details konnten nicht geladen werden.',
@@ -708,9 +670,7 @@ const serverAdmin = {
   activity: {
     title: 'Privilegiertes Aktivitätsprotokoll',
     body: 'ServerAdmin-Änderungen an Einstellungen, Accounts und Spaces. Das Protokoll enthält ausschließlich technische Metadaten und keine privaten Beziehungsinhalte.',
-    loadingTitle: 'Aktivitätsprotokoll wird geladen',
     loadingBody: 'Privilegierte Aktionen werden abgefragt …',
-    errorTitle: 'Aktivitätsprotokoll nicht verfügbar',
     errorBody: 'Die privilegierten Aktionen konnten nicht geladen werden.',
     empty: 'Keine privilegierten Aktionen entsprechen den gewählten Filtern.',
     totalSuffix: 'Einträge',
@@ -786,7 +746,6 @@ const serverAdmin = {
     title: 'Textbausteine',
     body: 'Gespeicherte Antworten für Meldungen. Alle ServerAdmins nutzen dieselben Bausteine.',
     chipsTitle: 'Antworten mit Textbaustein',
-    edit: 'Bearbeiten',
     emptyHint: 'Noch keine Textbausteine.',
     emptyLink: 'Textbaustein anlegen',
     loadError: 'Textbausteine konnten nicht geladen werden.',
@@ -819,11 +778,6 @@ const serverAdmin = {
       nameTooLong: 'Der Name darf höchstens {{max}} Zeichen haben.',
       textRequired: 'Gib einen Text ein.',
       textTooLong: 'Der Text darf höchstens {{max}} Zeichen haben.',
-      save: 'Speichern',
-      saving: 'Wird gespeichert …',
-      cancel: 'Abbrechen',
-      delete: 'Löschen',
-      deleting: 'Wird gelöscht …',
       deleteConfirm:
         'Textbaustein „{{name}}“ löschen? Das lässt sich nicht rückgängig machen.',
       discardConfirm:
@@ -884,7 +838,6 @@ const serverAdmin = {
     listLabel: 'Meldungen',
     item: {
       meta: '· {{platform}} · {{os}} · {{version}} ({{build}})',
-      version: 'Version {{version}} ({{build}})',
       replied: 'Beantwortet',
       ticket: 'Ticket',
       archived: 'Archiviert',
@@ -964,7 +917,6 @@ const serverAdmin = {
       title: 'Ticket erstellen',
       intro:
         'Du schreibst Titel und Beschreibung selbst. Die Notiz der Person und deine Antwort werden nie automatisch übernommen. Schreibe nichts Privates in das Ticket.',
-      titleLabel: 'Titel',
       titleTemplate: '{{kind}} in Version {{appVersion}}',
       titleRequired: 'Der Titel darf nicht leer sein.',
       titleTooLong: 'Der Titel ist länger als 256 Zeichen.',
@@ -973,7 +925,6 @@ const serverAdmin = {
       footerLabel: 'Wird vom Server unverändert angehängt',
       submit: 'Ticket erstellen',
       submitting: 'Ticket wird erstellt …',
-      cancel: 'Abbrechen',
     },
     manage: {
       title: 'Archivieren und löschen',
@@ -983,7 +934,6 @@ const serverAdmin = {
         'Diese Meldung ist archiviert. Hole sie zurück, damit sie wieder in den Listen erscheint. Die Aufbewahrungsfristen gelten auch im Archiv.',
       archive: 'Meldung archivieren',
       unarchive: 'Aus dem Archiv holen',
-      saving: 'Wird gespeichert …',
       archived: 'Die Meldung wurde archiviert.',
       unarchived: 'Die Meldung ist wieder in den Listen.',
       delete: 'Meldung endgültig löschen',
@@ -999,9 +949,7 @@ const serverAdmin = {
         'Das Ticket im Tracker bleibt bestehen: eimir. kann es dort nicht löschen. Schließe oder lösche es bei Bedarf im Tracker selbst.',
       archiveHint:
         'Willst du die Meldung nur aus den Listen nehmen, archiviere sie stattdessen.',
-      cancel: 'Abbrechen',
       confirm: 'Endgültig löschen',
-      deleting: 'Wird gelöscht …',
     },
     errors: {
       alreadyReplied:

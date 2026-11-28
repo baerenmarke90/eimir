@@ -6,7 +6,6 @@ import importantDates from '../../src/i18n/locales/importantDates';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import people from '../../src/i18n/locales/people';
 import profiles from '../../src/i18n/locales/profiles';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import {
   expectFloatingAddAction,
   expectLabeledAddAction,
@@ -675,11 +674,11 @@ async function openPerson(page: Page) {
 }
 async function openEditor(page: Page) {
   // The menu button is named after the person, who may have been renamed.
-  await editViaMenu(page, people.edit);
+  await editViaMenu(page, de.common.edit);
   await expect(
     page.getByLabel(people.nameLabel, { exact: true }),
   ).toBeVisible();
-  await expect(page.getByLabel(people.visibilityLabel)).toHaveCount(0);
+  await expect(page.getByLabel('Sichtbarkeit')).toHaveCount(0);
   await expect(page.locator('.mobile-bottom-nav')).toBeHidden();
 }
 /**
@@ -722,12 +721,8 @@ test('People opens profiles and whole photos, saves the actual result and hands 
   await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
   const unknown = await installPeopleApiMocks(page);
   await signInAndOpenPeople(page);
-  await expect(
-    page.getByText(people.visibility.SHARED, { exact: true }),
-  ).toHaveCount(0);
-  await expect(
-    page.getByText(people.visibility.PRIVATE, { exact: true }),
-  ).toHaveCount(0);
+  await expect(page.getByText('Für uns beide', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('Nur für mich', { exact: true })).toHaveCount(0);
   await expect(page.getByText(LONG_DATE_LABEL)).toHaveCount(0);
   const addPerson = page.getByRole('link', {
     name: people.addPersonAction,
@@ -780,9 +775,7 @@ test('People opens profiles and whole photos, saves the actual result and hands 
   if (!noteBounds || !footerBounds)
     throw new Error('Person note and completion are missing');
   expect(noteBounds.y + noteBounds.height).toBeLessThanOrEqual(footerBounds.y);
-  await page
-    .getByRole('button', { name: people.saveChanges, exact: true })
-    .click();
+  await page.getByRole('button', { name: de.common.save, exact: true }).click();
   await expect(page).toHaveURL(/more\/people\/person-1$/);
   await expect(
     page.getByRole('heading', { name: 'Lea Sommer', exact: true }),
@@ -800,9 +793,7 @@ test('People opens profiles and whole photos, saves the actual result and hands 
     page.getByRole('combobox', { name: people.relationshipLabel, exact: true }),
   ).toHaveValue('DAUGHTER');
   await capture(page, info, 'person-note-edit-390-light');
-  await page
-    .getByRole('button', { name: taskBoundary.back, exact: true })
-    .click();
+  await page.getByRole('button', { name: de.common.back, exact: true }).click();
   await capture(page, info, 'person-saved-390-light');
   await page.locator('.people-birthday-link').click();
   await expect(
@@ -838,13 +829,13 @@ test('People opens profiles and whole photos, saves the actual result and hands 
   const reader = page.getByRole('dialog');
   await expect(reader.getByRole('textbox')).toHaveCount(0);
   await reader
-    .getByRole('button', { name: importantDates.edit, exact: true })
+    .getByRole('button', { name: de.common.edit, exact: true })
     .click();
   let editor = page.locator('.important-date-editor');
   await expect(editor).toBeVisible();
-  await editor.getByLabel(importantDates.labelLabel).fill('Our anniversary');
+  await editor.getByLabel(de.common.title).fill('Our anniversary');
   await editor
-    .getByRole('button', { name: importantDates.saveChanges, exact: true })
+    .getByRole('button', { name: de.common.save, exact: true })
     .click();
   await expect(editor).toHaveCount(0);
   await expect(page.getByRole('dialog')).toContainText('Our anniversary');
@@ -885,7 +876,7 @@ test('People opens profiles and whole photos, saves the actual result and hands 
     'eimir-motion-enter-shift',
   );
   await editor.getByLabel(importantDates.dateLabel).fill('2026-12-10');
-  await editor.getByLabel(importantDates.labelLabel).fill('Winter evening');
+  await editor.getByLabel(de.common.title).fill('Winter evening');
   await expect(editor.getByLabel(importantDates.personLabel)).toHaveValue('');
   await editor
     .getByRole('button', { name: importantDates.create, exact: true })
@@ -985,7 +976,7 @@ test.describe('Occasions in a timezone west of UTC', () => {
       reader.getByRole('button', { name: importantDates.createPlan }),
     ).toHaveCount(0);
     await expect(
-      reader.getByRole('button', { name: importantDates.edit, exact: true }),
+      reader.getByRole('button', { name: de.common.edit, exact: true }),
     ).toBeVisible();
     await page.keyboard.press('Escape');
 
@@ -1026,7 +1017,7 @@ test.describe('Occasions in a timezone west of UTC', () => {
       path: info.outputPath('planning-occasion-create-390-dark.png'),
     });
     const back = page.getByRole('button', {
-      name: taskBoundary.back,
+      name: de.common.back,
       exact: true,
     });
     await back.click();
@@ -1042,7 +1033,7 @@ test.describe('Occasions in a timezone west of UTC', () => {
         request.url().endsWith(`/spaces/${SPACE_ID}/plans`),
     );
     await page
-      .getByRole('button', { name: m5s3.common.save, exact: true })
+      .getByRole('button', { name: de.common.save, exact: true })
       .click();
     expect((await savedRequest).postDataJSON().schedule).toEqual({
       plannedOn: '2027-02-28',
@@ -1070,7 +1061,7 @@ test.describe('Occasions in a timezone west of UTC', () => {
     await expect(relationshipDate).toHaveValue('2020-02-29');
     await relationshipDate.fill('2020-03-08');
     await page
-      .getByRole('button', { name: profiles.relationshipSave, exact: true })
+      .getByRole('button', { name: 'Änderungen speichern', exact: true })
       .click();
     await expect(
       page.getByText(profiles.relationshipSavedSubtle),
@@ -1242,7 +1233,7 @@ test('People creation and dirty edit return to the originating control', async (
   await page.goBack();
   await expect(page).toHaveURL(/more\/people$/);
   await addPerson.click();
-  await page.getByRole('button', { name: taskBoundary.back }).click();
+  await page.getByRole('button', { name: de.common.back }).click();
   await expect(addPerson).toBeFocused();
   const historyIndex = () => page.evaluate(() => window.history.state?.idx);
   const listIndex = await historyIndex();
@@ -1281,9 +1272,7 @@ test('People creation and dirty edit return to the originating control', async (
   expect(await historyIndex()).toBe(listIndex);
   await addPerson.click();
   await page.getByLabel(people.nameLabel, { exact: true }).fill('Nora Winter');
-  await page
-    .getByRole('button', { name: people.saveChanges, exact: true })
-    .click();
+  await page.getByRole('button', { name: de.common.save, exact: true }).click();
   await expect(page).toHaveURL(/\/more\/people\/new-person$/);
   await expect(
     page.getByRole('heading', { name: 'Nora Winter', exact: true }),
@@ -1322,7 +1311,7 @@ test('People and occasions reflow at 1280 with 400 percent zoom', async ({
   await openEditor(page);
   await expectHorizontalReflow(page);
   await page
-    .getByRole('button', { name: people.saveChanges, exact: true })
+    .getByRole('button', { name: de.common.save, exact: true })
     .scrollIntoViewIfNeeded();
   await expectNoWcagViolations(page);
   await capture(page, info, 'person-edit-400-dark');
@@ -1357,10 +1346,10 @@ test('People and occasions stay operable at 200 percent zoom and large text', as
   await openEditor(page);
   await expectHorizontalReflow(page);
   await page
-    .getByRole('button', { name: people.saveChanges, exact: true })
+    .getByRole('button', { name: de.common.save, exact: true })
     .scrollIntoViewIfNeeded();
   await expect(
-    page.getByRole('button', { name: people.saveChanges, exact: true }),
+    page.getByRole('button', { name: de.common.save, exact: true }),
   ).toBeVisible();
   await capture(page, info, 'person-edit-200-light');
   await page.keyboard.press('Escape');
@@ -1399,7 +1388,7 @@ test('focused completion stays reachable at small height and Expanded preserves 
   await openPerson(page);
   await openEditor(page);
   const save = page.getByRole('button', {
-    name: people.saveChanges,
+    name: de.common.save,
     exact: true,
   });
   await save.scrollIntoViewIfNeeded();

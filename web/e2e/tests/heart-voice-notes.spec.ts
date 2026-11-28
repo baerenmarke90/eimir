@@ -16,6 +16,7 @@ import {
   SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
+import germanUi from '../../src/i18n/locales/de';
 
 const input = new URL(
   '../../../backend/tests/fixtures/media/voice/short.ogg',
@@ -412,7 +413,7 @@ test('preserves saved audio while editing and leaves unchanged edits without a d
       audio.evaluate((element: HTMLAudioElement) => element.currentTime),
     )
     .toBeCloseTo(0.1, 2);
-  const edit = () => editViaMenu(page, copy.heartMomentProduct.edit);
+  const edit = () => editViaMenu(page, germanUi.common.edit);
   await edit();
   await openVoiceTask(page);
   await expect(

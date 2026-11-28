@@ -9,6 +9,7 @@ import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { ClientProblemError } from '../client/problemDetails';
 import profileIdentity from '../i18n/locales/profileIdentity';
 import { ProfileIdentityPanel } from './ProfileIdentityPanel';
+import germanUi from '../i18n/locales/de';
 
 const ACCOUNT_ID = 'account-1';
 const SPACE_ID = 'space-1';
@@ -253,7 +254,7 @@ describe('ProfileIdentityPanel single edit form', () => {
     renderPanel();
 
     const save = screen.getByRole('button', {
-      name: profileIdentity.saveProfile,
+      name: germanUi.common.save,
     }) as HTMLButtonElement;
     expect(save.disabled).toBe(true);
     fireEvent.change(screen.getByLabelText(profileIdentity.displayNameLabel), {

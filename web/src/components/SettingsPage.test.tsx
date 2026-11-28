@@ -164,7 +164,7 @@ describe('SettingsPage', () => {
     expect(html).toContain(
       `<h3 id="account-settings-title">${accountSettings.dangerTitle}</h3>`,
     );
-    expect(html).not.toContain(profileIdentity.settingsSensitiveEyebrow);
+    expect(html).not.toContain('Mit Bedacht');
     expect(html).toContain(accountSettings.deleteAction);
     expect(html).toContain('space-offboarding-panel');
     expect(html).toContain(spaceOffboarding.action);

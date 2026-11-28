@@ -17,6 +17,7 @@ import serverAdmin from '../i18n/locales/serverAdmin';
 import { ServerAdminGiftCodeBatchSheet } from './ServerAdminGiftCodeBatchSheet';
 import { Snackbar } from './Snackbar';
 import { sectionHref } from './serverAdminAreas';
+import germanUi from '../i18n/locales/de';
 
 const copy = serverAdmin.pro.batch;
 const BATCH_ID = '019b2e1a-7c3d-7f00-8a11-0000000000b1';
@@ -223,7 +224,9 @@ describe('ServerAdminGiftCodeBatchSheet', () => {
     expect(screen.getByText(copy.revokeConfirm)).toBeTruthy();
     expect(api.revokeGiftCodeBatch).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: copy.revokeCancel }));
+    fireEvent.click(
+      screen.getByRole('button', { name: germanUi.common.cancel }),
+    );
     expect(screen.queryByText(copy.revokeConfirm)).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: copy.revokeOpen }));

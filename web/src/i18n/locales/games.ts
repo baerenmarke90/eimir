@@ -1,5 +1,4 @@
 const games = {
-  eyebrow: 'Spielen',
   title: 'Spielen',
   intro: 'Erinnerungen erraten und Neues übereinander erfahren.',
   status: {
@@ -130,7 +129,6 @@ const games = {
       nameLabel: 'Wie soll der Moment heißen?',
       nameMissing: 'Gib dem Moment einen Namen, dann behalten wir das Foto.',
       keepConfirm: 'Als Moment speichern',
-      keeping: 'Wird gespeichert …',
       kept: 'Liegt in Momente',
       keepFailed:
         'Das Foto konnte nicht als Moment gespeichert werden. Versuch es noch einmal.',
@@ -218,7 +216,6 @@ const games = {
     },
   },
   momentsGame: {
-    back: 'Zurück zu Spielen',
     intro:
       'Dreht abwechselnd Karten um und findet die Fotos wieder, die zu euren gemeinsamen Erinnerungen gehören.',
     loadingTitle: 'Eure Momente werden gemischt',
@@ -233,14 +230,12 @@ const games = {
     sparseAction: 'Zu euren Momenten',
     turnLabel: 'Am Zug',
     turnValue: '{{name}} ist dran',
-    scoreAria: 'Gefundene Paare',
     boardAria: 'Memory-Spielfeld mit euren gemeinsamen Momenten',
     cardHidden: 'Karte {{index}} von {{total}}, verdeckt',
     cardPhotoRevealed: 'Foto zu {{title}}, aufgedeckt',
     cardContextRevealed: 'Erinnerung {{title}}, {{date}}, aufgedeckt',
     cardMatched: 'Gefundenes Paar: {{title}}, {{date}}',
     matchEyebrow: 'Wiedergefunden',
-    continue: 'Weiter',
     finishEyebrow: 'Eure Runde',
     finishTitle: 'Ihr habt alle Momente wiedergefunden.',
     finishBody: '{{count}} kleine Geschichten aus eurem gemeinsamen Leben.',
@@ -248,7 +243,6 @@ const games = {
     backToGames: 'Andere Spiele ansehen',
   },
   wishDetective: {
-    back: 'Zurück zu Spielen',
     intro:
       'Gebt euch drei Hinweise, reicht das Gerät weiter und findet heraus, wie gut ihr die Wünsche des anderen kennt.',
     loadingTitle: 'Eure Wünsche werden vorbereitet',
@@ -290,7 +284,6 @@ const games = {
     correctTitle: '{{name}} kennt deinen Wunsch.',
     incorrectTitle: 'Knapp daneben.',
     passedTitle: 'Gepasst.',
-    continue: 'Weiter',
     finishEyebrow: 'Eure Runde',
     finishTitle: 'Das war eure Wunschdetektiv-Runde.',
     finishBody: '{{correct}} von {{total}} Wünschen erkannt.',
@@ -387,7 +380,6 @@ const games = {
     firstResponder: '{{name}}, du zuerst',
     secondResponder: '{{name}}, jetzt du',
     choosePrompt: 'Wer von euch passt eher dazu?',
-    choicesAria: 'Wählt eine Person',
     choiceAria: '{{responder}} wählt {{choice}}',
     handoffEyebrow: 'Nicht verraten',
     handoffTitle: 'Gerät an {{name}} reichen',
@@ -407,7 +399,6 @@ const games = {
     finishDifferent_other:
       'Bei {{count}} Fragen habt ihr euch unterschiedlich gesehen.',
     restart: 'Noch einmal',
-    backToGames: 'Andere Spiele ansehen',
     questions: {
       morningLonger: 'Wer von euch braucht morgens länger?',
       movieSleeper: 'Wer schläft beim Film eher ein?',
@@ -432,7 +423,6 @@ const games = {
     waterTitle: 'Welche Pflanze gießt du?',
     waterBody:
       'Tipp im Garten auf eine Pflanze. {{name}} sieht danach die Tropfen.',
-    cancel: 'Abbrechen',
     arrivedTitle: '{{name}} hat dir Saatgut geschenkt',
     quoted: '„{{words}}“',
     foldedCard: 'Ein Kärtchen mit lieben Worten',
@@ -460,7 +450,6 @@ const games = {
       close: 'Vollbild schließen',
       rotate: 'Dreh dein Handy, dann siehst du den ganzen Garten.',
     },
-    close: 'Schließen',
     storySent: 'Geschickt von {{name}}, {{date}}',
     youDative: 'dir',
     water: 'Eine Pflanze gießen',
@@ -494,7 +483,6 @@ const games = {
         'Euer ganzer Garten blüht für euch. Heute braucht ihr kein Saatgut zu verschenken.',
       buntingLabel: 'Alles blüht, und eine Wimpelkette hängt über dem Garten',
       save: 'Wiedersehensgarten als Moment speichern',
-      saving: 'Wird gespeichert …',
       saved: 'In Momente gespeichert.',
       openMoment: 'Moment ansehen',
       memoryTitle: 'Unser Garten zum Wiedersehen',
@@ -656,7 +644,6 @@ const games = {
       rename: 'Umbenennen',
       nameLabel: 'Wie heißt euer Garten?',
       nameHint: 'Bis zu 40 Zeichen. Leer lassen für „Unser Garten“.',
-      save: 'Speichern',
       renamedStatus: 'Euer Garten heißt jetzt „{{name}}“.',
       bind: 'Strauß binden',
       bindTitle: 'Strauß binden',
@@ -927,9 +914,7 @@ const games = {
           winter: 'Winter',
         },
         pause: 'Anhalten',
-        resume: 'Weiter',
         again: 'Noch einmal',
-        close: 'Schließen',
       },
       feedback: {
         title: 'Nur für dich',

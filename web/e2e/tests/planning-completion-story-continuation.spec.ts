@@ -504,7 +504,7 @@ test('completed Plan continuation opens canonical Memory capture and cancellatio
     'Picnic in the park',
   );
   await page
-    .getByRole('button', { name: taskBoundary.close, exact: true })
+    .getByRole('button', { name: de.common.close, exact: true })
     .click();
   await page
     .getByRole('button', { name: taskBoundary.discardConfirm, exact: true })
@@ -584,7 +584,7 @@ for (const scenario of captureMenuScenarios) {
       'Picnic in the park',
     );
     await page
-      .getByRole('button', { name: taskBoundary.close, exact: true })
+      .getByRole('button', { name: de.common.close, exact: true })
       .click();
     await page
       .getByRole('button', { name: taskBoundary.discardConfirm, exact: true })
@@ -599,7 +599,7 @@ test('Later dismisses the continuation and restores focus to stable Plan navigat
   await prepareScenario(page, visualScenarios[0]);
 
   const backLink = page.getByRole('button', {
-    name: taskBoundary.back,
+    name: de.common.back,
     exact: true,
   });
   await page.getByRole('button', { name: m5s3.planStory.later }).click();
@@ -713,7 +713,7 @@ async function assertCompetingWritesLocked(page: Page): Promise<void> {
   // The completion date and planned date deliberately share the concise label
   // "Datum". Only the schedule editor must be absent during completion.
   await expect(page.locator('#plan-schedule-date')).toHaveCount(0);
-  const action = page.getByRole('button', { name: m5s3.common.saving });
+  const action = page.getByRole('button', { name: de.common.saving });
   await expect(action).toHaveAttribute('aria-disabled', 'true');
   await expect(action).toBeFocused();
 }
@@ -922,7 +922,7 @@ test('Plan completion failure remains actionable after leaving and returning to 
   ).toBeVisible();
   await page
     .getByRole('dialog')
-    .getByRole('button', { name: taskBoundary.close, exact: true })
+    .getByRole('button', { name: de.common.close, exact: true })
     .click();
   await page.getByRole('link', { name: de.more.eyebrow, exact: true }).click();
   await expect(page).toHaveURL(/\/more$/);
@@ -1024,7 +1024,7 @@ test('keyboard activation sends one completion and keeps focus on the action whi
 
   await expect(pendingStatus(page)).toBeVisible();
   await expect(
-    page.getByRole('button', { name: m5s3.common.saving }),
+    page.getByRole('button', { name: de.common.saving }),
   ).toBeFocused();
   expect(state.completionCalls).toBe(1);
 

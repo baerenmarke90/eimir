@@ -1173,7 +1173,7 @@ function CollectionProductDetail({
                 }}
               >
                 <label htmlFor="collection-edit-title" className="sr-only">
-                  {t('m5s3.common.title')}
+                  {t('common.title')}
                 </label>
                 <div className="planning-collection-title-row">
                   <input
@@ -1184,8 +1184,8 @@ function CollectionProductDetail({
                     maxLength={200}
                     value={titleDraft}
                     onChange={(e) => setTitleDraft(e.target.value)}
-                    placeholder={t('m5s3.common.title')}
-                    aria-label={t('m5s3.common.title')}
+                    placeholder={t('common.title')}
+                    aria-label={t('common.title')}
                   />
                   <ListEntryIconButton
                     type="submit"
@@ -1193,7 +1193,7 @@ function CollectionProductDetail({
                     className="tertiary"
                     label={
                       updateCollection.isPending
-                        ? t('m5s3.common.saving')
+                        ? t('common.saving')
                         : t('m5s3.common.saveChanges')
                     }
                     disabled={
@@ -1280,7 +1280,7 @@ function CollectionProductDetail({
               disabled={isReordering || outbox.pendingCount > 0}
               onClick={() => setIsSorting(false)}
             >
-              {t('m5s3.collection.finishSorting')}
+              {t('common.done')}
             </button>
           ) : null}
           {inSheet && listMenuButton}
@@ -1393,7 +1393,7 @@ function CollectionProductDetail({
               type="submit"
               label={t('m5s3.collection.addItem')}
               pending={createItem.isPending}
-              pendingLabel={t('m5s3.common.saving')}
+              pendingLabel={t('common.saving')}
               disabled={createItem.isPending || isReordering}
             />
           </form>
@@ -1617,7 +1617,7 @@ function CollectionProductDetail({
               <ItemMenuOption
                 icon="trash"
                 danger
-                title={t('m5s3.common.delete')}
+                title={t('common.delete')}
                 onClick={() => {
                   closeMenu();
                   deleteCollection.reset();
@@ -1646,7 +1646,7 @@ function CollectionProductDetail({
         title={t('m5s3.common.deleteHeading')}
         body={t('m5s3.collection.deleteConsequence')}
         confirmLabel={t('m5s3.common.confirmDelete')}
-        pendingLabel={t('m5s3.common.deleting')}
+        pendingLabel={t('common.deleting')}
         pending={deleteCollection.isPending}
         error={deleteCollection.error}
         restoreFocusRef={menuTriggerRef}

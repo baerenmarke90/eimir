@@ -11,6 +11,7 @@ import { i18n } from '../i18n';
 import copy from '../i18n/locales/sharedNotes';
 import { sharedNote } from './sharedNoteFixtures';
 import { SharedNoteReadPage } from './SharedNoteReadPage';
+import germanUi from '../i18n/locales/de';
 
 const text = copy.sharedNotes;
 
@@ -83,7 +84,9 @@ describe('SharedNoteReadPage', () => {
     expect(screen.getByText(/Jonas/, { selector: 'span' })).toBeTruthy();
     expect(document.querySelectorAll('.partner-marker').length).toBe(1);
     // Editing lives in the menu, like every other detail page.
-    expect(screen.queryByRole('button', { name: text.read.edit })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: germanUi.common.edit }),
+    ).toBeNull();
   });
 
   it('keeps only one quiet line for a note nobody else changed', async () => {
@@ -106,7 +109,7 @@ describe('SharedNoteReadPage', () => {
     await user.click(
       await screen.findByRole('button', { name: text.read.menu }),
     );
-    await user.click(screen.getByText(text.read.edit));
+    await user.click(screen.getByText(germanUi.common.edit));
     expect(await screen.findByText('editor page')).toBeTruthy();
   });
 
@@ -121,10 +124,12 @@ describe('SharedNoteReadPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Holiday flat' }),
     ).toBeTruthy();
-    expect(screen.queryByRole('button', { name: text.read.edit })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: germanUi.common.edit }),
+    ).toBeNull();
     await user.click(screen.getByRole('button', { name: text.read.menu }));
     expect(screen.queryByText(text.menu.pin)).toBeNull();
-    expect(screen.queryByText(text.menu.delete)).toBeNull();
+    expect(screen.queryByText(germanUi.common.delete)).toBeNull();
   });
 
   it('pins from the menu with one idempotent state set', async () => {
@@ -180,7 +185,7 @@ describe('SharedNoteReadPage', () => {
     await user.click(
       await screen.findByRole('button', { name: text.read.menu }),
     );
-    await user.click(screen.getByText(text.menu.delete));
+    await user.click(screen.getByText(germanUi.common.delete));
 
     expect(deleteSharedNote).not.toHaveBeenCalled();
     expect(

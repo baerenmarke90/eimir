@@ -87,11 +87,11 @@ export function TaskBackButton({
   ...props
 }: ComponentProps<'button'> & { shellDefault?: boolean; inline?: boolean }) {
   const { t } = useTranslation();
-  const label = children ?? t('taskBoundary.back');
+  const label = children ?? t('common.back');
   const button = (
     <button
       type="button"
-      title={typeof label === 'string' ? label : t('taskBoundary.back')}
+      title={typeof label === 'string' ? label : t('common.back')}
       className={`back-link task-back-control tertiary ${className}`}
       data-page-back={shellDefault ? undefined : ''}
       data-default-back={shellDefault ? '' : undefined}
@@ -128,11 +128,11 @@ export function TaskBackLink({
 }: ComponentProps<typeof Link> & { inline?: boolean }) {
   const { t } = useTranslation();
   const returnTo = useReturnTo();
-  const label = children ?? t('taskBoundary.back');
+  const label = children ?? t('common.back');
   return (
     <PlaceBackControl inline={inline}>
       <Link
-        title={typeof label === 'string' ? label : t('taskBoundary.back')}
+        title={typeof label === 'string' ? label : t('common.back')}
         className={`back-link task-back-control ${className}`}
         data-page-back=""
         {...props}

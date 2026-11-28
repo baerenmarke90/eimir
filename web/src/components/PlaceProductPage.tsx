@@ -134,7 +134,7 @@ function PlaceEditor({
   return (
     <SharedContentSheet
       open={open}
-      title={t('m5s3.common.edit')}
+      title={t('common.edit')}
       isDirty={isDirty}
       isPending={isPending}
       initialFocusRef={titleInputRef}
@@ -278,7 +278,7 @@ function PlaceEditor({
               <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
                 <button type="submit" disabled={isPending}>
                   {updatePending
-                    ? t('m5s3.common.saving')
+                    ? t('common.saving')
                     : t('m5s3.common.saveChanges')}
                 </button>
                 <button
@@ -560,7 +560,7 @@ export function PlaceProductPage({
             icon={place.archived ? 'undo' : 'download'}
             title={t(
               archiveMutation.isPending
-                ? 'm5s3.common.saving'
+                ? 'common.saving'
                 : place.archived
                   ? 'm5s3.place.restore'
                   : 'm5s3.place.archive',
@@ -575,7 +575,7 @@ export function PlaceProductPage({
           <ItemMenuOption
             icon="trash"
             danger
-            title={t('m5s3.common.delete')}
+            title={t('common.delete')}
             disabled={archiveMutation.isPending}
             onClick={() => {
               setMenuOpen(false);
@@ -595,7 +595,7 @@ export function PlaceProductPage({
         title={t('m5s3.common.deleteHeading')}
         body={t('m5s3.place.deleteConsequence')}
         confirmLabel={t('m5s3.common.confirmDelete')}
-        pendingLabel={t('m5s3.common.deleting')}
+        pendingLabel={t('common.deleting')}
         pending={deleteMutation.isPending}
         error={deleteMutation.error}
         restoreFocusRef={menuTriggerRef}

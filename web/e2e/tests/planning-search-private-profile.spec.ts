@@ -4,7 +4,6 @@ import de from '../../src/i18n/locales/de';
 import copy from '../../src/i18n/locales/m5s3';
 import navigation from '../../src/i18n/locales/navigation';
 import privateArea from '../../src/i18n/locales/privateArea';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import wishSelection from '../../src/i18n/locales/wishSelection';
 import fixtures from '../fixtures/locales/de';
 import AxeBuilder from '../support/axe';
@@ -297,7 +296,7 @@ for (const view of [
       { fullPage: true },
     );
     await page
-      .getByRole('button', { name: taskBoundary.back, exact: true })
+      .getByRole('button', { name: de.common.back, exact: true })
       .click();
     await expect(planSearch).toHaveValue('osterreich');
     await expect(page.locator('.planen-next-link')).toBeFocused();
@@ -374,7 +373,7 @@ for (const view of [
     await page.locator('.planen-wish-link').click();
     await expect(page).toHaveURL(new RegExp(`/plan/wishes/${wishId}$`));
     await page
-      .getByRole('button', { name: taskBoundary.back, exact: true })
+      .getByRole('button', { name: de.common.back, exact: true })
       .click();
     await expect(wishSearch).toHaveValue('agypten fruhling');
     await expect(page.locator('.planen-wish-link')).toBeFocused();

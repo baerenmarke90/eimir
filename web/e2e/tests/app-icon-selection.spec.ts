@@ -326,7 +326,7 @@ test('pending save blocks duplicate submission and Escape until authoritative co
   await dialog.getByRole('radio', { name: 'Salbei' }).check();
   await dialog.getByRole('button', { name: 'Salbei auswählen' }).click();
   await expect(
-    dialog.getByRole('button', { name: copy.saving }),
+    dialog.getByRole('button', { name: de.common.saving }),
   ).toBeDisabled();
   await expect(
     dialog.getByRole('radio', { name: 'Sand', exact: true }),

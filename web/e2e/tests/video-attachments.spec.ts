@@ -5,7 +5,6 @@ import photoSources from '../../src/i18n/locales/photoSources';
 import sensitiveMedia from '../../src/i18n/locales/sensitiveMedia';
 import storyCopy from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
-import taskSheets from '../../src/i18n/locales/taskSheets';
 import uploadFailure from '../../src/i18n/locales/uploadFailure';
 import videoCopy from '../../src/i18n/locales/video';
 import fixtureCopy from '../fixtures/locales/de';
@@ -469,7 +468,7 @@ test('retained sensitive video controls stay readable and separate at 320px with
     exact: true,
   });
   const close = dialog.getByRole('button', {
-    name: storyCopy.gallery.close,
+    name: de.common.close,
     exact: true,
   });
   await expect(privacy).toBeVisible();
@@ -735,7 +734,7 @@ test('Pro explanation preserves the current Memory draft', async ({ page }) => {
   const sheet = page.getByRole('dialog', { name: videoCopy.proTitle });
   await expect(sheet).toContainText(videoCopy.proBody);
   await sheet
-    .getByRole('button', { name: taskSheets.close, exact: true })
+    .getByRole('button', { name: de.common.close, exact: true })
     .click();
   await expect(body).toHaveValue(momentBody);
   expect(unknown).toEqual([]);

@@ -17,11 +17,11 @@ import { PersonRelationship } from '../api/generated/models/PersonRelationship';
 import { RelatedPersonDeletePolicy } from '../api/generated/models/RelatedPersonDeletePolicy';
 import type { RelatedPersonView } from '../api/generated/models/RelatedPersonView';
 import people from '../i18n/locales/people';
-import taskBoundary from '../i18n/locales/taskBoundary';
 import {
   DeleteRelatedPersonDialogContent,
   RelatedPeoplePage,
 } from './RelatedPeoplePage';
+import germanUi from '../i18n/locales/de';
 
 afterEach(() => {
   cleanup();
@@ -211,7 +211,9 @@ describe('shared People profiles and focused tasks', () => {
   }
   async function editProfile(name = 'Lisa') {
     openMenu(name);
-    fireEvent.click(await screen.findByRole('button', { name: people.edit }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: germanUi.common.edit }),
+    );
     await screen.findByLabelText(people.nameLabel);
   }
   async function create() {
@@ -240,7 +242,7 @@ describe('shared People profiles and focused tasks', () => {
   }
   async function save() {
     const form = screen
-      .getByRole('button', { name: people.saveChanges })
+      .getByRole('button', { name: germanUi.common.save })
       .closest('form');
     if (!form) throw new Error('Person save form is missing');
     fireEvent.submit(form);
@@ -251,8 +253,8 @@ describe('shared People profiles and focused tasks', () => {
     await screen.findByRole('link', { name: /^Lisa/ });
     expect(container.querySelector('.people-portrait-list')).not.toBeNull();
     expect(container.querySelector('.story-surface')).toBeNull();
-    expect(screen.queryByText(people.visibility.SHARED)).toBeNull();
-    expect(screen.queryByText(people.visibility.PRIVATE)).toBeNull();
+    expect(screen.queryByText('Für uns beide')).toBeNull();
+    expect(screen.queryByText('Nur für mich')).toBeNull();
     expect(
       api.listImportantDatesApiV1SpacesSpaceIdImportantDatesGet,
     ).not.toHaveBeenCalled();
@@ -264,7 +266,7 @@ describe('shared People profiles and focused tasks', () => {
     expect(
       screen.getByRole('link', { name: /12.*Mai.*1995/ }).getAttribute('href'),
     ).toBe('/plan#dates');
-    expect(screen.queryByRole('button', { name: people.delete })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Löschen' })).toBeNull();
   });
   it('supports a direct profile URL with authoritative retrieval', async () => {
     const { api } = fixture([person], '/more/people/person-1');
@@ -277,7 +279,7 @@ describe('shared People profiles and focused tasks', () => {
     fixture();
     await create();
     expect(screen.queryByRole('dialog')).toBeNull();
-    expect(screen.queryByLabelText(people.visibilityLabel)).toBeNull();
+    expect(screen.queryByLabelText('Sichtbarkeit')).toBeNull();
     expect(document.activeElement).not.toBe(
       screen.getByLabelText(people.nameLabel),
     );
@@ -357,7 +359,7 @@ describe('shared People profiles and focused tasks', () => {
     fireEvent.change(screen.getByLabelText(people.noteLabel), {
       target: { value: 'A note-only change' },
     });
-    fireEvent.click(screen.getByRole('button', { name: taskBoundary.back }));
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.back }));
     expect(screen.getByText(people.discardTitle)).toBeDefined();
     fireEvent.click(screen.getByRole('button', { name: people.keepEditing }));
     expect(

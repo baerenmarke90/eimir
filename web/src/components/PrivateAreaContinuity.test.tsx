@@ -30,6 +30,7 @@ import {
   PrivateNoteDetailPage,
   PrivateNoteEditPage,
 } from './PrivateNotesPage';
+import germanUi from '../i18n/locales/de';
 
 const ACCOUNT_ID = 'account-1';
 const SPACE_ID = 'space-1';
@@ -171,7 +172,7 @@ describe('P1 private task continuity', () => {
       }),
     );
     fireEvent.click(
-      await screen.findByRole('button', { name: privateArea.edit }),
+      await screen.findByRole('button', { name: germanUi.common.edit }),
     );
     expect(
       await screen.findByRole('heading', { name: privateArea.notes.editTitle }),
@@ -215,7 +216,7 @@ describe('P1 private task continuity', () => {
       </Providers>,
     );
 
-    const title = screen.getByLabelText(privateArea.notes.titleLabel);
+    const title = screen.getByLabelText(germanUi.common.title);
     fireEvent.change(title, { target: { value: 'Keep this draft' } });
     fireEvent.click(
       screen.getByRole('button', { name: privateArea.notes.detailBack }),

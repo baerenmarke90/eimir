@@ -223,11 +223,11 @@ function deleteSheetButton(page: Page, name: string) {
 
 /** Opens the confirmation twice: the first time it is cancelled without effect. */
 async function startDelete(page: Page) {
-  await deleteViaMenu(page, copy.delete);
+  await deleteViaMenu(page, de.common.delete);
   await expect(page.getByRole('alertdialog')).toBeVisible();
   await deleteSheetButton(page, de.common.cancel).click();
   await expect(page.getByRole('alertdialog')).toHaveCount(0);
-  await deleteViaMenu(page, copy.delete);
+  await deleteViaMenu(page, de.common.delete);
   await expect(page.getByRole('alertdialog')).toBeVisible();
 }
 
@@ -292,7 +292,7 @@ for (const variant of [
     await openDetail(page, 'largeText' in variant);
     await startDelete(page);
     await confirm(page);
-    await expect(deleteSheetButton(page, copy.deleting)).toBeDisabled();
+    await expect(deleteSheetButton(page, de.common.deleting)).toBeDisabled();
     await fixture.respond(503);
     await expect(
       page.getByText(de.states.server.title, { exact: true }),
@@ -305,7 +305,7 @@ for (const variant of [
       `milestone-failure-${variant.width}-${variant.theme}`,
     );
     await deleteSheetButton(page, copy.deleteConfirm).click();
-    await expect(deleteSheetButton(page, copy.deleting)).toBeDisabled();
+    await expect(deleteSheetButton(page, de.common.deleting)).toBeDisabled();
     await inspect(
       page,
       info,
@@ -319,7 +319,7 @@ for (const variant of [
         new RegExp(`/story/milestones/${milestone.id}$`),
       );
       await expect(page.getByRole('alertdialog')).toBeVisible();
-      await expect(deleteSheetButton(page, copy.deleting)).toBeDisabled();
+      await expect(deleteSheetButton(page, de.common.deleting)).toBeDisabled();
       await inspect(page, info, 'milestone-return-pending-390-light');
     }
     const completed = page.waitForResponse(
@@ -361,7 +361,7 @@ for (const theme of ['light', 'dark'] as const) {
     await expect(deleteSheetButton(page, copy.deleteConfirm)).toBeEnabled();
     expect(fixture.deletions).toEqual([]);
     await deleteSheetButton(page, copy.deleteConfirm).click();
-    await expect(deleteSheetButton(page, copy.deleting)).toBeDisabled();
+    await expect(deleteSheetButton(page, de.common.deleting)).toBeDisabled();
     await fixture.respond(204);
     // Deleting returns to the Timeline scope the item was opened from (#1907).
     await expect(page).toHaveURL(/\/story\?tab=timeline$/);

@@ -18,6 +18,7 @@ import { foundKeepsakes } from '../client/gardenStory';
 import type { MilestoneRef } from '../client/storyWaymarks';
 import games from '../i18n/locales/games';
 import { GardenGamePage, type GardenServices } from './GardenGamePage';
+import germanUi from '../i18n/locales/de';
 
 const native = vi.hoisted(() => ({ value: false }));
 vi.mock('../pwa', async (original) => ({
@@ -283,11 +284,11 @@ describe('Euer Gartenjahr', () => {
       }),
     );
     fireEvent.click(toggle);
-    expect(toggle.textContent).toBe(story.playback.resume);
+    expect(toggle.textContent).toBe(germanUi.common.continue);
     fireEvent.click(toggle);
     expect(toggle.textContent).toBe(story.playback.pause);
     fireEvent.click(
-      within(dialog).getByRole('button', { name: story.playback.close }),
+      within(dialog).getByRole('button', { name: germanUi.common.close }),
     );
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(document.activeElement).toBe(play);

@@ -23,9 +23,9 @@ import { wishSelectionQueryKey } from '../client/wishSelection';
 import { resolvedLocale } from '../i18n';
 import dateCopy from '../i18n/locales/dateIdeas';
 import m5s3 from '../i18n/locales/m5s3';
-import taskBoundary from '../i18n/locales/taskBoundary';
 import copy from '../i18n/locales/wishSelection';
 import { WishSelectionPage } from './WishSelectionPage';
+import germanUi from '../i18n/locales/de';
 
 beforeAll(() => {
   HTMLDialogElement.prototype.showModal = function () {
@@ -333,7 +333,7 @@ async function openIdeas() {
 
 /** Returns from a source to the round hub with the pick bar. */
 function finishPick() {
-  fireEvent.click(screen.getByRole('button', { name: copy.pickDone }));
+  fireEvent.click(screen.getByRole('button', { name: germanUi.common.done }));
 }
 
 /** A private favourite toggle in the vote step. */
@@ -658,7 +658,7 @@ describe('WishSelectionPage', () => {
   it('retains a dirty selection when Back is cancelled', async () => {
     renderTask();
     fireEvent.click(await favorite(candidates[0].title));
-    fireEvent.click(screen.getByRole('button', { name: taskBoundary.back }));
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.back }));
     expect(await screen.findByRole('alertdialog')).toBeTruthy();
     fireEvent.click(
       screen.getByRole('button', { name: m5s3.common.keepEditing }),
@@ -850,7 +850,7 @@ describe('WishSelectionPage', () => {
       expect(updateOwnWishSelection).toHaveBeenCalledTimes(1),
     );
     expect(
-      screen.getByRole('button', { name: taskBoundary.back }),
+      screen.getByRole('button', { name: germanUi.common.back }),
     ).toHaveProperty('disabled', true);
     switchAccount('account-b');
     await favorite(candidates[0].title);
@@ -904,14 +904,16 @@ describe('WishSelectionPage', () => {
       }),
     ).toBeTruthy();
     // Free sees no pick bar: nothing can be added from the locked catalog.
-    expect(screen.queryByRole('button', { name: copy.pickDone })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: germanUi.common.done }),
+    ).toBeNull();
     expect(screen.getByText(copy.ideasLockedBody)).toBeTruthy();
     expect(
       screen.getByRole('link', { name: dateCopy.locked.action }),
     ).toHaveProperty('href', expect.stringContaining('/more/pro'));
     expect(screen.queryByText(picnic.title)).toBeNull();
     // Wishes stay fully usable in the same draft.
-    fireEvent.click(screen.getByRole('button', { name: taskBoundary.back }));
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.back }));
     await openWishes();
     fireEvent.click(
       screen.getByRole('checkbox', { name: candidates[0].title }),

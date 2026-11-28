@@ -18,6 +18,7 @@ import type { SupportReplyTemplateView } from '../api/generated/models/SupportRe
 import { ResponseError } from '../api/generated/runtime';
 import serverAdmin from '../i18n/locales/serverAdmin';
 import { ServerAdminReplyTemplatesPanel } from './ServerAdminReplyTemplatesPanel';
+import germanUi from '../i18n/locales/de';
 
 const templates = serverAdmin.templates;
 const sheet = templates.sheet;
@@ -127,7 +128,9 @@ describe('ServerAdminReplyTemplatesPanel', () => {
       name: sheet.createTitle,
     });
     fill(dialog, 'Thanks', 'Thanks for your report!');
-    fireEvent.click(within(dialog).getByRole('button', { name: sheet.save }));
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: germanUi.common.save }),
+    );
 
     await waitFor(() =>
       expect(createSupportReplyTemplate).toHaveBeenCalledWith({
@@ -155,7 +158,9 @@ describe('ServerAdminReplyTemplatesPanel', () => {
       name: sheet.createTitle,
     });
 
-    fireEvent.click(within(dialog).getByRole('button', { name: sheet.save }));
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: germanUi.common.save }),
+    );
 
     expect(within(dialog).getByText(sheet.nameRequired)).toBeTruthy();
     expect(within(dialog).getByText(sheet.textRequired)).toBeTruthy();
@@ -183,7 +188,9 @@ describe('ServerAdminReplyTemplatesPanel', () => {
     fireEvent.change(within(dialog).getByLabelText(sheet.textLabel), {
       target: { value: 'Changed' },
     });
-    fireEvent.click(within(dialog).getByRole('button', { name: sheet.save }));
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: germanUi.common.save }),
+    );
 
     await waitFor(() =>
       expect(updateSupportReplyTemplate).toHaveBeenCalledWith({
@@ -207,7 +214,9 @@ describe('ServerAdminReplyTemplatesPanel', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: /Template 1/ }));
     const dialog = await screen.findByRole('dialog', { name: sheet.editTitle });
-    fireEvent.click(within(dialog).getByRole('button', { name: sheet.delete }));
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: germanUi.common.delete }),
+    );
 
     expect(window.confirm).toHaveBeenCalledWith(
       sheet.deleteConfirm.replace('{{name}}', 'Template 1'),
@@ -236,7 +245,9 @@ describe('ServerAdminReplyTemplatesPanel', () => {
       name: sheet.createTitle,
     });
     fill(dialog, 'template 1', 'Some text');
-    fireEvent.click(within(dialog).getByRole('button', { name: sheet.save }));
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: germanUi.common.save }),
+    );
 
     expect(
       await within(dialog).findByText(templates.errors.nameTaken),
@@ -260,7 +271,9 @@ describe('ServerAdminReplyTemplatesPanel', () => {
     });
     fireEvent.click(await screen.findByRole('button', { name: /Template 1/ }));
     const dialog = await screen.findByRole('dialog', { name: sheet.editTitle });
-    fireEvent.click(within(dialog).getByRole('button', { name: sheet.save }));
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: germanUi.common.save }),
+    );
 
     expect(await screen.findByText(templates.gone)).toBeTruthy();
     expect(screen.queryByRole('dialog')).toBeNull();

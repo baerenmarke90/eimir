@@ -109,7 +109,7 @@ for (const target of [
   {
     resource: 'milestones',
     label: de.story.kind.milestone,
-    field: storyCopy.milestoneProduct.titleLabel,
+    field: de.common.title,
     save: storyCopy.milestoneProduct.save,
   },
 ]) {

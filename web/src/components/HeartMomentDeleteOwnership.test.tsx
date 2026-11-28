@@ -27,7 +27,6 @@ import { ClientProblemError } from '../client/problemDetails';
 import type { ReferenceApis } from '../client/referenceFlow';
 import de from '../i18n/locales/de';
 import storyProducts from '../i18n/locales/storyProducts';
-import taskBoundary from '../i18n/locales/taskBoundary';
 import { HeartMomentProductPage } from './HeartMomentProductPage';
 
 vi.mock('../client/photoPlaces', async (original) => ({
@@ -183,7 +182,7 @@ function setup(mode: 'detail' | 'edit' | 'create' = 'detail') {
     await openMenu();
     await userEvent
       .setup()
-      .click(screen.getByRole('button', { name: copy.delete }));
+      .click(screen.getByRole('button', { name: de.common.delete }));
     return screen.getByRole('button', {
       name: copy.deleteConfirm,
     });
@@ -472,8 +471,11 @@ describe('HeartMoment delete response ownership', () => {
       .click(screen.getByRole('link', { name: 'Return to Heart Moment' }));
     await h.openMenu();
     expect(
-      (screen.getByRole('button', { name: copy.delete }) as HTMLButtonElement)
-        .disabled,
+      (
+        screen.getByRole('button', {
+          name: de.common.delete,
+        }) as HTMLButtonElement
+      ).disabled,
     ).toBe(true);
     await h.settle();
   });
@@ -609,7 +611,7 @@ describe('HeartMoment delete response ownership', () => {
     expect(h.changeHeartMomentVisibility).not.toHaveBeenCalled();
     await userEvent
       .setup()
-      .click(screen.getByRole('link', { name: taskBoundary.back }));
+      .click(screen.getByRole('link', { name: de.common.back }));
     await waitFor(() =>
       expect(screen.getByLabelText('Current route').textContent).toBe(
         '/story/heart-moments/heart-1',
@@ -639,14 +641,14 @@ describe('HeartMoment delete response ownership', () => {
     );
     await userEvent
       .setup()
-      .click(screen.getByRole('link', { name: taskBoundary.back }));
+      .click(screen.getByRole('link', { name: de.common.back }));
     await waitFor(() =>
       expect(screen.getByLabelText('Current route').textContent).toBe(
         '/story/heart-moments/heart-1',
       ),
     );
     await h.openMenu();
-    const open = screen.getByRole('button', { name: copy.delete });
+    const open = screen.getByRole('button', { name: de.common.delete });
     expect((open as HTMLButtonElement).disabled).toBe(true);
     await act(async () => fireEvent.click(open));
     await userEvent

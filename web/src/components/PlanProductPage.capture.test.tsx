@@ -181,7 +181,7 @@ describe('PlanProductPage capture as a Moment (#2158)', () => {
       capabilities: { canComment: true, canDelete: true, canEdit: false },
     });
     openMenu();
-    await screen.findByRole('button', { name: t('m5s3.common.delete') });
+    await screen.findByRole('button', { name: t('common.delete') });
     expect(screen.queryByRole('button', { name: t('common.edit') })).toBeNull();
     for (const key of CAPTURE_LABELS) expect(captureOption(key)).toBeNull();
     await waitFor(() =>

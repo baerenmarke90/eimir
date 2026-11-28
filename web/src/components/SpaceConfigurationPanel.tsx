@@ -309,7 +309,7 @@ export function SpaceConfigurationPanel({
           role="status"
           aria-live="polite"
         >
-          {t('profileIdentity.spaceConfigurationSaving')}
+          {t('common.saving')}
         </p>
       ) : configurationMutation.isSuccess ? (
         <p

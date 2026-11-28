@@ -216,7 +216,7 @@ function Settings({
             className="button-link"
             onClick={() => void preference.refetch()}
           >
-            {t('wirDesign.retry')}
+            {t('common.retry')}
           </button>
         </div>
       ) : null}
@@ -225,7 +225,7 @@ function Settings({
         ref={sheet}
         open={open}
         title={choices}
-        closeLabel={t('wirDesign.close')}
+        closeLabel={t('common.close')}
         className="wir-design-sheet"
         initialFocusRef={initial}
         restoreFocusRef={opener}
@@ -244,7 +244,7 @@ function Settings({
                   className="button-link"
                   onClick={() => void preference.refetch()}
                 >
-                  {t('wirDesign.retry')}
+                  {t('common.retry')}
                 </button>
               </div>
             ) : null}
@@ -259,7 +259,7 @@ function Settings({
                   className="button-link"
                   onClick={() => void capability.refetch()}
                 >
-                  {t('wirDesign.retry')}
+                  {t('common.retry')}
                 </button>
               </div>
             ) : null}
@@ -323,7 +323,7 @@ function Settings({
               >
                 {t(
                   mutation.isPending
-                    ? 'wirDesign.saving'
+                    ? 'common.saving'
                     : draft === current
                       ? 'wirDesign.selected'
                       : 'wirDesign.save',

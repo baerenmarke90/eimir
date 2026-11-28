@@ -5,56 +5,26 @@ const people = {
   menuLabel: 'Aktionen für {{name}}',
   addBirthday: 'Geburtstag ergänzen',
   optionalYear: 'Jahr (optional)',
-  eyebrow: 'Wichtige Menschen',
   title: 'Menschen',
   itemLabel: 'Person',
-  intro: 'Ihr entscheidet, welche Angaben ihr teilt.',
   formRailAria: 'Person anlegen oder bearbeiten',
   createTitle: 'Person hinzufügen',
   editTitle: 'Person bearbeiten',
-  identitySectionTitle: 'Wer ist diese Person?',
-  identitySectionHelp:
-    'Name, Foto und eure Beziehung stehen hier im Mittelpunkt.',
   nameLabel: 'Name',
   noteLabel: 'Notiz (optional)',
   noteTitle: 'Notiz',
   notePlaceholder: 'Was möchtet ihr euch merken?',
   relationshipLabel: 'Beziehung',
   birthdayLabel: 'Geburtstag',
-  birthdayOptionalHelp:
-    'Optional – nur ergänzen, wenn es für euch hilfreich ist.',
-  birthdayDateLabel: 'Geburtsdatum',
-  birthdayYearKnown: 'Das Geburtsjahr ist bekannt',
   birthdayDayLabel: 'Tag',
   birthdayMonthLabel: 'Monat',
   birthdayMonthPlaceholder: 'Monat auswählen',
-  birthdayUnknownYearHelp:
-    'Wenn das Geburtsjahr unbekannt ist, speichert und zeigt eimir. nur Tag und Monat.',
   birthdayShowOnDashboard: 'Auf Wir anzeigen',
-  birthdayShowOnDashboardHelp:
-    'Erscheint dann für euch beide unter Wir. Unabhängig von Erinnerungen, die ihr separat einstellt.',
-  visibilityLabel: 'Sichtbarkeit',
-  visibilityHelp:
-    'Geteilte Personen sind für euch beide sichtbar. Private Personen bleiben nur bei dir.',
   lifecycleTitle: 'Person entfernen',
-  lifecycleHelp:
-    'Das Löschen bleibt bewusst getrennt vom Speichern. Verknüpfte Termine werden erst im nächsten Schritt behandelt.',
-  create: 'Person hinzufügen',
-  saveChanges: 'Speichern',
-  saving: 'Wird gespeichert …',
-  created: 'Person wurde hinzugefügt.',
   updated: 'Änderungen wurden gespeichert.',
-  deleted: 'Person wurde gelöscht.',
   loading: 'Wichtige Menschen werden geladen …',
-  listKicker: 'Euer Umfeld',
-  listTitle: 'Gespeicherte Personen',
   listAria: 'Wichtige Menschen',
   emptyTitle: 'Noch keine Person gespeichert',
-  emptyBody:
-    'Fügt hier Menschen hinzu, die in eurem gemeinsamen Leben wichtig sind.',
-  birthdayValue: 'Geburtstag: {{date}}',
-  edit: 'Bearbeiten',
-  delete: 'Löschen',
   deleteTitle: 'Person löschen',
   deleteBody:
     'Wie sollen verknüpfte Termine behandelt werden, wenn du {{name}} löschst?',
@@ -73,13 +43,9 @@ const people = {
   deleteCascadeConfirm:
     'Ich möchte die Person und die verknüpften Termine wirklich löschen.',
   deleteConfirm: 'Person löschen',
-  deleting: 'Wird gelöscht …',
   discardTitle: 'Ungespeicherte Änderungen verwerfen?',
-  discardBody:
-    'Möchtest du den Editor wirklich schließen? Deine Änderungen gehen verloren.',
   discardConfirm: 'Änderungen verwerfen',
   keepEditing: 'Weiter bearbeiten',
-  avatarLabel: 'Profilbild',
   avatarUpload: 'Foto auswählen',
   avatarChange: 'Foto ändern',
   avatarRemove: 'Foto entfernen',
@@ -87,7 +53,6 @@ const people = {
   avatarUploading: 'Foto wird hochgeladen …',
   avatarValidating: 'Foto wird geprüft …',
   addPersonAction: 'Person hinzufügen',
-  closeDialogAria: 'Schließen',
   relationship: {
     CHILD: 'Kind',
     PARENT: 'Elternteil',
@@ -112,10 +77,6 @@ const people = {
     RELATIVE: 'Weitere Familie',
     ACQUAINTANCE: 'Bekannte / Bekannter',
     COLLEAGUE: 'Kollegin / Kollege',
-  },
-  visibility: {
-    SHARED: 'Für uns beide',
-    PRIVATE: 'Nur für mich',
   },
 } as const;
 

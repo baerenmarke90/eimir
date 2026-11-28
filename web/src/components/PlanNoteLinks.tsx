@@ -289,14 +289,14 @@ export function PlanNoteLinks({
                     )
                   }
                 >
-                  {t('sharedNotes.read.edit')}
+                  {t('common.edit')}
                 </button>
               ) : null}
               <button
                 type="button"
                 onClick={() => previewSheet.current?.requestClose()}
               >
-                {t('sharedNotes.plan.done')}
+                {t('common.done')}
               </button>
             </div>
           </div>

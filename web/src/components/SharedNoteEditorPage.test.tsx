@@ -11,6 +11,7 @@ import { i18n } from '../i18n';
 import copy from '../i18n/locales/sharedNotes';
 import { SharedNoteEditorPage } from './SharedNoteEditorPage';
 import { sharedNote } from './sharedNoteFixtures';
+import germanUi from '../i18n/locales/de';
 
 const text = copy.sharedNotes;
 
@@ -95,9 +96,9 @@ const body = () =>
   }) as HTMLTextAreaElement;
 const title = () =>
   screen.getByRole('textbox', {
-    name: text.edit.titleLabel,
+    name: germanUi.common.title,
   }) as HTMLInputElement;
-const save = () => screen.getByRole('button', { name: text.edit.save });
+const save = () => screen.getByRole('button', { name: germanUi.common.save });
 
 beforeEach(() => {
   HTMLDialogElement.prototype.showModal = function () {
@@ -266,7 +267,9 @@ describe('SharedNoteEditorPage', () => {
     expect(body().value).toBe(`${note.body} more`);
 
     online.mockReturnValue(true);
-    await user.click(screen.getByRole('button', { name: text.edit.retry }));
+    await user.click(
+      screen.getByRole('button', { name: germanUi.common.retry }),
+    );
     await waitFor(() => expect(screen.getByText('read page')).toBeTruthy());
     expect(updateSharedNote).toHaveBeenCalledTimes(1);
   });
@@ -338,7 +341,9 @@ describe('SharedNoteEditorPage', () => {
     const user = userEvent.setup();
     renderEditor({ mode: 'create', api: {} });
     await user.type(body(), 'Draft');
-    await user.click(screen.getByRole('button', { name: text.edit.close }));
+    await user.click(
+      screen.getByRole('button', { name: germanUi.common.close }),
+    );
     expect(
       await screen.findByText(i18n.t('taskBoundary.discardTitle')),
     ).toBeTruthy();

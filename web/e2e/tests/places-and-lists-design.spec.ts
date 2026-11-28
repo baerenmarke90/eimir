@@ -3,7 +3,6 @@ import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import navigation from '../../src/i18n/locales/navigation';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import deFixture from '../fixtures/locales/de';
 import {
   expectFloatingAddAction,
@@ -343,7 +342,9 @@ for (const scenario of [
           expect(actions.y).toBeLessThan(preview.y + preview.height);
         }
 
-        await expect(page.getByText(m5s3.place.noDescription)).toHaveCount(0);
+        await expect(
+          page.getByText('Noch keine Beschreibung zu diesem Ort.'),
+        ).toHaveCount(0);
         await expect(
           page.getByRole('link', { name: '© OpenStreetMap' }),
         ).toBeVisible();
@@ -380,7 +381,7 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
   await expect(
     page.getByRole('button', { name: m5s3.relations.addLabel, exact: true }),
   ).toBeFocused();
-  await editViaMenu(page, m5s3.common.edit);
+  await editViaMenu(page, de.common.edit);
   let dialog = page.getByRole('dialog');
   await dialog
     .getByLabel(m5s3.place.name, { exact: true })
@@ -394,7 +395,7 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
     'Unser Volkspark',
   );
-  await page.getByRole('button', { name: taskBoundary.back }).click();
+  await page.getByRole('button', { name: de.common.back }).click();
   await page.getByRole('button', { name: m5s3.place.scopeALL }).click();
   const createPlace = page.getByRole('button', {
     name: m5s3.place.create,
@@ -411,13 +412,13 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
   await dialog.getByLabel(m5s3.place.name, { exact: true }).fill('Unser Café');
   await captureScreenshot(page, testInfo, 'place-create-390-light.png');
   await dialog
-    .getByRole('button', { name: m5s3.common.save, exact: true })
+    .getByRole('button', { name: de.common.save, exact: true })
     .click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
     'Unser Café',
   );
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await page.getByRole('button', { name: taskBoundary.back }).click();
+  await page.getByRole('button', { name: de.common.back }).click();
   await expect(page).toHaveURL(/\/more\/places\?scope=ALL$/);
   await expect(page.getByRole('link', { name: /Unser Café/ })).toBeVisible();
 
@@ -482,9 +483,7 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
   await expect(page.locator('.shared-list-items > li').first()).toContainText(
     'Sommerhaus gemeinsam',
   );
-  await page
-    .getByRole('button', { name: m5s3.collection.finishSorting, exact: true })
-    .click();
+  await page.getByRole('button', { name: de.common.done, exact: true }).click();
   await page
     .getByRole('button', {
       name: m5s3.collection.openItem.replace('{{title}}', 'Dschungelcamp'),
@@ -492,7 +491,7 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
     .click();
   dialog = page.getByRole('dialog');
   await dialog
-    .getByRole('button', { name: m5s3.common.delete, exact: true })
+    .getByRole('button', { name: de.common.delete, exact: true })
     .click();
   await expect(
     dialog.getByText(
@@ -528,16 +527,16 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
   dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
   await expect(createList).toBeHidden();
-  await dialog.getByLabel(m5s3.common.title, { exact: true }).fill('Draft');
+  await dialog.getByLabel(de.common.title, { exact: true }).fill('Draft');
   await dialog
     .getByRole('button', { name: de.common.cancel, exact: true })
     .click();
   await page
     .getByRole('button', { name: m5s3.common.keepEditing, exact: true })
     .click();
-  await expect(
-    dialog.getByLabel(m5s3.common.title, { exact: true }),
-  ).toHaveValue('Draft');
+  await expect(dialog.getByLabel(de.common.title, { exact: true })).toHaveValue(
+    'Draft',
+  );
   await dialog
     .getByRole('button', { name: de.common.cancel, exact: true })
     .click();
@@ -549,16 +548,16 @@ test('read, check, edit with failure recovery, sort, delete, create and return',
   await createList.click();
   dialog = page.getByRole('dialog');
   await dialog
-    .getByLabel(m5s3.common.title, { exact: true })
+    .getByLabel(de.common.title, { exact: true })
     .fill('Unser Wochenende');
   await dialog
-    .getByRole('button', { name: m5s3.common.save, exact: true })
+    .getByRole('button', { name: de.common.save, exact: true })
     .click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(
     'Unser Wochenende',
   );
   await captureScreenshot(page, testInfo, 'list-created-390-light.png');
-  await page.getByRole('button', { name: taskBoundary.back }).click();
+  await page.getByRole('button', { name: de.common.back }).click();
   await expect(page).toHaveURL(/\/more\/collections\?scope=ALL$/);
   await expect(
     page.getByRole('link', { name: /Unser Wochenende/ }),
@@ -600,7 +599,7 @@ test('Places archive and restore keep linked moments and the selected scope on r
     page.getByRole('link', { name: /Breakfast by the canal/ }),
   ).toBeVisible();
   await page
-    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .getByRole('button', { name: de.common.back, exact: true })
     .first()
     .click();
   await expect(page.locator('.content-overview-row')).toHaveCount(0);
@@ -616,7 +615,7 @@ test('Places archive and restore keep linked moments and the selected scope on r
     .click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await page
-    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .getByRole('button', { name: de.common.back, exact: true })
     .first()
     .click();
   await expect(page).toHaveURL(/scope=ARCHIVED/);

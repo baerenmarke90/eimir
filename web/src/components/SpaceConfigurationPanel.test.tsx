@@ -215,9 +215,7 @@ describe('SpaceConfigurationPanel', () => {
         ),
       ),
     ).toHaveLength(2);
-    expect(
-      screen.queryByText(profileIdentity.dailyContextTimezoneLabel),
-    ).toBeNull();
+    expect(screen.queryByText('Zeitzone für euren gemeinsamen Tag')).toBeNull();
     expect(
       screen.queryByText(profileIdentity.spaceModulesKeepDataNote),
     ).toBeNull();
@@ -312,7 +310,7 @@ describe('SpaceConfigurationPanel', () => {
       });
       expect(
         screen.queryByRole('combobox', {
-          name: profileIdentity.dailyContextTimezoneLabel,
+          name: 'Zeitzone für euren gemeinsamen Tag',
         }),
       ).toBeNull();
     } finally {
@@ -426,7 +424,7 @@ describe('SpaceConfigurationPanel', () => {
     });
     expect(screen.queryByRole('combobox')).toBeNull();
     expect(
-      screen.queryByLabelText(profileIdentity.dailyContextTimezoneLabel),
+      screen.queryByLabelText('Zeitzone für euren gemeinsamen Tag'),
     ).toBeNull();
   });
 

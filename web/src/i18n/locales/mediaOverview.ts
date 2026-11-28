@@ -19,7 +19,6 @@ export default {
   privateEmptyBody:
     'Hier findest du Medien aus deinen Einträgen mit der Sichtbarkeit „Nur für mich“.',
   pageError: 'Weitere Medien konnten nicht geladen werden',
-  retry: 'Erneut versuchen',
   more: 'Weitere Medien laden',
   loadingMore: 'Weitere Medien werden geladen …',
   offline: 'Du bist gerade offline',

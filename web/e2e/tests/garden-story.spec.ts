@@ -385,7 +385,7 @@ for (const scenario of [
       await expect(dialog.getByTestId('garden-playback-pair')).toBeVisible();
       await expect(dialog.locator('figure')).toHaveCount(2);
       await expect(
-        dialog.getByRole('button', { name: story.playback.close }),
+        dialog.getByRole('button', { name: de.common.close }),
       ).toBeFocused();
       await expect(dialog.getByTestId('garden-playback-toggle')).toHaveCount(0);
     } else {
@@ -394,7 +394,7 @@ for (const scenario of [
       await expect(toggle).toHaveText(story.playback.pause);
       await page.waitForTimeout(4000);
       await toggle.click();
-      await expect(toggle).toHaveText(story.playback.resume);
+      await expect(toggle).toHaveText(de.common.continue);
       const paused = await dialog
         .getByTestId('garden-playback-caption')
         .textContent();
@@ -423,7 +423,7 @@ for (const scenario of [
       await expect(dialog.getByTestId('garden-playback-caption')).toContainText(
         story.playback.today,
       );
-      await dialog.getByRole('button', { name: story.playback.close }).click();
+      await dialog.getByRole('button', { name: de.common.close }).click();
     }
     await expect(dialog).toHaveCount(0);
     await expect(play).toBeFocused();

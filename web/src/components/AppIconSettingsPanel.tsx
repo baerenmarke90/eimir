@@ -141,7 +141,7 @@ function AppIconSettings({
             className="button-link"
             onClick={() => void preference.refetch()}
           >
-            {t('appIcon.retry')}
+            {t('common.retry')}
           </button>
         </div>
       ) : null}
@@ -171,7 +171,7 @@ function AppIconSettings({
                   className="button-link"
                   onClick={() => void preference.refetch()}
                 >
-                  {t('appIcon.retry')}
+                  {t('common.retry')}
                 </button>
               </div>
             ) : null}
@@ -186,7 +186,7 @@ function AppIconSettings({
                   className="button-link"
                   onClick={() => void capability.refetch()}
                 >
-                  {t('appIcon.retry')}
+                  {t('common.retry')}
                 </button>
               </div>
             ) : null}
@@ -244,7 +244,7 @@ function AppIconSettings({
                 onClick={() => void save()}
               >
                 {mutation.isPending
-                  ? t('appIcon.saving')
+                  ? t('common.saving')
                   : preview === current
                     ? t('appIcon.selected')
                     : t('appIcon.choose', { name: previewName })}

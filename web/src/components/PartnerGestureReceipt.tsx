@@ -213,7 +213,7 @@ function receiptCopy(
         : null,
       title: getNotificationItemTitle(item, t, accountId),
       detail: null,
-      reply: t('m5s5.common.open'),
+      reply: t('common.open'),
     };
   }
   const variant = PARTNER_GESTURE_VARIANTS[item.kind];
@@ -561,7 +561,7 @@ function NotificationReceipt({
         <button
           type="button"
           className="partner-gesture-receipt-close"
-          aria-label={t('partnerGestureReceipt.close')}
+          aria-label={t('common.close')}
           onClick={onClose}
         >
           <span aria-hidden="true">×</span>

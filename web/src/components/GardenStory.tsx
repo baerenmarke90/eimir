@@ -404,7 +404,7 @@ export function MemoryPlantCard({
       <p>{t(`games.garden.story.pieces.${plant.piece}`)}</p>
       <div className="garden-card-actions">
         <button type="button" className="secondary" onClick={onClose}>
-          {t('games.garden.close')}
+          {t('common.close')}
         </button>
         <Link className="button-link" to={milestoneDetailPath(plant.id)}>
           {t('games.garden.story.open')}

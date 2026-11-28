@@ -386,7 +386,9 @@ test('the Wish composer creates, edits and returns through the saved Wish', asyn
   await wishes.click();
   await page.getByRole('link', { name: m5s3.overview.addWish }).click();
 
-  await expect(page.getByText(m5s3.wish.sharedBody)).toHaveCount(0);
+  await expect(
+    page.getByText('Dieser Wunsch ist automatisch für euch beide sichtbar.'),
+  ).toHaveCount(0);
   await expect(page.getByText(m5s3.plan.sharedBody)).toHaveCount(0);
   expect(
     await page
@@ -424,15 +426,13 @@ test('the Wish composer creates, edits and returns through the saved Wish', asyn
     await descriptionField.evaluate((field) => field.clientHeight),
   ).toBeGreaterThan(emptyHeight);
   await page
-    .getByRole('button', { name: taskBoundary.close, exact: true })
+    .getByRole('button', { name: de.common.close, exact: true })
     .click();
   await page.getByRole('button', { name: taskBoundary.keepEditing }).click();
   await expect(descriptionField).toHaveValue(description);
   await captureR3Evidence(page, testInfo, 'r3-create-wish-390-light.png');
 
-  await page
-    .getByRole('button', { name: m5s3.common.save, exact: true })
-    .click();
+  await page.getByRole('button', { name: de.common.save, exact: true }).click();
   await expect(page).toHaveURL(/\/plan\/wishes\/wish-created$/);
   expect(calls.wishCreates).toBe(1);
   const prose = page.locator('.wish-detail .authored-text');
@@ -450,9 +450,7 @@ test('the Wish composer creates, edits and returns through the saved Wish', asyn
     .click();
   await expect(prose).not.toContainText(ending);
 
-  await page
-    .getByRole('button', { name: taskBoundary.back, exact: true })
-    .click();
+  await page.getByRole('button', { name: de.common.back, exact: true }).click();
   await expect(wishes).toHaveAttribute('aria-selected', 'true');
   await page.getByRole('link', { name: new RegExp(title) }).click();
   await expect(prose).toContainText(opening);
@@ -460,17 +458,17 @@ test('the Wish composer creates, edits and returns through the saved Wish', asyn
   // Edit and Delete live in the item menu; the menu button regains focus.
   const edit = itemMenuTrigger(page);
   await editViaMenu(page, de.common.edit);
-  const editTitle = writing.getByLabel(m5s3.common.title, { exact: true });
+  const editTitle = writing.getByLabel(de.common.title, { exact: true });
   const editDescription = writing.getByLabel(m5s3.common.description);
   const save = page.getByRole('button', { name: m5s3.common.saveChanges });
   await expect(editTitle).toHaveValue(title);
   await expect(editTitle).not.toBeFocused();
-  await expect(save).toHaveText(m5s3.common.save);
+  await expect(save).toHaveText(de.common.save);
   await expect(page.locator('.mobile-bottom-shell')).toBeHidden();
   await expect(page.getByText(m5s3.wish.actionsHeading)).toHaveCount(0);
   // Deleting is not offered inside the editor.
   await expect(
-    page.getByRole('button', { name: m5s3.common.delete, exact: true }),
+    page.getByRole('button', { name: de.common.delete, exact: true }),
   ).toHaveCount(0);
   await expect(editDescription).toHaveValue(description);
   expect(
@@ -522,13 +520,13 @@ test('the Wish composer creates, edits and returns through the saved Wish', asyn
   const deleteConfirm = page.getByRole('alertdialog', {
     name: m5s3.common.deleteHeading,
   });
-  await deleteViaMenu(page, m5s3.common.delete);
+  await deleteViaMenu(page, de.common.delete);
   await expect(deleteConfirm).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(deleteConfirm).toHaveCount(0);
   await expect(edit).toBeFocused();
   expect(calls.wishDeletes).toBe(0);
-  await deleteViaMenu(page, m5s3.common.delete);
+  await deleteViaMenu(page, de.common.delete);
   await deleteConfirm
     .getByRole('button', { name: m5s3.common.confirmDelete })
     .click();
@@ -643,7 +641,7 @@ test('an undated Plan is valid while optional context remains available', async 
     .getByRole('dialog', { name: m5s3.common.place, exact: true })
     .getByRole('button', { name: 'Berlin', exact: true })
     .click();
-  await page.getByRole('button', { name: m5s3.common.save }).click();
+  await page.getByRole('button', { name: de.common.save }).click();
 
   await expect(page).toHaveURL(/\/plan\/plans\/plan-created$/);
   expect(calls.planCreates).toBe(1);
@@ -664,13 +662,13 @@ test('failed save preserves the focused task and dirty cancellation requires con
 
   const intention = page.getByLabel(m5s3.plan.intentionLabel);
   await intention.fill('Our next adventure');
-  await page.getByRole('button', { name: m5s3.common.save }).click();
+  await page.getByRole('button', { name: de.common.save }).click();
   await expect(page.getByRole('alert')).toBeVisible();
   await expect(intention).toHaveValue('Our next adventure');
 
   await page
     .locator('.composer-header')
-    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .getByRole('button', { name: de.common.back, exact: true })
     .click();
   await expect(
     page.getByRole('alertdialog', { name: taskBoundary.discardTitle }),
@@ -692,7 +690,7 @@ test('the focused task remains reachable at 200% layout zoom', async ({
   await expectNoHorizontalOverflow(page);
   await expect(page.getByLabel(m5s3.plan.intentionLabel)).toBeVisible();
   await expect(
-    page.getByRole('button', { name: m5s3.common.save }),
+    page.getByRole('button', { name: de.common.save }),
   ).toBeVisible();
   await captureR3Evidence(
     page,
@@ -724,7 +722,7 @@ test('a weekend without times is saved as one multi-day date-only Plan', async (
   await sheet.getByRole('button', { name: 'Fertig' }).click();
   await expect(page.locator('.composer-schedule-trigger')).toContainText('22.');
 
-  await page.getByRole('button', { name: m5s3.common.save }).click();
+  await page.getByRole('button', { name: de.common.save }).click();
   await expect(page).toHaveURL(/\/plan\/plans\/plan-created$/);
   expect(calls.planCreates).toBe(1);
   expect(calls.lastPlanBody?.schedule).toEqual({

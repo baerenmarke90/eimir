@@ -1092,9 +1092,15 @@ for (const [width, theme] of [
         ),
       ).toBeGreaterThanOrEqual(14);
     }
-    await expect(surface.getByText(copy.intro)).toHaveCount(0);
-    await expect(surface.getByText(copy.thinkingHint)).toHaveCount(0);
-    await expect(surface.getByText(copy.checkInHint)).toHaveCount(0);
+    await expect(
+      surface.getByText('Kleine Gesten direkt an deinen Partner.'),
+    ).toHaveCount(0);
+    await expect(surface.getByText('Ein kurzer lieber Gruß.')).toHaveCount(0);
+    await expect(
+      surface.getByText(
+        'Ein sanfter Check-in – ohne Vibe oder Status offenzulegen.',
+      ),
+    ).toHaveCount(0);
     const entry = surface.getByRole('link', {
       name: new RegExp(onceCopy.title),
     });
@@ -1193,7 +1199,7 @@ for (const width of [390, 1280]) {
     await expect(gallery).toBeVisible();
     await expect(gallery.locator('img')).toBeVisible();
     await expect(
-      gallery.getByRole('button', { name: storyProducts.gallery.close }),
+      gallery.getByRole('button', { name: de.common.close }),
     ).toBeFocused();
     await expectNoHorizontalOverflow(page);
     await expectNoWcagViolations(page);
@@ -1446,7 +1452,7 @@ for (const scenario of [
     );
 
     // The same notification never animates again on a later refresh.
-    await receipt.getByRole('button', { name: receiptCopy.close }).click();
+    await receipt.getByRole('button', { name: de.common.close }).click();
     await expect(receiptLocator(page)).toHaveCount(0);
     await refreshUnreadCount(page);
     await page.waitForTimeout(300);

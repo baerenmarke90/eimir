@@ -133,7 +133,7 @@ export function OrderedMomentPlacesField({
             disabled={pending}
             onClick={() => sheet.current?.requestClose()}
           >
-            {t('experiences.finish')}
+            {t('common.done')}
           </button>
         }
       >

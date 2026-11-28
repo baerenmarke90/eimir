@@ -154,10 +154,10 @@ function PreferencesContent({
           disabled={pending}
           onClick={onSave}
         >
-          {pending ? t('dailyQuote.saving') : t('dailyQuote.done')}
+          {pending ? t('common.saving') : t('common.done')}
         </button>
         <button type="button" disabled={pending} onClick={onCancel}>
-          {t('dailyQuote.cancel')}
+          {t('common.cancel')}
         </button>
       </div>
     </div>
@@ -395,7 +395,7 @@ export function DailyQuoteCard({
             className="daily-quote-retry"
             onClick={retryEntitlement}
           >
-            {t('dailyQuote.retry')}
+            {t('common.retry')}
           </button>
         }
       >
@@ -441,7 +441,7 @@ export function DailyQuoteCard({
             className="daily-quote-retry"
             onClick={retryQuote}
           >
-            {t('dailyQuote.retry')}
+            {t('common.retry')}
           </button>
         }
       >
@@ -551,7 +551,7 @@ export function DailyQuoteCard({
                 void catalogQuery.refetch();
               }}
             >
-              {t('dailyQuote.retry')}
+              {t('common.retry')}
             </button>
           </div>
         ) : preferenceReady ? (

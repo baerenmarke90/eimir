@@ -185,7 +185,7 @@ function setup(mode: 'detail' | 'edit' = 'detail') {
     await openMenu();
     await userEvent
       .setup()
-      .click(screen.getByRole('button', { name: memoryProduct.delete }));
+      .click(screen.getByRole('button', { name: de.common.delete }));
     return screen.getByRole('button', {
       name: memoryProduct.deleteConfirm,
     });
@@ -525,7 +525,7 @@ describe('Memory delete response and task ownership', () => {
       .click(screen.getByRole('link', { name: 'Return to first memory' }));
     await s.openMenu();
     const pending = await screen.findByRole('button', {
-      name: memoryProduct.delete,
+      name: de.common.delete,
     });
     expect(pending.hasAttribute('disabled')).toBe(true);
     await s.settle();

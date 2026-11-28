@@ -472,8 +472,8 @@ export function PlacesOverviewPage({
                 ) : null}
                 <button type="submit" disabled={createPlace.isPending}>
                   {createPlace.isPending
-                    ? t('m5s3.common.saving')
-                    : t('m5s3.common.save')}
+                    ? t('common.saving')
+                    : t('common.save')}
                 </button>
                 {createPlace.error ? (
                   <ProblemState error={createPlace.error} />

@@ -1,6 +1,5 @@
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import planning from '../../src/i18n/locales/m5s3';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import copy from '../../src/i18n/locales/wishSelection';
 import localizedFixtures from '../fixtures/locales/de';
 import AxeBuilder from '../support/axe';
@@ -14,6 +13,7 @@ import {
   SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
+import germanUi from '../../src/i18n/locales/de';
 
 const demo = localizedFixtures.wishSelection;
 const ROOT = `/api/v1/spaces/${SPACE_ID}`;
@@ -426,7 +426,9 @@ test('mobile round -> private selection -> shared favorite -> canonical dated Pl
     page.locator('.wish-selection-pick-bar').getByRole('status'),
   ).toHaveText(copy.selected.replace('{{count}}', '2'));
   await capture(page, info, 'pick-wishes-390-light');
-  await page.getByRole('button', { name: copy.pickDone, exact: true }).click();
+  await page
+    .getByRole('button', { name: germanUi.common.done, exact: true })
+    .click();
   await expect(
     page.getByText(copy.sourceCount.replace('{{count}}', '2'), {
       exact: true,
@@ -475,7 +477,7 @@ test('mobile round -> private selection -> shared favorite -> canonical dated Pl
   ).toEqual({ plannedOn: '2026-11-01' });
   await page
     .locator('.composer-header')
-    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .getByRole('button', { name: germanUi.common.back, exact: true })
     .click();
   await expect(page).toHaveURL(/\/plan\/choose$/);
   await expect(
@@ -741,7 +743,7 @@ for (const scenario of [
         await page.getByRole('checkbox', { name: demo.wishes[0] }).check();
         await page.getByRole('checkbox', { name: demo.wishes[1] }).check();
         await page
-          .getByRole('button', { name: copy.pickDone, exact: true })
+          .getByRole('button', { name: germanUi.common.done, exact: true })
           .click();
         await page
           .getByRole('button', { name: copy.start, exact: true })

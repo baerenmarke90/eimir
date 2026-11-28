@@ -27,6 +27,7 @@ import {
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import m5s3 from '../i18n/locales/m5s3';
 import { CollectionProductPage } from './CollectionProductPage';
+import germanUi from '../i18n/locales/de';
 
 class MemoryLocalStorage implements Storage {
   private readonly values = new Map<string, string>();
@@ -754,7 +755,9 @@ describe('CollectionProductPage shopping list composition (#1808)', () => {
           }),
         ),
       ).toBeTruthy();
-      await user.click(screen.getByRole('button', { name: endText.dismiss }));
+      await user.click(
+        screen.getByRole('button', { name: germanUi.common.close }),
+      );
       await waitFor(() => expect(screen.queryByText(endText.title)).toBeNull());
     });
 

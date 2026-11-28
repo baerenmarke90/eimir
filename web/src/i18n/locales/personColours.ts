@@ -2,8 +2,6 @@ const personColours = {
   title: 'Eure Farben',
   choices: 'Farben auswählen',
   change: 'Farben auswählen',
-  close: 'Schließen',
-  current: 'Aktuell',
   help: 'Wähle die Farben, in denen du dich und deine Partnerperson siehst – nur für deine Ansicht.',
   order:
     'Zuerst deine Farbe, dann die deiner Partnerperson. Deine Partnerperson wählt ihre eigene. Automatisch ist immer verfügbar, eigene Farbpaare kannst du mit Pro auswählen. Ein gespeichertes Paar bleibt auch danach erhalten.',
@@ -14,13 +12,10 @@ const personColours = {
   proLoading: 'Pro wird geprüft …',
   proUnavailable:
     'Pro konnte gerade nicht geprüft werden. Automatisch kannst du weiterhin auswählen.',
-  retry: 'Erneut versuchen',
   denied:
     'Für eine neue Auswahl brauchst du Pro. Deine bisherigen Farben bleiben erhalten.',
   pair: '{{own}} + {{partner}}',
   hint: 'Du: {{own}}, Partnerperson: {{partner}}',
-  save: 'Speichern',
-  saving: 'Wird gespeichert …',
   selected: 'Ausgewählt',
   saved: 'Farben wurden gespeichert.',
   offline:

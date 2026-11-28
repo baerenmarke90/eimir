@@ -96,7 +96,6 @@ const memoryWorlds = {
     viewer: {
       kicker: 'Aus eurem Tagebuch',
       openInDiary: 'Im Tagebuch öffnen',
-      close: 'Schließen',
     },
     modern: {
       heading: 'Euer Tagebuch, frisch gedruckt',
@@ -106,7 +105,6 @@ const memoryWorlds = {
         shot: '{{shot}}/{{shots}}',
         wait: 'Moment',
         print: 'Druckt',
-        done: 'Fertig',
       },
       printSpoken: 'Euer Streifen wird gedruckt',
       doneSpoken: 'Euer Streifen ist fertig',

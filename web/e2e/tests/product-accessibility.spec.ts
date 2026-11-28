@@ -1428,7 +1428,7 @@ test.describe('Space configuration Daily Check-in modules', () => {
       name: profileIdentity.vibeCheckToggle,
     });
     const zoneSelect = page.getByRole('combobox', {
-      name: profileIdentity.dailyContextTimezoneLabel,
+      name: 'Zeitzone für euren gemeinsamen Tag',
     });
     await expect(energySwitch).toHaveAttribute('aria-checked', 'false');
     await expect(vibeSwitch).toHaveAttribute('aria-checked', 'false');
@@ -1657,7 +1657,7 @@ test.describe('Complete Settings pages reflow (#1162)', () => {
     await vibeSwitch.click();
     await expect(vibeSwitch).toHaveAttribute('aria-checked', 'true');
     const zoneSelect = page.getByRole('combobox', {
-      name: profileIdentity.dailyContextTimezoneLabel,
+      name: 'Zeitzone für euren gemeinsamen Tag',
     });
     await expect(zoneSelect).toHaveCount(0);
     expect(unexpectedRequests.spaceConfigurationPatches).toEqual([
@@ -2117,14 +2117,14 @@ test('Place, Collection, and Chapter editors honor browser focus and history', a
   await page.goto('/plan/collections/collection-1');
   const collectionEdit = itemMenuTrigger(page);
   await editViaMenu(page, de.common.edit);
-  await expect(page.getByLabel(m5s3.common.title)).toBeFocused();
+  await expect(page.getByLabel(de.common.title)).toBeFocused();
   await page.goBack();
   await expect(collectionEdit).toBeFocused();
 
   await page.goto('/plan/chapters/chapter-1');
   const chapterEdit = itemMenuTrigger(page);
   await editViaMenu(page, de.common.edit);
-  await expect(page.getByLabel(m5s3.common.title)).toBeFocused();
+  await expect(page.getByLabel(de.common.title)).toBeFocused();
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
   await page.screenshot({
@@ -2136,7 +2136,7 @@ test('Place, Collection, and Chapter editors honor browser focus and history', a
 
   await page.setViewportSize({ width: 1440, height: 900 });
   await editViaMenu(page, de.common.edit);
-  await expect(page.getByLabel(m5s3.common.title)).toBeFocused();
+  await expect(page.getByLabel(de.common.title)).toBeFocused();
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
   await page.screenshot({
@@ -2260,7 +2260,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         page.getByRole('button', { name: navigation.quickCreateTitle }),
       ).toBeVisible();
       await expect(
-        page.getByRole('button', { name: navigation.newContent }),
+        page.getByRole('button', { name: 'Neu festhalten' }),
       ).toHaveCount(0);
       await expectNoHorizontalOverflow(page);
       const inHeader = await navigationRegion.evaluate((element) =>

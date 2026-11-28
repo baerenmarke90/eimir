@@ -302,7 +302,6 @@ const proPaywall = {
   active: {
     title: 'eimir. Pro ist für euch aktiv.',
     body: 'Euer Pro-Zugang gilt für euren gemeinsamen Bereich und damit für euch beide.',
-    continue: 'Weiter',
   },
   statusUnknown:
     'Euer Pro-Status konnte gerade nicht geprüft werden. Eure Inhalte sind davon nicht betroffen.',
@@ -355,7 +354,6 @@ const proPaywall = {
         body: 'Ihr habt eimir. Pro jetzt bis {{date}}.',
       },
     },
-    done: 'Fertig',
     errors: {
       invalid:
         'Dieser Code ist ungültig oder abgelaufen. Prüft bitte die Schreibweise.',
@@ -368,7 +366,6 @@ const proPaywall = {
       network: 'Das hat gerade nicht geklappt. Versucht es noch einmal.',
     },
   },
-  settingsAction: 'Tarife ansehen',
   contextAction: 'Mit eimir. Pro entdecken',
 };
 

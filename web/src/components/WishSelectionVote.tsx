@@ -104,7 +104,7 @@ export function WishSelectionVote({
           <button type="submit" disabled={busy || !canPublish}>
             {t(
               busy
-                ? 'wishSelection.saving'
+                ? 'common.saving'
                 : favoriteTotal
                   ? 'wishSelection.share'
                   : 'wishSelection.shareNone',

@@ -3,7 +3,6 @@ const wishSelection = {
   entryHint: 'Wünsche & Date-Ideen',
   entryRunning: 'Eure Runde läuft',
   entryStart: 'Auswählen',
-  entryContinue: 'Weiter',
   setupTitle: 'Was kommt in die Runde?',
   stepsLabel: 'So funktioniert es',
   stepCollect: 'Sammelt zwei bis fünf Ideen',
@@ -21,7 +20,6 @@ const wishSelection = {
   sourceIdeasBody: 'Kuratierte Ideen mit Bild, Dauer und Budget',
   sourceCount: '{{count}} dabei',
   ideasTitle: 'Neue Date-Ideen',
-  pickDone: 'Fertig',
   occasion: 'Anlass · optional',
   occasionPlaceholder: 'Zum Beispiel: Unser Wochenende',
   openWishes: 'Eure offenen Wünsche',
@@ -87,7 +85,6 @@ const wishSelection = {
   changeIdeas: 'Andere Wünsche auswählen',
   wishSource: 'Aus euren Wünschen',
   ideaSource: 'Aus den Date-Ideen',
-  ideaSourceShort: 'Date-Idee',
   sharedIdea: 'Ihr habt beide Lust auf',
   ideaResultNote:
     'Ein gemeinsamer Treffer ist noch kein Plan. Erst wenn ihr speichert, entsteht ein Wunsch oder Plan.',
@@ -126,8 +123,6 @@ const wishSelection = {
   closeBody:
     'Die Runde und eure persönlichen Favoriten werden entfernt. Eure Wünsche und bereits erstellten Pläne bleiben erhalten.',
   closeConfirm: 'Auswahl beenden',
-  preparing: 'Wird vorbereitet …',
-  saving: 'Wird gespeichert …',
   offline:
     'Noch nicht gespeichert. Verbinde dich mit dem Internet und versuche es erneut.',
   stepResultBody: 'Uneinig? Dann darf auf Wunsch der Zufall entscheiden.',

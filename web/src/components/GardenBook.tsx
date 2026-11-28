@@ -148,10 +148,10 @@ export function GardenBook({
                 setRenaming(false);
               }}
             >
-              {t('games.garden.cancel')}
+              {t('common.cancel')}
             </button>
             <button type="submit" disabled={busy}>
-              {t('games.garden.growth.save')}
+              {t('common.save')}
             </button>
           </div>
         </form>

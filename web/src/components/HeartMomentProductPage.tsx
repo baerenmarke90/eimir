@@ -671,6 +671,16 @@ export function HeartMomentProductPage({
           queryClient,
           saved.spaceId,
           saved.attachments ?? (saved.attachment ? [saved.attachment] : []),
+          {
+            previous:
+              current.attachments ??
+              (current.attachment ? [current.attachment] : []),
+            parent: {
+              apiClient: apis.attachments,
+              type: 'HEART_MOMENT',
+              id: saved.id,
+            },
+          },
         );
         await bindVideoTransferTargets(
           spaceId,

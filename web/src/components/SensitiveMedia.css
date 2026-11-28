@@ -28,14 +28,23 @@
 .sensitive-media-hint {
   position: relative;
   display: grid;
-  justify-items: center;
-  gap: var(--space-1);
-  padding: var(--space-3) var(--space-4);
+  grid-template-columns: auto auto;
+  align-items: center;
+  column-gap: var(--space-2);
+  max-inline-size: calc(100% - 2 * var(--space-4));
+  padding: var(--space-2) var(--space-4) var(--space-2) var(--space-3);
   border-radius: var(--radius-large);
   background: var(--color-surface-overlay);
   color: var(--color-text);
-  font: var(--font-action-label);
-  text-align: center;
+  font: var(--font-supporting-copy);
+  font-weight: 600;
+  text-align: start;
+}
+/* Without a size the icon fills the whole hint. */
+.sensitive-media-hint .eimir-icon {
+  grid-row: span 2;
+  inline-size: var(--icon-size-standard);
+  block-size: var(--icon-size-standard);
 }
 .sensitive-media-hint-action {
   color: var(--color-text-secondary);

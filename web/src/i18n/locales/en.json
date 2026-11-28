@@ -1941,6 +1941,7 @@
     "relationshipSave": "Save changes",
     "relationshipSaving": "Saving …",
     "relationshipSaved": "Changes saved.",
+    "menu": "Profile menu",
     "selfTitle": "My preferences",
     "selfIntro": "These details belong to your profile and may be shown to your partner.",
     "partnerTitle": "{{name}}'s profile",

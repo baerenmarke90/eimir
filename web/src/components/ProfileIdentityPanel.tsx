@@ -22,7 +22,6 @@ import { defaultAvatarUrl } from '../client/defaultAvatar';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
 import { useTranslation } from '../i18n';
 import { AvatarPhoto } from './AvatarPhoto';
-import { ListEntryIconButton } from './ListEntryActions';
 import { NativeDateField } from './NativeDateField';
 import { PhotoCropTask } from './PhotoCropTask';
 import './PeopleProfiles.css';
@@ -48,15 +47,17 @@ export function ProfileIdentityPanel({
   account,
   spaceId,
   onDisplayNameChanged,
+  editRequest = 0,
 }: {
   apiBaseUrl: string;
   accessToken: string;
   account: AccountView;
   spaceId: string;
   onDisplayNameChanged: (displayName: string) => void;
+  /** Raised by the page's actions menu: opens the editor once per change. */
+  editRequest?: number;
 }) {
   const { t, i18n } = useTranslation();
-  const editIdentityButtonRef = useRef<HTMLButtonElement>(null);
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const changeAvatarButtonRef = useRef<HTMLButtonElement>(null);
@@ -156,7 +157,6 @@ export function ProfileIdentityPanel({
     onSuccess: async (profile) => {
       await acceptUpdatedProfile(profile);
       setEditingIdentity(false);
-      requestAnimationFrame(() => editIdentityButtonRef.current?.focus());
     },
   });
 
@@ -258,12 +258,16 @@ export function ProfileIdentityPanel({
   function closeEditor() {
     saveMutation.reset();
     setEditingIdentity(false);
-    requestAnimationFrame(
-      () =>
-        document.activeElement === document.body &&
-        editIdentityButtonRef.current?.focus(),
-    );
   }
+
+  // Editing starts from the page's actions menu; it opens once its data is in.
+  const handledEditRequest = useRef(0);
+  useEffect(() => {
+    if (editRequest === handledEditRequest.current || !profileQuery.data)
+      return;
+    handledEditRequest.current = editRequest;
+    openEditor();
+  });
 
   function submitIdentity(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -462,14 +466,6 @@ export function ProfileIdentityPanel({
                   <h2 className="profile-identity-display-name">
                     {visibleName}
                   </h2>
-                  <ListEntryIconButton
-                    ref={editIdentityButtonRef}
-                    icon="edit"
-                    label={t('profileIdentity.editProfile')}
-                    disabled={pending}
-                    aria-expanded={false}
-                    onClick={openEditor}
-                  />
                   <VisibilityBadge
                     visibility="SHARED"
                     size="small"

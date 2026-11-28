@@ -273,16 +273,6 @@ test('two devices exchange actual encrypted content, deliberately reveal once an
     await expect(receiver.locator('.once-handwriting .sr-only')).toHaveText(
       WORDS,
     );
-    // The page title steps back visually but stays the page's heading.
-    const title = receiver.getByRole('heading', {
-      level: 1,
-      name: copy.title,
-      exact: true,
-    });
-    await expect(title).toHaveCount(1);
-    expect(
-      await title.evaluate((element) => element.getBoundingClientRect().height),
-    ).toBeLessThanOrEqual(1);
     await expect(handwriting).toHaveAttribute('data-phase', 'playing');
     await receiver.waitForTimeout(1_100);
     await captureScreenshot(

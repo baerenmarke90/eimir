@@ -570,9 +570,6 @@ function OnceTask({
   const header = (
     <PageHeader
       title={t('onceMessages.title')}
-      // #2372: while a message is open, its words lead; the page title stays
-      // only for assistive technology (Product Owner, 2026-11-28).
-      className={mode === 'read' && content ? 'once-heading-quiet' : ''}
       titleContext={mode === 'compose' ? <ProMark label="Pro" /> : undefined}
       before={
         <TaskBackButton

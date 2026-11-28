@@ -1334,6 +1334,18 @@ test('a foreground Wish invitation opens the private favorites directly', async 
   await expect(
     page.getByRole('heading', { name: wishSelection.chooseTitle }),
   ).toBeVisible();
+  // #2371: the first choice starts as a card deck; leaving every card out
+  // reaches the summary that offers sending without a favourite.
+  const skip = page.getByRole('button', {
+    name: wishSelection.deckSkip,
+    exact: true,
+  });
+  await expect(skip).toBeVisible();
+  for (let card = 0; card < 6; card += 1) {
+    if (!(await skip.isVisible()) || !(await skip.isEnabled())) break;
+    await skip.click();
+  }
+  await expect(skip).toHaveCount(0);
   await expect(
     page.getByRole('button', { name: wishSelection.shareNone }),
   ).toBeVisible();

@@ -302,8 +302,19 @@ test('Pro: combine a Wish and date ideas, choose privately, plan the common idea
   expect(selection.rounds).toEqual([
     { wishIds: [WISH.id], dateIdeaIds: [FIRST.id, SECOND.id] },
   ]);
-  await page.getByRole('button', { name: FIRST.title, exact: true }).click();
-  await page.getByRole('button', { name: WISH.title, exact: true }).click();
+  // #2371: the deck shows the Wish first, then the ideas in round order.
+  const like = page.getByRole('button', { name: copy.deckLike, exact: true });
+  const skip = page.getByRole('button', { name: copy.deckSkip, exact: true });
+  await like.click();
+  await like.click();
+  await skip.click();
+  await expect(skip).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: FIRST.title, exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await expect(
+    page.getByRole('button', { name: WISH.title, exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
   await captureScreenshot(
     page,
     info,

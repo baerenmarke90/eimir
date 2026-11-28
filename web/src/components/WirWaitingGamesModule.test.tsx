@@ -20,6 +20,17 @@ import {
   waitingGamesQueryKey,
 } from './WirWaitingGamesModule';
 
+// The reel style comes from the personal appearance (#2345); `null` is circles.
+const reelStyle = vi.hoisted(() => ({
+  value: null as null | {
+    style: 'circles' | 'tiles' | 'chips';
+    pending: boolean;
+  },
+}));
+vi.mock('../client/wirReelStyleContext', () => ({
+  useWirReelStyleId: () => reelStyle.value,
+}));
+
 const ME = 'me';
 const SPACE = 'space';
 const SINCE = new Date('2026-11-21T10:00:00Z');
@@ -64,6 +75,7 @@ function renderModule({
 
 afterEach(() => {
   cleanup();
+  reelStyle.value = null;
 });
 
 describe('WirWaitingGamesModule', () => {
@@ -162,5 +174,59 @@ describe('WirWaitingGamesModule', () => {
       ).toEqual([]),
     );
     expect(container.innerHTML).toBe('');
+  });
+
+  it('shows game tiles with the title and the reason in the tiles style (#2345)', async () => {
+    reelStyle.value = { style: 'tiles', pending: false };
+    renderModule({
+      waiting: {
+        items: [{ game: 'HEART_HUNT', reason: 'SEEK', since: SINCE }],
+      },
+    });
+    const section = await screen.findByRole('region', {
+      name: i18n.t('games.waiting.title'),
+    });
+    expect(section.querySelector('ul')?.className).toContain('wir-reel-tiles');
+    const tile = section.querySelector('a');
+    expect(tile?.className).toContain('wir-gtile');
+    expect(tile?.textContent).toContain(
+      i18n.t('games.entries.heartHunt.title'),
+    );
+    expect(tile?.textContent).toContain(
+      i18n.t('games.waiting.reasons.HEART_HUNT'),
+    );
+  });
+
+  it('renders nothing while the reel style is not known yet', async () => {
+    reelStyle.value = { style: 'circles', pending: true };
+    const { container, getWaitingGames } = renderModule({
+      waiting: {
+        items: [{ game: 'HEART_HUNT', reason: 'SEEK', since: SINCE }],
+      },
+    });
+    await waitFor(() => expect(getWaitingGames).toHaveBeenCalledTimes(1));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(container.innerHTML).toBe('');
+  });
+
+  it('shows a chip with the short game label in the chips style (#2345)', async () => {
+    reelStyle.value = { style: 'chips', pending: false };
+    renderModule({
+      waiting: {
+        items: [{ game: 'PICTURE_PING_PONG', reason: 'DRAW', since: SINCE }],
+      },
+    });
+    const section = await screen.findByRole('region', {
+      name: i18n.t('games.waiting.title'),
+    });
+    expect(section.querySelector('ul')?.className).toContain('wir-reel-chips');
+    expect(section.querySelector('h2')?.className).not.toContain('sr-only');
+    const chip = section.querySelector('a.wir-gchip');
+    expect(chip?.querySelector('.wir-gchip-text')?.textContent).toBe(
+      i18n.t('games.waiting.labels.PICTURE_PING_PONG'),
+    );
+    expect(chip?.textContent).toContain(
+      i18n.t('games.waiting.reasons.PICTURE_PING_PONG'),
+    );
   });
 });

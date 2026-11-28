@@ -1509,6 +1509,10 @@ function WishSelectionTask({
           }
           candidateMedia={candidateMedia}
           ideasLang={ideasLang}
+          startWithDeck={
+            ownSelectionIds(view).length + ownIdeaSelectionIds(view).length ===
+            0
+          }
         />
       ) : null}
 

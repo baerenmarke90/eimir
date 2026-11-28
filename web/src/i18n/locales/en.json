@@ -6728,7 +6728,9 @@
     "todayAnniversary_other": "{{count}} years ago today",
     "todayRelationshipStart": "Your story begins today",
     "todayOwnBirthday": "Happy birthday to you",
-    "todayPartnerBirthday": "Happy birthday, {{name}}"
+    "todayPartnerBirthday": "Happy birthday, {{name}}",
+    "daysTogether_one": "{{days}} day together",
+    "daysTogether_other": "{{days}} days together"
   },
   "sharedNotes": {
     "title": "Notes",

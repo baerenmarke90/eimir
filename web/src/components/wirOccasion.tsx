@@ -2,10 +2,11 @@
  * Today's occasion for the Wir important-day Moment (#2072). It reuses the
  * occasion matching of `OccasionMark` and the shared occasion queries.
  *
- * Only occasions visible to the viewer qualify: the relationship start and
- * both partners' birthdays (`collectSpaceOccasions`), and shared important
- * dates that are not linked to a related person. Private dates and discreet
- * or surprise plans never surface.
+ * Only occasions visible to the viewer qualify: the relationship start (its
+ * anniversary and its round days), both partners' birthdays
+ * (`collectSpaceOccasions`), and shared important dates that are not linked
+ * to a related person. Private dates and discreet or surprise plans never
+ * surface.
  *
  * Wir does not fetch the important-date list for this. The dashboard it
  * already loads lists today's shared important dates in `upcoming`, filtered
@@ -24,8 +25,9 @@ import {
 } from '../client/occasionMatches';
 import { usePartnerNickname } from '../client/partnerNickname';
 import { firstNameFromDisplayName } from '../client/personalName';
+import { ROUND_DAYS } from '../client/storyWaymarks';
 import { useSpaceOccasions } from '../client/useSpaceOccasions';
-import { useTranslation } from '../i18n';
+import { resolvedLocale, useTranslation } from '../i18n';
 import { occasionMarkText } from './OccasionMark';
 import { localDay, type WirOccasion } from './wirImportantDay';
 
@@ -101,14 +103,75 @@ export function sharedDatesToday(
     }));
 }
 
-/** Today's occasion for Wir: the first by rank, or null. */
+const DAY_MS = 86_400_000;
+
+/** Whole days from the relationship start (date-only) to `today`. */
+function daysSince(start: Date, today: Date): number {
+  const origin = Date.UTC(
+    start.getUTCFullYear(),
+    start.getUTCMonth(),
+    start.getUTCDate(),
+  );
+  return Math.round((today.getTime() - origin) / DAY_MS);
+}
+
+function localeNumber(value: number): string {
+  return new Intl.NumberFormat(resolvedLocale()).format(value);
+}
+
+/**
+ * Today's occasion for Wir: the first by rank, or null.
+ *
+ * #2370 (Product Owner, 2026-11-28): on the anniversary the quiet line below
+ * the heart shows the days together instead of repeating the anniversary,
+ * and a round day together (`ROUND_DAYS`) is an occasion of its own, ranked
+ * after the anniversary and before birthdays and shared dates. In both, the
+ * count rolls into place during the Moment.
+ */
 export function wirOccasionFor(
   occasions: readonly SpaceOccasion[],
   day: string,
   t: TFunction,
   nicknameFor: (accountId: string) => string | null,
+  formatNumber: (value: number) => string = localeNumber,
 ): WirOccasion | null {
-  const match = occasionsOn(dayDate(day), null, occasions)[0];
+  const today = dayDate(day);
+  const match = occasionsOn(today, null, occasions)[0];
+  const start = occasions.find(
+    (occasion) => occasion.kind === 'relationship',
+  )?.date;
+  const days = start ? daysSince(start, today) : null;
+  const daysTogether = (value: number) => {
+    const formatted = formatNumber(value);
+    return {
+      text: t('occasionMarks.daysTogether', { count: value, days: formatted }),
+      formatted,
+    };
+  };
+  if (match?.kind === 'relationship' && match.years > 0 && days !== null) {
+    const count = daysTogether(days);
+    return {
+      playKey: `${day}|${occasionTag(match.key)}`,
+      primary: primaryCopy(match, t, nicknameFor),
+      secondary: count.text,
+      birthday: null,
+      count: { line: 'secondary', formatted: count.formatted },
+    };
+  }
+  if (
+    match?.kind !== 'relationship' &&
+    days !== null &&
+    ROUND_DAYS.includes(days)
+  ) {
+    const count = daysTogether(days);
+    return {
+      playKey: `${day}|${occasionTag(`round-day:${days}`)}`,
+      primary: count.text,
+      secondary: '',
+      birthday: null,
+      count: { line: 'primary', formatted: count.formatted },
+    };
+  }
   if (!match) return null;
   return {
     playKey: `${day}|${occasionTag(match.key)}`,
@@ -117,6 +180,7 @@ export function wirOccasionFor(
       match.kind === 'custom' ? '' : occasionMarkText(match, t, nicknameFor),
     birthday:
       match.kind === 'birthday' ? (match.isViewer ? 'own' : 'partner') : null,
+    count: null,
   };
 }
 

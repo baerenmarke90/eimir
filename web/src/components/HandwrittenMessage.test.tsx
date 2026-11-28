@@ -11,7 +11,7 @@ import { resetScreenBudgetForTests } from '../motion/budget';
 import { resetMomentsForTests } from '../motion/moment';
 import { HandwrittenMessage } from './HandwrittenMessage';
 
-const WORDS = 'Heute Abend denke ich an dich.';
+const WORDS = 'Thinking of you tonight, my love.';
 let reduced: FakeMediaQuery;
 let clearRoles: () => void;
 let width: ReturnType<typeof vi.spyOn>;
@@ -96,11 +96,11 @@ describe('HandwrittenMessage (#2372)', () => {
 
   it('keeps the normal type when the font cannot write the words', () => {
     const { container } = render(
-      <HandwrittenMessage text={'Ich liebe dich ❤️'} messageKey="m-5" />,
+      <HandwrittenMessage text={'Love you ❤️'} messageKey="m-5" />,
     );
     expect(strokes()).toBeNull();
     expect(container.querySelector('.once-words')?.textContent).toBe(
-      'Ich liebe dich ❤️',
+      'Love you ❤️',
     );
   });
 });

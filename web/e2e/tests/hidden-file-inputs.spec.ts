@@ -4,6 +4,7 @@ import { expect, type Locator, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import photoSources from '../../src/i18n/locales/photoSources';
 import profileIdentity from '../../src/i18n/locales/profileIdentity';
+import profiles from '../../src/i18n/locales/profiles';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
@@ -322,6 +323,8 @@ for (const colorScheme of ['light', 'dark'] as const) {
     await signIn(page);
 
     await page.goto('/more/profile');
+    // Editing starts from the profile menu at the top right.
+    await page.getByRole('button', { name: profiles.menu }).click();
     await page
       .getByRole('button', { name: profileIdentity.editProfile })
       .click();

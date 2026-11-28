@@ -1,6 +1,6 @@
 # eimir. Motion Contract
 
-**Version:** 1.21 (2026-11-26)<br>
+**Version:** 1.23 (2026-11-28)<br>
 **Status:** Normative lower-level design-system contract under Product Reference v1 once merged. Library decision **approved by the Product Owner on 2026-11-19**: an in-house motion layer on WAAPI and CSS for all primitives, Gesture follow included; Motion is not adopted ([6.6](#66-product-owner-decisions)). Haptics are approved ([4.10](#410-haptics)).<br>
 **Scope:** Canonical Web/Mobile Web UI, including the Capacitor-delivered Android app<br>
 **Issue:** [#2067](https://github.com/baerenmarke90/eimir/issues/2067)<br>
@@ -397,6 +397,14 @@ Motion that follows the finger (or mouse, pen, scroll) instead of a clock. On `m
 
 **As built (#2076).** All gesture owners use the building block's rules from `motion/gesture/`: `resolveOwnership`, `rubberBand`, `commitDistance` with the `pager`, `sheet` and `pull` presets, `decideRelease`, the tuned `VelocityTracker` and the sampled settle spring. Owners that must keep their own event plumbing (touch events with `preventDefault`, CSS offset properties, two moving pages) call these functions instead of `attachGestureFollow`.
 
+**Two-sided card deck (#2371, Product Owner 2026-11-28).** The favourite step of the shared Wish selection (`WishSelectionDeck.tsx`) is the first owner of `attachGestureFollow` itself. It uses the block's two-sided mode:
+
+- `direction: 'both'` measures travel from rest in either direction, and `onCommit(side)` and `committedOffset(side)` receive the side;
+- `onSettled(side)` reports the end of a committed settle; it is not called when a grab or `cancel()` interrupts the settle;
+- `commit(side)` runs the same commit and settle without a gesture, for the visible buttons and the arrow keys.
+
+Swipe right makes a candidate a private favourite, and swipe left leaves it out. The decision is recorded at release (M10). The decided card settles off screen, and the next card rises from the stack (`translate` and `opacity`, `--duration-transition`). The stage clips only while a card leaves. After the last card, the summary list takes over after `--duration-transition`. With reduced motion nothing travels. The non-gesture alternatives are the skip and favourite buttons, Arrow Left and Arrow Right on the focused card, and the previous-card button.
+
 | Gesture | Owner | Release handoff | Interruption | Haptics | Non-gesture alternative |
 | --- | --- | --- | --- | --- | --- |
 | Primary-tab pager | `useNavigationMotion.ts` | the current page and the neighbouring panel translate together on one sampled spring, starting at the release velocity. The panel keeps moving when its content finishes loading | a touch on settling pages stops them where they are and continues the same swipe. A touch that cannot start a swipe lets the settle land | one commit pulse per page change | the tab bar |
@@ -448,6 +456,7 @@ A rare, multi-beat emotional choreography: a received partner gesture (`PartnerG
 
 - **Which days count:**
   - the couple's anniversary;
+  - a round day together (`ROUND_DAYS`: 100, 200, 500, 1000, then every thousand up to 10,000; Product Owner, 2026-11-28, #2370);
   - the partner's birthday;
   - the viewer's own birthday;
   - the couple's own important days, but only occasions that are visible to the viewer.
@@ -458,6 +467,14 @@ A rare, multi-beat emotional choreography: a received partner gesture (`PartnerG
   2. Then the heart in the middle fills, and about six small hearts rise and fade, about 1.5 s in total.
   3. There is one haptic tick on the first beat (4.10).
   4. At the same time the middle line cross-fades to the occasion copy (Replace `crossfade`; the copy comes from i18n).
+- **Rolling count (#2370):** on the anniversary the quiet line below the heart shows the days together instead of repeating the anniversary. On a round day the middle line shows them, and the quiet line steps back. In both cases the digits roll into place during beat 4:
+  - each digit strip moves from 0 to its value with `translate` only (M6, keyframes `eimir-motion-value-roll`), over `--duration-gesture-moment` with `--easing-enter`;
+  - digits start right to left, `--duration-stagger-item` apart, with the index capped at `--motion-stagger-max-items`;
+  - grouping separators and words stay still, and the number is formatted for the locale;
+  - the roll ends within the Moment's duration, so it is part of the one emphasized motion and adds none (M15);
+  - the strips are `aria-hidden`, and the formatted number stays the readable text (M13);
+  - only the `playing` phase animates, so a return or remount shows the number at rest (M3, M5).
+- **Ranking:** the anniversary comes first, then a round day, then birthdays and shared dates. A round day takes the place of a birthday that falls on the same day.
 - **Birthday accent:** on a birthday, that person's ring gets a warm accent: an opacity-only halo, never a scaled ring (M7), and a cake mark on the rim (Enter `fade`).
 - **Budget and scope:**
   - It counts as the screen's one emphasized motion, and the ring breath starts only after it.
@@ -631,7 +648,7 @@ How each known motion need is covered by v1:
 | Photo decode fade, skeleton to content | Enter `media` | variant with remount rules |
 | Partner arrivals, realtime signals, unread markers, badges, hints | Attention rules (4.9) over existing primitives | cross-cutting rules, priority and rate limits |
 | Invalid input, failed send, conflict | Feedback `refuse`, Flight `return`, Replace `crossfade` | variants |
-| Count changes, days-together tick, timer digits | Replace `value` | variant; count-ups only in Playback or a Moment |
+| Count changes, days-together tick, timer digits | Replace `value` | variant; count-ups only in Playback or a Moment (the important-day Moment's rolling count, 4.7) |
 | Light/dark, token sets, app designs | Replace `appearance` | variant |
 | Haptics | 4.10 | approved by the Product Owner (2026-11-19); `@capacitor/haptics`, in-app switch, budget |
 | Several components on one choreography, per-screen budget | M15 | invariant |
@@ -710,6 +727,7 @@ Legend:
 | Paywall and purchase success (`ProPaywallPage.tsx`) | The paywall opens with Enter. Purchase success is Feedback `success` only after the store confirms it. No celebration Moment, so monetization stays calm (Freemium matrix, presentation rules) | rule |
 | Important days and birthdays (`OccasionMark.tsx`, `ImportantDatesPanel.tsx`, Wir) | Enter for the mark. On Wir, the approved **important-day Moment** (4.7, [#2072](https://github.com/baerenmarke90/eimir/issues/2072)) plays once per local day per device, after the opening. It never surfaces private or surprise dates. A "Gratulieren" action is out of scope by PO decision (2026-11-20) | covered |
 | Insights, recaps and the recap film | Enter `draw`/`fade` for insights; Playback for the recap film | covered |
+| Wish selection favourites as a card deck (`WishSelectionDeck.tsx`, #2371) | Gesture follow, two-sided (4.6), with the commit haptic; the next card rises with Replace `crossfade` timing; the summary list is the existing Feedback `toggle` list | covered |
 | Wish selection draw (`WishSelection.css` roll) | A Loading-like draw that runs only until the result is known, then Feedback `success`. Instant with reduced motion | rule |
 | Games: garden, Heart Hunt, Picture Ping-Pong, Who of us, wish detective, remote games | Scenes domain | covered |
 | Voice notes and audio playback (`VoiceNotePlayer.tsx`) | The slider is Gesture follow. Playback progress updates the position directly, without per-tick animation | rule |
@@ -1190,6 +1208,8 @@ In addition to Motion Guideline section 10, a pull request with new or changed m
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 1.23 | 2026-11-28 | Gesture follow two-sided mode (`direction: 'both'`, `onSettled`, `commit(side)`) and its first owner, the Wish selection card deck (#2371, Product Owner 2026-11-28; 4.6, 4.12). |
+| 1.22 | 2026-11-28 | Important-day Moment (#2370, Product Owner 2026-11-28): round days together become an occasion, and the days-together count rolls into place on the anniversary and on round days (4.7, keyframes `eimir-motion-value-roll`). |
 | 1.21 | 2026-11-26 | Fluid tab switching: hidden kept tabs skip rendering with `content-visibility: hidden` instead of `display: none`, so their CSS animations never restart and the per-reveal `getAnimations()` settle is gone (M4). While the pages slide sideways, the bar and the Wir marks pause their backdrop blur (Product Owner, 2026-11-26). The root-tab entrance never plays in a tab that a swipe reveals or that is built in the background, and a segment panel's fade no longer restarts when the entrance ends (the cold-start blink on Planen). Enter `module`: one entrance for every module on every page, with the tokens `motion.duration.moduleEnter` and `motion.module.rise` (Product Owner, 2026-11-26). |
 | 1.20 | 2026-11-26 | Pro showcase (#2310): four decorative Ambient scenes on the Pro paywall (4.5). Their keyframes and roles are in `motion/pro-showcase.css`; they run finite cycles, pause in place while they are not current or not seen, and are absent with reduced motion (M8). |
 | 1.19 | 2026-11-25 | Glas (#2283):<br>• `MemoryJarWorld.tsx` registered as a `gesture` owner not yet on the building block (3 uses; 4.6, 5.4);<br>• its frame-driven jar physics and fold in `motion/memoryJar.ts`, and its keyframes, roles and finite, paused candle in `motion/memory-worlds.css` (M8). |

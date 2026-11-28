@@ -1692,6 +1692,45 @@
       "moss": "Moss green"
     }
   },
+  "wirReelStyleSettings": {
+    "title": "New for you & Your turn",
+    "help": "How Wir shows you what is new and where it is your turn – only in your own view.",
+    "intro": "Circles are included, tiles and chips are part of Pro. Your partner chooses their own presentation.",
+    "choices": "Choose a presentation",
+    "change": "Change",
+    "close": "Close",
+    "current": "Active",
+    "free": "Included",
+    "pro": "Pro",
+    "choose": "Choose {{name}}",
+    "selected": "Selected",
+    "saving": "Saving …",
+    "saved": "Wir now shows you what is new as {{name}}.",
+    "kept": "{{name}} stay yours without Pro too. Another Pro presentation needs Pro.",
+    "proHint": "{{name}} are part of eimir. Pro. Your current presentation stays until you change it.",
+    "discover": "Discover Pro",
+    "proLoading": "Checking Pro …",
+    "proUnavailable": "Pro could not be checked right now. You can still choose circles.",
+    "retry": "Try again",
+    "denied": "A Pro presentation needs Pro. Your current presentation stays.",
+    "offline": "You are offline right now. Your choice stays here; save it once you are connected again.",
+    "conflict": "Your presentation was just changed on another device. Open the choice again.",
+    "saveError": "The presentation could not be saved.",
+    "styles": {
+      "circles": {
+        "name": "Circles",
+        "sentence": "Small round previews, calm below the hero."
+      },
+      "tiles": {
+        "name": "Tiles",
+        "sentence": "Larger cards that show more of each item."
+      },
+      "chips": {
+        "name": "Chips",
+        "sentence": "Compact strips with a picture and a few words."
+      }
+    }
+  },
   "memoryWorldSettings": {
     "title": "Memory worlds",
     "help": "How your memories meet you in Moments › Memories – only in your own view.",
@@ -1775,6 +1814,11 @@
   },
   "wirNotices": {
     "title": "New for you",
+    "chip": {
+      "quoteOn": "“{{quote}}” {{title}}",
+      "dated": "{{title}} {{weekday}} {{day}}",
+      "timed": "{{time}} {{title}}"
+    },
     "kinds": {
       "today": "Today",
       "date": "Date suggestion",
@@ -1937,6 +1981,7 @@
     "relationshipSave": "Save changes",
     "relationshipSaving": "Saving …",
     "relationshipSaved": "Changes saved.",
+    "menu": "Profile menu",
     "selfTitle": "My preferences",
     "selfIntro": "These details belong to your profile and may be shown to your partner.",
     "partnerTitle": "{{name}}'s profile",
@@ -2982,6 +3027,8 @@
     },
     "edit": "Adjust selection",
     "menu": "Recap menu",
+    "fullscreen": "Recap in full screen",
+    "fullscreenClose": "Close full screen",
     "selectionTitle": "What belongs here for you?",
     "selectionBody": "Choose up to 24 mutually visible items from this period. Your selection is retained.",
     "selectionCount": "{{count}} of 24 selected",
@@ -4219,6 +4266,14 @@
     "favoriteCount_one": "{{count}} favourite",
     "favoriteCount_other": "{{count}} favourites",
     "allFavorites": "Everything a favourite? The fewer, the clearer your match.",
+    "deckHint": "Swipe right if you are up for it, left if not really.",
+    "deckCard": "card",
+    "deckProgress": "{{current}} of {{total}}",
+    "deckLike": "Up for it",
+    "deckSkip": "Not really",
+    "deckBack": "Previous card",
+    "deckLiked": "{{title}}: up for it",
+    "deckSkipped": "{{title}}: not really",
     "share": "Send favourites",
     "shareNone": "Send without a favourite",
     "changeLater": "You can change this later.",
@@ -7103,6 +7158,10 @@
           "title": "Alternative app icons",
           "body": "Choose a different eimir. icon where your app or browser supports this option."
         },
+        "wirReelStyles": {
+          "title": "Tiles and chips on Wir",
+          "body": "Choose whether Wir shows you what is new and your turns as tiles or chips instead of circles."
+        },
         "personColours": {
           "title": "Personal colours",
           "body": "Pick the colours you see yourself and your partner in throughout your app."
@@ -7366,7 +7425,9 @@
     "todayAnniversary_other": "{{count}} years ago today",
     "todayRelationshipStart": "Your story begins today",
     "todayOwnBirthday": "Happy birthday to you",
-    "todayPartnerBirthday": "Happy birthday, {{name}}"
+    "todayPartnerBirthday": "Happy birthday, {{name}}",
+    "daysTogether_one": "{{days}} day together",
+    "daysTogether_other": "{{days}} days together"
   },
   "sharedNotes": {
     "title": "Notes",

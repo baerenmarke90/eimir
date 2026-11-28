@@ -368,6 +368,40 @@ async function enter(page: Page) {
   await signIn(page);
   await page.goto('/plan');
 }
+/** #2371: the localized deck progress in a card's accessible name. */
+function deckProgress(current: number, total: number) {
+  return copy.deckProgress
+    .replace('{{current}}', String(current))
+    .replace('{{total}}', String(total));
+}
+
+/**
+ * #2371: leaves the remaining cards of the deck out with the skip button until
+ * the summary list takes over.
+ */
+async function finishDeck(page: Page) {
+  const skip = page.getByRole('button', { name: copy.deckSkip, exact: true });
+  for (let card = 0; card < 6; card += 1) {
+    if (!(await skip.isVisible()) || !(await skip.isEnabled())) break;
+    await skip.click();
+  }
+  await expect(skip).toHaveCount(0);
+}
+
+/** Swipes the deck's top card with a real pointer drag. */
+async function swipeTopCard(page: Page, title: string, dx: number) {
+  const card = page.getByRole('group', { name: new RegExp(`^${title}, `) });
+  const box = await card.boundingBox();
+  if (!box) throw new Error('The top card is not on screen.');
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  for (let step = 1; step <= 8; step += 1)
+    await page.mouse.move(x + (dx * step) / 8, y);
+  await page.mouse.up();
+}
+
 async function capture(page: Page, info: TestInfo, name: string) {
   await page.evaluate(() => window.scrollTo(0, 0));
   // Let finite entry motion settle, bounded so a paused animation cannot hang.
@@ -438,13 +472,29 @@ test('mobile round -> private selection -> shared favorite -> canonical dated Pl
   await expect(
     page.getByRole('heading', { level: 1, name: copy.chooseTitle }),
   ).toBeVisible();
+  // #2371: the first choice is a card deck. A real swipe right on the first
+  // card makes it a favourite; the second is left out with the button.
+  await expect(
+    page.getByRole('group', {
+      name: new RegExp(`^${demo.wishes[0]}, ${deckProgress(1, 2)}`),
+    }),
+  ).toBeVisible();
+  await capture(page, info, 'deck-390-light');
+  await swipeTopCard(page, demo.wishes[0], 220);
+  await expect(
+    page.getByRole('group', {
+      name: new RegExp(`^${demo.wishes[1]}, ${deckProgress(2, 2)}`),
+    }),
+  ).toBeVisible();
+  await finishDeck(page);
   const favorite = page.getByRole('button', {
     name: demo.wishes[0],
     exact: true,
   });
-  await expect(favorite).toHaveAttribute('aria-pressed', 'false');
-  await favorite.click();
   await expect(favorite).toHaveAttribute('aria-pressed', 'true');
+  await expect(
+    page.getByRole('button', { name: demo.wishes[1], exact: true }),
+  ).toHaveAttribute('aria-pressed', 'false');
   expect(fixture.requests.filter((item) => item.kind === 'own')).toHaveLength(
     0,
   );
@@ -513,11 +563,13 @@ test('publication failure/offline retain private input and never replay a write'
   const fixture = await install(page, initial);
   await enter(page);
   await page.goto('/plan/choose');
+  await page.getByRole('button', { name: copy.deckLike, exact: true }).click();
+  await finishDeck(page);
   const favorite = page.getByRole('button', {
     name: demo.wishes[0],
     exact: true,
   });
-  await favorite.click();
+  await expect(favorite).toHaveAttribute('aria-pressed', 'true');
   fixture.failNextShare();
   await page.getByRole('button', { name: copy.share, exact: true }).click();
   await expect(favorite).toHaveAttribute('aria-pressed', 'true');
@@ -707,6 +759,9 @@ for (const scenario of [
   test(`composing and choosing at ${scenario.width} ${scenario.theme}${scenario.large ? ' large text and reduced motion' : ''}`, async ({
     page,
   }, info) => {
+    // Four views, each with an axe scan and a full-page capture (the deck of
+    // #2371 added one), take longer than the default budget under load.
+    test.setTimeout(60_000);
     await page.setViewportSize({ width: scenario.width, height: 844 });
     await page.emulateMedia({
       colorScheme: scenario.theme as 'light' | 'dark',
@@ -746,9 +801,25 @@ for (const scenario of [
         await page
           .getByRole('button', { name: copy.start, exact: true })
           .click();
+        // #2371: the deck first, checked and captured like every view.
+        await expect(
+          page.getByRole('group', { name: new RegExp(`^${demo.wishes[0]}, `) }),
+        ).toBeVisible();
+        expect(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth - window.innerWidth,
+          ),
+        ).toBeLessThanOrEqual(1);
+        const deckFindings = await new AxeBuilder({ page })
+          .include('.wish-selection-task')
+          .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
+          .analyze();
+        expect(deckFindings.violations).toEqual([]);
+        await capture(page, info, `deck-${suffix}`);
         await page
-          .getByRole('button', { name: demo.wishes[0], exact: true })
+          .getByRole('button', { name: copy.deckLike, exact: true })
           .click();
+        await finishDeck(page);
       }
       expect(
         await page.evaluate(

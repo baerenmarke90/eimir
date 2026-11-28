@@ -27,6 +27,13 @@ import taskBoundary from '../i18n/locales/taskBoundary';
 import copy from '../i18n/locales/wishSelection';
 import { WishSelectionPage } from './WishSelectionPage';
 
+/** #2371: the localized deck progress in a card's accessible name. */
+function deckProgress(current: number, total: number) {
+  return copy.deckProgress
+    .replace('{{current}}', String(current))
+    .replace('{{total}}', String(total));
+}
+
 beforeAll(() => {
   HTMLDialogElement.prototype.showModal = function () {
     this.setAttribute('open', '');
@@ -336,8 +343,25 @@ function finishPick() {
   fireEvent.click(screen.getByRole('button', { name: copy.pickDone }));
 }
 
-/** A private favourite toggle in the vote step. */
+/**
+ * #2371: a first choice starts as a card deck. Skips every card (no
+ * favourite) until the summary list with its toggles and Share shows.
+ */
+async function passDeck(ready: () => boolean = () => false) {
+  await waitFor(() => {
+    if (!screen.queryByRole('button', { name: copy.deckSkip }) && !ready())
+      throw new Error('Neither the deck nor the list is shown yet.');
+  });
+  for (let card = 0; card < 10; card += 1) {
+    const skip = screen.queryByRole('button', { name: copy.deckSkip });
+    if (!skip || skip.hasAttribute('disabled')) break;
+    fireEvent.click(skip);
+  }
+}
+
+/** A private favourite toggle in the vote step (after the deck). */
 async function favorite(name: string | RegExp) {
+  await passDeck(() => Boolean(screen.queryByRole('button', { name })));
   return screen.findByRole('button', { name });
 }
 
@@ -460,8 +484,72 @@ describe('WishSelectionPage', () => {
     expect(screen.queryByText(copy.sharedTitle)).toBeNull();
   });
 
+  it('starts a first choice as a card deck and hands over to the list (#2371)', async () => {
+    const { updateOwnWishSelection } = renderTask();
+    const first = await screen.findByRole('group', {
+      name: `${candidates[0].title}, ${deckProgress(1, 3)}`,
+    });
+    expect(first.getAttribute('tabindex')).toBe('0');
+    // Only the top card is exposed; the card behind it waits.
+    expect(screen.getAllByRole('group')).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: copy.deckBack })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: copy.deckLike }));
+    expect(
+      screen.getByText(
+        copy.deckLiked.replace('{{title}}', candidates[0].title),
+      ),
+    ).toBeTruthy();
+    // The keyboard decides like the buttons: Arrow Left leaves it out.
+    fireEvent.keyDown(
+      await screen.findByRole('group', {
+        name: `${candidates[1].title}, ${deckProgress(2, 3)}`,
+      }),
+      { key: 'ArrowLeft' },
+    );
+    // Back to the previous card, then on again.
+    fireEvent.click(screen.getByRole('button', { name: copy.deckBack }));
+    await screen.findByRole('group', {
+      name: `${candidates[1].title}, ${deckProgress(2, 3)}`,
+    });
+    fireEvent.click(screen.getByRole('button', { name: copy.deckSkip }));
+    fireEvent.click(screen.getByRole('button', { name: copy.deckSkip }));
+
+    // The summary list shows the choices and can still change them.
+    const pasta = await screen.findByRole('button', {
+      name: candidates[0].title,
+    });
+    expect(pasta.getAttribute('aria-pressed')).toBe('true');
+    expect(
+      screen
+        .getByRole('button', { name: candidates[1].title })
+        .getAttribute('aria-pressed'),
+    ).toBe('false');
+    expect(updateOwnWishSelection).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: copy.share }));
+    await screen.findByRole('heading', { name: copy.waitingTitle });
+    expect(updateOwnWishSelection.mock.calls[0][0].wishSelectionUpdate).toEqual(
+      {
+        favoriteWishIds: ['pasta'],
+        favoriteDateIdeaIds: [],
+        published: true,
+      },
+    );
+  });
+
+  it('opens the list directly when favourites already exist (#2371)', async () => {
+    renderTask(withIdeas('CHOOSING', { favorites: [picnic.id] }), false, 'pro');
+    expect(
+      (
+        await screen.findByRole('button', { name: new RegExp(picnic.title) })
+      ).getAttribute('aria-pressed'),
+    ).toBe('true');
+    expect(screen.queryByRole('button', { name: copy.deckLike })).toBeNull();
+  });
+
   it('allows zero favorites and shows the authoritative waiting state', async () => {
     const { updateOwnWishSelection } = renderTask();
+    await passDeck();
     fireEvent.click(
       await screen.findByRole('button', { name: copy.shareNone }),
     );
@@ -824,13 +912,10 @@ describe('WishSelectionPage', () => {
     const { switchAccount } = renderTask();
     fireEvent.click(await favorite(candidates[0].title));
     switchAccount('account-b');
-    await waitFor(() =>
-      expect(
-        screen
-          .getByRole('button', { name: candidates[0].title })
-          .getAttribute('aria-pressed'),
-      ).toBe('false'),
-    );
+    // The other account starts fresh, with the deck, and nothing chosen.
+    expect(
+      (await favorite(candidates[0].title)).getAttribute('aria-pressed'),
+    ).toBe('false');
   });
 
   it('ignores a late publication response after the active account changes', async () => {

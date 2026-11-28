@@ -20577,6 +20577,46 @@
         "title": "WirNotices",
         "type": "object"
       },
+      "WirReelStyleId": {
+        "description": "A personal presentation of the Wir reels: new-for-you notices and waiting games (#2345).\n\nA style only changes how the same items are shown; the items, their order\nand their read state are identical. It is never shared with the partner.",
+        "enum": [
+          "circles",
+          "tiles",
+          "chips"
+        ],
+        "title": "WirReelStyleId",
+        "type": "string"
+      },
+      "WirReelStylePreferencePatch": {
+        "properties": {
+          "styleId": {
+            "$ref": "#/components/schemas/WirReelStyleId"
+          }
+        },
+        "required": [
+          "styleId"
+        ],
+        "title": "WirReelStylePreferencePatch",
+        "type": "object"
+      },
+      "WirReelStylePreferenceView": {
+        "description": "The caller's own presentation of the Wir reels (new-for-you notices and waiting games).",
+        "properties": {
+          "styleId": {
+            "$ref": "#/components/schemas/WirReelStyleId"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "styleId",
+          "version"
+        ],
+        "title": "WirReelStylePreferenceView",
+        "type": "object"
+      },
       "WishCreate": {
         "additionalProperties": false,
         "description": "A wish is created from authored title and optional shared context labels.\n\n``extra=\"forbid\"`` is more than hygiene here: M3-D01/D02 make\n``status``, ``createdBy``, ``spaceId``, and ``version`` server-controlled.\nA request supplying those fields is rejected rather than silently stripped,\nso the client cannot believe it successfully set them.",
@@ -29586,6 +29626,177 @@
           }
         },
         "summary": "Update Wir Design Preference",
+        "tags": [
+          "appearance"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/appearance/wir-reels": {
+      "get": {
+        "description": "Read only the caller's own Wir reel style, including after Pro expiry.",
+        "operationId": "getWirReelStylePreference",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WirReelStylePreferenceView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Opaque personal preference token; send unchanged as If-Match on writes.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Wir Reel Style Preference",
+        "tags": [
+          "appearance"
+        ]
+      },
+      "patch": {
+        "description": "Save a known style. Circles are Free; tiles and chips require Pro.\n\nMembership precedes the capability check. Reads never delete or revert a\nsaved style when a grant expires, and returning to circles stays free.\nThe style is a personal presentation and is not shared with the partner.",
+        "operationId": "updateWirReelStylePreference",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WirReelStylePreferencePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WirReelStylePreferenceView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Opaque personal preference token; send unchanged as If-Match on writes.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Update Wir Reel Style Preference",
         "tags": [
           "appearance"
         ]

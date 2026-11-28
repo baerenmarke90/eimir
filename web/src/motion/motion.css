@@ -419,6 +419,15 @@
   }
 }
 
+/* A rolling count inside a Moment (4.7, 4.11; #2370): a digit strip rolls
+   up from 0 to the value it rests on. Only the start is declared, so the
+   strip ends on its own resting `translate`. */
+@keyframes eimir-motion-value-roll {
+  from {
+    translate: 0 0;
+  }
+}
+
 /* Feedback (4.3) */
 
 /* A selected control settles with one small overshoot. */

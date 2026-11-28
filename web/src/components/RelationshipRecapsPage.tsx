@@ -550,6 +550,39 @@ function RecapReader({
   const [menuOpen, setMenuOpen] = useState(false);
   const menuTrigger = useRef<HTMLButtonElement>(null);
   const menuSheet = useRef<ShortTaskSheetHandle>(null);
+  // Full screen keeps the portrait reader and only drops the surrounding
+  // shell: the page itself covers the screen, and the browser's own full
+  // screen is added where it exists (not in every WebView).
+  const readerRef = useRef<HTMLDivElement>(null);
+  const [fullscreen, setFullscreen] = useState(false);
+  const enterFullscreen = () => {
+    setFullscreen(true);
+    void readerRef.current
+      ?.requestFullscreen?.({ navigationUI: 'hide' })
+      .catch(() => undefined);
+  };
+  const leaveFullscreen = useCallback(() => {
+    setFullscreen(false);
+    if (document.fullscreenElement)
+      void document.exitFullscreen().catch(() => undefined);
+  }, []);
+  useEffect(() => {
+    if (!fullscreen) return;
+    // Escape or a system gesture ends the browser's full screen: follow it.
+    const follow = () => {
+      if (!document.fullscreenElement) setFullscreen(false);
+    };
+    document.addEventListener('fullscreenchange', follow);
+    return () => document.removeEventListener('fullscreenchange', follow);
+  }, [fullscreen]);
+  // Leaving the reader gives the browser's full screen back as well.
+  useEffect(
+    () => () => {
+      if (document.fullscreenElement)
+        void document.exitFullscreen().catch(() => undefined);
+    },
+    [],
+  );
   const started = useRef(Date.now());
   const key = ['relationship-recap', props.account.id, props.spaceId, recapId];
   const query = useQuery({
@@ -927,7 +960,9 @@ function RecapReader({
     originPath === '/story' || originPath?.startsWith('/story?') === true;
   return (
     <div
+      ref={readerRef}
       className="page recap-reader"
+      data-fullscreen={fullscreen || undefined}
       data-playing={playback.running}
       style={{ '--recap-dwell': `${duration}ms` } as CSSProperties}
     >
@@ -946,6 +981,19 @@ function RecapReader({
         {value ? (
           <span className="recap-reader-top-end">
             <span>{recapPeriodLabel(value, resolvedLocale())}</span>
+            {value.status === 'READY' ? (
+              <button
+                type="button"
+                className="tertiary recap-fullscreen-toggle"
+                aria-label={t(
+                  fullscreen ? 'recaps.fullscreenClose' : 'recaps.fullscreen',
+                )}
+                aria-pressed={fullscreen}
+                onClick={fullscreen ? leaveFullscreen : enterFullscreen}
+              >
+                <EimirIcon name={fullscreen ? 'close' : 'expand'} />
+              </button>
+            ) : null}
             {/* Page actions sit in the shared three-dot menu, like every
                 other detail page; own words stay on the closing page. */}
             {canAdjust ? (

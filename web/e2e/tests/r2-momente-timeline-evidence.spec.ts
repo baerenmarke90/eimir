@@ -7,7 +7,6 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import storyProducts from '../../src/i18n/locales/storyProducts';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 
 /**
  * R2 exact-build visual/behavioral evidence (#966): the bounded gaps closed
@@ -426,7 +425,7 @@ test.describe('R2 Momente/Timeline evidence (#966)', () => {
       await page.getByRole('link', { name: scenario.link }).click();
       await expect(page).toHaveURL(scenario.detailUrl);
 
-      await page.getByRole('button', { name: taskBoundary.back }).click();
+      await page.getByRole('button', { name: de.common.back }).click();
       await expect(page).toHaveURL(new RegExp(`type=${scenario.filter}`));
     }
   });
@@ -448,7 +447,7 @@ test.describe('R2 Momente/Timeline evidence (#966)', () => {
     await page.getByRole('link', { name: /Late August Vacation/i }).click();
     await expect(page).toHaveURL(/\/story\/memories\/mem-august/);
 
-    await page.getByRole('button', { name: taskBoundary.back }).click();
+    await page.getByRole('button', { name: de.common.back }).click();
     await expect(page).toHaveURL(/\/search/);
     await expect(page.getByLabel(m5s5.search.label)).toHaveValue(
       'August Vacation',

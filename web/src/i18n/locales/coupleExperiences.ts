@@ -43,8 +43,6 @@ export default {
     VIDEO_PROCESSING_FAILED: 'Ein Video konnte nicht verarbeitet werden.',
   },
   share: 'Mit {{name}} teilen',
-  shareHint:
-    'Dein Partner wird benachrichtigt. Der Eintrag bleibt in euren Erinnerungen.',
   history: 'Bereits geteilt',
   historyGroups: {
     today: 'Heute',
@@ -142,9 +140,6 @@ export default {
   },
   more: 'Mehr anzeigen',
   prompts: {
-    progress: 'Impuls {{current}} von {{total}}',
-    answer: 'Antwort teilen',
-    next: 'Nächster Impuls',
     happiness: {
       first:
         'Sagt euch eine kleine Sache, die ihr heute am anderen geschätzt habt.',

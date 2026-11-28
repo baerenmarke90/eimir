@@ -52,17 +52,17 @@ export function WishComposer({
 }) {
   const { t } = useTranslation();
   const [tagToolHost, setTagToolHost] = useState<HTMLSpanElement | null>(null);
-  const heading = t(wishId ? 'm5s3.common.edit' : 'm5s3.wish.createHeading');
+  const heading = t(wishId ? 'common.edit' : 'm5s3.wish.createHeading');
   const idPrefix = wishId ? 'wish-edit' : 'planning-create';
   const formId = `${idPrefix}-form`;
-  const saveLabel = t(saving ? 'm5s3.common.saving' : 'm5s3.common.save');
+  const saveLabel = t(saving ? 'common.saving' : 'common.save');
 
   return (
     <div className="page wish-composer free-composer quiet-composer page-composer">
       <ComposerHeader
         before={
           <TaskBackButton inline onClick={onClose} aria-disabled={disabled}>
-            {t('taskBoundary.close')}
+            {t('common.close')}
           </TaskBackButton>
         }
         title={heading}
@@ -85,7 +85,7 @@ export function WishComposer({
           <legend className="sr-only">{heading}</legend>
           <div className="page-composer-writing composer-authored-surface">
             <label className="sr-only" htmlFor={`${idPrefix}-title`}>
-              {t(wishId ? 'm5s3.common.title' : 'm5s3.wish.intentionLabel')}
+              {t(wishId ? 'common.title' : 'm5s3.wish.intentionLabel')}
             </label>
             <input
               id={`${idPrefix}-title`}

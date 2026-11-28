@@ -1,7 +1,6 @@
 import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 import { fulfillDefaultProductContext } from '../support/productContext';
 import placeCopy from '../../src/i18n/locales/photoPlaces';
-import taskSheets from '../../src/i18n/locales/taskSheets';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
@@ -385,7 +384,7 @@ test('creating a map Place preserves the Plan draft and sends its canonical iden
   await expect(form.getByLabel(m5s3.plan.intentionLabel)).toHaveValue(
     PLAN_DRAFT_TITLE,
   );
-  await form.getByRole('button', { name: m5s3.common.save }).click();
+  await form.getByRole('button', { name: de.common.save }).click();
   await expect(page).toHaveURL(/\/plan\/plans\/plan-1$/);
   expect(calls.lastPlanBody?.placeId).toBe('place-1');
 });
@@ -402,7 +401,7 @@ test('an existing Place is selectable while no Place remains the default', async
   const picker = await openPlaceChoice(page);
   await picker.getByRole('button', { name: 'Berlin', exact: true }).click();
   await expect(picker).toBeHidden();
-  await form.getByRole('button', { name: m5s3.common.save }).click();
+  await form.getByRole('button', { name: de.common.save }).click();
   await expect(page).toHaveURL(/\/plan\/plans\/plan-1$/);
   expect(calls.lastPlanBody?.placeId).toBe('place-1');
   expect(calls.createPlaceCalls).toBe(0);
@@ -421,7 +420,7 @@ test('failed map Place creation preserves the Plan draft and allows a deliberate
   expect(calls.createPlaceCalls).toBe(1);
   options.placeCreateFails = false;
   await picker
-    .getByRole('button', { name: taskSheets.close, exact: true })
+    .getByRole('button', { name: de.common.close, exact: true })
     .click();
   await selectNewPlace(page);
   await expect(
@@ -443,9 +442,9 @@ test('cancelling the empty Place choice permits saving without a Place', async (
   const form = await openPlanCreateForm(page);
   const picker = await openPlaceChoice(page);
   await picker
-    .getByRole('button', { name: taskSheets.close, exact: true })
+    .getByRole('button', { name: de.common.close, exact: true })
     .click();
-  await form.getByRole('button', { name: m5s3.common.save }).click();
+  await form.getByRole('button', { name: de.common.save }).click();
   await expect(page).toHaveURL(/\/plan\/plans\/plan-1$/);
   expect(calls.createPlaceCalls).toBe(0);
   expect(calls.createPlanCalls).toBe(1);

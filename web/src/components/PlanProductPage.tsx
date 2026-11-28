@@ -595,17 +595,17 @@ export function PlanProductPage({
           key="plan-edit-header"
           before={
             <TaskBackButton inline onClick={editorLifecycle.requestClose}>
-              {t('taskBoundary.close')}
+              {t('common.close')}
             </TaskBackButton>
           }
-          title={t('m5s3.common.edit')}
+          title={t('common.edit')}
           action={
             <button
               form="plan-edit-form"
               type="submit"
               aria-label={
                 updateMutation.isPending
-                  ? t('m5s3.common.saving')
+                  ? t('common.saving')
                   : t('m5s3.common.saveChanges')
               }
               disabled={
@@ -617,9 +617,7 @@ export function PlanProductPage({
               }
               data-saveable={Boolean(editTitleValue.trim())}
             >
-              {updateMutation.isPending
-                ? t('m5s3.common.saving')
-                : t('m5s3.common.save')}
+              {updateMutation.isPending ? t('common.saving') : t('common.save')}
             </button>
           }
         />
@@ -844,7 +842,7 @@ export function PlanProductPage({
             id="plan-edit-section"
             className="planning-subsection free-composer"
           >
-            <h2 className="sr-only">{t('m5s3.common.edit')}</h2>
+            <h2 className="sr-only">{t('common.edit')}</h2>
             {editorLifecycle.showDiscardConfirm ? (
               <PlanningDiscardConfirmation
                 onKeepEditing={editorLifecycle.keepEditing}
@@ -935,7 +933,7 @@ export function PlanProductPage({
               />
               <div className="page-composer-writing composer-authored-surface">
                 <label className="sr-only" htmlFor="plan-edit-title">
-                  {t('m5s3.common.title')}
+                  {t('common.title')}
                 </label>
                 <input
                   form="plan-edit-form"
@@ -1264,7 +1262,7 @@ export function PlanProductPage({
               aria-disabled={writesPending}
             >
               {completion.pendingDay
-                ? t('m5s3.common.saving')
+                ? t('common.saving')
                 : t('m5s3.plan.complete')}
             </button>
           }
@@ -1433,7 +1431,7 @@ export function PlanProductPage({
           <ItemMenuOption
             icon="trash"
             danger
-            title={t('m5s3.common.delete')}
+            title={t('common.delete')}
             disabled={writesPending}
             onClick={() => {
               if (isPlanWritePending()) return;
@@ -1465,7 +1463,7 @@ export function PlanProductPage({
         title={t('m5s3.common.deleteHeading')}
         body={t('m5s3.plan.deleteConsequence')}
         confirmLabel={t('m5s3.common.confirmDelete')}
-        pendingLabel={t('m5s3.common.deleting')}
+        pendingLabel={t('common.deleting')}
         pending={deleteMutation.isPending}
         error={deleteMutation.error}
         restoreFocusRef={menuTrigger}

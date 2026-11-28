@@ -35,7 +35,6 @@ import {
   useCallback,
   useEffect,
   useId,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -392,7 +391,7 @@ function BoothViewer({
             className="memory-booth-secondary"
             onClick={onClose}
           >
-            {t('memoryWorlds.booth.viewer.close')}
+            {t('common.close')}
           </button>
         </div>
       </div>
@@ -560,7 +559,7 @@ function boothDisplay(
       };
     case 'done':
       return {
-        text: t('memoryWorlds.booth.modern.display.done'),
+        text: t('common.done'),
         big: false,
         spoken: t('memoryWorlds.booth.modern.doneSpoken'),
       };

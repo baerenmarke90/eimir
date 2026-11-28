@@ -122,7 +122,7 @@ describe('HeaderProfileMenu', () => {
       fireEvent.click(trigger);
     });
 
-    const logoutBtn = screen.getByRole('button', { name: navigation.logout });
+    const logoutBtn = screen.getByRole('button', { name: 'Abmelden' });
     act(() => {
       fireEvent.click(logoutBtn);
     });

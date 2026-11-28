@@ -1003,7 +1003,7 @@ for (const scenario of [
       info,
       `garden-visitor-editor-${scenario.width}-${scenario.theme}.png`,
     );
-    await editor.getByRole('button', { name: growth.save }).click();
+    await editor.getByRole('button', { name: de.common.save }).click();
     await expect(page.locator('.garden-status')).toHaveText(
       fill(growth.visitors.namedStatus, {
         visitor: growth.visitors.own[kind],
@@ -1096,7 +1096,7 @@ for (const scenario of [
       .getByRole('button', { name: growth.rename, exact: true })
       .click();
     await book.getByLabel(growth.nameLabel).fill('Unser Eck');
-    await book.getByRole('button', { name: growth.save }).click();
+    await book.getByRole('button', { name: de.common.save }).click();
     await expect(
       page.getByRole('heading', { level: 1, name: 'Unser Eck' }),
     ).toBeVisible();

@@ -4,8 +4,6 @@ export default {
   add: 'In meinen Kalender legen',
   addAlso: 'Auch in meinen Kalender legen',
   download: 'Kalenderdatei herunterladen',
-  copyHint:
-    'Einmalige Übernahme als Kalendertermin. Spätere Änderungen am Plan werden nicht automatisch synchronisiert.',
   unavailable: 'Die Kalenderdatei konnte nicht erstellt werden.',
   shareFailed:
     'Das Teilen hat nicht geklappt. Du kannst die Kalenderdatei herunterladen.',

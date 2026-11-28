@@ -243,11 +243,11 @@ export function CollectionChoicePicker({
             }
             onClick={() => void confirm()}
           >
-            {busy ? t('m5s3.common.saving') : t('m5s3.collection.link')}
+            {busy ? t('common.saving') : t('m5s3.collection.link')}
           </button>
           {creating ? (
             <div className="field-group">
-              <label htmlFor={inputId}>{t('m5s3.common.title')}</label>
+              <label htmlFor={inputId}>{t('common.title')}</label>
               <input
                 id={inputId}
                 value={title}

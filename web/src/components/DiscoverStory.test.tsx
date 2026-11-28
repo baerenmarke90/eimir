@@ -12,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StoryItem } from '../api/generated/models/StoryItem';
 import storyProducts from '../i18n/locales/storyProducts';
 import { DiscoverStory } from './DiscoverStory';
+import germanUi from '../i18n/locales/de';
 
 const copy = storyProducts.discoverStory;
 
@@ -100,7 +101,9 @@ function renderStory(items = ITEMS) {
 }
 
 function openLink() {
-  return screen.getByRole('link', { name: new RegExp(`^${copy.open}:`) });
+  return screen.getByRole('link', {
+    name: new RegExp(`^${germanUi.common.open}:`),
+  });
 }
 
 /** jsdom has no AnimationEvent; React then listens to the prefixed name. */

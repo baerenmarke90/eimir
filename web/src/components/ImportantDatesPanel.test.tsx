@@ -37,8 +37,8 @@ import {
 import { EDITOR_HISTORY_STATE_KEY } from '../client/useEditorHistoryEntry';
 import discreetPlans from '../i18n/locales/discreetPlans';
 import importantDates from '../i18n/locales/importantDates';
-import taskSheets from '../i18n/locales/taskSheets';
 import { ImportantDatesPanel } from './ImportantDatesPanel';
+import germanUi from '../i18n/locales/de';
 
 function LocationProbe() {
   const location = useLocation();
@@ -300,7 +300,7 @@ describe('ImportantDatesPanel mobile-first surface', () => {
       }),
     ).toBeTruthy();
     expect(
-      within(reader).queryByRole('button', { name: importantDates.edit }),
+      within(reader).queryByRole('button', { name: germanUi.common.edit }),
     ).toBeNull();
     expect(container.querySelector('.occasions-list')).toBeTruthy();
     expect(
@@ -377,7 +377,7 @@ describe('ImportantDatesPanel mobile-first surface', () => {
     ).toBeNull();
     expect(
       within(screen.getByRole('dialog')).queryByRole('button', {
-        name: importantDates.edit,
+        name: germanUi.common.edit,
       }),
     ).toBeNull();
     expect(container.querySelectorAll('.important-date-card')).toHaveLength(1);
@@ -485,10 +485,10 @@ describe('ImportantDatesPanel mobile-first surface', () => {
       ).not.toBeNull();
       expect(within(reader).queryByRole('textbox')).toBeNull();
       expect(
-        within(reader).getByRole('button', { name: importantDates.edit }),
+        within(reader).getByRole('button', { name: germanUi.common.edit }),
       ).not.toBeNull();
       fireEvent.click(
-        within(reader).getByRole('button', { name: taskSheets.close }),
+        within(reader).getByRole('button', { name: germanUi.common.close }),
       );
       await waitFor(() => expect(document.activeElement).toBe(lead));
     });
@@ -578,7 +578,7 @@ describe('ImportantDatesPanel mobile-first surface', () => {
         within(reader).getByRole('heading', { name: new RegExp(date.label) }),
       ).not.toBeNull();
       fireEvent.click(
-        within(reader).getByRole('button', { name: taskSheets.close }),
+        within(reader).getByRole('button', { name: germanUi.common.close }),
       );
       await waitFor(() => expect(document.activeElement).toBe(day));
     });
@@ -648,7 +648,7 @@ describe('ImportantDatesPanel mobile-first surface', () => {
         within(reader).getByRole('heading', { name: new RegExp(early.label) }),
       ).not.toBeNull();
       expect(
-        within(reader).getByRole('button', { name: importantDates.edit }),
+        within(reader).getByRole('button', { name: germanUi.common.edit }),
       ).not.toBeNull();
     });
 
@@ -696,13 +696,13 @@ describe('ImportantDatesPanel mobile-first surface', () => {
         within(reader).getByRole('heading', { name: new RegExp(far.label) }),
       ).not.toBeNull();
       fireEvent.click(
-        within(reader).getByRole('button', { name: taskSheets.close }),
+        within(reader).getByRole('button', { name: germanUi.common.close }),
       );
       await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
       fireEvent.click(await findOccasionRow(new RegExp(far.label)));
       expect(
         within(screen.getByRole('dialog')).getByRole('button', {
-          name: importantDates.edit,
+          name: germanUi.common.edit,
         }),
       ).not.toBeNull();
     });
@@ -757,7 +757,7 @@ describe('ImportantDatesPanel mobile-first surface', () => {
       importantDates.dateLabel,
     ) as HTMLInputElement;
     const labelInput = screen.getByLabelText(
-      importantDates.labelLabel,
+      germanUi.common.title,
     ) as HTMLInputElement;
     expect(dateInput).toBe(document.activeElement);
     expect(dateInput.required).toBe(true);
@@ -791,7 +791,7 @@ describe('ImportantDatesPanel mobile-first surface', () => {
       screen.getByRole('button', { name: importantDates.create }),
     );
     const dialog = screen.getByRole('dialog');
-    fireEvent.change(screen.getByLabelText(importantDates.labelLabel), {
+    fireEvent.change(screen.getByLabelText(germanUi.common.title), {
       target: { value: 'A new important date' },
     });
 
@@ -821,7 +821,7 @@ describe('ImportantDatesPanel mobile-first surface', () => {
       screen.getByRole('button', { name: importantDates.create }),
     );
     const labelInput = screen.getByLabelText(
-      importantDates.labelLabel,
+      germanUi.common.title,
     ) as HTMLInputElement;
     fireEvent.change(labelInput, { target: { value: 'Still editing' } });
 
@@ -861,7 +861,7 @@ describe('ImportantDatesPanel mobile-first surface', () => {
       expect(window.history.state?.[EDITOR_HISTORY_STATE_KEY]).toBeTruthy(),
     );
     const labelInput = screen.getByLabelText(
-      importantDates.labelLabel,
+      germanUi.common.title,
     ) as HTMLInputElement;
     fireEvent.change(labelInput, { target: { value: 'Back-safe draft' } });
 
@@ -890,8 +890,8 @@ describe('ImportantDatesPanel mobile-first surface', () => {
     expect(
       within(screen.getByRole('dialog')).queryByRole('textbox'),
     ).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: importantDates.edit }));
-    await screen.findByLabelText(importantDates.labelLabel);
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.edit }));
+    await screen.findByLabelText(germanUi.common.title);
 
     const dialog = screen.getByRole('dialog');
     expect(
@@ -906,11 +906,11 @@ describe('ImportantDatesPanel mobile-first surface', () => {
     expect(screen.getByDisplayValue(person.displayName)).not.toBeNull();
 
     const deleteButton = within(dialog).getByRole('button', {
-      name: importantDates.delete,
+      name: germanUi.common.delete,
     });
     expect(deleteButton.closest('.focused-editor-danger-zone')).not.toBeNull();
     expect(
-      within(dialog).getByRole('button', { name: importantDates.saveChanges }),
+      within(dialog).getByRole('button', { name: germanUi.common.save }),
     ).not.toBeNull();
   });
 
@@ -922,11 +922,11 @@ describe('ImportantDatesPanel mobile-first surface', () => {
     expect(
       within(screen.getByRole('dialog')).queryByRole('textbox'),
     ).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: importantDates.edit }));
-    await screen.findByLabelText(importantDates.labelLabel);
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.edit }));
+    await screen.findByLabelText(germanUi.common.title);
 
     fireEvent.click(
-      screen.getByRole('button', { name: importantDates.delete }),
+      screen.getByRole('button', { name: germanUi.common.delete }),
     );
     expect(
       screen.getByText(importantDates.deleteQuestion, { selector: 'strong' }),
@@ -954,15 +954,13 @@ describe('ImportantDatesPanel mobile-first surface', () => {
     expect(
       within(screen.getByRole('dialog')).queryByRole('textbox'),
     ).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: importantDates.edit }));
-    await screen.findByLabelText(importantDates.labelLabel);
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.edit }));
+    await screen.findByLabelText(germanUi.common.title);
 
-    fireEvent.change(screen.getByLabelText(importantDates.labelLabel), {
+    fireEvent.change(screen.getByLabelText(germanUi.common.title), {
       target: { value: 'Our seaside anniversary' },
     });
-    fireEvent.click(
-      screen.getByRole('button', { name: importantDates.saveChanges }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.save }));
 
     await waitFor(() => {
       expect(
@@ -972,7 +970,7 @@ describe('ImportantDatesPanel mobile-first surface', () => {
     await screen.findByRole('heading', { name: /Our seaside anniversary/ });
     fireEvent.click(
       within(screen.getByRole('dialog')).getByRole('button', {
-        name: taskSheets.close,
+        name: germanUi.common.close,
       }),
     );
     await waitFor(() => expect(document.activeElement).toBe(card));
@@ -1000,8 +998,8 @@ describe('ImportantDatesPanel mobile-first surface', () => {
     expect(
       within(screen.getByRole('dialog')).queryByRole('textbox'),
     ).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: importantDates.edit }));
-    await screen.findByLabelText(importantDates.labelLabel);
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.edit }));
+    await screen.findByLabelText(germanUi.common.title);
     expect(screen.getByDisplayValue(longLabel)).not.toBeNull();
   });
 
@@ -1017,7 +1015,7 @@ describe('ImportantDatesPanel mobile-first surface', () => {
       target: { value: '2026-10-20' },
     });
     const labelInput = screen.getByLabelText(
-      importantDates.labelLabel,
+      germanUi.common.title,
     ) as HTMLInputElement;
 
     await user.type(labelInput, 'x'.repeat(121));
@@ -1075,10 +1073,10 @@ describe('ImportantDatesPanel mobile-first surface', () => {
     renderPanel(createMockPeopleApi(dates));
     const deletedCard = await findOccasionRow(new RegExp(deletedLabel, 'i'));
     fireEvent.click(deletedCard);
-    fireEvent.click(screen.getByRole('button', { name: importantDates.edit }));
-    await screen.findByLabelText(importantDates.labelLabel);
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.edit }));
+    await screen.findByLabelText(germanUi.common.title);
     fireEvent.click(
-      screen.getByRole('button', { name: importantDates.delete }),
+      screen.getByRole('button', { name: germanUi.common.delete }),
     );
     fireEvent.click(
       screen.getByRole('button', { name: importantDates.deleteConfirm }),
@@ -1133,10 +1131,10 @@ describe('ImportantDatesPanel mobile-first surface', () => {
     await findOccasionRow(/July day/);
     fireEvent.click(bandMonth(2026, 9));
     fireEvent.click(await findOccasionRow(/September day/));
-    fireEvent.click(screen.getByRole('button', { name: importantDates.edit }));
-    await screen.findByLabelText(importantDates.labelLabel);
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.edit }));
+    await screen.findByLabelText(germanUi.common.title);
     fireEvent.click(
-      screen.getByRole('button', { name: importantDates.delete }),
+      screen.getByRole('button', { name: germanUi.common.delete }),
     );
     fireEvent.click(
       screen.getByRole('button', { name: importantDates.deleteConfirm }),

@@ -443,7 +443,7 @@ describe('PlanningRelationManager moment picker', () => {
     );
     await openPicker();
     await user.click(
-      screen.getByRole('button', { name: i18n.t('taskSheets.close') }),
+      screen.getByRole('button', { name: i18n.t('common.close') }),
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await openPicker();
@@ -451,7 +451,7 @@ describe('PlanningRelationManager moment picker', () => {
       await screen.findByRole('checkbox', { name: /Summer together/ }),
     );
     await user.click(
-      screen.getByRole('button', { name: i18n.t('taskSheets.close') }),
+      screen.getByRole('button', { name: i18n.t('common.close') }),
     );
     expect(await screen.findByRole('alertdialog')).toBeTruthy();
     await user.click(

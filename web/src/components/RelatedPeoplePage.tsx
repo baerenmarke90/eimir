@@ -198,7 +198,7 @@ export function DeleteRelatedPersonDialogContent({
             if (choice.policy && canDelete) onDelete(choice.policy);
           }}
         >
-          {pending ? t('people.deleting') : t('people.deleteConfirm')}
+          {pending ? t('common.deleting') : t('people.deleteConfirm')}
         </button>
       </div>
     </section>
@@ -592,7 +592,7 @@ export function RelatedPeoplePage({
             >
               <ItemMenuOption
                 icon="pen"
-                title={t('people.edit')}
+                title={t('common.edit')}
                 onClick={() =>
                   leaveItemMenu(
                     menuSheet,

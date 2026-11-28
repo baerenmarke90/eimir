@@ -98,7 +98,7 @@ export function MomentPlaceActionsMenu({
                 disabled={pending}
                 onClick={() => setConfirm(false)}
               >
-                {t('photoPlaces.cancel')}
+                {t('common.cancel')}
               </button>
             </>
           ) : (

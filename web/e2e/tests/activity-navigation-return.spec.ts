@@ -2,7 +2,6 @@ import { expect, type Page, type Route, test } from '@playwright/test';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
-import taskCopy from '../../src/i18n/locales/taskBoundary';
 import {
   ACCOUNT_ID,
   captureScreenshot,
@@ -12,6 +11,7 @@ import {
   SPACE_ID,
   signIn,
 } from '../support/storyTimelineFixture';
+import germanUi from '../../src/i18n/locales/de';
 
 /**
  * #1907 A2: Activity is a More destination. Opening it, switching its scope
@@ -62,7 +62,7 @@ async function open(page: Page, width = 390) {
 }
 
 const shellBack = (page: Page) =>
-  page.getByRole('button', { name: taskCopy.back, exact: true });
+  page.getByRole('button', { name: germanUi.common.back, exact: true });
 const primary = (page: Page, name: string) =>
   page.getByRole('link', { name, exact: true });
 const activityRow = (page: Page) =>

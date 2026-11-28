@@ -257,7 +257,7 @@ function GiftIdeaEditor({
         )}
         action={
           <button type="submit" form="gift-idea-form" disabled={blocked}>
-            {saving ? t('privateArea.saving') : t('privateArea.save')}
+            {saving ? t('common.saving') : t('common.save')}
           </button>
         }
       />

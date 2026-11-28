@@ -403,7 +403,7 @@ it('confirms a private item rename without restoring an older collection positio
       name: privateArea.menuLabel.replace('{{name}}', 'Travel preparations'),
     }),
   );
-  fireEvent.click(screen.getByRole('button', { name: privateArea.edit }));
+  fireEvent.click(screen.getByRole('button', { name: de.common.edit }));
   const input = screen.getAllByLabelText(privateArea.collections.rename)[0];
   fireEvent.change(input, { target: { value: 'Reserve train tickets' } });
   fireEvent.blur(input);

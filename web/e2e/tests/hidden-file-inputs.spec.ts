@@ -1,4 +1,3 @@
-import taskSheets from '../../src/i18n/locales/taskSheets';
 import { fulfillFreeEntitlements } from '../support/freeEntitlements';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
@@ -129,7 +128,7 @@ async function expectKeyboardFilePicker(page: Page): Promise<void> {
     if (key === 'Enter') await device.press('Escape');
     else
       await sheet
-        .getByRole('button', { name: taskSheets.close, exact: true })
+        .getByRole('button', { name: de.common.close, exact: true })
         .last()
         .click();
     await expect(sheet).toHaveCount(0);

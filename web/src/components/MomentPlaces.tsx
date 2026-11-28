@@ -261,7 +261,7 @@ export function MomentPlaces({
             className="tertiary"
             onClick={() => void query.refetch()}
           >
-            {t('photoPlaces.retry')}
+            {t('common.retry')}
           </button>
         </>
       ) : null}

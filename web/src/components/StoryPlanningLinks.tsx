@@ -346,7 +346,7 @@ function ScopedStoryPlanningLinks({
     return initialPlanId ? (
       <div className="story-planning-handoff">
         {linked.isLoading || mutation.isPending ? (
-          <p role="status">{t('m5s3.common.saving')}</p>
+          <p role="status">{t('common.saving')}</p>
         ) : null}
         {linked.error ? (
           <ProblemState

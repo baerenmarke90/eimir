@@ -159,7 +159,7 @@ export function PhotoArrangeTask({
       onClose={onClose}
       ref={sheet}
       className="media-arrange-task"
-      closeLabel={t('experiences.cancel')}
+      closeLabel={t('common.cancel')}
       footer={
         <>
           {controls}
@@ -171,7 +171,7 @@ export function PhotoArrangeTask({
               sheet.current?.closeForNavigation(() => {});
             }}
           >
-            {t('experiences.finish')}
+            {t('common.done')}
           </button>
         </>
       }

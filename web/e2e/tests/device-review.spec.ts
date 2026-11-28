@@ -4,7 +4,6 @@ import tags from '../../src/i18n/locales/contextTags';
 import momentCopy from '../../src/i18n/locales/m5s5';
 import memory from '../../src/i18n/locales/memoryProduct';
 import storyProducts from '../../src/i18n/locales/storyProducts';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import {
   closeComposerDate,
   closeContextTags,
@@ -20,6 +19,7 @@ import {
   signIn,
 } from '../support/storyTimelineFixture';
 import { editViaMenu } from '../support/itemMenu';
+import germanUi from '../../src/i18n/locales/de';
 
 for (const [width, theme] of [
   [360, 'light'],
@@ -143,7 +143,7 @@ for (const [width, theme] of [
     await expect(
       page.getByRole('button', { name: memory.planning.add, exact: true }),
     ).toHaveCount(0);
-    await editViaMenu(page, memory.edit);
+    await editViaMenu(page, germanUi.common.edit);
     const linked = page.getByRole('region', { name: memory.planning.heading });
     for (const kind of ['plans', 'wishes'] as const) {
       await page
@@ -177,7 +177,7 @@ for (const [width, theme] of [
       ).violations,
     ).toEqual([]);
     await page
-      .getByRole('link', { name: taskBoundary.back, exact: true })
+      .getByRole('link', { name: germanUi.common.back, exact: true })
       .click();
     await expect(group.getByRole('heading')).toHaveText(
       memory.planning.detailHeading,
@@ -255,7 +255,7 @@ for (const [width, theme] of [
         page.getByRole('heading', { name: wish.title, exact: true }),
       ).toBeVisible();
       await page
-        .getByRole('button', { name: taskBoundary.back, exact: true })
+        .getByRole('button', { name: germanUi.common.back, exact: true })
         .click();
       await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
       await planLink.click();
@@ -264,11 +264,11 @@ for (const [width, theme] of [
         page.getByRole('heading', { name: plan.title, exact: true }),
       ).toBeVisible();
       await page
-        .getByRole('button', { name: taskBoundary.back, exact: true })
+        .getByRole('button', { name: germanUi.common.back, exact: true })
         .click();
       await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
     }
-    await editViaMenu(page, memory.edit);
+    await editViaMenu(page, germanUi.common.edit);
     await linked
       .getByRole('button', {
         name: memory.planning.remove.replace('{{title}}', plan.title),
@@ -277,7 +277,7 @@ for (const [width, theme] of [
     await expect(linked.getByText(plan.title, { exact: true })).toHaveCount(0);
     await expect(linked.getByText(wish.title, { exact: true })).toBeVisible();
     await page
-      .getByRole('link', { name: taskBoundary.back, exact: true })
+      .getByRole('link', { name: germanUi.common.back, exact: true })
       .click();
     await expect(planLink).toHaveCount(0);
     await expect(list.getByRole('link')).toHaveCount(1);

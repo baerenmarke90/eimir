@@ -5,7 +5,6 @@ import legal from '../../src/i18n/locales/legal';
 import { privacyPolicyDe } from '../../src/i18n/locales/legalDocuments/privacyPolicy.de.generated';
 import { termsOfUseDe } from '../../src/i18n/locales/legalDocuments/termsOfUse.de.generated';
 import snackbarDe from '../../src/i18n/locales/snackbar';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '../support/axe';
 import {
@@ -238,7 +237,7 @@ test.describe('Terms of use at Cloud signup', () => {
     await page.emulateMedia({ colorScheme: 'dark' });
     await expectNoWcagViolations(page);
 
-    await page.getByRole('button', { name: taskBoundary.back }).click();
+    await page.getByRole('button', { name: de.common.back }).click();
     await expect(page).toHaveURL(/\/$/);
     await expect(
       page.getByRole('group', { name: de.identity.entryModesAria }),
@@ -460,7 +459,7 @@ test.describe('Privacy policy on eimir. Cloud', () => {
     await page.emulateMedia({ colorScheme: 'dark' });
     await expectNoWcagViolations(page);
 
-    await page.getByRole('button', { name: taskBoundary.back }).click();
+    await page.getByRole('button', { name: de.common.back }).click();
     await expect(page).toHaveURL(/\/$/);
     await expect(
       page.getByRole('group', { name: de.identity.entryModesAria }),
@@ -517,7 +516,7 @@ test.describe('Privacy policy on eimir. Cloud', () => {
     await expect(title).toBeFocused();
     expect(await page.evaluate(() => window.scrollY)).toBe(0);
 
-    await page.getByRole('button', { name: taskBoundary.back }).click();
+    await page.getByRole('button', { name: de.common.back }).click();
     await expect(page).toHaveURL(/\/more$/);
     await expect(legalLinks).toBeVisible();
   });
@@ -545,7 +544,7 @@ test.describe('Privacy policy in the English UI', () => {
     await expect(page.getByText(en.legal.draftBadge)).toBeVisible();
     await expect(page).toHaveTitle(`${en.legal.privacySheetTitle} · eimir.`);
     await expect(
-      page.getByRole('button', { name: en.taskBoundary.back }),
+      page.getByRole('button', { name: en.common.back }),
     ).toBeVisible();
     await expectNoWcagViolations(page);
   });

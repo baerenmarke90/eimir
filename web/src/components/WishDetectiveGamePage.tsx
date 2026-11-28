@@ -571,7 +571,7 @@ function WishDetectiveSessionView({
               session.dispatch({ type: 'CONTINUE' });
             }}
           >
-            {t('games.wishDetective.continue')}
+            {t('common.continue')}
           </button>
         </section>
       ) : null}

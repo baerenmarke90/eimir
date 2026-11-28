@@ -292,8 +292,8 @@ test('creating a Chapter from its dedicated Create page saves and returns to the
   await signIn(page);
 
   await page.goto('/plan/chapters/new');
-  await page.getByLabel(m5s3.common.title, { exact: true }).fill(CHAPTER_TITLE);
-  await page.getByRole('button', { name: m5s3.common.save }).click();
+  await page.getByLabel(de.common.title, { exact: true }).fill(CHAPTER_TITLE);
+  await page.getByRole('button', { name: de.common.save }).click();
 
   await expect(page).toHaveURL(/\/plan\/chapters\/chapter-1$/);
   await expect(

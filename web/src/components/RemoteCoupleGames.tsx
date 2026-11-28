@@ -895,7 +895,7 @@ export function RemoteOurMomentsView({
               {view.pair.cards[0]?.moment?.title ?? ''}
             </h2>
             <button type="button" onClick={() => remote.continue()}>
-              {t('games.momentsGame.continue')}
+              {t('common.continue')}
             </button>
           </div>
         </section>

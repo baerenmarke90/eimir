@@ -144,7 +144,7 @@ for (const scenario of cases) {
             .getByLabel(copy.moreActions, { exact: true })
             .click();
           await state.panel
-            .getByRole('button', { name: copy.edit, exact: true })
+            .getByRole('button', { name: de.common.edit, exact: true })
             .click();
           await field.fill('An edited thought worth keeping.');
         }
@@ -154,8 +154,8 @@ for (const scenario of cases) {
           operation === 'create'
             ? copy.send
             : operation === 'update'
-              ? copy.save
-              : copy.delete,
+              ? de.common.save
+              : de.common.delete,
         exact: true,
       });
       await page.context().setOffline(true);

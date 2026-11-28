@@ -648,7 +648,7 @@ function OnceTask({
                   returnToOrigin();
                 }}
               >
-                {t('onceMessages.close')}
+                {t('common.close')}
               </button>
             </section>
           ) : ended ? (

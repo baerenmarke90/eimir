@@ -16,6 +16,7 @@ import privateArea from '../i18n/locales/privateArea';
 import { GiftIdeaCreatePage } from './GiftIdeasPage';
 import { PrivateCollectionCreatePage } from './PrivateCollectionsPage';
 import { PrivateNoteCreatePage } from './PrivateNotesPage';
+import germanUi from '../i18n/locales/de';
 
 const accountId = 'account-1';
 const spaceId = 'space-1';
@@ -26,7 +27,7 @@ const definitions = [
     Editor: PrivateNoteCreatePage,
     path: '/more/private/notes',
     key: privateAreaQueryKeys.notes(accountId, spaceId),
-    label: privateArea.notes.titleLabel,
+    label: germanUi.common.title,
   },
   {
     name: 'gift idea',
@@ -40,7 +41,7 @@ const definitions = [
     Editor: PrivateCollectionCreatePage,
     path: '/more/private/collections',
     key: privateAreaQueryKeys.collections(accountId, spaceId),
-    label: privateArea.collections.titleLabel,
+    label: germanUi.common.title,
   },
 ] as const;
 
@@ -115,7 +116,9 @@ for (const definition of definitions) {
         fireEvent.change(screen.getByLabelText(definition.label), {
           target: { value: saved.title },
         });
-        fireEvent.click(screen.getByRole('button', { name: privateArea.save }));
+        fireEvent.click(
+          screen.getByRole('button', { name: germanUi.common.save }),
+        );
         await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
       }
       return { write, create, queryClient, endSession, submit };

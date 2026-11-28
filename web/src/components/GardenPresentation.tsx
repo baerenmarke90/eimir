@@ -337,9 +337,7 @@ export function GardenReunionTodayCard({
         </p>
       ) : canSave ? (
         <button type="button" disabled={saving} onClick={() => void keep()}>
-          {saving
-            ? t('games.garden.reunion.saving')
-            : t('games.garden.reunion.save')}
+          {saving ? t('common.saving') : t('games.garden.reunion.save')}
         </button>
       ) : null}
     </section>

@@ -252,7 +252,7 @@ export function CalendarSyncSettings(props: Props) {
             })
           }
         >
-          {t('calendarSync.google.cancel')}
+          {t('common.cancel')}
         </button>
       </div>
     </section>

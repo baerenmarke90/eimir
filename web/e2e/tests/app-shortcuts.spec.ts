@@ -174,13 +174,13 @@ const targets = [
     action: 'wish',
     route: '/plan/wishes',
     field: m5s3.wish.intentionLabel,
-    save: m5s3.common.save,
+    save: de.common.save,
   },
   {
     action: 'plan',
     route: '/plan/plans',
     field: m5s3.plan.intentionLabel,
-    save: m5s3.common.save,
+    save: de.common.save,
   },
 ];
 for (const platform of ['android', 'ios'] as const) {

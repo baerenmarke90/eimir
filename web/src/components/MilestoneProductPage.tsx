@@ -371,14 +371,14 @@ export function MilestoneProductPage({
                 data-saveable={createTitle.trim().length > 0}
                 aria-label={
                   createMutation.isPending
-                    ? t('milestoneProduct.saving')
+                    ? t('common.saving')
                     : t('milestoneProduct.save')
                 }
                 disabled={createMutation.isPending || sourceLoading}
               >
                 {createMutation.isPending
-                  ? t('milestoneProduct.saving')
-                  : t('m5s3.common.save')}
+                  ? t('common.saving')
+                  : t('common.save')}
               </button>
             }
           />
@@ -426,9 +426,7 @@ export function MilestoneProductPage({
               <div className="composer-content">
                 <div className="composer-writing-surface composer-authored-surface">
                   <div className="field-group immersive-create-title-field">
-                    <label htmlFor="milestone-title">
-                      {t('milestoneProduct.titleLabel')}
-                    </label>
+                    <label htmlFor="milestone-title">{t('common.title')}</label>
                     <input
                       id="milestone-title"
                       name="title"
@@ -499,7 +497,7 @@ export function MilestoneProductPage({
                 to={milestoneDetailPath(milestone.id)}
                 state={{ taskOriginKey: originKey }}
               >
-                {t('milestoneProduct.backToMilestone')}
+                {t('common.back')}
               </TaskBackLink>
             }
             title={t('milestoneProduct.editHeading')}
@@ -548,7 +546,7 @@ export function MilestoneProductPage({
             to={milestoneDetailPath(milestone.id)}
             state={{ taskOriginKey: originKey }}
           >
-            {t('milestoneProduct.backToMilestone')}
+            {t('common.back')}
           </TaskBackLink>
         }
         title={t('milestoneProduct.editHeading')}
@@ -580,9 +578,7 @@ export function MilestoneProductPage({
                 {t('common.cancel')}
               </Link>
               <button type="submit" disabled={updating || deleting}>
-                {updating
-                  ? t('milestoneProduct.saving')
-                  : t('milestoneProduct.save')}
+                {updating ? t('common.saving') : t('milestoneProduct.save')}
               </button>
             </div>
           </form>
@@ -718,7 +714,7 @@ export function MilestoneProductPage({
         {mayEdit ? (
           <ItemMenuOption
             icon="pen"
-            title={t('milestoneProduct.edit')}
+            title={t('common.edit')}
             onClick={() =>
               leaveItemMenu(
                 menuSheet,
@@ -735,7 +731,7 @@ export function MilestoneProductPage({
           <ItemMenuOption
             icon="trash"
             danger
-            title={t('milestoneProduct.delete')}
+            title={t('common.delete')}
             disabled={deleteMutation.isBlocked}
             onClick={() => {
               deleteMutation.reset();
@@ -751,7 +747,7 @@ export function MilestoneProductPage({
         title={t('milestoneProduct.deleteConfirmTitle')}
         body={t('milestoneProduct.deleteConfirmBody')}
         confirmLabel={t('milestoneProduct.deleteConfirm')}
-        pendingLabel={t('milestoneProduct.deleting')}
+        pendingLabel={t('common.deleting')}
         pending={deleteMutation.isPending}
         error={deleteMutation.error}
         restoreFocusRef={menuTrigger}
@@ -767,9 +763,7 @@ function MilestoneFields({ milestone }: { milestone?: MilestoneDetail }) {
   return (
     <>
       <div className="field-group">
-        <label htmlFor="milestone-title">
-          {t('milestoneProduct.titleLabel')}
-        </label>
+        <label htmlFor="milestone-title">{t('common.title')}</label>
         <input
           id="milestone-title"
           name="title"

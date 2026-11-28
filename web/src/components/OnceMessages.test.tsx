@@ -340,7 +340,7 @@ describe('one-time partner interaction', () => {
     );
     expect((input as HTMLTextAreaElement).value).toBe('Keep this thought');
     fireEvent.click(
-      screen.getByRole('button', { name: i18n.t('taskBoundary.back') }),
+      screen.getByRole('button', { name: i18n.t('common.back') }),
     );
     expect(await screen.findByRole('dialog')).toBeDefined();
     fireEvent.click(

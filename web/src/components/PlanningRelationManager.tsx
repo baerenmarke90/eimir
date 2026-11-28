@@ -898,7 +898,7 @@ function ScopedPlanningRelationManager({
             onClick={() => void addSelected()}
           >
             {isSaving
-              ? t('m5s3.common.saving')
+              ? t('common.saving')
               : selected.size
                 ? t('m5s3.relations.addSelected', { count: selected.size })
                 : t('m5s3.relations.chooseMoments')}

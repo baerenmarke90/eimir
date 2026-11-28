@@ -733,7 +733,7 @@ function FoundPanel({
               disabled={keeping || !url}
             >
               {keeping
-                ? t('games.heartHunt.found.keeping')
+                ? t('common.saving')
                 : t('games.heartHunt.found.keepConfirm')}
             </button>
           </form>

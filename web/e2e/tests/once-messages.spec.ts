@@ -14,6 +14,7 @@ import {
   signIn,
   TINY_PNG,
 } from '../support/storyTimelineFixture';
+import germanUi from '../../src/i18n/locales/de';
 
 const ROOT = '/today/only-you';
 const MESSAGE = '77777777-7777-4777-8777-777777777777';
@@ -383,7 +384,7 @@ test('temporary audio uses the shared player and stays outside durable HeartMome
     await expect(receiver.locator('.voice-player')).toBeVisible();
     await captureScreenshot(receiver, info, 'once-voice-390-light.png');
     await receiver
-      .getByRole('button', { name: copy.close, exact: true })
+      .getByRole('button', { name: germanUi.common.close, exact: true })
       .click();
     await expect(receiver.locator('audio')).toHaveCount(0);
     expect(app.sends).toBe(1);
@@ -440,7 +441,7 @@ test('photo-only messages are normalized locally and revealed with their descrip
     ).toBeVisible();
     await captureScreenshot(receiver, info, 'once-photo-390-light.png');
     await receiver
-      .getByRole('button', { name: copy.close, exact: true })
+      .getByRole('button', { name: germanUi.common.close, exact: true })
       .click();
     await expect(receiver.locator('.once-photo')).toHaveCount(0);
   } finally {

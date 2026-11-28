@@ -5,7 +5,6 @@ const photoSources = {
   configureInSettings: 'Verbinde Immich unter Einstellungen › Medienquellen.',
   addMedia: 'Medien hinzufügen',
   mediaLabel: 'Medien',
-  deviceMediaHint: 'Fotos und Videos',
   device: 'Dieses Gerät',
   deviceMedia: 'Fotos und Videos gemeinsam auswählen',
   previewFailed: 'Vorschau fehlt',
@@ -20,8 +19,6 @@ const photoSources = {
     'Verknüpfe eure Fotodienste und übernimm ausgewählte Fotos mit eimir. Pro.',
   consent:
     'Nur ausgewählte Fotos werden in deinen Entwurf kopiert. Auf diesem Gerät können sie bis zu 7 Tage gesichert werden. Die Sichtbarkeit richtet sich nach deinem Eintrag.',
-  accept: 'Ausgewählte Fotos in meinen Entwurf übernehmen',
-  continue: 'Weiter zur Auswahl',
   waiting:
     'Wähle jetzt deine Fotos bei Google. Danach geht es hier automatisch weiter.',
   signingIn:
@@ -29,7 +26,6 @@ const photoSources = {
   nothingChosen:
     'Keine Fotos ausgewählt. Du kannst Google Fotos jederzeit wieder öffnen.',
   progress: 'Fotos werden übernommen …',
-  retryImport: 'Erneut versuchen',
   waitingMedia:
     'Wähle jetzt deine Fotos und Videos bei Google. Danach geht es hier automatisch weiter.',
   resultsLabel: 'Deine Auswahl',
@@ -82,8 +78,6 @@ const photoSources = {
   address: 'Adresse deines Immich-Dienstes',
   addressHint: 'Die erreichbare HTTPS-Adresse, unter der du Immich öffnest.',
   key: 'Immich-Zugriffsschlüssel',
-  keyHint:
-    'Erstelle in deinem Immich-Konto unter Kontoeinstellungen → API-Schlüssel einen eigenen Schlüssel für eimir. mit den unten genannten Leserechten. Du kannst ihn dort jederzeit widerrufen.',
   permissions:
     'Benötigt: asset.read, asset.view, asset.download und user.read.',
   privateLink:
@@ -96,8 +90,6 @@ const photoSources = {
   disconnect: 'Verbindung trennen',
   disconnected:
     'Verbindung getrennt. Bereits gespeicherte Fotos bleiben erhalten.',
-  disconnectedHint:
-    'Der eimir.-Schlüssel kann zusätzlich in Immich widerrufen werden.',
   addressUnavailable:
     'Die Verbindung konnte nicht hergestellt werden. Prüfe die erreichbare HTTPS-Adresse und die Leserechte des Schlüssels. Dein Eintrag bleibt erhalten.',
   googleAccountLink: 'Google-Konto verknüpfen',

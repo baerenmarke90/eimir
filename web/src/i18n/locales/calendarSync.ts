@@ -12,7 +12,6 @@ export default {
     'Die automatische Synchronisation gehört zu eimir. Pro und gilt für euch beide.',
   unavailable:
     'Die Kalender-Synchronisation ist auf diesem eimir. nicht eingerichtet.',
-  loadFailed: 'Die Kalendereinstellungen konnten nicht geladen werden.',
   providers: {
     CALDAV: 'CalDAV',
     CALDAV_hint:
@@ -49,7 +48,6 @@ export default {
     confirmBody:
       '{{label}} – eimir. schreibt eure gemeinsamen Pläne in einen Kalender dieses Kontos, den du gleich auswählst.',
     confirm: 'Bestätigen',
-    cancel: 'Abbrechen',
     return: {
       denied:
         'Die Verbindung mit Google wurde abgebrochen. Du kannst es jederzeit erneut versuchen.',
@@ -114,7 +112,6 @@ export default {
     eventsStay: 'Bereits übertragene Termine bleiben im Kalender.',
     reconnect: 'Neu verbinden',
     changeCalendar: 'Anderen Kalender wählen',
-    connectAnother: 'Anderen Kalender verbinden',
   },
   errors: {
     CALENDAR_AUTH_FAILED:

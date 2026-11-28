@@ -1331,8 +1331,8 @@ export function MediaGallery({
                       type="button"
                       className="media-lightbox-close media-overlay"
                       onClick={closeLightbox}
-                      aria-label={t('gallery.close')}
-                      title={t('gallery.close')}
+                      aria-label={t('common.close')}
+                      title={t('common.close')}
                     >
                       <EimirIcon name="close" />
                     </button>

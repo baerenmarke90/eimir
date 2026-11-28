@@ -318,7 +318,7 @@ function RuleReminderSettings({
         <p className="important-date-feedback" role="status" aria-live="polite">
           {t(
             mutation.isPending
-              ? 'profileIdentity.anniversaryReminderSaving'
+              ? 'common.saving'
               : 'profileIdentity.anniversaryReminderSaved',
           )}
         </p>

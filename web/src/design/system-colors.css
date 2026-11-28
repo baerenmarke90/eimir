@@ -1,0 +1,24 @@
+/*
+ * "System colours" (Android Material You). Action and brand accent tokens only;
+ * surfaces and backgrounds stay as the chosen design defines them. The values
+ * come from the native palette through src/client/systemColors.ts. The
+ * repeated attribute raises specificity above every design palette rule,
+ * including those scoped to [data-color-world].
+ */
+:root[data-system-colors][data-system-colors][data-system-colors]:not([data-theme="dark"]),
+:root[data-system-colors][data-system-colors][data-system-colors]:not([data-theme="dark"]) [data-color-world] {
+  --color-action-primary: var(--system-colors-light-action);
+  --color-on-action-primary: var(--system-colors-light-on-action);
+  --color-brand-strong: var(--system-colors-light-brand-strong);
+  --color-brand-text: var(--system-colors-light-brand-text);
+  --color-focus: var(--system-colors-light-focus);
+}
+
+:root[data-system-colors][data-system-colors][data-system-colors][data-theme="dark"],
+:root[data-system-colors][data-system-colors][data-system-colors][data-theme="dark"] [data-color-world] {
+  --color-action-primary: var(--system-colors-dark-action);
+  --color-on-action-primary: var(--system-colors-dark-on-action);
+  --color-brand-strong: var(--system-colors-dark-brand-strong);
+  --color-brand-text: var(--system-colors-dark-brand-text);
+  --color-focus: var(--system-colors-dark-focus);
+}

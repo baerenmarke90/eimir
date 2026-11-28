@@ -64,6 +64,14 @@
   align-self: center;
 }
 
+/* The three-dot menu closes the title row at the right edge, as it does on the
+   item header, instead of trailing a short title. */
+.page-heading.page-heading-secondary
+  .page-heading-title-container
+  > .item-menu-trigger {
+  margin-inline-start: auto;
+}
+
 /* Page-scoped title fonts predate one secondary title role; the class keeps
    this role ahead of them. */
 .page-heading.page-heading-secondary h1.page-heading-secondary-title {

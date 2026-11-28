@@ -984,7 +984,7 @@ function RecapReader({
             {value.status === 'READY' ? (
               <button
                 type="button"
-                className="tertiary recap-fullscreen-toggle"
+                className="list-entry-icon-button item-menu-trigger recap-fullscreen-toggle"
                 aria-label={t(
                   fullscreen ? 'recaps.fullscreenClose' : 'recaps.fullscreen',
                 )}

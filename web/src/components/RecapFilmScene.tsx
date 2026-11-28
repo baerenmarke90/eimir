@@ -471,7 +471,11 @@ export function RecapFilmScene({
       return (
         <div className="recap-film-frame" data-layout={layout}>
           {shown.length ? (
-            <div className="recap-film-media" data-count={shown.length}>
+            <div
+              className="recap-film-media"
+              data-count={shown.length}
+              style={{ '--film-count': shown.length } as CSSProperties}
+            >
               {shown.map((item, index) => (
                 <Picture
                   key={item.attachmentId}
@@ -599,6 +603,7 @@ export function RecapFilmScene({
             className="recap-film-media"
             data-count={shown.length}
             data-scene={scene.type}
+            style={{ '--film-count': shown.length } as CSSProperties}
           >
             {shown.map((item, index) => (
               <Picture
@@ -839,7 +844,11 @@ export function RecapFilmScene({
           data-variant={scene.layout || undefined}
         >
           {scene.media.length ? (
-            <div className="recap-film-media" data-count={scene.media.length}>
+            <div
+              className="recap-film-media"
+              data-count={scene.media.length}
+              style={{ '--film-count': scene.media.length } as CSSProperties}
+            >
               {scene.media.map((item, index) => (
                 <Picture
                   key={item.attachmentId}

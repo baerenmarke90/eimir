@@ -29,11 +29,11 @@ const LEAVE_GAP = 48;
 /**
  * The favourite step as a card deck (#2371; Product Owner, 2026-11-28).
  *
- * One candidate at a time: swiping right, the "Lust drauf" button or Arrow
- * Right makes it a private favourite; swiping left, "Eher nicht" or Arrow
+ * One candidate at a time: swiping right, the favourite button or Arrow
+ * Right makes it a private favourite; swiping left, the skip button or Arrow
  * Left leaves it out. The decision is recorded at release (M10); the card
- * then settles off screen on its own clock and the next one rises. "Zurück"
- * brings back the previous card. After the last card `onDone` hands over to
+ * then settles off screen on its own clock and the next one rises. The back
+ * button brings back the previous card. After the last card `onDone` hands over to
  * the summary list, where every choice can still change before sending.
  *
  * The swipe is Gesture follow (Motion Contract 4.6) in its two-sided mode;

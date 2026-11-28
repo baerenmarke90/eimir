@@ -368,8 +368,15 @@ async function enter(page: Page) {
   await signIn(page);
   await page.goto('/plan');
 }
+/** #2371: the localized deck progress in a card's accessible name. */
+function deckProgress(current: number, total: number) {
+  return copy.deckProgress
+    .replace('{{current}}', String(current))
+    .replace('{{total}}', String(total));
+}
+
 /**
- * #2371: leaves the remaining cards of the deck out with "Eher nicht" until
+ * #2371: leaves the remaining cards of the deck out with the skip button until
  * the summary list takes over.
  */
 async function finishDeck(page: Page) {
@@ -469,14 +476,14 @@ test('mobile round -> private selection -> shared favorite -> canonical dated Pl
   // card makes it a favourite; the second is left out with the button.
   await expect(
     page.getByRole('group', {
-      name: new RegExp(`^${demo.wishes[0]}, 1 von 2`),
+      name: new RegExp(`^${demo.wishes[0]}, ${deckProgress(1, 2)}`),
     }),
   ).toBeVisible();
   await capture(page, info, 'deck-390-light');
   await swipeTopCard(page, demo.wishes[0], 220);
   await expect(
     page.getByRole('group', {
-      name: new RegExp(`^${demo.wishes[1]}, 2 von 2`),
+      name: new RegExp(`^${demo.wishes[1]}, ${deckProgress(2, 2)}`),
     }),
   ).toBeVisible();
   await finishDeck(page);

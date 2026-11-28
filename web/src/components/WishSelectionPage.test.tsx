@@ -27,6 +27,13 @@ import taskBoundary from '../i18n/locales/taskBoundary';
 import copy from '../i18n/locales/wishSelection';
 import { WishSelectionPage } from './WishSelectionPage';
 
+/** #2371: the localized deck progress in a card's accessible name. */
+function deckProgress(current: number, total: number) {
+  return copy.deckProgress
+    .replace('{{current}}', String(current))
+    .replace('{{total}}', String(total));
+}
+
 beforeAll(() => {
   HTMLDialogElement.prototype.showModal = function () {
     this.setAttribute('open', '');
@@ -480,7 +487,7 @@ describe('WishSelectionPage', () => {
   it('starts a first choice as a card deck and hands over to the list (#2371)', async () => {
     const { updateOwnWishSelection } = renderTask();
     const first = await screen.findByRole('group', {
-      name: `${candidates[0].title}, 1 von 3`,
+      name: `${candidates[0].title}, ${deckProgress(1, 3)}`,
     });
     expect(first.getAttribute('tabindex')).toBe('0');
     // Only the top card is exposed; the card behind it waits.
@@ -496,14 +503,14 @@ describe('WishSelectionPage', () => {
     // The keyboard decides like the buttons: Arrow Left leaves it out.
     fireEvent.keyDown(
       await screen.findByRole('group', {
-        name: `${candidates[1].title}, 2 von 3`,
+        name: `${candidates[1].title}, ${deckProgress(2, 3)}`,
       }),
       { key: 'ArrowLeft' },
     );
     // Back to the previous card, then on again.
     fireEvent.click(screen.getByRole('button', { name: copy.deckBack }));
     await screen.findByRole('group', {
-      name: `${candidates[1].title}, 2 von 3`,
+      name: `${candidates[1].title}, ${deckProgress(2, 3)}`,
     });
     fireEvent.click(screen.getByRole('button', { name: copy.deckSkip }));
     fireEvent.click(screen.getByRole('button', { name: copy.deckSkip }));

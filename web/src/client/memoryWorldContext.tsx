@@ -127,7 +127,12 @@ function useMemoryWorldState({
       rememberMemoryWorld(storageKey, result.preference.worldId);
       // All appearance choices of a person share one version: the other
       // choices need their fresh concurrency token after this save.
-      for (const sibling of ['app-icon', 'wir-design', 'person-colours'])
+      for (const sibling of [
+        'app-icon',
+        'wir-design',
+        'person-colours',
+        'wir-reel-style',
+      ])
         void client.invalidateQueries({ queryKey: [sibling] });
     },
     onError: (error) => {

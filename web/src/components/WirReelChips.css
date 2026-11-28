@@ -1,0 +1,130 @@
+/*
+ * The chips style of the Wir reels (#2345, a Pro presentation; draft C):
+ * swipeable pills with a small round face and one line of text. The pill has
+ * a tinted fill and no border. The face is the circle reel's own face, drawn
+ * at chip size; the deep warm tint and the garden tint are the local roles of
+ * the circle reels. Every other value is a token.
+ */
+.wir-notice-tiles.wir-reel-chips,
+.wir-waiting-games.wir-reel-chips {
+  --wir-chip-face: 2.125rem;
+  --wir-chip-text-max: 11rem;
+  /* The face is drawn at 4rem and scaled to the chip's face size. */
+  --wir-chip-face-scale: 0.53125;
+  /* The card arrival grows the item's room up to this width (a chip's
+     widest: face, text and padding). */
+  --wir-notice-width: 15rem;
+  --wir-game-tile-width: 15rem;
+
+  gap: var(--space-2);
+}
+
+.wir-nchip,
+.wir-gchip {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--touch-target-web);
+  padding-block: var(--space-1);
+  padding-inline: var(--space-1) var(--space-4);
+  border-radius: var(--radius-pill);
+  color: var(--color-text);
+  text-decoration: none;
+  white-space: nowrap;
+  background: var(--color-surface-raised);
+}
+
+.wir-nchip:focus-visible,
+.wir-gchip:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .wir-nchip,
+  .wir-gchip {
+    transition: transform var(--duration-feedback) var(--easing-standard);
+  }
+
+  .wir-nchip:active,
+  .wir-gchip:active {
+    transform: scale(0.97);
+  }
+}
+
+/* The circle face at chip size: laid out at its own 4rem, then scaled, with
+   negative margins so it takes only the chip face's room. */
+.wir-nchip-face,
+.wir-gchip-face {
+  flex: 0 0 auto;
+  margin: calc((var(--wir-chip-face) - 4rem) / 2);
+  transform: scale(var(--wir-chip-face-scale));
+}
+
+.wir-nchip-face {
+  width: 4rem;
+  height: 4rem;
+}
+
+.wir-gchip-face {
+  --wir-game-face: 4rem;
+}
+
+.wir-nchip-text,
+.wir-gchip-text {
+  max-width: var(--wir-chip-text-max);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-ui);
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.wir-nchip-warm,
+.wir-gchip-warm {
+  background: color-mix(
+    in srgb,
+    var(--color-person-rose-surface) 70%,
+    var(--color-surface-raised)
+  );
+}
+
+.wir-nchip-cool,
+.wir-gchip-cool {
+  background: color-mix(
+    in srgb,
+    var(--color-person-blue-surface) 70%,
+    var(--color-surface-raised)
+  );
+}
+
+.wir-gchip-shared {
+  background: linear-gradient(
+    90deg,
+    var(--color-person-rose-surface),
+    var(--color-person-blue-surface)
+  );
+}
+
+.wir-gchip-garden {
+  background: var(--wir-game-tint-garden);
+}
+
+.wir-nchip-brand,
+.wir-nchip-deep-cool {
+  background: color-mix(
+    in srgb,
+    var(--color-action-primary) 16%,
+    var(--color-surface-raised)
+  );
+}
+
+.wir-nchip-deep-warm {
+  background: color-mix(
+    in srgb,
+    var(--wir-notice-deep-warm) 18%,
+    var(--color-surface-raised)
+  );
+}

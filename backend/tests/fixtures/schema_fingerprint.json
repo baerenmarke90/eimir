@@ -633,6 +633,13 @@
           "identity": null,
           "nullable": true,
           "type": "character varying(24)"
+        },
+        "wir_reel_style": {
+          "default": null,
+          "generated": null,
+          "identity": null,
+          "nullable": true,
+          "type": "character varying(24)"
         }
       },
       "constraints": {

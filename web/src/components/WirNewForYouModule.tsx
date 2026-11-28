@@ -16,13 +16,16 @@ import { usePrimaryTabReturn } from '../client/primaryTabActive';
 import { normalizeClientError } from '../client/problemDetails';
 import { MORE_NOTIFICATIONS_ROUTE } from '../client/routes';
 import { cardArrivalClass, useCardArrivals } from '../client/useCardArrivals';
+import { useWirReelStyleId } from '../client/wirReelStyleContext';
 import { resolvedLocale, type TranslateText, useTranslation } from '../i18n';
 
 import { PHOTO_REACTIONS } from './MemoryPhotoGallery';
 import { TodayDestinationLink } from './TodayDestinationLink';
+import { WirNoticeTileBody } from './WirNoticeTile';
 import './WirCardArrival.css';
 import './WirLists.css';
 import './WirNewForYouModule.css';
+import './WirReelChips.css';
 
 type Art =
   | 'today'
@@ -35,7 +38,7 @@ type Art =
   | 'bubble'
   | 'reaction';
 
-interface Tile {
+export interface Tile {
   key: string;
   ids: string[];
   path: string;
@@ -50,12 +53,17 @@ interface Tile {
   items?: string[];
   moreItems?: string;
   moreCount?: number;
+  /** The tiles style (#2345) previews up to three entries; the rest joins this count. */
+  previewItems?: string[];
+  previewMoreItems?: string;
   quote?: string;
   reaction?: string;
 }
 
 /** Entries a list circle previews; more would outgrow the small circle. */
 const LIST_PREVIEW_ITEMS = 1;
+/** Entries a list tile previews: all the server sends (`PREVIEW_ITEMS`). */
+const LIST_TILE_PREVIEW_ITEMS = 3;
 
 const FOLDED_KINDS = new Set(['COMMENT_CREATED', 'PHOTO_REACTION']);
 
@@ -214,6 +222,11 @@ export function noticeTiles(
         const items = previewItems.slice(0, LIST_PREVIEW_ITEMS);
         const more =
           (notice.preview?.moreItems ?? 0) + previewItems.length - items.length;
+        const tileItems = previewItems.slice(0, LIST_TILE_PREVIEW_ITEMS);
+        const tileMore =
+          (notice.preview?.moreItems ?? 0) +
+          previewItems.length -
+          tileItems.length;
         tiles.push({
           ...base,
           tone: 'cool',
@@ -226,6 +239,11 @@ export function noticeTiles(
           moreItems:
             more > 0
               ? t('wirNotices.lines.moreItems', { count: more })
+              : undefined,
+          previewItems: tileItems,
+          previewMoreItems:
+            tileMore > 0
+              ? t('wirNotices.lines.moreItems', { count: tileMore })
               : undefined,
         });
         break;
@@ -358,7 +376,11 @@ export function WirNewForYouModule({
     `${accountId}:${spaceId}:notices`,
     tiles.map((tile) => tile.key),
   );
-  if (!visible || tiles.length === 0) return null;
+  // Outside a signed-in Space the style is unknown on purpose: circles.
+  const reel = useWirReelStyleId();
+  const reelStyle = reel?.style ?? 'circles';
+  // The reel appears once, complete, in the chosen style (#2345).
+  if (!visible || tiles.length === 0 || reel?.pending) return null;
 
   const open = (tile: Tile) => {
     if (tile.ids.length === 0) return;
@@ -395,28 +417,71 @@ export function WirNewForYouModule({
           {t('wirNotices.title')}
         </h2>
       </div>
-      <ul className="wir-lists-row wir-tile-reel wir-notice-tiles">
+      <ul
+        className={`wir-lists-row wir-tile-reel wir-notice-tiles wir-reel-${reelStyle}`}
+      >
         {tiles.map((tile) => (
           <li
             key={tile.key}
             className={`wir-notice-item${cardArrivalClass(arrivals.get(tile.key))}`}
           >
-            <TodayDestinationLink
-              to={tile.path}
-              className={`wir-notice-tile wir-notice-tone-${tile.tone}`}
-              selectedKey={`wir-notice-${tile.key}`}
-              onFollow={() => open(tile)}
-            >
-              <span className="wir-notice-face" aria-hidden="true">
-                <TileFace tile={tile} />
-              </span>
-              <span className="wir-notice-label">{tile.title}</span>
-              <span className="sr-only">
-                {[tile.kind, tile.quote, tile.line, tile.moreItems]
-                  .filter(Boolean)
-                  .join(': ')}
-              </span>
-            </TodayDestinationLink>
+            {reelStyle === 'chips' ? (
+              <TodayDestinationLink
+                to={tile.path}
+                className={`wir-nchip wir-nchip-${tile.tone} wir-notice-tone-${tile.tone}`}
+                selectedKey={`wir-notice-${tile.key}`}
+                onFollow={() => open(tile)}
+              >
+                <span
+                  className="wir-notice-face wir-nchip-face"
+                  aria-hidden="true"
+                >
+                  <TileFace tile={tile} />
+                </span>
+                <span className="wir-nchip-text" aria-hidden="true">
+                  {chipText(tile, t)}
+                </span>
+                <span className="sr-only">
+                  {[
+                    tile.title,
+                    tile.kind,
+                    tile.quote,
+                    tile.line,
+                    tile.moreItems,
+                  ]
+                    .filter(Boolean)
+                    .join(': ')}
+                </span>
+              </TodayDestinationLink>
+            ) : reelStyle === 'tiles' ? (
+              <TodayDestinationLink
+                to={tile.path}
+                className={`wir-ntile wir-ntile-${tile.tone}`}
+                selectedKey={`wir-notice-${tile.key}`}
+                onFollow={() => open(tile)}
+              >
+                <span className="wir-ntile-kind">{tile.kind}</span>
+                <WirNoticeTileBody tile={tile} />
+                <span className="wir-ntile-line">{tile.line}</span>
+              </TodayDestinationLink>
+            ) : (
+              <TodayDestinationLink
+                to={tile.path}
+                className={`wir-notice-tile wir-notice-tone-${tile.tone}`}
+                selectedKey={`wir-notice-${tile.key}`}
+                onFollow={() => open(tile)}
+              >
+                <span className="wir-notice-face" aria-hidden="true">
+                  <TileFace tile={tile} />
+                </span>
+                <span className="wir-notice-label">{tile.title}</span>
+                <span className="sr-only">
+                  {[tile.kind, tile.quote, tile.line, tile.moreItems]
+                    .filter(Boolean)
+                    .join(': ')}
+                </span>
+              </TodayDestinationLink>
+            )}
           </li>
         ))}
       </ul>
@@ -424,11 +489,29 @@ export function WirNewForYouModule({
   );
 }
 
+/** The one line a chip shows (#2345, draft C); the link reads the full text. */
+function chipText(tile: Tile, t: TranslateText): string {
+  if (tile.art === 'today' && tile.time)
+    return t('wirNotices.chip.timed', { time: tile.time, title: tile.title });
+  if (tile.art === 'bubble' && tile.quote)
+    return t('wirNotices.chip.quoteOn', {
+      quote: tile.quote,
+      title: tile.title,
+    });
+  if (tile.art === 'date' && tile.weekday && tile.day)
+    return t('wirNotices.chip.dated', {
+      title: tile.title,
+      weekday: tile.weekday,
+      day: tile.day,
+    });
+  return tile.title;
+}
+
 /**
  * What a circle shows: a real piece of the content, never only a symbol
  * (Product Owner 2026-11-27). Decorative; the link reads the full text.
  */
-function TileFace({ tile }: { tile: Tile }) {
+export function TileFace({ tile }: { tile: Tile }) {
   switch (tile.art) {
     case 'today':
       return tile.time ? (

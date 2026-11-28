@@ -24,7 +24,8 @@ import {
   DEFAULT_APP_DESIGN,
 } from '../design/appDesigns.generated';
 import { syncDocumentThemeColor } from '../theme';
-import { APP_ICON_CAPABILITY, appIconQueryKey } from './appIcon';
+import { refreshAppearanceSiblings } from './appearanceSiblings';
+import { APP_ICON_CAPABILITY } from './appIcon';
 import {
   ClientProblemError,
   clientProblemKind,
@@ -217,10 +218,8 @@ function useWirDesignState({
         client.setQueryData(key, result);
         const { designId, paletteId } = result.preference;
         rememberWirDesign(storageKey, designId, paletteId);
-        void client.invalidateQueries({
-          queryKey: appIconQueryKey(instance, accountId, spaceId),
-          exact: true,
-        });
+        // All appearance choices share one version token (#2345).
+        refreshAppearanceSiblings(client, 'wir-design');
       }
     },
     onError: (error, { ownsQuery }) => {

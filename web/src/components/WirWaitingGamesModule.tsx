@@ -24,6 +24,7 @@ import {
   withdrawSpaceCapability,
 } from '../client/spaceEntitlement';
 import { cardArrivalClass, useCardArrivals } from '../client/useCardArrivals';
+import { useWirReelStyleId } from '../client/wirReelStyleContext';
 import { useTranslation } from '../i18n';
 import { GAMES_COUPLE_CAPABILITY } from './GamesProductArea';
 import { TodayDestinationLink } from './TodayDestinationLink';
@@ -31,6 +32,8 @@ import { WirGameTileArt } from './WirGameTileArt';
 import './WirCardArrival.css';
 import './WirLists.css';
 import './WirWaitingGamesModule.css';
+import './WirReelTiles.css';
+import './WirReelChips.css';
 
 /**
  * Lives under the Dashboard key so every Wir refresh, and every game notice
@@ -160,7 +163,11 @@ export function WirWaitingGamesModule({
     `${accountId}:${spaceId}:games`,
     items.map(turnKey),
   );
-  if (!allowed || items.length === 0) return null;
+  // Outside a signed-in Space the style is unknown on purpose: circles.
+  const reel = useWirReelStyleId();
+  const reelStyle = reel?.style ?? 'circles';
+  // The reel appears once, complete, in the chosen style (#2345).
+  if (!allowed || items.length === 0 || reel?.pending) return null;
   return (
     <section
       className="today-section today-section-waiting-games"
@@ -171,7 +178,9 @@ export function WirWaitingGamesModule({
           {t('games.waiting.title')}
         </h2>
       </div>
-      <ul className="wir-lists-row wir-tile-reel wir-waiting-games">
+      <ul
+        className={`wir-lists-row wir-tile-reel wir-waiting-games wir-reel-${reelStyle}`}
+      >
         {items.map((item: WaitingGameView) => {
           const game = GAME_PRESENTATION[item.game];
           return (
@@ -179,21 +188,53 @@ export function WirWaitingGamesModule({
               key={item.game}
               className={`wir-game-tile-item${cardArrivalClass(arrivals.get(turnKey(item)))}`}
             >
-              <TodayDestinationLink
-                to={game.route}
-                className={`wir-game-tile wir-game-tile-${game.tone}`}
-                selectedKey={`wir-waiting-${item.game}`}
-              >
-                <span className="wir-game-face">
+              {reelStyle === 'chips' ? (
+                <TodayDestinationLink
+                  to={game.route}
+                  className={`wir-gchip wir-gchip-${game.tone} wir-game-tile-${game.tone}`}
+                  selectedKey={`wir-waiting-${item.game}`}
+                >
+                  <span className="wir-game-face wir-gchip-face">
+                    <WirGameTileArt game={item.game} />
+                  </span>
+                  <span className="wir-gchip-text" aria-hidden="true">
+                    {t(`games.waiting.labels.${item.game}`)}
+                  </span>
+                  <span className="sr-only">
+                    {`${t(`games.entries.${game.entry}.title`)}: ${t(`games.waiting.reasons.${item.game}`)}`}
+                  </span>
+                </TodayDestinationLink>
+              ) : reelStyle === 'tiles' ? (
+                <TodayDestinationLink
+                  to={game.route}
+                  className={`wir-gtile wir-gtile-${game.tone}`}
+                  selectedKey={`wir-waiting-${item.game}`}
+                >
                   <WirGameTileArt game={item.game} />
-                </span>
-                <span className="wir-game-label" aria-hidden="true">
-                  {t(`games.waiting.labels.${item.game}`)}
-                </span>
-                <span className="sr-only">
-                  {`${t(`games.entries.${game.entry}.title`)}: ${t(`games.waiting.reasons.${item.game}`)}`}
-                </span>
-              </TodayDestinationLink>
+                  <span className="wir-gtile-title">
+                    {t(`games.entries.${game.entry}.title`)}
+                  </span>
+                  <span className="wir-gtile-line">
+                    {t(`games.waiting.reasons.${item.game}`)}
+                  </span>
+                </TodayDestinationLink>
+              ) : (
+                <TodayDestinationLink
+                  to={game.route}
+                  className={`wir-game-tile wir-game-tile-${game.tone}`}
+                  selectedKey={`wir-waiting-${item.game}`}
+                >
+                  <span className="wir-game-face">
+                    <WirGameTileArt game={item.game} />
+                  </span>
+                  <span className="wir-game-label" aria-hidden="true">
+                    {t(`games.waiting.labels.${item.game}`)}
+                  </span>
+                  <span className="sr-only">
+                    {`${t(`games.entries.${game.entry}.title`)}: ${t(`games.waiting.reasons.${item.game}`)}`}
+                  </span>
+                </TodayDestinationLink>
+              )}
             </li>
           );
         })}

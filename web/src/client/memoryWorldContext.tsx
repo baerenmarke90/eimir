@@ -14,6 +14,7 @@ import {
   type MemoryWorldPreferenceView,
   MemoryWorldPreferenceViewFromJSON,
 } from '../api/generated/models/MemoryWorldPreferenceView';
+import { refreshAppearanceSiblings } from './appearanceSiblings';
 import {
   DEFAULT_MEMORY_WORLD,
   forgetMemoryWorld,
@@ -127,8 +128,7 @@ function useMemoryWorldState({
       rememberMemoryWorld(storageKey, result.preference.worldId);
       // All appearance choices of a person share one version: the other
       // choices need their fresh concurrency token after this save.
-      for (const sibling of ['app-icon', 'wir-design', 'person-colours'])
-        void client.invalidateQueries({ queryKey: [sibling] });
+      refreshAppearanceSiblings(client, 'memory-world');
     },
     onError: (error) => {
       if (

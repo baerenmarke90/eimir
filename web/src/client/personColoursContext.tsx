@@ -14,6 +14,7 @@ import {
   type PersonColoursPreferenceView,
   PersonColoursPreferenceViewFromJSON,
 } from '../api/generated/models/PersonColoursPreferenceView';
+import { refreshAppearanceSiblings } from './appearanceSiblings';
 import { APP_ICON_CAPABILITY } from './appIcon';
 import {
   PERSON_COLOUR_PAIRS,
@@ -136,6 +137,8 @@ function usePersonColoursState({
     onSuccess: (result) => {
       client.setQueryData(key, result);
       rememberPersonColours(storageKey, result.preference.colours);
+      // All appearance choices share one version token (#2345).
+      refreshAppearanceSiblings(client, 'person-colours');
     },
     onError: (error) => {
       if (

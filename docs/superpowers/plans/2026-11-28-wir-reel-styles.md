@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Each person can choose under Settings › Darstellung how the Wir reels "Neu für dich" and "Du bist dran" look: Kreise (Free, default), Kacheln (Pro) or Chips (Pro).
+**Goal:** Each person can choose under Settings › Darstellung how the Wir reels for new-for-you notices and waiting games look: Kreise (Free, default), Kacheln (Pro) or Chips (Pro).
 
 **Architecture:** The style is a new personal appearance choice on `app_icon_preferences`, next to `memory_world`. It has its own GET/PATCH, a server-side `theme.bespoke_packs` check and an entry in the export. The Web mirrors the memory-world state (context, ETag, device cache) and the settings sheet. Both Wir modules render one of three presentations from their existing item models.
 
@@ -15,7 +15,7 @@
 - Style ids: `circles`, `tiles`, `chips`. Default and only Free style: `circles`.
 - Capability for `tiles` and `chips`: `theme.bespoke_packs`. A saved Pro style stays effective after expiry. Returning to `circles` is always Free.
 - The choice is personal to the Account within its Space: never shared with the partner, included in the personal export, purged with the Account.
-- User-facing names: de "Neu für dich & Du bist dran", styles "Kreise", "Kacheln", "Chips"; en "New for you & Your turn", "Circles", "Tiles", "Chips". All text goes through i18n (`web/src/i18n/locales/*.ts` for de, `en.json` for en).
+- User-facing names: de `wirReelStyleSettings.title`, styles "Kreise", "Kacheln", "Chips"; en "New for you & Your turn", "Circles", "Tiles", "Chips". All text goes through i18n (`web/src/i18n/locales/*.ts` for de, `en.json` for en).
 - Reusable visual values are semantic tokens. Chips have a tinted fill and no border. No table or row look.
 - Settings is the only entry point. Wir gets no link to the setting.
 - English for code, comments, tests, commits and PR; `docs/FREEMIUM-FEATURE-MATRIX.md` is updated in the same PR.
@@ -212,7 +212,7 @@
   - The plan chip starts with the formatted time.
   - The date chip ends with the weekday and the day.
   - The game chip reads "Pingpong".
-  - The `h2` has the `sr-only` class, and `getByRole('region', { name: 'Neu für dich' })` still resolves.
+  - The `h2` has the `sr-only` class, and `getByRole('region', { name: wirNotices.title })` still resolves.
   - The link accessible name still carries kind, quote, line and count.
 - [ ] **Step 2: Run them and see them fail.**
 - [ ] **Step 3: Implement.**

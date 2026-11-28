@@ -5,7 +5,7 @@ Follow-up, not part of this work: #2361 (Wir designs adopt the reel styles).
 
 ## Intent
 
-On Wir, two reels sit below the hero: "Neu für dich" (`WirNewForYouModule`) and "Du bist dran" (`WirWaitingGamesModule`). Since #2351 both show 64 px content circles, which the Product Owner chose as the right size next to the hero.
+On Wir, two reels sit below the hero: new-for-you notices (`WirNewForYouModule`) and waiting games (`WirWaitingGamesModule`). Since #2351 both show 64 px content circles, which the Product Owner chose as the right size next to the hero.
 
 The Product Owner wants each person to be able to choose how these reels look, under Settings › Darstellung. The goal is both: Wir should feel more personal, and Pro should become more attractive. Two or three really good options are preferred over many. The Product Owner picked:
 
@@ -95,7 +95,7 @@ The Product Owner picked approach 1 and one shared setting for both reels (2026-
 - New `WirReelStyleSettings`, placed after `WirDesignSettings` in `ProfileAppearancePanel`.
 - It follows `MemoryWorldSettings`: a summary row with the current style, then a sheet with the three styles. Each style has a small preview (a static sketch of the style with sample content, no real data), a name, a one-line description, and either a "Kostenlos" label or a `ProMark`. An explicit save follows.
 - A Free person who picks a Pro style is led to the Pro paywall (`proPaywallPath`), as with memory worlds. The saved style stays unchanged.
-- Name in the settings: "Neu für dich & Du bist dran". Style names: Kreise, Kacheln, Chips (de; en: Circles, Tiles, Chips).
+- Name in the settings: `wirReelStyleSettings.title`. Style names: Kreise, Kacheln, Chips (de; en: Circles, Tiles, Chips).
 - `ProFeatureCatalogue` gets an entry for the reel styles.
 
 ### Wir rendering
@@ -110,7 +110,7 @@ The Product Owner picked approach 1 and one shared setting for both reels (2026-
   - Sizes come from tokens; the reel scrolls horizontally; no outline.
 - **Chips:**
   - a pill with a tinted fill (no border), a 34 px round face with the same content face as the circle (time, leaf, list paper, bubble, emoji, heart, picture), and one line of text. The full text stays in the accessible name.
-  - The text follows draft C, which showed for example "„Xyz" zum Strauß", "Picknick So 29.", "Einkauf", "Strauß für dich", "Saatgut" and "Pingpong". Notices show their title on one line, ending in an ellipsis at a maximum chip width. A comment also gets its quote before the title, a date proposal gets its weekday and day after it, and a Heute item gets its time before it. Games use the existing short labels (`games.waiting.labels.*`). No new notice labels are added. (Builder's call, from draft C.)
+  - The text follows draft C: a quote with its title, a title with weekday and day, a single short title, and a game's short label. Notices show their title on one line, ending in an ellipsis at a maximum chip width. A comment also gets its quote before the title, a date proposal gets its weekday and day after it, and a Heute item gets its time before it. Games use the existing short labels (`games.waiting.labels.*`). No new notice labels are added. (Builder's call, from draft C.)
   - Notices and games stay two rows.
   - Draft C had no headings, but the Product Owner wants the section titles visible in this style too (review, 2026-11-28).
 - Shared for all styles:

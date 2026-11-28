@@ -2,7 +2,7 @@
 
 Product Owner decision, 2026-11-28. Design: `docs/superpowers/specs/2026-11-28-wir-reel-styles-design.md`. Follow-up, not commissioned yet: #2361 (Wir designs adopt the styles).
 
-Below the Wir hero sit two reels: "Neu für dich" and "Du bist dran". Each person chooses how they look under Settings › Darstellung › "Neu für dich & Du bist dran". The choice is personal, never shared with the partner and part of the personal export. Settings is the only entry point; Wir has no link to it.
+Below the Wir hero sit two reels: new-for-you notices (`wirNotices`) and waiting games (`games.waiting`). Each person chooses how they look under Settings › Darstellung › `wirReelStyleSettings.title`. The choice is personal, never shared with the partner and part of the personal export. Settings is the only entry point; Wir has no link to it.
 
 | Style | Tier | What it shows |
 | --- | --- | --- |

@@ -1159,6 +1159,21 @@ export async function deleteProductReadCacheKind(
  */
 export function clearProductReadCache(): Promise<void> {
   clearAuthorizedMediaCache();
+  return invalidatePersistedProductReads();
+}
+
+/**
+ * Revoke every persisted read snapshot, like {@link clearProductReadCache},
+ * but keep authorized photo bytes and the object URLs already on screen.
+ * For a change that only makes old projections unsafe to show (a new
+ * sensitive mark): wiping every photo of the app for it fails every image
+ * that is loading or visible.
+ */
+export function revokePersistedProductReadsInBackground(): void {
+  void invalidatePersistedProductReads().catch(() => undefined);
+}
+
+function invalidatePersistedProductReads(): Promise<void> {
   const marker = readCacheContextMarker();
   invalidateContext(activeContext);
   if (marker.available) invalidateContext(marker.context);

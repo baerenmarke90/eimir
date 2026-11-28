@@ -69,14 +69,76 @@ describe('wirOccasionFor', () => {
     viewerAccountId: 'own',
   });
 
-  it('names the anniversary in the middle line and below the heart', () => {
-    const occasion = wirOccasionFor(occasions, '2026-11-20', t, noNickname);
+  const groupedNumber = (value: number) =>
+    new Intl.NumberFormat('de').format(value);
+
+  it('names the anniversary in the middle line and counts the days below the heart', () => {
+    const occasion = wirOccasionFor(
+      occasions,
+      '2026-11-20',
+      t,
+      noNickname,
+      groupedNumber,
+    );
     expect(occasion?.primary).toBe(
       'occasionMarks.todayAnniversary:{"count":3}',
     );
-    expect(occasion?.secondary).toContain('occasionMarks.anniversary');
+    // 2023-11-20 to 2026-11-20, across the leap day of 2024.
+    expect(occasion?.secondary).toBe(
+      'occasionMarks.daysTogether:{"count":1096,"days":"1.096"}',
+    );
+    expect(occasion?.count).toEqual({ line: 'secondary', formatted: '1.096' });
     expect(occasion?.birthday).toBeNull();
     expect(occasion?.playKey).toBe(`2026-11-20|${occasionTag('relationship')}`);
+  });
+
+  it('keeps the first day without a count', () => {
+    const occasion = wirOccasionFor(occasions, '2023-11-20', t, noNickname);
+    expect(occasion?.primary).toBe('occasionMarks.todayRelationshipStart');
+    expect(occasion?.count).toBeNull();
+  });
+
+  it('makes a round day together an occasion with a rolling count', () => {
+    // 2023-11-20 + 1000 days.
+    const occasion = wirOccasionFor(
+      occasions,
+      '2026-08-16',
+      t,
+      noNickname,
+      groupedNumber,
+    );
+    expect(occasion?.primary).toBe(
+      'occasionMarks.daysTogether:{"count":1000,"days":"1.000"}',
+    );
+    expect(occasion?.secondary).toBe('');
+    expect(occasion?.count).toEqual({ line: 'primary', formatted: '1.000' });
+    expect(occasion?.birthday).toBeNull();
+    expect(occasion?.playKey).toBe(
+      `2026-08-16|${occasionTag('round-day:1000')}`,
+    );
+  });
+
+  it('ignores days together that are not round', () => {
+    expect(wirOccasionFor(occasions, '2026-08-17', t, noNickname)).toBeNull();
+  });
+
+  it('ranks a round day before a birthday on the same day', () => {
+    // 2023-11-20 + 500 days falls on the partner's birthday (2025-04-03).
+    const sameDay = collectSpaceOccasions({
+      relationshipStartedOn: new Date('2023-11-20T00:00:00Z'),
+      birthdays: [
+        {
+          accountId: 'partner',
+          displayName: 'Alex Berg',
+          birthday: new Date('1993-04-03T00:00:00Z'),
+        },
+      ],
+      importantDates: [],
+      viewerAccountId: 'own',
+    });
+    const occasion = wirOccasionFor(sameDay, '2025-04-03', t, noNickname);
+    expect(occasion?.count?.line).toBe('primary');
+    expect(occasion?.primary).toContain('"count":500');
   });
 
   it("greets the partner by first name on the partner's birthday", () => {
@@ -141,8 +203,9 @@ describe('wirOccasionFor', () => {
 const occasion: WirOccasion = {
   playKey: `${localDay()}|abc`,
   primary: 'Heute vor 3 Jahren',
-  secondary: 'An eurem 3. Jahrestag',
+  secondary: '1.096 Tage zusammen',
   birthday: null,
+  count: { line: 'secondary', formatted: '1.096' },
 };
 
 let reduced: FakeMediaQuery;

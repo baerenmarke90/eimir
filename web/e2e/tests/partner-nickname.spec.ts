@@ -198,7 +198,9 @@ test('partner nickname remains private to the viewer and follows profile edits i
   ).toBeVisible();
   await editor.scrollIntoViewIfNeeded();
   await capture(page, info, 'nickname-profile-390-light-before.png');
-  await editor.getByRole('button', { name: profiles.nickname.add }).click();
+  // The nickname is set from the profile menu at the top right.
+  await page.getByRole('button', { name: profiles.menu }).click();
+  await page.getByRole('button', { name: profiles.nickname.add }).click();
   await editor
     .getByRole('textbox', {
       name: profiles.nickname.inputLabel.replace('{{name}}', 'Alex'),
@@ -224,9 +226,7 @@ test('partner nickname remains private to the viewer and follows profile edits i
     document.documentElement.style.fontSize = '200%';
   });
   await editor.scrollIntoViewIfNeeded();
-  await expect(
-    editor.getByRole('button', { name: profiles.nickname.edit }),
-  ).toBeVisible();
+  await expect(editor.getByText('Sternchen')).toBeVisible();
   const width = await page.evaluate(() => ({
     client: document.documentElement.clientWidth,
     scroll: document.documentElement.scrollWidth,

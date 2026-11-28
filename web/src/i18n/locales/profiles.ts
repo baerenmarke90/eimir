@@ -33,6 +33,7 @@ const profiles = {
   relationshipSave: 'Änderungen speichern',
   relationshipSaving: 'Wird gespeichert …',
   relationshipSaved: 'Änderungen wurden gespeichert.',
+  menu: 'Menü des Profils',
   selfTitle: 'Meine Vorlieben',
   selfIntro:
     'Diese Angaben gehören zu deinem Profil und können deinem Partner angezeigt werden.',

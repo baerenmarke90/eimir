@@ -585,6 +585,27 @@ a.recap-status-row:hover strong {
 .recap-reader .recap-progress {
   margin-block: var(--space-3) var(--space-4);
 }
+
+/* Full screen: the reader covers the shell (navigation, page margins) and
+   keeps its portrait layout; only the border around it goes. */
+.page.recap-reader[data-fullscreen] {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  max-inline-size: none;
+  min-block-size: 0;
+  margin: 0;
+  overflow-y: auto;
+  background: var(--color-background);
+  padding-block: max(var(--space-3), env(safe-area-inset-top, 0px))
+    max(var(--space-3), env(safe-area-inset-bottom, 0px));
+  padding-inline: max(var(--space-3), env(safe-area-inset-left, 0px))
+    max(var(--space-3), env(safe-area-inset-right, 0px));
+}
+.recap-fullscreen-toggle {
+  min-inline-size: 44px;
+  min-block-size: 44px;
+}
 .recap-scene-copy {
   position: relative;
   padding: var(--space-5);

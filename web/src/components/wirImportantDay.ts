@@ -2,12 +2,14 @@
  * The important-day Moment on Wir (#2072; Motion Contract 4.7, approved by
  * the Product Owner on 2026-11-20).
  *
- * On the couple's anniversary, either partner's birthday or a shared
- * important date, the Wir stage plays one short Moment after its opening:
+ * On the couple's anniversary, a round day together (#2370), either
+ * partner's birthday or a shared important date, the Wir stage plays one
+ * short Moment after its opening:
  * the heart fills, about six small hearts rise and fade (about 1.5 s), one
  * haptic tick accompanies the first beat, and the middle line cross-fades to
  * the occasion copy. On a birthday that person's ring takes a warm accent, a
- * soft opacity-only halo and a cake mark.
+ * soft opacity-only halo and a cake mark. On the anniversary and on a round
+ * day the days-together count in that copy rolls into place (`RollingCount`).
  *
  * - Only occasions visible to the viewer qualify (`collectSpaceOccasions`):
  *   private dates, dates linked to a related person and discreet or
@@ -44,6 +46,11 @@ export interface WirOccasion {
   secondary: string;
   /** Whose ring gets the birthday accent. */
   birthday: 'own' | 'partner' | null;
+  /**
+   * The days-together count that rolls into place during the Moment (#2370):
+   * which line shows it and the number as formatted inside that line.
+   */
+  count: { line: 'primary' | 'secondary'; formatted: string } | null;
 }
 
 export type ImportantDayPhase = 'none' | 'before' | 'playing' | 'final';

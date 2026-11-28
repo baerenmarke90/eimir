@@ -457,6 +457,14 @@ export function MemoryProductPage({
           queryClient,
           updated.spaceId,
           updated.attachments,
+          {
+            previous: memory.attachments,
+            parent: {
+              apiClient: apis.attachments,
+              type: 'MEMORY',
+              id: updated.id,
+            },
+          },
         );
         await bindVideoTransferTargets(
           spaceId,

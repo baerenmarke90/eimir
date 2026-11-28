@@ -3,6 +3,7 @@ import de from '../../src/i18n/locales/de';
 import photoCrop from '../../src/i18n/locales/photoCrop';
 import photoEdit from '../../src/i18n/locales/photoEdit';
 import profileIdentity from '../../src/i18n/locales/profileIdentity';
+import profiles from '../../src/i18n/locales/profiles';
 import AxeBuilder from '../support/axe';
 import { waitForSettledMotion } from '../support/settledMotion';
 import {
@@ -157,6 +158,8 @@ async function inspectUpload(
 async function openProfileEditing(page: Page) {
   await signIn(page);
   await page.goto('/more/profile');
+  // Editing starts from the profile menu at the top right.
+  await page.getByRole('button', { name: profiles.menu }).click();
   await page.getByRole('button', { name: profileIdentity.editProfile }).click();
   const change = page
     .locator('.profile-identity-actions-row button')

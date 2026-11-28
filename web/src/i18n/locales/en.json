@@ -1985,6 +1985,7 @@
     "relationshipSave": "Save changes",
     "relationshipSaving": "Saving …",
     "relationshipSaved": "Changes saved.",
+    "menu": "Profile menu",
     "selfTitle": "My preferences",
     "selfIntro": "These details belong to your profile and may be shown to your partner.",
     "partnerTitle": "{{name}}'s profile",
@@ -3030,6 +3031,8 @@
     },
     "edit": "Adjust selection",
     "menu": "Recap menu",
+    "fullscreen": "Recap in full screen",
+    "fullscreenClose": "Close full screen",
     "selectionTitle": "What belongs here for you?",
     "selectionBody": "Choose up to 24 mutually visible items from this period. Your selection is retained.",
     "selectionCount": "{{count}} of 24 selected",
@@ -7411,7 +7414,9 @@
     "todayAnniversary_other": "{{count}} years ago today",
     "todayRelationshipStart": "Your story begins today",
     "todayOwnBirthday": "Happy birthday to you",
-    "todayPartnerBirthday": "Happy birthday, {{name}}"
+    "todayPartnerBirthday": "Happy birthday, {{name}}",
+    "daysTogether_one": "{{days}} day together",
+    "daysTogether_other": "{{days}} days together"
   },
   "sharedNotes": {
     "title": "Notes",

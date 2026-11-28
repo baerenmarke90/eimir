@@ -665,6 +665,8 @@ export function PreferenceManager({
   emptyTitle,
   emptyBody,
   floatingAdd = false,
+  showAddButton = true,
+  addRequest = 0,
 }: {
   profilesApi: ProfilesApi;
   spaceId: string;
@@ -676,6 +678,10 @@ export function PreferenceManager({
   emptyTitle: string;
   emptyBody: string;
   floatingAdd?: boolean;
+  /** False when the page offers adding from its own actions menu. */
+  showAddButton?: boolean;
+  /** Raised by that menu: opens the add dialog once per change. */
+  addRequest?: number;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -688,6 +694,16 @@ export function PreferenceManager({
   const triggerButtonLabel = privateNote
     ? t('profiles.addNoteShort')
     : t('profiles.addPreferenceShort');
+
+  const handledAddRequest = useRef(0);
+  useEffect(() => {
+    if (addRequest === handledAddRequest.current) return;
+    handledAddRequest.current = addRequest;
+    triggerElementRef.current = null;
+    setEditing(null);
+    setDialogOpen(true);
+    setSavedMessage(null);
+  }, [addRequest]);
 
   function closeDialog() {
     setDialogOpen(false);
@@ -777,18 +793,20 @@ export function PreferenceManager({
           <h2 id={`profile-manager-${visibility}`}>{title}</h2>
           {intro ? <p className="profile-section-intro">{intro}</p> : null}
         </div>
-        <AddActionButton
-          floating={floatingAdd}
-          label={triggerButtonLabel}
-          aria-haspopup="dialog"
-          onClick={(e) => {
-            triggerElementRef.current = e.currentTarget;
-            setEditing(null);
-            setDialogOpen(true);
-            saveMutation.reset();
-            deleteMutation.reset();
-          }}
-        />
+        {showAddButton ? (
+          <AddActionButton
+            floating={floatingAdd}
+            label={triggerButtonLabel}
+            aria-haspopup="dialog"
+            onClick={(e) => {
+              triggerElementRef.current = e.currentTarget;
+              setEditing(null);
+              setDialogOpen(true);
+              saveMutation.reset();
+              deleteMutation.reset();
+            }}
+          />
+        ) : null}
       </div>
 
       {savedMessage ? (
@@ -886,15 +904,19 @@ export function SelfPreferencesSection({
   spaceId,
   accountId,
   items,
+  addRequest,
 }: {
   profilesApi: ProfilesApi;
   spaceId: string;
   accountId: string;
   items: ProfilePreferenceView[];
+  addRequest?: number;
 }) {
   const { t } = useTranslation();
   return (
     <PreferenceManager
+      showAddButton={false}
+      addRequest={addRequest}
       profilesApi={profilesApi}
       spaceId={spaceId}
       accountId={accountId}
@@ -1036,14 +1058,28 @@ export function ProfilePreferencesSection({
   accessToken,
   account,
   spaceId,
+  addPreferenceRequest = 0,
+  nicknameRequest = 0,
 }: {
   apiBaseUrl: string;
   accessToken: string;
   account: AccountView;
   spaceId: string;
+  /** Raised by the page's actions menu (add a preference). */
+  addPreferenceRequest?: number;
+  /** Raised by the page's actions menu (set the partner's nickname). */
+  nicknameRequest?: number;
 }) {
   const { t } = useTranslation();
   const { relationshipLabel } = usePartnerNickname();
+  const [partnerOpen, setPartnerOpen] = useState(false);
+  // The nickname lives in the partner block: asking for it opens the block.
+  const shownNicknameRequest = useRef(0);
+  useEffect(() => {
+    if (nicknameRequest === shownNicknameRequest.current) return;
+    shownNicknameRequest.current = nicknameRequest;
+    setPartnerOpen(true);
+  }, [nicknameRequest]);
   const configuration = useMemo(
     () =>
       new Configuration({
@@ -1124,11 +1160,16 @@ export function ProfilePreferencesSection({
           spaceId={spaceId}
           accountId={account.id}
           items={selfPreferences}
+          addRequest={addPreferenceRequest}
         />
       ) : null}
 
       {partner ? (
-        <details className="profile-partner-disclosure">
+        <details
+          className="profile-partner-disclosure"
+          open={partnerOpen}
+          onToggle={(event) => setPartnerOpen(event.currentTarget.open)}
+        >
           <summary>
             {t('profiles.partnerSection', { name: partnerName })}
           </summary>
@@ -1139,6 +1180,7 @@ export function ProfilePreferencesSection({
               accessToken={accessToken}
               account={account}
               spaceId={spaceId}
+              nicknameRequest={nicknameRequest}
             />
             <PartnerProfileSection
               profilesApi={profilesApi}

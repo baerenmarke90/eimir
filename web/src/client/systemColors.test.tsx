@@ -7,6 +7,7 @@ import {
   screen,
 } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { SystemColorsOverrideNote } from '../components/SystemColorsOverrideNote';
 import { SystemColorsSettings } from '../components/SystemColorsSettings';
 import { i18n } from '../i18n';
 import {
@@ -125,6 +126,63 @@ describe('deriveSystemAccent', () => {
     expect(deriveSystemAccent(null)).toBeNull();
     expect(deriveSystemAccent({ available: false })).toBeNull();
     expect(deriveSystemAccent(palette({ ...BLUE, '600': 'blue' }))).toBeNull();
+  });
+});
+
+describe('person colours and tints', () => {
+  const GREEN: Tones = {
+    ...BLUE,
+    '100': '#d9f2dc',
+    '300': '#7fd08a',
+    '500': '#2e8b45',
+    '900': '#0d3a1b',
+  };
+
+  it('uses the tertiary accent for the partner and falls back to the secondary', () => {
+    const withTertiary = deriveSystemAccent({
+      ...palette(),
+      accent3: GREEN,
+      accent2: BLUE,
+    });
+    expect(withTertiary?.light.ownAccent).toBe(BLUE['500']);
+    expect(withTertiary?.light.partnerAccent).toBe(GREEN['500']);
+    expect(withTertiary?.dark.partnerAccent).toBe(GREEN['300']);
+    expect(withTertiary?.dark.partnerSurface).toBe(GREEN['900']);
+    const withSecondary = deriveSystemAccent({ ...palette(), accent2: GREEN });
+    expect(withSecondary?.light.partnerAccent).toBe(GREEN['500']);
+    expect(deriveSystemAccent(palette())?.light.partnerAccent).toBe(
+      BLUE['500'],
+    );
+  });
+
+  it('derives the tints from the primary accent', () => {
+    const accent = deriveSystemAccent(palette());
+    expect(accent?.light.tint).toBe(BLUE['100']);
+    expect(accent?.dark.tint).toBe(BLUE['900']);
+  });
+
+  it('rejects a partner tone that lacks contrast', () => {
+    expect(
+      deriveSystemAccent({
+        ...palette(),
+        accent3: { ...GREEN, '500': '#e0f5e3' },
+      }),
+    ).toBeNull();
+  });
+});
+
+describe('SystemColorsOverrideNote', () => {
+  it('shows only while the system colours are applied', async () => {
+    render(<SystemColorsOverrideNote />);
+    expect(screen.queryByRole('note')).toBeNull();
+    localStorage.setItem(SYSTEM_COLORS_SETTING_KEY, 'on');
+    await act(() => refreshSystemColors(document.documentElement));
+    expect(screen.getByRole('note').textContent).toBe(
+      i18n.t('systemColors.overrides'),
+    );
+    act(() => setSystemColorsEnabled(false));
+    await act(() => refreshSystemColors(document.documentElement));
+    expect(screen.queryByRole('note')).toBeNull();
   });
 });
 

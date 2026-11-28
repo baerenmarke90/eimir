@@ -29,6 +29,7 @@ export interface SystemPalette {
   available: boolean;
   accent1?: Tones;
   accent2?: Tones;
+  accent3?: Tones;
   neutral1?: Tones;
   neutral2?: Tones;
 }
@@ -40,6 +41,14 @@ export interface SystemAccentScheme {
   brandText: string;
   /** The softer brand tone for fills and marks, such as list ticks. */
   brand: string;
+  /** Tints behind chips and soft panels, from the same accent. */
+  tint: string;
+  glow: string;
+  /** Own and partner colours that stand in for the personal colour pair. */
+  ownAccent: string;
+  ownSurface: string;
+  partnerAccent: string;
+  partnerSurface: string;
   focus: string;
 }
 export interface SystemAccent {
@@ -111,6 +120,7 @@ function readableOn(background: string, candidates: string[]): string | null {
 
 function scheme(
   tones: Tones,
+  partnerTones: Tones,
   surface: string,
   pick: {
     action: ToneName;
@@ -118,6 +128,9 @@ function scheme(
     mark: ToneName;
     focus: ToneName;
     on: ToneName;
+    tint: ToneName;
+    glow: ToneName;
+    personSurface: ToneName;
   },
 ): SystemAccentScheme | null {
   const actionPrimary = tones[pick.action];
@@ -132,6 +145,7 @@ function scheme(
     contrastRatio(actionPrimary, surface) < COMPONENT_CONTRAST ||
     contrastRatio(focus, surface) < COMPONENT_CONTRAST ||
     contrastRatio(mark, surface) < COMPONENT_CONTRAST ||
+    contrastRatio(partnerTones[pick.mark], surface) < COMPONENT_CONTRAST ||
     contrastRatio(brand, surface) < TEXT_CONTRAST
   )
     return null;
@@ -141,6 +155,12 @@ function scheme(
     brandStrong: brand,
     brandText: brand,
     brand: mark,
+    tint: tones[pick.tint],
+    glow: tones[pick.glow],
+    ownAccent: mark,
+    ownSurface: tones[pick.personSurface],
+    partnerAccent: partnerTones[pick.mark],
+    partnerSurface: partnerTones[pick.personSurface],
     focus,
   };
 }
@@ -155,19 +175,28 @@ export function deriveSystemAccent(
 ): SystemAccent | null {
   if (!palette?.available || !validTones(palette.accent1)) return null;
   const tones = palette.accent1;
-  const light = scheme(tones, LIGHT_REFERENCE_SURFACE, {
+  // The tertiary accent has a different hue, so the two people stay apart.
+  const partnerTones =
+    [palette.accent3, palette.accent2].find(validTones) ?? tones;
+  const light = scheme(tones, partnerTones, LIGHT_REFERENCE_SURFACE, {
     action: '600',
     brand: '700',
     mark: '500',
     focus: '600',
     on: '0',
+    tint: '100',
+    glow: '50',
+    personSurface: '100',
   });
-  const dark = scheme(tones, DARK_REFERENCE_SURFACE, {
+  const dark = scheme(tones, partnerTones, DARK_REFERENCE_SURFACE, {
     action: '200',
     brand: '200',
     mark: '300',
     focus: '300',
     on: '800',
+    tint: '900',
+    glow: '900',
+    personSurface: '900',
   });
   return light && dark ? { light, dark } : null;
 }
@@ -178,6 +207,12 @@ const VARIABLES: Record<keyof SystemAccentScheme, string> = {
   brandStrong: 'brand-strong',
   brandText: 'brand-text',
   brand: 'brand',
+  tint: 'tint',
+  glow: 'glow',
+  ownAccent: 'own-accent',
+  ownSurface: 'own-surface',
+  partnerAccent: 'partner-accent',
+  partnerSurface: 'partner-surface',
   focus: 'focus',
 };
 
@@ -243,11 +278,32 @@ export async function readSystemPalette(): Promise<SystemPalette | null> {
 
 const ATTRIBUTE = 'data-system-colors';
 let applied: string[] = [];
+let active = false;
+const activeListeners = new Set<() => void>();
+
+function setActive(next: boolean): void {
+  if (active === next) return;
+  active = next;
+  for (const listener of activeListeners) listener();
+}
+
+/** True while the system accent is really applied (chosen and suitable). */
+export function systemColorsActive(): boolean {
+  return active;
+}
+
+export function subscribeSystemColorsActive(listener: () => void): () => void {
+  activeListeners.add(listener);
+  return () => {
+    activeListeners.delete(listener);
+  };
+}
 
 function clear(root: HTMLElement): void {
   root.removeAttribute(ATTRIBUTE);
   for (const name of applied) root.style.removeProperty(name);
   applied = [];
+  setActive(false);
 }
 
 /** Applies or removes the system accent on the document root. */
@@ -264,6 +320,7 @@ export async function refreshSystemColors(
     root.style.setProperty(name, value);
   applied = Object.keys(properties);
   root.setAttribute(ATTRIBUTE, '');
+  setActive(true);
 }
 
 let stop: (() => void) | null = null;

@@ -34,6 +34,7 @@ public class SystemColorsPlugin extends Plugin {
             result.put("available", true);
             result.put("accent1", family(resources, Families.ACCENT1));
             result.put("accent2", family(resources, Families.ACCENT2));
+            result.put("accent3", family(resources, Families.ACCENT3));
             result.put("neutral1", family(resources, Families.NEUTRAL1));
             result.put("neutral2", family(resources, Families.NEUTRAL2));
         } catch (RuntimeException unavailable) {
@@ -61,6 +62,9 @@ public class SystemColorsPlugin extends Plugin {
         };
         static final int[] ACCENT2 = {
             android.R.color.system_accent2_0, android.R.color.system_accent2_10, android.R.color.system_accent2_50, android.R.color.system_accent2_100, android.R.color.system_accent2_200, android.R.color.system_accent2_300, android.R.color.system_accent2_400, android.R.color.system_accent2_500, android.R.color.system_accent2_600, android.R.color.system_accent2_700, android.R.color.system_accent2_800, android.R.color.system_accent2_900, android.R.color.system_accent2_1000
+        };
+        static final int[] ACCENT3 = {
+            android.R.color.system_accent3_0, android.R.color.system_accent3_10, android.R.color.system_accent3_50, android.R.color.system_accent3_100, android.R.color.system_accent3_200, android.R.color.system_accent3_300, android.R.color.system_accent3_400, android.R.color.system_accent3_500, android.R.color.system_accent3_600, android.R.color.system_accent3_700, android.R.color.system_accent3_800, android.R.color.system_accent3_900, android.R.color.system_accent3_1000
         };
         static final int[] NEUTRAL1 = {
             android.R.color.system_neutral1_0, android.R.color.system_neutral1_10, android.R.color.system_neutral1_50, android.R.color.system_neutral1_100, android.R.color.system_neutral1_200, android.R.color.system_neutral1_300, android.R.color.system_neutral1_400, android.R.color.system_neutral1_500, android.R.color.system_neutral1_600, android.R.color.system_neutral1_700, android.R.color.system_neutral1_800, android.R.color.system_neutral1_900, android.R.color.system_neutral1_1000

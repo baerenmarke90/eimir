@@ -10,9 +10,11 @@ import {
   clientProblemKind,
 } from '../client/problemDetails';
 import { proPaywallPath } from '../client/routes';
+import { setSystemColorsEnabled } from '../client/systemColors';
 import { useTranslation } from '../i18n';
 import { PersonColourChoice, Swatches } from './PersonColourChoice';
 import { ProMark } from './ProMark';
+import { SystemColorsOverrideNote } from './SystemColorsOverrideNote';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import './PersonColourChoice.css';
 
@@ -75,6 +77,8 @@ function Settings({
     setSaved(false);
     try {
       await state.save(draft);
+      // A colour pair chosen here replaces the system colours.
+      setSystemColorsEnabled(false);
       setSaved(true);
     } catch (caught) {
       setError(caught);
@@ -90,6 +94,7 @@ function Settings({
     >
       <h2 id="person-colours-title">{t('personColours.title')}</h2>
       <p className="settings-section-intro">{t('personColours.help')}</p>
+      <SystemColorsOverrideNote />
       <div className="person-colours-summary">
         <Swatches own={current.own} partner={current.partner} />
         <div>

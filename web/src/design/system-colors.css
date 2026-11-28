@@ -1,5 +1,7 @@
 /*
- * "System colours" (Android Material You). Action and brand accent tokens only (buttons, links, ticks, marks, battery fill);
+ * "System colours" (Android Material You). Action and brand accent tokens only (buttons, links, ticks, marks, battery fill), the tints derived from them and
+ * the own/partner colours. The !important on the person colours is needed
+ * because the colour-pair setting writes them inline on the root;
  * surfaces and backgrounds stay as the chosen design defines them. The values
  * come from the native palette through src/client/systemColors.ts. The
  * repeated attribute raises specificity above every design palette rule,
@@ -20,6 +22,15 @@
   --color-brand: var(--system-colors-light-brand);
   --color-shared: var(--system-colors-light-brand-strong);
   --color-focus: var(--system-colors-light-focus);
+  --color-brand-surface: var(--system-colors-light-tint);
+  --color-shared-surface: var(--system-colors-light-tint);
+  --color-brand-glow: var(--system-colors-light-glow);
+  --person-own-accent: var(--system-colors-light-own-accent) !important;
+  --person-own-surface: var(--system-colors-light-own-surface) !important;
+  --person-partner-accent: var(--system-colors-light-partner-accent) !important;
+  --person-partner-surface: var(
+    --system-colors-light-partner-surface
+  ) !important;
 }
 
 :root[data-system-colors][data-system-colors][data-system-colors][data-theme="dark"],
@@ -33,4 +44,13 @@
   --color-brand: var(--system-colors-dark-brand);
   --color-shared: var(--system-colors-dark-brand-strong);
   --color-focus: var(--system-colors-dark-focus);
+  --color-brand-surface: var(--system-colors-dark-tint);
+  --color-shared-surface: var(--system-colors-dark-tint);
+  --color-brand-glow: var(--system-colors-dark-glow);
+  --person-own-accent: var(--system-colors-dark-own-accent) !important;
+  --person-own-surface: var(--system-colors-dark-own-surface) !important;
+  --person-partner-accent: var(--system-colors-dark-partner-accent) !important;
+  --person-partner-surface: var(
+    --system-colors-dark-partner-surface
+  ) !important;
 }

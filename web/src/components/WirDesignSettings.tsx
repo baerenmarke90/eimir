@@ -6,6 +6,7 @@ import {
   clientProblemKind,
 } from '../client/problemDetails';
 import { proPaywallPath } from '../client/routes';
+import { setSystemColorsEnabled } from '../client/systemColors';
 import {
   DEFAULT_WIR_DESIGN,
   DESIGN_PALETTES,
@@ -16,6 +17,7 @@ import {
 } from '../client/wirDesign';
 import { useTranslation } from '../i18n';
 import { ProMark } from './ProMark';
+import { SystemColorsOverrideNote } from './SystemColorsOverrideNote';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import './WirDesign.css';
 
@@ -149,8 +151,11 @@ function Settings({
     if (!canSave || conflict || mutation.isPending || draft === current) return;
     setSaved(false);
     try {
-      if (palettePicker) await state.savePalette(draft);
-      else if (draft !== null) await state.save(draft);
+      if (palettePicker) {
+        await state.savePalette(draft);
+        // Design colours chosen here replace the system colours.
+        setSystemColorsEnabled(false);
+      } else if (draft !== null) await state.save(draft);
       setSaved(true);
     } catch {
       /* Keep the user's draft and the mutation's recovery state. */
@@ -164,6 +169,7 @@ function Settings({
       <h2 id={titleId}>
         {t(palettePicker ? 'wirDesign.palette.title' : 'wirDesign.title')}
       </h2>
+      {palettePicker ? <SystemColorsOverrideNote /> : null}
       {palettePicker ? (
         <button
           type="button"

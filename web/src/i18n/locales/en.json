@@ -6015,7 +6015,8 @@
   "systemColors": {
     "title": "System colours (beta)",
     "label": "System colours (Material You, beta)",
-    "hint": "Buttons and accents take the colours of your Android wallpaper. Surfaces and backgrounds stay as they are. Applies to this device only.",
+    "hint": "Buttons and accents take the colours of your Android wallpaper. They replace your own and partner colours and the design colours. Surfaces and backgrounds stay as they are. Applies to this device only.",
+    "overrides": "Your system colours currently replace these colours. If you change and save something here, the system colours are switched off.",
     "unsuitable": "Your device's system colours do not have enough contrast for eimir. and are not used."
   },
   "momentsLayout": {

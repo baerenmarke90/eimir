@@ -117,7 +117,7 @@ import './StoryHandmade.css';
 import './StoryHandmadeChapters.css';
 import './StoryHandmadeDiscover.css';
 import './PlanningReference.css';
-import { groupDiaryEntries } from '../client/diaryEntries';
+import { diaryRevealRevision, groupDiaryEntries } from '../client/diaryEntries';
 import { DiaryList } from './DiaryList';
 import './StoryTaskFilters.css';
 import './StoryYearsPage.css';
@@ -581,11 +581,15 @@ const StoryProductView = memo(function StoryProductView({
       filters.year,
     ],
   );
+  const timelineRevealRevision = useMemo(
+    () => diaryRevealRevision(timelineMonthGroups),
+    [timelineMonthGroups],
+  );
   useTimelineReveal({
     rootRef: timelineMonthsRef,
     enabled: activeView === 'timeline' && timelineEntryCount > 0,
     scopeKey: `${spaceId}:${cacheResourceId}`,
-    revision: timelineEntryCount,
+    revision: timelineRevealRevision,
   });
 
   const nextStoryCursor = storyQuery.hasNextPage

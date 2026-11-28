@@ -1,0 +1,10 @@
+eimir. Android 0.2.0-test.110
+
+- Photos taken at the same spot no longer create several identical Places; a new photo links the Place that already exists nearby, also across different entries.
+- A photo added to a Heart Moment is kept after saving, and a chosen cover stays chosen when its photo creates a Place.
+- On Wir, a "New for you" notice or a "Your turn" game disappears as soon as you have opened it, without a manual refresh; section links now sit level with their titles and the gaps between modules are even.
+- In the recaps, "Open original" is gone, "Add own words" appears once on the closing page, and "Adjust selection" moved into the three-dot menu.
+- After saving a diary entry, Momente now shows the entries instead of only the month header.
+
+The product changes come from main at d8b5a16f8d945d70691a8f246325daffe84a9d32.
+Install over test.109 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 110.

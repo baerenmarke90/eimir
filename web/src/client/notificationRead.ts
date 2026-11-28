@@ -2,8 +2,9 @@ import type { QueryClient } from '@tanstack/react-query';
 import type { NotificationItem } from '../api/generated/models/NotificationItem';
 import { assertOnlineWrite, isClientOnline } from './connectivity';
 import {
-  notificationUnreadCountQueryKey,
   notificationsListQueryKey,
+  notificationUnreadCountQueryKey,
+  wirNoticesQueryKey,
 } from './notificationQueries';
 import { ClientProblemError } from './problemDetails';
 import { captureAuthorizedQuery } from './queryIdentity';
@@ -163,6 +164,12 @@ export function beginNotificationRead(
     const refetchType = isClientOnline() ? 'active' : 'none';
     const refreshes = [
       client.invalidateQueries({ queryKey: listKey, exact: true, refetchType }),
+      // A notice read here leaves the Wir reel too (#2345).
+      client.invalidateQueries({
+        queryKey: wirNoticesQueryKey(spaceId),
+        exact: true,
+        refetchType,
+      }),
     ];
     if (ownsCount())
       refreshes.push(

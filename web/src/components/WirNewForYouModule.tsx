@@ -9,8 +9,10 @@ import { engagementTargetPath, notificationPath } from '../client/m4Product';
 import {
   notificationsListQueryKey,
   notificationUnreadCountQueryKey,
+  wirNoticesQueryKey,
 } from '../client/notificationQueries';
 
+import { usePrimaryTabReturn } from '../client/primaryTabActive';
 import { normalizeClientError } from '../client/problemDetails';
 import { MORE_NOTIFICATIONS_ROUTE } from '../client/routes';
 import { cardArrivalClass, useCardArrivals } from '../client/useCardArrivals';
@@ -21,14 +23,6 @@ import { TodayDestinationLink } from './TodayDestinationLink';
 import './WirCardArrival.css';
 import './WirLists.css';
 import './WirNewForYouModule.css';
-
-/**
- * Lives under the notification list key, so every read anywhere (inbox, a
- * push, a game page) that refreshes the list also refreshes Wir (#2345 B).
- */
-export function wirNoticesQueryKey(spaceId: string) {
-  return [...notificationsListQueryKey(spaceId), 'wir'] as const;
-}
 
 type Art =
   | 'today'
@@ -327,6 +321,20 @@ export function WirNewForYouModule({
       }
     },
     enabled: visible && unreadCount > 0,
+  });
+  // Wir stays mounted while another page is open; each return reads the
+  // count and the notices again, so a notice opened elsewhere (a circle, the
+  // inbox, a push) has left when Wir shows again (#2345).
+  usePrimaryTabReturn(() => {
+    if (!visible) return;
+    void queryClient.invalidateQueries({
+      queryKey: notificationUnreadCountQueryKey(spaceId),
+      exact: true,
+    });
+    void queryClient.invalidateQueries({
+      queryKey: wirNoticesQueryKey(spaceId),
+      exact: true,
+    });
   });
   // A changed count (a poll, a push, a read elsewhere) reads the tiles again.
   useEffect(() => {

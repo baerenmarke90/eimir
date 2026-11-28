@@ -14,7 +14,7 @@ from uuid import UUID
 from fastapi import APIRouter, Path, Query, Response
 from pydantic import Field
 from sqlalchemy import case, distinct, exists, func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
 from eimir.administration import account_operations
 from eimir.administration import service as administration
@@ -23,12 +23,13 @@ from eimir.administration.models import (
     AdministrationSetting,
     InstanceAdministrationSettings,
 )
-from eimir.api.deps import CurrentServerAdmin, CurrentSession, DbSession
+from eimir.api.deps import CurrentServerAdmin, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
+from eimir.attachments import quota as storage_quota
 from eimir.attachments.models import Attachment, AttachmentStatus
-from eimir.auth import cloud, recent_auth
-from eimir.config import MailTransport
+from eimir.auth import cloud
+from eimir.config import Deployment, MailTransport, Settings
 from eimir.config import get_settings as get_runtime_settings
 from eimir.core.clock import ensure_utc, now
 from eimir.core.errors import NotFoundError, ValidationError
@@ -36,6 +37,7 @@ from eimir.core.ids import parse_id
 from eimir.deployment.revision import build_revision
 from eimir.entitlements import service as entitlements
 from eimir.entitlements.models import (
+    Capability,
     EntitlementGrant,
     EntitlementSourceType,
     EntitlementStatus,
@@ -53,6 +55,9 @@ from eimir.identity.models import (
 )
 from eimir.jobs.models import Job, JobStatus
 from eimir.mail import sender as mail_sender
+from eimir.monitoring import heartbeat
+from eimir.monitoring.status import failed_deliveries_since
+from eimir.plugins.loader import loaded_plugins
 from eimir.relationship import service as relationship_service
 from eimir.relationship.models import (
     MAX_ACTIVE_PARTNERS,
@@ -60,15 +65,36 @@ from eimir.relationship.models import (
     MembershipStatus,
     Space,
 )
+from eimir.support_reports import service as support_reports
 
 router = APIRouter(prefix="/server-admin", tags=["server-admin"])
 _PROCESS_STARTED_AT = now()
+# The Situation's attention lists (ServerAdmin redesign part 1).
+_STORAGE_PRESSURE_RATIO = 0.85
+_EXPIRING_GRANT_WINDOW = timedelta(days=7)
+_ATTENTION_LIMIT = 5
 
 AccountStatusFilter = Literal["all", "active", "suspended"]
 VerificationFilter = Literal["all", "verified", "unverified"]
 SpaceStatusFilter = Literal["all", "active", "inactive", "empty", "anomaly"]
 SpaceLifecycleStatus = Literal["active", "inactive", "empty"]
 AuditCategoryFilter = Literal["all", "settings", "accounts", "spaces", "destructive"]
+
+
+class ServerAdminStoragePressureItem(ApiModel):
+    """A Space at or above 85 % of its Cloud quota: id and bytes only."""
+
+    space_id: UUID
+    used_bytes: int
+    quota_bytes: int
+
+
+class ServerAdminExpiringGrantItem(ApiModel):
+    """An operator grant that ends within seven days: ids and end only."""
+
+    space_id: UUID
+    grant_id: UUID
+    effective_until: datetime
 
 
 class ServerAdminFailedJob(ApiModel):
@@ -118,21 +144,67 @@ class ServerAdminOverview(ApiModel):
     jobs_pending: int
     jobs_running: int
     jobs_failed: int
+    # Failed jobs since an operator last marked them as seen (#2342); every
+    # failed job while nobody has. Needs-you lists only these.
+    jobs_failed_unseen: int
     oldest_pending_job_at: datetime | None
     last_successful_job_at: datetime | None
     recent_failed_jobs: list[ServerAdminFailedJob]
+    support_reports_new: int
+    support_reports_operator_available: bool
+    pro_area_available: bool
+    worker_last_seen_at: datetime | None
+    video_worker_status: str
+    email_failures_last_hour: int
+    push_failures_last_hour: int
+    backup_status: Literal["not_configured"]
+    storage_pressure_count: int
+    storage_pressure: list[ServerAdminStoragePressureItem]
+    expiring_admin_grant_count: int
+    expiring_admin_grants: list[ServerAdminExpiringGrantItem]
     warning_codes: list[str]
+
+
+def support_reports_operator_available(*, enabled: bool) -> bool:
+    """Whether the operator plugin can serve the support-report triage routes.
+
+    True only when the feature switch is on and the loaded plugins provide the
+    operator capability, so the web client shows the triage view exactly when
+    its routes exist.
+    """
+    return enabled and Capability.SUPPORT_OPERATOR.value in loaded_plugins().capabilities()
+
+
+def pro_area_available(settings: Settings) -> bool:
+    """Whether the Pro overview and gift-code routes exist on this server.
+
+    True only on the Cloud deployment while a loaded plugin provides the gift
+    code operator capability, so the web client shows the area exactly when its
+    routes exist.
+    """
+    return (
+        settings.deployment is Deployment.CLOUD
+        and Capability.GIFT_CODES_OPERATOR.value in loaded_plugins().capabilities()
+    )
 
 
 class ServerAdminSettings(ApiModel):
     registration_enabled: bool
     maintenance_mode: bool
     effective_registration_enabled: bool
+    monitoring_alerts_enabled: bool
+    monitoring_push_enabled: bool
     version: int
 
 
 class ServerAdminSettingUpdate(ApiModel):
     enabled: bool
+
+
+class ServerAdminFailedJobsSeen(ApiModel):
+    """How many failed jobs left the Situation page."""
+
+    hidden: int
 
 
 class ServerAdminActivityItem(ApiModel):
@@ -194,6 +266,14 @@ class ServerAdminAccountSummary(ApiModel):
     active_membership_count: int
 
 
+class ServerAdminAccountSpace(ApiModel):
+    """One Space the Account belongs or belonged to; ids and status only."""
+
+    space_id: UUID
+    membership_status: str
+    since: datetime
+
+
 class ServerAdminAccountDetail(ServerAdminAccountSummary):
     emails: list[ServerAdminAccountEmail]
     passkey_count: int
@@ -202,6 +282,7 @@ class ServerAdminAccountDetail(ServerAdminAccountSummary):
     mail_recovery_available: bool
     local_password_available: bool
     deletion_accepted_at: datetime | None = None
+    spaces: list[ServerAdminAccountSpace] = Field(default_factory=list)
 
 
 class ServerAdminAccountList(ApiModel):
@@ -318,6 +399,8 @@ def _settings_view(settings: InstanceAdministrationSettings) -> ServerAdminSetti
         registration_enabled=registration_enabled,
         maintenance_mode=maintenance_mode,
         effective_registration_enabled=(registration_enabled and not maintenance_mode),
+        monitoring_alerts_enabled=bool(settings.monitoring_alerts_enabled),
+        monitoring_push_enabled=bool(settings.monitoring_push_enabled),
         version=int(settings.version),
     )
 
@@ -326,6 +409,14 @@ def _job_count(session: Session, job_status: JobStatus) -> int:
     return session.execute(
         select(func.count()).select_from(Job).where(Job.status == job_status.value)
     ).scalar_one()
+
+
+def _failed_jobs_since(session: Session, seen_at: datetime | None) -> int:
+    """Failed jobs that finished after ``seen_at``; all of them when it is unset."""
+    statement = select(func.count()).select_from(Job).where(Job.status == JobStatus.FAILED.value)
+    if seen_at is not None:
+        statement = statement.where(func.coalesce(Job.finished_at, Job.created_at) > seen_at)
+    return int(session.execute(statement).scalar_one())
 
 
 def _active_session_filters(current_time: datetime) -> tuple[Any, ...]:
@@ -447,6 +538,18 @@ def _account_detail(
             local_password_available and runtime.mail_transport is not MailTransport.NONE
         ),
         local_password_available=local_password_available,
+        spaces=[
+            ServerAdminAccountSpace(
+                space_id=membership.space_id,
+                membership_status=membership.status,
+                since=membership.joined_at or membership.created_at,
+            )
+            for membership in session.execute(
+                select(Membership)
+                .where(Membership.account_id == account.id)
+                .order_by(Membership.created_at.desc())
+            ).scalars()
+        ],
     )
 
 
@@ -688,6 +791,75 @@ def get_server_admin_overview(
         .all()
     )
     jobs_failed = _job_count(session, JobStatus.FAILED)
+    jobs_failed_unseen = _failed_jobs_since(
+        session, administration.get_settings(session).failed_jobs_seen_at
+    )
+
+    # Counts only: the overview never carries report content or ids. The count
+    # is 0 while the feature is off, as no report can be created then.
+    support_reports_new = 0
+    unread_reports_warning = False
+    if settings.support_reports_enabled:
+        support_reports_new = support_reports.count_new(session)
+        unread_reports_warning = support_reports.support_reports_unread_warning(
+            enabled=True,
+            oldest_new_at=support_reports.oldest_new_at(session),
+            now=current_time,
+        )
+
+    storage_pressure_count, storage_pressure = storage_quota.spaces_near_quota(
+        session,
+        ratio=_STORAGE_PRESSURE_RATIO,
+        limit=_ATTENTION_LIMIT,
+        settings=settings,
+    )
+    # A Space whose Premium access is extended by another valid grant is not
+    # about to lose it, so it is neither listed nor counted.
+    later_grant = aliased(EntitlementGrant)
+    extended_by_later_grant = exists().where(
+        later_grant.space_id == EntitlementGrant.space_id,
+        later_grant.tier == EntitlementTier.PREMIUM.value,
+        later_grant.status.in_(
+            (
+                EntitlementStatus.ACTIVE.value,
+                EntitlementStatus.TRIAL.value,
+                EntitlementStatus.GRACE_PERIOD.value,
+                EntitlementStatus.GRANDFATHERED.value,
+            )
+        ),
+        or_(
+            later_grant.effective_until.is_(None),
+            later_grant.effective_until > EntitlementGrant.effective_until,
+        ),
+    )
+    expiring_filters = (
+        EntitlementGrant.source_type == EntitlementSourceType.ADMIN_GRANT.value,
+        EntitlementGrant.status == EntitlementStatus.ACTIVE.value,
+        EntitlementGrant.effective_until > current_time,
+        EntitlementGrant.effective_until <= current_time + _EXPIRING_GRANT_WINDOW,
+        ~extended_by_later_grant,
+    )
+    expiring_admin_grant_count = session.execute(
+        select(func.count()).select_from(EntitlementGrant).where(*expiring_filters)
+    ).scalar_one()
+    expiring_admin_grants = (
+        session.execute(
+            select(EntitlementGrant)
+            .where(*expiring_filters)
+            .order_by(EntitlementGrant.effective_until.asc())
+            .limit(_ATTENTION_LIMIT)
+        )
+        .scalars()
+        .all()
+    )
+
+    worker_status, worker_last_seen_at = heartbeat.worker_state(session, "worker", current_time)
+    video_worker_status, _video_last_seen = heartbeat.worker_state(
+        session, "video-worker", current_time
+    )
+    email_failures, push_failures = failed_deliveries_since(
+        session, current_time - timedelta(hours=1)
+    )
 
     warning_codes: list[str] = []
     admin_settings = administration.get_access_state(session)
@@ -701,13 +873,22 @@ def get_server_admin_overview(
         warning_codes.append("server_admin_allowlist_unmatched")
     if settings.mail_transport is MailTransport.NONE and unverified_primary_email_count:
         warning_codes.append("mail_disabled_with_unverified_accounts")
-    if jobs_failed:
+    if jobs_failed_unseen:
         warning_codes.append("failed_jobs_present")
+    if unread_reports_warning:
+        warning_codes.append("support_reports_unread")
+    if storage_pressure_count:
+        warning_codes.append("storage_quota_pressure")
+    if expiring_admin_grant_count:
+        warning_codes.append("admin_grants_expiring")
+    # No backup signal exists yet (#2317); on Cloud that is a risk to name.
+    if settings.deployment is Deployment.CLOUD:
+        warning_codes.append("backup_not_configured")
 
     return ServerAdminOverview(
         application_status="ok",
         database_status="ok",
-        worker_status="no_heartbeat_signal",
+        worker_status=worker_status,
         media_status="not_probed",
         deployment=settings.deployment.value,
         environment=settings.environment.value,
@@ -739,6 +920,7 @@ def get_server_admin_overview(
         jobs_pending=_job_count(session, JobStatus.PENDING),
         jobs_running=_job_count(session, JobStatus.RUNNING),
         jobs_failed=jobs_failed,
+        jobs_failed_unseen=jobs_failed_unseen,
         oldest_pending_job_at=oldest_pending_job_at,
         last_successful_job_at=last_successful_job_at,
         recent_failed_jobs=[
@@ -750,6 +932,31 @@ def get_server_admin_overview(
                 finished_at=job.finished_at,
             )
             for job in failed_jobs
+        ],
+        support_reports_new=support_reports_new,
+        support_reports_operator_available=support_reports_operator_available(
+            enabled=settings.support_reports_enabled
+        ),
+        pro_area_available=pro_area_available(settings),
+        worker_last_seen_at=worker_last_seen_at,
+        video_worker_status=video_worker_status,
+        email_failures_last_hour=email_failures,
+        push_failures_last_hour=push_failures,
+        backup_status="not_configured",
+        storage_pressure_count=storage_pressure_count,
+        storage_pressure=[
+            ServerAdminStoragePressureItem(space_id=space_id, used_bytes=used, quota_bytes=quota)
+            for space_id, used, quota in storage_pressure
+        ],
+        expiring_admin_grant_count=expiring_admin_grant_count,
+        expiring_admin_grants=[
+            ServerAdminExpiringGrantItem(
+                space_id=grant.space_id,
+                grant_id=grant.id,
+                effective_until=ensure_utc(grant.effective_until),
+            )
+            for grant in expiring_admin_grants
+            if grant.effective_until is not None
         ],
         warning_codes=warning_codes,
     )
@@ -833,18 +1040,37 @@ def get_server_admin_space(
     space_id: Annotated[str, Path(max_length=64)],
 ) -> ServerAdminSpaceDetail:
     """Return one Space's privacy-safe lifecycle projection."""
-    parsed = _parse_space_id(space_id)
+    return space_detail(session, _parse_space_id(space_id))
+
+
+def space_detail(session: Session, space_id: UUID) -> ServerAdminSpaceDetail:
+    """One Space's lifecycle projection, or a privacy-safe 404."""
     aggregate = _space_aggregate_subquery()
     statement = (
         select(*_space_projection(aggregate))
         .select_from(Space)
         .outerjoin(aggregate, aggregate.c.space_id == Space.id)
-        .where(Space.id == parsed)
+        .where(Space.id == space_id)
     )
     row = session.execute(statement).one_or_none()
     if row is None:
         raise NotFoundError("Space not found.", "SERVER_ADMIN_SPACE_NOT_FOUND")
     return _space_detail_from_row(row)
+
+
+def space_summaries(session: Session, space_ids: list[UUID]) -> list[ServerAdminSpaceSummary]:
+    """Lifecycle summaries of the given Spaces, in the given order."""
+    if not space_ids:
+        return []
+    aggregate = _space_aggregate_subquery()
+    rows = session.execute(
+        select(*_space_projection(aggregate))
+        .select_from(Space)
+        .outerjoin(aggregate, aggregate.c.space_id == Space.id)
+        .where(Space.id.in_(space_ids))
+    ).all()
+    by_id = {row._mapping["id"]: _space_summary_from_row(row) for row in rows}
+    return [by_id[space_id] for space_id in space_ids if space_id in by_id]
 
 
 def _require_space(session: Session, space_id: str) -> UUID:
@@ -908,17 +1134,10 @@ def _space_entitlement_view(session: Session, space_id: UUID) -> ServerAdminSpac
 def reconcile_server_admin_space_configuration_manager(
     body: ServerAdminSpaceConfigurationManagerReconcileRequest,
     admin: CurrentServerAdmin,
-    device_session: CurrentSession,
     session: DbSession,
     space_id: Annotated[str, Path(max_length=64)],
 ) -> ServerAdminSpaceConfigurationManagerView:
     """Assign missing legacy Space configuration authority exactly once."""
-    recent_auth.require_grant(
-        session,
-        admin,
-        device_session,
-        purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
-    )
     parsed_space = _require_space(session, space_id)
     space = relationship_service.reconcile_configuration_manager(
         session,
@@ -961,7 +1180,6 @@ def get_server_admin_space_entitlement(
 def grant_server_admin_space_entitlement(
     body: ServerAdminEntitlementGrantRequest,
     admin: CurrentServerAdmin,
-    device_session: CurrentSession,
     session: DbSession,
     space_id: Annotated[str, Path(max_length=64)],
 ) -> ServerAdminSpaceEntitlementView:
@@ -972,17 +1190,7 @@ def grant_server_admin_space_entitlement(
     instead (docs/m6/ENTITLEMENT-BOUNDARY.md §7.1). It reuses the existing normalized
     `record_grant` source-update interface unchanged rather than adding a
     second grant-mutation path.
-
-    Granting unlimited Premium is as consequential as the other high-risk
-    ServerAdmin actions in this router (account deletion, email verification,
-    recovery issuance), so it requires the same step-up re-authentication.
     """
-    recent_auth.require_grant(
-        session,
-        admin,
-        device_session,
-        purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
-    )
     parsed = _require_space(session, space_id)
     entitlements.record_grant(
         session,
@@ -1013,23 +1221,11 @@ def grant_server_admin_space_entitlement(
 def revoke_server_admin_space_entitlement_grant(
     body: ServerAdminEntitlementRevokeRequest,
     admin: CurrentServerAdmin,
-    device_session: CurrentSession,
     session: DbSession,
     space_id: Annotated[str, Path(max_length=64)],
     grant_id: Annotated[str, Path(max_length=64)],
 ) -> ServerAdminSpaceEntitlementView:
-    """Revoke one grant (e.g. an admin mistake, abuse, or a refund/chargeback).
-
-    Revoking a paying customer's entitlement is as consequential as the other
-    high-risk ServerAdmin actions in this router, so it requires the same
-    step-up re-authentication.
-    """
-    recent_auth.require_grant(
-        session,
-        admin,
-        device_session,
-        purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
-    )
+    """Revoke one grant (e.g. an admin mistake, abuse, or a refund/chargeback)."""
     parsed_space = _require_space(session, space_id)
     parsed_grant = parse_id(grant_id)
     if parsed_grant is None:
@@ -1207,17 +1403,10 @@ def request_server_admin_account_email_verification(
 def verify_server_admin_account_email(
     body: ServerAdminEmailVerificationRequest,
     admin: CurrentServerAdmin,
-    device_session: CurrentSession,
     session: DbSession,
     account_id: Annotated[str, Path(alias="accountId")],
     account_email_id: Annotated[str, Path(alias="accountEmailId")],
 ) -> ServerAdminAccountEmail:
-    recent_auth.require_grant(
-        session,
-        admin,
-        device_session,
-        purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
-    )
     parsed_email_id = parse_id(account_email_id)
     if parsed_email_id is None:
         raise NotFoundError(
@@ -1284,16 +1473,9 @@ def request_server_admin_account_recovery_email(
 def issue_server_admin_operator_recovery(
     response: Response,
     admin: CurrentServerAdmin,
-    device_session: CurrentSession,
     session: DbSession,
     account_id: Annotated[str, Path(alias="accountId")],
 ) -> ServerAdminRecoveryProof:
-    recent_auth.require_grant(
-        session,
-        admin,
-        device_session,
-        purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
-    )
     proof = account_operations.issue_operator_recovery(
         session,
         actor=admin,
@@ -1314,17 +1496,10 @@ def issue_server_admin_operator_recovery(
 )
 def delete_server_admin_account(
     admin: CurrentServerAdmin,
-    device_session: CurrentSession,
     session: DbSession,
     account_id: Annotated[str, Path(alias="accountId")],
     body: ServerAdminAccountDeletionRequest,
 ) -> ServerAdminAccountDeletionResult:
-    recent_auth.require_grant(
-        session,
-        admin,
-        device_session,
-        purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
-    )
     parsed_id = _parse_account_id(account_id)
     deletion = account_operations.delete_account(
         session,
@@ -1387,6 +1562,71 @@ def update_maintenance_setting(
         enabled=body.enabled,
     )
     return _settings_view(settings)
+
+
+@router.put(
+    "/settings/monitoring-alerts",
+    response_model=ServerAdminSettings,
+    responses=problem_responses(401, 403, 422),
+)
+def update_monitoring_alerts_setting(
+    body: ServerAdminSettingUpdate,
+    admin: CurrentServerAdmin,
+    session: DbSession,
+) -> ServerAdminSettings:
+    """Turn the monitoring alert mails to ServerAdmins on or off (#2317)."""
+    settings = administration.update_setting(
+        session,
+        actor_id=admin.id,
+        setting=AdministrationSetting.MONITORING_ALERTS_ENABLED,
+        enabled=body.enabled,
+    )
+    return _settings_view(settings)
+
+
+@router.put(
+    "/settings/monitoring-push",
+    response_model=ServerAdminSettings,
+    responses=problem_responses(401, 403, 422),
+)
+def update_monitoring_push_setting(
+    body: ServerAdminSettingUpdate,
+    admin: CurrentServerAdmin,
+    session: DbSession,
+) -> ServerAdminSettings:
+    """Turn the monitoring alerts as app push to ServerAdmins on or off (#2314)."""
+    settings = administration.update_setting(
+        session,
+        actor_id=admin.id,
+        setting=AdministrationSetting.MONITORING_PUSH_ENABLED,
+        enabled=body.enabled,
+    )
+    return _settings_view(settings)
+
+
+@router.post(
+    "/failed-jobs/seen",
+    response_model=ServerAdminFailedJobsSeen,
+    responses=problem_responses(401, 403),
+)
+def mark_failed_jobs_seen(
+    admin: CurrentServerAdmin,
+    session: DbSession,
+) -> ServerAdminFailedJobsSeen:
+    """Hide the current failed jobs from the Situation page until a new job fails (#2342).
+
+    System > Jobs, alert mails and pushes are unaffected. Shared by every ServerAdmin.
+    """
+    settings = administration.get_settings(session, for_update=True)
+    hidden = _failed_jobs_since(session, settings.failed_jobs_seen_at)
+    settings.failed_jobs_seen_at = now()
+    administration.record_action(
+        session,
+        actor_id=admin.id,
+        action=AdministrationAction.FAILED_JOBS_SEEN,
+        effect_count=hidden,
+    )
+    return ServerAdminFailedJobsSeen(hidden=hidden)
 
 
 @router.get(

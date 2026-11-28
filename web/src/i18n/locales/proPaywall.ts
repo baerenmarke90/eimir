@@ -34,8 +34,8 @@ const proPaywall = {
           body: 'Ergänzt Gedanken zu einem Rückblick – fertige Ausgaben bleiben lesbar.',
         },
         third: {
-          title: 'Vertiefende Einblicke',
-          body: 'Wochenrückblicke und behutsame Muster eurer gemeinsamen Tage.',
+          title: 'Als Film erzählt',
+          body: 'Eure Fotos, Videos und Worte als bewegter Rückblick.',
         },
       },
     },
@@ -55,6 +55,20 @@ const proPaywall = {
         third: {
           title: 'Rückblicke dazu',
           body: 'Entdeckt eure Geschichte auch in Monats- und Jahresrückblicken.',
+        },
+      },
+    },
+    storage: {
+      title: 'Mehr Platz für eure Erinnerungen.',
+      description: 'Mit eimir. Pro habt ihr 50 GB für Fotos, Videos und mehr.',
+      benefits: {
+        first: {
+          title: '50 GB Speicher',
+          body: 'Zehnmal so viel Platz für Fotos, Videos, Sprachnachrichten und PDFs.',
+        },
+        second: {
+          title: 'Videos',
+          body: 'Haltet kurze Videos in euren Erinnerungen fest.',
         },
       },
     },
@@ -121,6 +135,41 @@ const proPaywall = {
     },
   },
   benefitsLabel: 'Was Pro euch bietet',
+  showcase: {
+    label: 'Das macht Pro besonders',
+    indicator: 'Highlight {{index}} von {{count}}',
+    anchor:
+      'Alles zusammen für <strong>{{price}} im Monat</strong>, für euch beide.',
+    scenes: {
+      memoryWorlds: {
+        title: 'Zehn Erinnerungswelten',
+        body: 'Eure Mochis kuscheln und lassen Erinnerungen aufsteigen. Oder blättert durch Plattenkiste, Fotoautomat, Kühlschranktür und Sternbild.',
+      },
+      recapFilms: {
+        title: 'Euer Monat als Film',
+        body: 'Aus euren Fotos, Orten und Worten wird jeden Monat ein kleiner Film zum Zurücklehnen und Wiedererleben.',
+      },
+      gamesGarden: {
+        title: 'Spiele und euer Garten',
+        body: 'Schickt euch Samen, lasst euren Garten aufblühen und findet im Spiel heraus, wie gut ihr euch kennt.',
+      },
+      mapCloseness: {
+        title: 'Karte und Nähe',
+        body: 'Seht, wo eure Erinnerungen entstanden sind und wie weit ihr voneinander entfernt seid, und schickt euch Einmal-Nachrichten.',
+      },
+    },
+    art: {
+      recapMonth: 'Euer Mai',
+      recapMoments: '14 gemeinsame Momente',
+      recapFact: 'neue Orte entdeckt',
+      recapPlace: 'Trier',
+      recapGoodbye: 'Bis zum Juni!',
+      gameEyebrow: 'SPIEL ZU ZWEIT',
+      gameQuestion: 'Wer plant das nächste Date?',
+      distance: '412 km',
+      onceMessage: 'Einmal-Nachricht',
+    },
+  },
   catalogue: {
     title: 'Was in Pro steckt',
     groups: {
@@ -128,7 +177,7 @@ const proPaywall = {
       timeTogether: 'Zeit zu zweit',
       everyday: 'Nähe im Alltag',
       style: 'Euer persönlicher Stil',
-      integrations: 'Fotos & Kalender',
+      integrations: 'Fotos, Kalender & Speicher',
     },
     features: {
       memoryMap: {
@@ -136,8 +185,8 @@ const proPaywall = {
         body: 'Seht, wo eure Erinnerungen entstanden sind, und öffnet sie direkt von der Karte aus.',
       },
       recaps: {
-        title: 'Monats- und Jahresrückblicke',
-        body: 'Lasst aus euren Erinnerungen Rückblicke entstehen und ergänzt sie mit eigenen Worten. Gespeicherte Rückblicke bleiben euch erhalten.',
+        title: 'Rückblicke als Film',
+        body: 'Monats- und Jahresrückblicke laufen wie ein kleiner Film ab. Ergänzt sie mit eigenen Worten; gespeicherte Rückblicke bleiben euch erhalten.',
       },
       passport: {
         title: 'Beziehungspass & gemeinsame Geschichte',
@@ -152,16 +201,12 @@ const proPaywall = {
         body: 'Filtert 200 Date-Ideen nach Zeit, Budget und Ort. Übernehmt eine Idee als Wunsch, als Plan oder in eure gemeinsame Auswahl.',
       },
       games: {
-        title: 'Paarspiele',
-        body: 'Startet ein Spiel zu zweit, zum Beispiel rund um eure gemeinsamen Erinnerungen und Wünsche.',
+        title: 'Paarspiele & euer Garten',
+        body: 'Startet ein Spiel zu zweit und schickt euch jeden Tag einen Samen für euren gemeinsamen Garten.',
       },
       experiences: {
         title: 'Glücksmomente & Zeitreise',
         body: 'Teilt, was euch gerade glücklich macht, oder schickt euch gegenseitig eine kleine Reise in eure Erinnerungen.',
-      },
-      insights: {
-        title: 'Einblicke in Stimmung & Energie',
-        body: 'Schaut über mehrere Wochen oder Monate auf eure Check-ins und entdeckt, wie sich Stimmung und Energie entwickeln. Der tägliche Check-in bleibt kostenlos.',
       },
       quote: {
         title: 'Spruch des Tages',
@@ -183,6 +228,10 @@ const proPaywall = {
         title: 'Weitere App-Designs',
         body: 'Gestaltet euer eigenes eimir. mit „Seite an Seite“, „Klar & modern“ oder „Klassisch“.',
       },
+      wirReelStyles: {
+        title: 'Kacheln und Chips auf Wir',
+        body: 'Wähle, ob dir Wir Neues und deine Züge als Kacheln oder Chips statt als Kreise zeigt.',
+      },
       appIcons: {
         title: 'Alternative App-Symbole',
         body: 'Wählt ein anderes eimir.-Symbol, wo eure App oder euer Browser diese Auswahl unterstützt.',
@@ -191,6 +240,10 @@ const proPaywall = {
         title: 'Eigene Personenfarben',
         body: 'Wählt, in welchen Farben du dich und deinen Lieblingsmenschen in deiner App siehst.',
       },
+      memoryWorlds: {
+        title: 'Zehn Erinnerungswelten',
+        body: 'Entdeckt eure Erinnerungen in verspielten Welten: {{worlds}}.',
+      },
       photoSources: {
         title: 'Fotos aus Immich & Google Fotos',
         body: 'Übernehmt ausgewählte Fotos aus Immich oder Google Fotos, wenn die jeweilige Verbindung verfügbar ist.',
@@ -198,6 +251,10 @@ const proPaywall = {
       calendarSync: {
         title: 'Automatischer Kalenderabgleich',
         body: 'Übertragt Pläne automatisch in euren gemeinsamen CalDAV- oder Google-Kalender, wenn die Verbindung verfügbar ist.',
+      },
+      storage: {
+        title: '50 GB Speicher in der eimir. Cloud',
+        body: 'Zehnmal so viel Platz für Fotos, Videos, Sprachnachrichten und PDFs.',
       },
     },
   },
@@ -249,7 +306,6 @@ const proPaywall = {
   active: {
     title: 'eimir. Pro ist für euch aktiv.',
     body: 'Euer Pro-Zugang gilt für euren gemeinsamen Bereich und damit für euch beide.',
-    continue: 'Weiter',
   },
   statusUnknown:
     'Euer Pro-Status konnte gerade nicht geprüft werden. Eure Inhalte sind davon nicht betroffen.',
@@ -284,7 +340,36 @@ const proPaywall = {
     expired:
       'Euer Pro-Zugang ist abgelaufen. Eure Inhalte bleiben vollständig erhalten.',
   },
-  settingsAction: 'Tarife ansehen',
+  // Copy approved by the Product Owner in #2328 (part 5).
+  giftCode: {
+    title: 'Geschenkcode einlösen',
+    hint: 'Ihr habt einen Geschenkcode für eimir. Pro bekommen? Gebt ihn hier ein – er gilt für euch beide.',
+    fieldLabel: 'Code',
+    placeholder: 'EIMIR-XXXX-XXXX',
+    redeem: 'Einlösen',
+    redeeming: 'Wird eingelöst …',
+    success: {
+      new: {
+        title: 'Pro ist freigeschaltet.',
+        body: 'Ihr habt eimir. Pro bis {{date}}. Viel Freude damit!',
+      },
+      extended: {
+        title: 'Pro ist verlängert.',
+        body: 'Ihr habt eimir. Pro jetzt bis {{date}}.',
+      },
+    },
+    errors: {
+      invalid:
+        'Dieser Code ist ungültig oder abgelaufen. Prüft bitte die Schreibweise.',
+      used: 'Dieser Code wurde schon eingelöst.',
+      subscriptionActive:
+        'Ihr habt schon Pro über euer Abo. Gebt den Code gern weiter.',
+      unlimited: 'Ihr habt Pro schon ohne Enddatum. Gebt den Code gern weiter.',
+      rateLimited:
+        'Zu viele Versuche. Versucht es bitte in einer Stunde noch einmal.',
+      network: 'Das hat gerade nicht geklappt. Versucht es noch einmal.',
+    },
+  },
   contextAction: 'Mit eimir. Pro entdecken',
 };
 

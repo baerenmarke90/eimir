@@ -1,0 +1,10 @@
+eimir. Android 0.2.0-test.105
+
+- The Pro page shows four animated highlights with the Mochis (memory worlds, your month as a film, games and your garden, map and closeness), the yearly price per month for both of you and an updated list of everything in Pro.
+- Long-press the app icon for quick actions.
+- The Wir hero is larger, the pull arrow is readable in Dark, and opening a push notification clears its notice and the receipt on Wir.
+- The memory world switch is a round button in the world's top row; the separate discover button is gone.
+- Server administrators no longer confirm their password again before admin actions.
+
+The product changes come from main at adfdaec343ac5acb3f1cf6e3eff582dd0a99f467.
+Install over test.104 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 105.

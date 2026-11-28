@@ -3,6 +3,23 @@ const de = {
     longNotes: 'Eine ausführliche Beschreibung der Änderungen. ',
     notes: 'Verbesserungen für eure Testversion.',
   },
+  retiredCopy: {
+    chapterNoPlace: 'Kein Ort mit diesem Kapitel verknüpft.',
+    chapterNoPeriod: 'Kein Zeitraum hinterlegt.',
+    kissHint: 'Ein kurzer lieber Gruß.',
+    checkInHint: 'Ein sanfter Check-in – ohne Vibe oder Status offenzulegen.',
+    sharedPersonVisibility: 'Für uns beide',
+    privatePersonVisibility: 'Nur für mich',
+    placeNoDescription: 'Noch keine Beschreibung zu diesem Ort.',
+    sharedWishHint: 'Dieser Wunsch ist automatisch für euch beide sichtbar.',
+    sharedDayTimeZone: 'Zeitzone für euren gemeinsamen Tag',
+    commentAuthorSelf: 'von dir',
+    discoverNewDay:
+      'Für heute wartet eine neue Auswahl. Mit „Neu entdecken“ könnt ihr sie ansehen.',
+    privateHeartMomentAction: 'Nur für mich behalten',
+    memoryAuthorLabel: 'Festgehalten von',
+    sensitiveSettingsEyebrow: 'Mit Bedacht',
+  },
   wirCheckIn: {
     ownNote: 'Endlich Wochenende, ich freu mich auf unseren Abend.',
     ownShortNote: 'Endlich Wochenende.',

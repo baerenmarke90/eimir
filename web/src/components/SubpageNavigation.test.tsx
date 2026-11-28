@@ -4,10 +4,10 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { subpageParentPath } from '../client/routes';
-import taskCopy from '../i18n/locales/taskBoundary';
 import { PageHeader } from './PageHeader';
 import { SubpageNavigation } from './SubpageNavigation';
 import { TaskBackButton, TaskBackLink } from './TaskBackButton';
+import germanUi from '../i18n/locales/de';
 
 afterEach(cleanup);
 
@@ -46,17 +46,17 @@ it('automatically supplies Back for an unregistered future secondary page and a 
       </Routes>
     </MemoryRouter>,
   );
-  const back = screen.getByRole('button', { name: taskCopy.back });
-  expect(back.getAttribute('title')).toBe(taskCopy.back);
+  const back = screen.getByRole('button', { name: germanUi.common.back });
+  expect(back.getAttribute('title')).toBe(germanUi.common.back);
   expect(back.querySelector('svg')).not.toBeNull();
-  expect(back.querySelector('.sr-only')?.textContent).toBe(taskCopy.back);
+  expect(back.querySelector('.sr-only')?.textContent).toBe(
+    germanUi.common.back,
+  );
   fireEvent.click(back);
   expect(screen.getByRole('heading', { name: 'Parent' })).toBeTruthy();
 });
 
 it.each([
-  '/more/insights',
-  '/more/insights/patterns',
   '/story/recaps',
   '/story/recaps/edition',
   '/story/chapters',
@@ -70,7 +70,7 @@ it.each([
     </MemoryRouter>,
   );
 
-  const back = screen.getByRole('button', { name: taskCopy.back });
+  const back = screen.getByRole('button', { name: germanUi.common.back });
   expect(back.querySelector('.task-back-label')).toBeNull();
   expect(back.querySelector('svg')).not.toBeNull();
 });

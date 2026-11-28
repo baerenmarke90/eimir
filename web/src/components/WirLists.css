@@ -18,6 +18,18 @@
   overscroll-behavior-x: contain;
   scrollbar-width: none;
 }
+/*
+ * Tile reels (#2345 B): the track scrolls, so it clips whatever lies outside
+ * it, and the tiles' soft shadow ended in a visible straight edge. The reel
+ * keeps room for the shadow above, below and up to the screen edge, and gives
+ * that room back with negative margins: the first tile still starts at the
+ * page gutter and the spacing around the reel is unchanged.
+ */
+.wir-lists-row.wir-tile-reel {
+  margin-block: calc(-1 * var(--space-5)) calc(-1 * var(--space-12));
+  margin-inline: calc(-1 * var(--page-gutter));
+  padding: var(--space-5) var(--page-gutter) var(--space-12);
+}
 .wir-lists-row::-webkit-scrollbar {
   display: none;
 }

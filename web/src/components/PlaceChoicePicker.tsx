@@ -233,7 +233,7 @@ export function PlaceChoicePicker({
             })
           }
         >
-          {t(pending ? 'm5s3.common.saving' : 'photoPlaces.saveSharedPlace')}
+          {t(pending ? 'common.saving' : 'photoPlaces.saveSharedPlace')}
         </button>
         <button
           type="button"

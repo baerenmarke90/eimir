@@ -3,7 +3,6 @@ export default {
   signInMethodsIntro:
     'So kommst du in dein Konto. Du brauchst immer mindestens eine.',
   signInMethodsLoadFailed: 'Die Anmeldemethoden konnten nicht geladen werden.',
-  signInMethodsRetry: 'Erneut versuchen',
   emailLinkTitle: 'E-Mail-Link',
   emailLinkVerified: 'Bestätigt',
   emailLinkNote: 'Link per E-Mail',
@@ -22,7 +21,6 @@ export default {
   passkeyAddedOn: 'Hinzugefügt am {{date}}',
   passkeyRemove: 'Entfernen',
   passkeyRemoveConfirm: 'Wirklich entfernen',
-  passkeyRemoveCancel: 'Abbrechen',
   passkeyAdd: 'Passkey hinzufügen',
   passkeyAdding: 'Passkey wird eingerichtet …',
   passkeyDefaultName: 'Dieses Gerät',
@@ -39,8 +37,6 @@ export default {
     'Das ist deine einzige Anmeldemethode. Richte zuerst eine andere ein.',
   methodFailed: 'Das hat nicht geklappt. Bitte versuche es noch einmal.',
   title: 'Konto',
-  intro:
-    'Hier verwaltest du Aktionen, die dein persönliches eimir.-Konto betreffen. Beziehung und gemeinsamer Bereich bleiben davon getrennt.',
   dangerEyebrow: 'Sensible Aktion',
   dangerTitle: 'Konto löschen',
   dangerIntro:
@@ -51,7 +47,7 @@ export default {
     'Demo-Konten werden von der Demo-Umgebung verwaltet und können hier nicht selbst gelöscht werden.',
   consequencesTitle: 'Folgen der Kontolöschung',
   consequencesIntro:
-    'Prüfe diese Folgen, bevor du mit der endgültigen Bestätigung fortfährst.',
+    'Prüfe diese Folgen, bevor du weitermachst. Eine Kopie deiner Daten bekommst du vorher auf Anfrage – wie, steht in den Datenschutzhinweisen.',
   consequenceAccess:
     'Dein Kontozugriff endet und aktive Sitzungen sowie Anmeldedaten werden widerrufen.',
   consequencePrivate:
@@ -60,9 +56,6 @@ export default {
     'Gemeinsame Historie folgt den bestehenden Aufbewahrungsregeln. Der gemeinsame Bereich oder die Beziehung wird dadurch nicht automatisch gelöscht.',
   consequenceIrreversible:
     'Sobald der Server die Löschung angenommen hat, ist sie nicht mehr rückgängig zu machen. Die App muss für die weitere Bereinigung nicht geöffnet bleiben.',
-  exportBefore: 'Vorher Daten exportieren',
-  continueAction: 'Weiter',
-  cancelAction: 'Abbrechen',
   reauthEyebrow: 'Sicherheitsprüfung',
   reauthTitle: 'Identität bestätigen',
   reauthIntro:
@@ -85,7 +78,6 @@ export default {
   confirmPhrase: 'KONTO LÖSCHEN',
   confirmHelp:
     'Die Eingabe muss genau mit dem angezeigten Text übereinstimmen.',
-  backAction: 'Zurück',
   submitAction: 'Konto endgültig löschen',
   submitting: 'Kontolöschung wird gestartet …',
 } as const;

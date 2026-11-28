@@ -25,7 +25,7 @@ describe('resolveCapacitorBuildEnvironment', () => {
       VITE_EIMIR_DEMO_MODE: 'false',
       VITE_EIMIR_DEMO_RESET_TIMER: 'false',
       VITE_EIMIR_DEMO_RESET_INTERVAL: '6h',
-      VITE_EIMIR_DEMO_URL: '',
+      VITE_EIMIR_DEMO_URL: 'https://demo.eimir.de',
     });
   });
 
@@ -98,14 +98,32 @@ describe('resolveCapacitorBuildEnvironment', () => {
     });
   });
 
-  it('always clears the Web-demo launch link, including a legacy one', () => {
+  it('offers the public Demo link in the app, never a legacy one', () => {
     expect(
       resolve({
         VITE_EIMIR_API_BASE_URL: PRODUCTION_API,
-        VITE_EIMIR_DEMO_URL: 'https://demo.example.test',
-        VITE_SBS_DEMO_URL: 'https://demo.example.test',
+        VITE_SBS_DEMO_URL: 'https://legacy.example.test',
       }).VITE_EIMIR_DEMO_URL,
+    ).toBe('https://demo.eimir.de');
+    expect(
+      resolve({
+        VITE_EIMIR_API_BASE_URL: PRODUCTION_API,
+        VITE_EIMIR_DEMO_URL: 'https://demo.example.test/',
+      }).VITE_EIMIR_DEMO_URL,
+    ).toBe('https://demo.example.test');
+  });
+
+  it('keeps the link out of the Demo bundle and rejects non-HTTPS addresses', () => {
+    expect(
+      resolve({ VITE_EIMIR_API_BASE_URL: DEMO_API }).VITE_EIMIR_DEMO_URL,
     ).toBe('');
+    expectConfigurationError(
+      {
+        VITE_EIMIR_API_BASE_URL: PRODUCTION_API,
+        VITE_EIMIR_DEMO_URL: 'http://demo.example.test',
+      },
+      /HTTPS/,
+    );
   });
 
   it('rejects non-boolean flags', () => {
@@ -172,5 +190,18 @@ describe('resolveCapacitorBuildEnvironment', () => {
         ALLOW_LOCALHOST_API: 'true',
       }).VITE_EIMIR_DEMO_MODE,
     ).toBe('false');
+  });
+
+  it('passes the release version and short source revision to the bundle', () => {
+    expect(
+      resolve({
+        VITE_EIMIR_API_BASE_URL: PRODUCTION_API,
+        EIMIR_APP_VERSION: '0.2.0',
+        EIMIR_BUILD_REVISION: '0123456789abcdef0123456789abcdef01234567',
+      }),
+    ).toMatchObject({
+      VITE_EIMIR_APP_VERSION: '0.2.0',
+      VITE_EIMIR_BUILD: '0123456789ab',
+    });
   });
 });

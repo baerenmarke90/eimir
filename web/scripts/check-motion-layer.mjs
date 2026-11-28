@@ -84,8 +84,6 @@ export const REGISTERED_LAYOUT_TRANSITIONS = Object.freeze({
   'src/components/PhotoEditTask.css': { use: 'disclose', count: 3 },
   // The quiet hint folds away (#2074).
   'src/components/QuietHint.css': { use: 'disclose', count: 1 },
-  // The Wir check-in row closes under the names (#2066, #2074).
-  'src/components/WirHeroStage.css': { use: 'disclose', count: 1 },
   // The overview cache notice closes its slot (#2077).
   'src/styles.css': { use: 'disclose', count: 1 },
 });
@@ -102,6 +100,60 @@ export const REGISTERED_POINTER_TRACKING = Object.freeze({
   'src/client/useFloatingCreateScrollTuck.ts': { use: 'input', count: 1 },
   'src/components/ListEntryActions.tsx': { use: 'gesture', count: 1 },
   'src/components/MediaGallery.tsx': { use: 'input', count: 2 },
+  // The memory worlds (#2283): the Stapel's sideways swipe of the top print,
+  // the Plattenkiste's crate flip, record scratch, tonearm and lyric scrub,
+  // the Momentwolke's cloud pan / bubble fling and card swipe-to-close, the
+  // Fotoautomat's coin drag and the waving of the wet strip, the
+  // Kühlschranktür's note and letter drag with its touch scroll-or-drag
+  // decision, the Fotobuch's page that follows the finger around the
+  // spine and the Rubbellos' won ticket torn off sideways (gesture, not yet
+  // on the building block; Motion Contract 4.6), the Mochis' push, pinch,
+  // tickle and long press on the meadow (gesture), the Sternbild's swipe
+  // that a shooting star's streak follows, its thread traced from star to
+  // star and its telescope aimed by the finger (gesture), the Post's
+  // mailbox door pulled down, envelope flap lifted and postcard turned or
+  // carried into the shoebox by the finger (gesture), the Glas' jar that
+  // follows the finger sideways and its drawn slip that follows the finger
+  // up into the jar (gesture; with the touch isolation that keeps the
+  // jar's and the tag's touches from the page swipes), and the Rubbellos'
+  // scratch strokes on its foils (input: a drawn stroke that moves
+  // nothing).
+  'src/components/memoryWorlds/ConstellationWorld.tsx': {
+    use: 'gesture',
+    count: 1,
+  },
+  'src/components/memoryWorlds/FridgeDoorWorld.tsx': {
+    use: 'gesture',
+    count: 2,
+  },
+  'src/components/memoryWorlds/MemoryJarWorld.tsx': {
+    use: 'gesture',
+    count: 3,
+  },
+  'src/components/memoryWorlds/MochiWorld.tsx': { use: 'gesture', count: 1 },
+  'src/components/memoryWorlds/MomentCloudWorld.tsx': {
+    use: 'gesture',
+    count: 2,
+  },
+  'src/components/memoryWorlds/PhotoAlbumWorld.tsx': {
+    use: 'gesture',
+    count: 1,
+  },
+  'src/components/memoryWorlds/PhotoBoothWorld.tsx': {
+    use: 'gesture',
+    count: 2,
+  },
+  'src/components/memoryWorlds/PostWorld.tsx': { use: 'gesture', count: 3 },
+  'src/components/memoryWorlds/RecordCrateWorld.tsx': {
+    use: 'gesture',
+    count: 4,
+  },
+  'src/components/memoryWorlds/ScratchCardWorld.tsx': {
+    use: 'gesture',
+    count: 1,
+  },
+  'src/components/memoryWorlds/ScratchFoil.tsx': { use: 'input', count: 1 },
+  'src/components/memoryWorlds/StackWorld.tsx': { use: 'gesture', count: 1 },
   'src/components/PhotoEditTask.tsx': { use: 'input', count: 4 },
   'src/components/PicturePingPongPage.tsx': { use: 'input', count: 1 },
   // The Momente timeline scrub (input) and the lifeline preview card swipe

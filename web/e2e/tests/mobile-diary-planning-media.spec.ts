@@ -265,7 +265,7 @@ for (const view of [
     await expect(tagInput).toHaveValue('');
     await closeContextTags(page);
     await page
-      .getByRole('button', { name: copy.common.save, exact: true })
+      .getByRole('button', { name: de.common.save, exact: true })
       .click();
     await expect(page.locator('.memory-tag-summary')).toContainText(
       fixtures.planningFollowup.tag,
@@ -325,7 +325,7 @@ for (const view of [
       { fullPage: true },
     );
     await page
-      .getByRole('button', { name: copy.common.save, exact: true })
+      .getByRole('button', { name: de.common.save, exact: true })
       .click();
     await expect(page).toHaveURL(/\/plan\/plans\/plans-new$/);
     await expect(page.locator('.planen-detail-when-where')).toContainText(
@@ -410,7 +410,6 @@ for (const view of [
       de.more.destinations.media,
       de.more.destinations.chapters,
       de.more.destinations.yearsAndRecaps,
-      de.more.destinations.insights,
     ]);
     await captureScreenshot(
       page,
@@ -427,11 +426,11 @@ for (const view of [
       name: storyCopy.gallery.dialogAria,
     });
     const closePhoto = gallery.getByRole('button', {
-      name: storyCopy.gallery.close,
+      name: de.common.close,
     });
     await expect(closePhoto).toHaveText('');
     await expect(closePhoto.locator('svg')).toBeVisible();
-    await expect(closePhoto).toHaveAttribute('title', storyCopy.gallery.close);
+    await expect(closePhoto).toHaveAttribute('title', de.common.close);
     const closeBounds = await closePhoto.boundingBox();
     expect(closeBounds?.width).toBeGreaterThanOrEqual(44);
     expect(closeBounds?.height).toBeGreaterThanOrEqual(44);
@@ -454,9 +453,7 @@ for (const view of [
       info,
       `followup-gallery-${view.width}-${view.theme}.png`,
     );
-    await gallery
-      .getByRole('button', { name: storyCopy.gallery.close })
-      .click();
+    await gallery.getByRole('button', { name: de.common.close }).click();
     await expect(gallery).toHaveCount(0);
     expect(state.unknown).toEqual([]);
   });
@@ -500,7 +497,7 @@ test.describe('photo-local touch gestures', () => {
         native ? 0 : 1,
       );
       const close = dialog.getByRole('button', {
-        name: storyCopy.gallery.close,
+        name: de.common.close,
         exact: true,
       });
       await expect(close.locator('.eimir-icon')).toHaveCSS('width', '24px');

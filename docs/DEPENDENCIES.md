@@ -214,16 +214,25 @@ Picker-only access and bounds transport without persisting refresh tokens.
 | uuid6 | 2025.0.1 | PyPI | MIT |
 | argon2-cffi | 25.1.0 | PyPI | MIT |
 | httpx[http2] | 0.28.1 | PyPI | BSD-3-Clause |
-| google-auth-oauthlib | 1.5.0 | PyPI | Apache 2.0 |
 | pyjwt[crypto] | 2.15.1 | PyPI | MIT |
 | cryptography | 50.0.0 | PyPI | Apache-2.0 OR BSD-3-Clause |
 | pywebpush | 2.5.0 | PyPI | MPL-2.0 |
 | google-auth[requests] | 2.62.0 | PyPI | Apache 2.0 |
-| oauthlib | 4.0.1 | PyPI | BSD-3-Clause |
 | joserfc | 1.7.7 | PyPI | BSD-3-Clause |
 | webauthn | 3.0.0 | PyPI | BSD-3-Clause |
 | pillow | 13.0.0 | PyPI | MIT-CMU |
 | pillow-heif | 1.8.1 | PyPI | BSD-3-Clause |
+
+## Backend — Pro plugin runtime (`backend/pro`)
+
+These direct dependencies belong to the Pro distribution `eimir-pro` (Decision 0017,
+Phase 2, #2182). They are locked in the same `backend/uv.lock` workspace and are not
+part of a Core-only installation.
+
+| Package | Version | Source | License |
+|---|---|---|---|
+| google-auth-oauthlib | 1.5.0 | PyPI | Apache 2.0 |
+| oauthlib | 4.0.1 | PyPI | BSD-3-Clause |
 | defusedxml | 0.7.1 | PyPI | PSFL |
 
 `defusedxml` parses untrusted CalDAV multistatus responses (#1895) without
@@ -232,6 +241,12 @@ dependencies, sends no data and is replaceable by a hardened stdlib parser.
 
 The HTTPX HTTP/2 extra used by APNs resolves `h2` 4.4.1, `hpack` 4.2.0 and
 `hyperframe` 6.1.0 in `backend/uv.lock`. The three transitive packages use MIT.
+
+## Backend — Operator plugin runtime (`backend/admin`)
+
+The operator plugin distribution `eimir-admin` (#2189) declares no direct dependency
+beyond Core (`eimir`, from the same uv workspace). It adds no third-party package to
+`backend/uv.lock`.
 
 ## Backend — Development
 
@@ -415,15 +430,19 @@ registry or uses a hoster-controlled mirror.
 The Android Gradle project in `android/` contains no product UI screens. Product
 screens are the React application from `web/`, packaged as a local asset
 bundle. A small native bridge handles FCM/UnifiedPush registration, wake events,
-and content-free system notifications. Capacitor plugin versions are pinned
+and system notifications. Their content arrives only inside the device-bound
+encrypted preview and is shown according to the person's Android lock-screen
+setting (#2158); provider payloads stay content-free. Capacitor plugin versions are pinned
 exactly in `web/package.json` and locked in `web/package-lock.json`; the Gradle
 modules below are resolved from `web/node_modules` by `npx cap sync android`.
 
 `@capacitor/haptics` (#2076, Motion Contract 4.10) is the official Capacitor
 haptics plugin. It has no runtime dependencies and declares the normal-level
 `android.permission.VIBRATE` (granted at install, no prompt). The Web client
-loads it only inside the native app, through the motion layer's haptics
-adapter; it never runs its Web implementation (`navigator.vibrate`). It sends
+loads it only on non-Android native platforms, through the motion layer's
+haptics adapter; Android uses the project's `SystemHaptics` plugin on the
+platform API `View.performHapticFeedback`. The package never runs its Web
+implementation (`navigator.vibrate`). It sends
 no data anywhere, has no account, cost or rate limit, and behaves the same for
 eimir. Cloud and Self-Hosted. Without it the app works unchanged, only without
 haptic feedback; people turn haptics off with the in-app switch.
@@ -599,13 +618,14 @@ decision for the project's own source code.
 | `docs/product/design/references/1444/photo-source-sheet-delivery.png` | Generated whole-diary/source-sheet preflight for #1444, 2026-10-27 | eimir. project workflow using ImageGen | project asset; no separate public license grant |
 | `docs/product/design/references/1444/evidence/photo-source-*.png` (eight named files in its README) | Actual local browser renders of the project UI using synthetic account data and the existing cabin/lake demo fixture | eimir. project workflow; embedded photo by Darkmoon_Art (Pixabay 3374201) | UI screenshots: project asset, no separate public license grant; embedded photo: CC0 1.0 Universal, as recorded in `backend/demo_assets/manifest.json` |
 | `docs/assets/readme/01-anmelden.webp` … `07-mehr.webp` (seven named files) | README product preview: actual browser captures of the current Web client at ~390 px width in the Light theme, taken from the canonical demo Space (fictional identities and content) | eimir. project workflow; embedded demo photographs by the creators named in `backend/demo_assets/manifest.json` (Pixabay) | UI screenshots: project asset, no separate public license grant; embedded photographs: CC0 1.0 Universal, as recorded in `backend/demo_assets/manifest.json` |
-| `backend/src/eimir/date_ideas/data/images/*.webp` (25 files) and `images.json` | Editorial date-idea images for #1892 (15 idea images, 10 category images, 1200×800 WebP), generated with OpenAI's built-in image generation without reference images; the manifest keeps alt texts and the exact prompts | eimir. project editorial workflow using ImageGen | project asset; no separate public license grant; served only through the Pro-gated API |
+| `backend/pro/src/eimir_pro/date_ideas/data/images/*.webp` (25 files) and `images.json` | Editorial date-idea images for #1892 (15 idea images, 10 category images, 1200×800 WebP), generated with OpenAI's built-in image generation without reference images; the manifest keeps alt texts and the exact prompts | eimir. project editorial workflow using ImageGen | project asset; no separate public license grant; served only through the Pro-gated API |
 | `docs/assets/roadmap/roadmap-overview.svg` | eimir. Roadmap | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
 | `docs/assets/roadmap/roadmap-tracks.svg` | eimir. Roadmap | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
+| `web/src/components/handwritingFont.ts` (single-stroke glyph table for handwritten once messages) | Converted for #2372 from the single-stroke font EMS Allure (`svg_fonts/EMSAllure.svg` in the npm package hersheytext 2.0.0, an MIT-licensed package; the font itself is SIL OFL 1.1). EMS Allure was created by Sheldon B. Michaels and converted by Windell H. Oskay; it derives from Allura by Rob Leuschke, TypeSETit (Copyright 2010 The Allura Project Authors). A one-off script rounded the glyph strokes into a compact table; no font file is shipped | eimir. project workflow from the font above | SIL Open Font License 1.1; notice and licence in `web/public/fonts/OFL-EMS-Allure.txt` and the file header |
 | `design/m2/m2-screenflow.svg` | M2 Client handoff | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
 | `docs/m2/m2-privacy-flow.svg` | M2 Privacy/Acceptance handoff | eimir. project workflow, AI-assisted and human-reviewed | project asset; no separate public license grant |
 
-No font or audio assets are currently documented in the repository.
+Apart from the handwriting glyph table above (#2372), no font or audio assets are documented in the repository. The product fonts are recorded in `docs/decisions/0005-typography-delivery.md`.
 
 ## Maintenance
 

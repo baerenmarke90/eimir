@@ -1,7 +1,8 @@
-import type { ReactNode } from 'react';
+import { type ReactNode, useCallback, useState } from 'react';
 import type { DateIdea } from '../api/generated/models/DateIdea';
 import type { WishSelectionCandidateView } from '../api/generated/models/WishSelectionCandidateView';
 import { useTranslation } from '../i18n';
+import { type DeckItem, WishSelectionDeck } from './WishSelectionDeck';
 
 export type ResultItem =
   | { kind: 'wish'; key: string; candidate: WishSelectionCandidateView }
@@ -19,6 +20,7 @@ export function WishSelectionVote({
   onToggleIdea,
   candidateMedia,
   ideasLang,
+  startWithDeck,
 }: {
   available: readonly WishSelectionCandidateView[];
   availableIdeas: readonly DateIdea[];
@@ -31,10 +33,52 @@ export function WishSelectionVote({
   onToggleIdea: (id: string) => void;
   candidateMedia: (item: ResultItem) => ReactNode;
   ideasLang: (idea: DateIdea) => string | undefined;
+  /** #2371: no favourite saved yet, so the step opens as a card deck. */
+  startWithDeck: boolean;
 }) {
   const { t } = useTranslation();
   const favoriteTotal = favoriteIds.length + favoriteIdeaIds.length;
   const candidateTotal = available.length + availableIdeas.length;
+  // #2371: a first choice starts as a card deck; saved favourites (an edit
+  // after sending) open the list directly.
+  const [deck, setDeck] = useState(startWithDeck);
+  const closeDeck = useCallback(() => setDeck(false), []);
+  if (deck && candidateTotal > 0) {
+    const deckItems: DeckItem[] = [
+      ...available.map((candidate) => {
+        const favorite = favoriteIds.includes(candidate.wishId);
+        return {
+          key: `wish:${candidate.wishId}`,
+          title: candidate.title,
+          media: candidateMedia({
+            kind: 'wish',
+            key: candidate.wishId,
+            candidate,
+          }),
+          favorite,
+          setFavorite: (on: boolean) => {
+            if (on !== favorite) onToggleWish(candidate.wishId);
+          },
+        };
+      }),
+      ...availableIdeas.map((idea) => {
+        const favorite = favoriteIdeaIds.includes(idea.id);
+        return {
+          key: `idea:${idea.id}`,
+          title: idea.title,
+          lang: ideasLang(idea),
+          media: candidateMedia({ kind: 'idea', key: idea.id, idea }),
+          favorite,
+          setFavorite: (on: boolean) => {
+            if (on !== favorite) onToggleIdea(idea.id);
+          },
+        };
+      }),
+    ];
+    return (
+      <WishSelectionDeck items={deckItems} disabled={busy} onDone={closeDeck} />
+    );
+  }
   return (
     <form
       className="wish-selection-form"
@@ -104,7 +148,7 @@ export function WishSelectionVote({
           <button type="submit" disabled={busy || !canPublish}>
             {t(
               busy
-                ? 'wishSelection.saving'
+                ? 'common.saving'
                 : favoriteTotal
                   ? 'wishSelection.share'
                   : 'wishSelection.shareNone',

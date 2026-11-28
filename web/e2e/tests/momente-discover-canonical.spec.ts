@@ -1,9 +1,9 @@
-import AxeBuilder from '../support/axe';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import mapCopy from '../../src/i18n/locales/memoryMap';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const PARTNER_ID = '99999999-9999-4999-8999-999999999999';
@@ -268,9 +268,12 @@ async function walkStory(
   const story = storyProducts.discoverStory;
   const pause = page.getByRole('button', { name: story.pause, exact: true });
   if (await pause.count()) await pause.click();
+  // Start from the first theme: autoplay may have moved on while the page
+  // was captured (screenshots finish running animations).
+  await page.locator('.momente-story-bubble').first().click();
   const viewer = page.locator('.momente-story-viewer');
   const open = viewer.getByRole('link', {
-    name: new RegExp(`^${story.open}:`),
+    name: new RegExp(`^${de.common.open}:`),
   });
   const hrefs: string[] = [];
   for (const title of titles) {
@@ -284,14 +287,17 @@ async function walkStory(
   return hrefs;
 }
 
-// Fotostory themes play heart moments, milestones, then memories in words;
-// inside each theme the canonical backend order is kept.
+// The rediscovery lead plays first in a theme of its own (#2192); then the
+// Fotostory themes play heart moments, milestones and memories in words,
+// each in the canonical backend order.
 const STORY_TITLES = [
+  'Morning by the lake',
   'Thinking of you',
   'Our first apartment',
   'Winter evening',
 ] as const;
 const STORY_HREFS = [
+  '/story/memories/discover-lead',
   '/story/heart-moments/discover-heart',
   '/story/milestones/discover-milestone',
   '/story/memories/discover-memory',
@@ -369,7 +375,8 @@ test.describe('Momente canonical Discover integration (#971 Slice 4)', () => {
     await expect(page).toHaveURL(/type=MEMORY/);
     await expect(page).toHaveURL(/year=2026/);
     await expect(page).toHaveURL(/order=ASC/);
-    await expect(discover.getByText('Thinking of you')).toBeVisible();
+    // A returning Discover starts again with the rediscovery lead (#2192).
+    await expect(discover.getByText('Morning by the lake')).toBeVisible();
     await page.goBack();
     await expect(diaryTab).toHaveAttribute('aria-selected', 'true');
     await expect(diary.getByText('A complete diary day')).toBeVisible();

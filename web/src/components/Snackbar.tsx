@@ -52,7 +52,7 @@ export function Snackbar() {
   return (
     <div className="snackbar" role="status" aria-live="polite">
       <span className="snackbar-message">
-        {t(current.messageKey, current.messageOptions)}
+        {t(current.messageKey, current.messageOptions ?? {})}
       </span>
       {current.action ? (
         <button
@@ -71,7 +71,7 @@ export function Snackbar() {
           type="button"
           className="snackbar-dismiss"
           onClick={() => setCurrent(null)}
-          aria-label={t('snackbar.dismiss')}
+          aria-label={t('common.close')}
         >
           ×
         </button>

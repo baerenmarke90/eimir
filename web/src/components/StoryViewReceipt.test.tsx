@@ -13,6 +13,17 @@ import type { ReferenceApis } from '../client/referenceFlow';
 import { useStoryViewReceipt } from '../client/storyViewReceipt';
 import { dashboardQueryKey } from '../client/dashboardQueries';
 
+function DetailHarness({ apis }: { apis: ReferenceApis }) {
+  useStoryViewReceipt({
+    apis,
+    spaceId: 's-1',
+    kind: 'MILESTONE',
+    itemId: 'milestone-1',
+    presented: true,
+  });
+  return <main>Presented milestone detail</main>;
+}
+
 describe('Story View Receipt', () => {
   let apis: ReferenceApis;
   let recordStoryViewMock: ReturnType<typeof vi.fn>;
@@ -95,18 +106,7 @@ describe('Story View Receipt', () => {
   it('keeps successfully presented detail content usable when the receipt write fails', async () => {
     recordStoryViewMock.mockRejectedValueOnce(new Error('offline'));
 
-    function DetailHarness() {
-      useStoryViewReceipt({
-        apis,
-        spaceId: 's-1',
-        kind: 'MILESTONE',
-        itemId: 'milestone-1',
-        presented: true,
-      });
-      return <main>Presented milestone detail</main>;
-    }
-
-    render(<DetailHarness />, { wrapper });
+    render(<DetailHarness apis={apis} />, { wrapper });
 
     expect(screen.getByText('Presented milestone detail')).toBeTruthy();
     await waitFor(() => expect(recordStoryViewMock).toHaveBeenCalledTimes(1));

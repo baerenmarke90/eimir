@@ -8,13 +8,31 @@ import games from '../i18n/locales/games';
 import type { WishDetectiveGameSetup } from './WishDetectiveGamePage';
 import { WishDetectiveGamePage } from './WishDetectiveGamePage';
 
+const remote = vi.hoisted(() => ({ state: undefined as unknown }));
+const api = vi.hoisted(() => ({
+  getGameWishCandidates: vi.fn(),
+  getSpace: vi.fn(),
+}));
+
+// #2158 H: the default loaders talk to these two clients only.
+vi.mock('../api/generated/apis/GamesApi', () => ({
+  GamesApi: class {
+    getGameWishCandidates = api.getGameWishCandidates;
+  },
+}));
+vi.mock('../api/generated/apis/SpacesApi', () => ({
+  SpacesApi: class {
+    getSpaceApiV1SpacesSpaceIdGet = api.getSpace;
+  },
+}));
+
 // #2048: the play-mode choice comes first; these tests play on one phone.
 vi.mock('../client/useRemoteCoupleGames', async (importOriginal) => {
   const actual =
     await importOriginal<typeof import('../client/useRemoteCoupleGames')>();
   const ok = async () => ({ ok: true as const });
   const stub = () => ({
-    state: undefined,
+    state: remote.state,
     isLoading: false,
     loadError: null,
     problem: null,
@@ -71,7 +89,7 @@ function playableSetup(): WishDetectiveGameSetup {
   };
 }
 
-function renderPage(setup: WishDetectiveGameSetup) {
+function renderPage(setup?: WishDetectiveGameSetup) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -85,7 +103,7 @@ function renderPage(setup: WishDetectiveGameSetup) {
             accessToken="test-token"
             spaceId={SPACE_ID}
             currentAccountId="lea"
-            loadSetup={async () => setup}
+            loadSetup={setup ? async () => setup : undefined}
           />
         </MemoryRouter>
       </QueryClientProvider>
@@ -96,6 +114,9 @@ function renderPage(setup: WishDetectiveGameSetup) {
 describe('WishDetectiveGamePage', () => {
   beforeEach(() => {
     window.sessionStorage.clear();
+    remote.state = undefined;
+    api.getGameWishCandidates.mockReset();
+    api.getSpace.mockReset();
   });
 
   it('keeps the wish visible during clue entry and hides it for handoff and guessing', async () => {
@@ -245,6 +266,7 @@ describe('WishDetectiveGamePage', () => {
       rounds: [],
       missing: { you: true, partner: false },
     });
+    await chooseTogether();
 
     await screen.findByRole('heading', {
       name: games.wishDetective.sparseTitleYou,
@@ -263,6 +285,7 @@ describe('WishDetectiveGamePage', () => {
       rounds: [],
       missing: { you: false, partner: true },
     });
+    await chooseTogether();
 
     await screen.findByRole('heading', {
       name: games.wishDetective.sparseTitlePartner.replace('{{name}}', 'Alex'),
@@ -279,6 +302,8 @@ describe('WishDetectiveGamePage', () => {
       participants: setup.participants,
       rounds: setup.rounds.slice(0, 2),
     });
+    await chooseTogether();
+    await screen.findByText(SECRET_WISH_TITLE);
     await waitFor(() =>
       expect(
         screen.queryByRole('heading', {
@@ -287,6 +312,55 @@ describe('WishDetectiveGamePage', () => {
       ).toBeNull(),
     );
     expect(screen.queryByText(games.wishDetective.sparseEyebrow)).toBeNull();
+  });
+
+  it('says who still needs a wish from the server readiness, before any mode', async () => {
+    remote.state = {
+      game: null,
+      readiness: { ownWishesAvailable: true, partnerWishesAvailable: false },
+    };
+    renderPage(playableSetup());
+
+    await screen.findByRole('heading', {
+      name: games.wishDetective.sparseTitlePartner.replace('{{name}}', 'Alex'),
+      level: 2,
+    });
+    expect(
+      screen.queryByRole('radio', { name: new RegExp(games.playMode.apart) }),
+    ).toBeNull();
+  });
+
+  it('loads the wish titles only for a game on one phone (#2158 H)', async () => {
+    api.getSpace.mockResolvedValue({
+      partners: [
+        { id: 'lea', displayName: 'Lea' },
+        { id: 'alex', displayName: 'Alex' },
+      ],
+    });
+    api.getGameWishCandidates.mockResolvedValue({
+      items: [
+        { wishId: 'l1', createdBy: 'lea', title: SECRET_WISH_TITLE },
+        { wishId: 'a1', createdBy: 'alex', title: 'Weekend by the sea' },
+      ],
+    });
+    remote.state = {
+      game: null,
+      readiness: { ownWishesAvailable: true, partnerWishesAvailable: true },
+    };
+    renderPage();
+
+    fireEvent.click(
+      await screen.findByRole('radio', {
+        name: new RegExp(games.playMode.apart),
+      }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: games.playMode.start }));
+    await waitFor(() => expect(api.getSpace).toHaveBeenCalledTimes(1));
+    expect(api.getGameWishCandidates).not.toHaveBeenCalled();
+
+    await chooseTogether();
+    await screen.findByText(SECRET_WISH_TITLE);
+    expect(api.getGameWishCandidates).toHaveBeenCalledTimes(1);
   });
 
   it('does not start when the active Space is not a two-partner couple', async () => {

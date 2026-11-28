@@ -34,6 +34,12 @@ const motions: Record<
   // second frame onto it (#1744).
   RECAP_READY: { icon: 'momente', motion: 'recap-ready' },
   RECAP_GREW: { icon: 'momente', motion: 'recap-grew' },
+  // The operator's reply to a support report settles in calmly, like a note
+  // laid down (#2189); reduced motion shows it still.
+  SUPPORT_REPLY: { icon: 'benachrichtigungen', motion: 'support-reply' },
+  // A ServerAdmin alert (#2314) reaches only push and its tap; it is never
+  // listed in a couple's Center; its notice nudges once, calmly.
+  OPERATOR_ALERT: { icon: 'benachrichtigungen', motion: 'operator-alert' },
 };
 
 type MotionStyle = CSSProperties & { '--notification-animation'?: string };

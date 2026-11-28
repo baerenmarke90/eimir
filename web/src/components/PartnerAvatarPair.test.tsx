@@ -11,6 +11,18 @@ import {
 } from '../motion/stage';
 import { PartnerAvatarPair } from './PartnerAvatarPair';
 
+function Opening({ children }: { children: React.ReactNode }) {
+  // No duration: the opening is considered at once and ends.
+  const ref = useStage<HTMLDivElement>('test.avatar-stage', {
+    duration: 0,
+  });
+  return (
+    <StageContext.Provider value="test.avatar-stage">
+      <div ref={ref}>{children}</div>
+    </StageContext.Provider>
+  );
+}
+
 describe('PartnerAvatarPair', () => {
   afterEach(() => {
     cleanup();
@@ -172,17 +184,6 @@ describe('PartnerAvatarPair', () => {
 
   it('holds the Wir opening while its photo decodes and never fades it outside the opening (#2147)', () => {
     resetStagesForTests();
-    function Opening({ children }: { children: React.ReactNode }) {
-      // No duration: the opening is considered at once and ends.
-      const ref = useStage<HTMLDivElement>('test.avatar-stage', {
-        duration: 0,
-      });
-      return (
-        <StageContext.Provider value="test.avatar-stage">
-          <div ref={ref}>{children}</div>
-        </StageContext.Provider>
-      );
-    }
     render(
       <Opening>
         <PartnerAvatarPair

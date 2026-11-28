@@ -40,6 +40,16 @@ public class SystemThemePlugin extends Plugin {
         report(isDark(getActivity().getResources().getConfiguration()));
     }
 
+    /**
+     * Called by MainActivity for every uiMode change it receives. A change that
+     * arrives while the app is stopped is delivered to the activity only after
+     * onResume, so the resume check above can still read the old appearance and
+     * the plugin callback is not relied on to forward it.
+     */
+    void onSystemConfiguration(Configuration newConfig) {
+        report(isDark(newConfig));
+    }
+
     private void report(boolean dark) {
         if (dark == reportedDark) return;
         reportedDark = dark;

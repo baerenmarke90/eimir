@@ -7,7 +7,6 @@ export default {
   searchAll: 'Zur Suche',
   noMatches: 'Zu diesem Tag gibt es noch keine Einträge.',
   proposed: 'KI-Vorschläge · Du entscheidest, was passt.',
-  help: 'Beschreibt euren Moment mit euren eigenen Worten.',
   newLabel: 'Eigenen Tag hinzufügen',
   placeholder: 'Zum Beispiel: Unser Urlaub',
   add: 'Tag hinzufügen',

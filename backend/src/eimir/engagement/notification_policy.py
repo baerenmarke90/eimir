@@ -15,7 +15,7 @@ from uuid import UUID
 
 from eimir.engagement.models import WISH_DATE_NOTICE_KINDS, NotificationKind
 
-POLICY_VERSION = 16
+POLICY_VERSION = 18
 GENERIC_PRESENTATION_KEY = "notification.generic"
 WISH_DATE_PRESENTATION_KEY = "notification.wish_date"
 DIGEST_WINDOW = timedelta(hours=1)
@@ -37,7 +37,10 @@ class PushPreviewPolicy:
     presentation_key: str
 
 
-# Generic delivery is the baseline. The shared-Wish proposal exception also
+# Generic provider delivery is the baseline: a reference and a data-only wake.
+# Content travels only inside the encrypted device preview, which since #2158
+# (v3) carries every kind's real content; the device's lock-screen setting then
+# decides what a locked screen shows. The shared-Wish proposal exception also
 # requires a compatible encrypted device adapter and an authorized source.
 GENERIC_PREVIEW = PushPreviewPolicy(
     allow_sender_name=False,
@@ -153,8 +156,9 @@ POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
             DeliveryClass.DIGESTIBLE, GENERIC_PREVIEW, immediate_push=True
         ),
         # #1969: a shared note notifies the partner by push (Product Owner decision
-        # 2026-11-17). The lock screen only says who did what: never the note's
-        # title or text. Later edits of one note update a single coalesced entry.
+        # 2026-11-17). Preview v3 names the note's title and an excerpt (#2158);
+        # v1/v2 only say who did what. Later edits of one note update a single
+        # coalesced entry.
         NotificationKind.SHARED_NOTE_CREATED: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
@@ -172,11 +176,12 @@ POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
         NotificationKind.WISH_REMINDER_DUE: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
-        # A list the partner deliberately sent (#1907 E2); neutral device preview.
+        # A list the partner deliberately sent (#1907 E2); v3 names the list (#2158).
         NotificationKind.COLLECTION_SENT: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
-        # A garden seed from the partner (#1907 H3); never the attached words.
+        # A garden seed from the partner (#1907 H3); v3 names the seed and its words,
+        # but never the species of a wrapped surprise (#2158).
         NotificationKind.GARDEN_SEED_ARRIVED: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
@@ -184,12 +189,31 @@ POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
         # preview names only the period, never a title or a photo.
         NotificationKind.RECAP_READY: NotificationPolicy(DeliveryClass.IMMEDIATE, GENERIC_PREVIEW),
         NotificationKind.RECAP_GREW: NotificationPolicy(DeliveryClass.IMMEDIATE, GENERIC_PREVIEW),
+        # The operator's reply to the person's own support report (#2189); the
+        # device preview stays neutral and never carries the reply text.
+        NotificationKind.SUPPORT_REPLY: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
+        # A ServerAdmin alert (#2314 part 2b): push only, neutral on every device;
+        # the topic appears after the tap and in the alert mail.
+        NotificationKind.OPERATOR_ALERT: NotificationPolicy(
+            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
+        ),
         **{
             kind: NotificationPolicy(DeliveryClass.IMMEDIATE, WISH_DATE_PREVIEW)
             for kind in WISH_DATE_NOTICE_KINDS
         },
     }
 )
+
+
+# Operator notices belong to no Space and to no couple's notification choices.
+OPERATOR_KINDS = frozenset({NotificationKind.OPERATOR_ALERT.value})
+
+
+def couple_facing(kind: str) -> bool:
+    """Whether a kind belongs to a couple's Notification Center and Settings."""
+    return kind not in OPERATOR_KINDS
 
 
 def for_kind(kind: str) -> NotificationPolicy | None:
@@ -247,7 +271,7 @@ def digest_kind_allowed(kind: str) -> bool:
 
 def push_choice_allowed(kind: str) -> bool:
     """Expose only reviewed immediate or digest Push kinds as a choice."""
-    return _external_choice_allowed(kind)
+    return couple_facing(kind) and _external_choice_allowed(kind)
 
 
 def _external_choice_allowed(kind: str) -> bool:
@@ -272,6 +296,10 @@ def email_choice_allowed(kind: str) -> bool:
         NotificationKind.GARDEN_SEED_ARRIVED.value,
         NotificationKind.RECAP_READY.value,
         NotificationKind.RECAP_GREW.value,
+        # A support reply stays in the app and its push; never an email (#2189).
+        NotificationKind.SUPPORT_REPLY.value,
+        # A ServerAdmin alert has its own alert mail (#2314); never a notice email.
+        *OPERATOR_KINDS,
         *WISH_DATE_NOTICE_KINDS,
     } and _external_choice_allowed(kind)
 

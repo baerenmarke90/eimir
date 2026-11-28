@@ -26,7 +26,7 @@ _REGISTER_LIMIT = rate_limit.Limit(attempts=30, window=timedelta(minutes=15))
 
 class FcmPreviewRegistration(ApiModel):
     model_config = ConfigDict(extra="forbid")
-    version: Literal[1, 2]
+    version: Literal[1, 2, 3, 4]
     key: str = Field(min_length=43, max_length=43, repr=False)
     neutral_reference: bool = False
 
@@ -87,6 +87,12 @@ class FcmConfiguration(ApiModel):
     locale_version: Literal[1] = 1
     encrypted_preview_version: Literal[1] = 1
     encrypted_preview_max_version: Literal[2] = 2
+    # Additive, so that installed apps that expect exactly 2 above keep negotiating
+    # v2: a current app registers v3 only when it finds this field (#2158).
+    encrypted_preview_detail_version: Literal[3] = 3
+    # Additive as well: a current app registers v4, which lets an operator notice
+    # name its topic and stay valid for an hour (#2337); older apps never see it.
+    encrypted_preview_operator_version: Literal[4] = 4
     neutral_reference_version: Literal[1] | None = None
     provider_key: str
     project_id: str

@@ -9,7 +9,7 @@ from unittest.mock import patch
 import urllib.error
 import zipfile
 
-from android_test_release_plan import API, DOWNLOAD, FIREBASE_PROJECT, PACKAGE, admit, fetch, validate_plan, verify_once, verify_public
+from android_test_release_plan import API, DOWNLOAD, FIREBASE_PROJECT, PACKAGE, admit, fetch, origin_for_version, validate_plan, verify_once, verify_public
 
 
 def plan_data():
@@ -30,7 +30,7 @@ class PublicFixture:
             "channel": "android-test", "sourceRevision": "a" * 40,
             "versionName": self.plan.version, "versionCode": self.plan.code,
             "dirty": False, "validationOnly": False,
-            "apiOrigin": "https://demo.eimir.ur-cloud.de", "demoMode": False,
+            "apiOrigin": origin_for_version(self.plan.version), "demoMode": False,
             "demoResetTimer": False, "testUpdates": True,
         }
         identity.update(identity_change or {})
@@ -223,6 +223,30 @@ class ReleasePlanTests(unittest.TestCase):
             fixture = PublicFixture(change)
             with self.subTest(change=change), self.assertRaises(ValueError):
                 verify_once(fixture.plan, fixture.read)
+
+    def test_origin_follows_the_version_so_published_builds_stay_verifiable(self):
+        self.assertEqual(origin_for_version("0.2.0-test.98"), "https://demo.eimir.ur-cloud.de")
+        self.assertEqual(origin_for_version("0.2.0-test.99"), "https://app.eimir.de")
+        for version, origin in [("0.2.0-test.98", "https://demo.eimir.ur-cloud.de"),
+                                ("0.2.0-test.99", "https://app.eimir.de")]:
+            data = dict(plan_data(), versionName=version, versionCode=int(version.rsplit(".", 1)[1]),
+                        previousVersionName="0.2.0-test." + str(int(version.rsplit(".", 1)[1]) - 1),
+                        notesFile=f"docs/releases/android-test-{version}-notes.txt")
+            fixture = PublicFixture(data=data)
+            fixture.marker["packageName"] = PACKAGE
+            fixture.content["eimir-test-update.json"] = json.dumps(fixture.marker).encode()
+            fixture.sync_assets()
+            with self.subTest(version=version):
+                self.assertEqual(verify_once(fixture.plan, fixture.read)["tag"], fixture.plan.tag)
+        stale = dict(plan_data(), versionName="0.2.0-test.99", versionCode=99,
+                     previousVersionName="0.2.0-test.98",
+                     notesFile="docs/releases/android-test-0.2.0-test.99-notes.txt")
+        fixture = PublicFixture({"apiOrigin": "https://demo.eimir.ur-cloud.de"}, stale)
+        fixture.marker["packageName"] = PACKAGE
+        fixture.content["eimir-test-update.json"] = json.dumps(fixture.marker).encode()
+        fixture.sync_assets()
+        with self.assertRaises(ValueError):
+            verify_once(fixture.plan, fixture.read)
 
     def test_public_catalog_propagation_retries_but_corruption_does_not(self):
         fixture = PublicFixture()

@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type ReactElement,
+  type RefObject,
   useCallback,
   useEffect,
   useMemo,
@@ -32,6 +33,10 @@ import {
   togetherSeat,
 } from '../client/gardenAmbience';
 import {
+  revealFlightBand,
+  showResultStatus,
+} from '../client/gardenFlightReveal';
+import {
   availableAnimals,
   cleanVisitorName,
   type GardenAnimal,
@@ -54,7 +59,7 @@ import { usePartnerDistanceLine } from '../client/partnerDistance';
 import {
   createPartnerLocationApi,
   PARTNER_LOCATION_CAPABILITY,
-  partnerLocationSettingsQueryKey,
+  usePartnerLocationSettingsEntry,
 } from '../client/partnerLocation';
 import { normalizeClientError } from '../client/problemDetails';
 import { createReferenceApis } from '../client/referenceFlow';
@@ -69,6 +74,7 @@ import { resolvedLocale, useTranslation } from '../i18n';
 import { type SceneAmbience, useGardenClock } from './GardenAmbience';
 import { Messenger, SeedIcon } from './GardenArt';
 import { GardenBook, GardenNewsCard, GardenYearCard } from './GardenBook';
+import { GardenHistory, type LoadGardenHistory } from './GardenHistory';
 import {
   BouquetBindCard,
   type BouquetFlower,
@@ -133,6 +139,8 @@ export interface GardenServices {
   }) => Promise<{ memoryId: string }>;
   /** The couple's Milestones; the page reads them via the Story path by default. */
   loadMilestones?: () => Promise<MilestoneRef[]>;
+  /** One page of the garden's history (#2158 G); absent hides the section. */
+  loadHistory?: LoadGardenHistory;
 }
 
 function localDay(): Date {
@@ -182,6 +190,8 @@ function useDefaultServices({
           bouquetId,
           gardenBouquetCloseInput: { kept },
         }),
+      loadHistory: (cursor) =>
+        api.listGardenHistory({ spaceId, cursor: cursor ?? undefined }),
       // The existing Memory/media path; only on an explicit tap.
       saveToMoments: async ({ title, body, image, fileName }) => {
         const apis = createReferenceApis(apiBaseUrl, accessToken);
@@ -245,10 +255,7 @@ function useGardenFlight({
     load,
     capability: PARTNER_LOCATION_CAPABILITY,
   });
-  const settings = useQuery({
-    queryKey: partnerLocationSettingsQueryKey(accountId, spaceId),
-    enabled: false,
-  }).data as { available?: boolean } | undefined;
+  const settings = usePartnerLocationSettingsEntry(accountId, spaceId);
   const allowed =
     enabled && capability.data === true && settings?.available === true;
   const line = usePartnerDistanceLine({
@@ -268,7 +275,9 @@ function FlightBand({
   flying,
   distanceLabel,
   colour,
+  bandRef,
 }: {
+  bandRef: RefObject<HTMLDivElement | null>;
   names: { own: string; partner: string };
   avatars: { own: string | null; partner: string | null };
   flight: GardenFlight;
@@ -301,7 +310,7 @@ function FlightBand({
     return () => window.cancelAnimationFrame(frame);
   }, [flying, flight.durationScale, top]);
   return (
-    <div className="garden-band">
+    <div className="garden-band" ref={bandRef}>
       <span className="garden-band-avatar person-role-own">
         <PersonIdentity
           displayName={names.own}
@@ -498,6 +507,8 @@ export function GardenGamePage({
   const occasions = occasionsOverride ?? readOccasions;
   const greeted = useRef<string | null>(null);
   const frame = useRef<HTMLDivElement | null>(null);
+  const band = useRef<HTMLDivElement | null>(null);
+  const statusLine = useRef<HTMLDivElement | null>(null);
   const fullscreen = useGardenFullscreen();
   const defaultSaveMoment = useGardenMomentSaver({
     apiBaseUrl,
@@ -648,13 +659,56 @@ export function GardenGamePage({
     [queryClient, queryKey, t],
   );
 
+  // After a send the card that held the button is replaced: focus moves to
+  // the new card's heading without scrolling, so keyboard and screen reader
+  // users continue right there, and the status line announces the result.
+  const settleAfterSend = useCallback((reducedNow: boolean) => {
+    window.requestAnimationFrame(() => {
+      const active = document.activeElement;
+      if (!active || active === document.body) {
+        const heading = document.getElementById('garden-card-title');
+        if (heading) {
+          heading.setAttribute('tabindex', '-1');
+          heading.focus({ preventScroll: true });
+        }
+      }
+      // Without motion the result appears in place; move only as far as
+      // needed to see the status line.
+      if (reducedNow) showResultStatus(statusLine.current);
+    });
+  }, []);
+
+  // A send flight plays where it is seen (#2158 G): the band comes into view
+  // first when the person tapped far below it. With reduced motion there is
+  // no flight and no smooth scroll; the result appears at once.
+  const flyToPartner = async (depart: () => void, done: () => void) => {
+    if (prefersReducedMotion()) {
+      depart();
+      done();
+      settleAfterSend(true);
+      return;
+    }
+    setLanding(true);
+    const seen = await revealFlightBand(band.current);
+    depart();
+    const land = () => {
+      done();
+      settleAfterSend(false);
+    };
+    if (!seen) {
+      land();
+      return;
+    }
+    setFlying({ direction: 'toPartner', key: Date.now() });
+    window.setTimeout(land, FLIGHT_BASE_MS * flight.durationScale);
+  };
+
   const send = async () => {
     if (!pick || !garden) return;
     const next = await run(() =>
       api.send(pick, flight.wordsOffered ? words : null),
     );
     if (!next) return;
-    if (flight.messenger === 'bird') story.feedback.play('chirp');
     const done = () => {
       setLanding(false);
       void apply(next);
@@ -669,13 +723,9 @@ export function GardenGamePage({
       );
       markMoment();
     };
-    if (prefersReducedMotion()) {
-      done();
-      return;
-    }
-    setLanding(true);
-    setFlying({ direction: 'toPartner', key: Date.now() });
-    window.setTimeout(done, FLIGHT_BASE_MS * flight.durationScale);
+    await flyToPartner(() => {
+      if (flight.messenger === 'bird') story.feedback.play('chirp');
+    }, done);
   };
 
   const plant = async () => {
@@ -1047,13 +1097,7 @@ export function GardenGamePage({
         t('games.garden.growth.bouquetSentStatus', { name: names.partner }),
       );
     };
-    if (reduced) {
-      done();
-      return;
-    }
-    setLanding(true);
-    setFlying({ direction: 'toPartner', key: Date.now() });
-    window.setTimeout(done, FLIGHT_BASE_MS * flight.durationScale);
+    await flyToPartner(() => {}, done);
   };
   const closeBouquet = async (kept: boolean) => {
     if (!bouquet || !api.closeBouquet) return;
@@ -1132,7 +1176,7 @@ export function GardenGamePage({
           className="secondary"
           onClick={() => setWatering(false)}
         >
-          {t('games.garden.cancel')}
+          {t('common.cancel')}
         </button>
       </section>
     );
@@ -1316,6 +1360,7 @@ export function GardenGamePage({
     <div className="page garden-game-page">
       <PageHeader title={title} />
       <FlightBand
+        bandRef={band}
         names={names}
         avatars={avatars}
         flight={flight}
@@ -1450,7 +1495,7 @@ export function GardenGamePage({
               className="secondary garden-story-close"
               onClick={() => setSelected(null)}
             >
-              {t('games.garden.close')}
+              {t('common.close')}
             </button>
           </div>
           <p>
@@ -1616,7 +1661,7 @@ export function GardenGamePage({
               })}
         </p>
       ) : null}
-      <div className="garden-status-line">
+      <div className="garden-status-line" ref={statusLine}>
         <p className="garden-status" role="status" aria-live="polite">
           {status}
         </p>
@@ -1633,6 +1678,16 @@ export function GardenGamePage({
         {story.note}
       </div>
       <p className="garden-footnote">{t('games.garden.footnote')}</p>
+      {api.loadHistory ? (
+        <GardenHistory
+          accountId={currentAccountId}
+          spaceId={spaceId}
+          load={api.loadHistory}
+          today={garden.localDate}
+          names={names}
+          version={garden}
+        />
+      ) : null}
       {story.dialog}
     </div>
   );

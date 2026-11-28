@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import io
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 from PIL import Image
@@ -12,7 +12,8 @@ from sqlalchemy import select
 from eimir.attachments.models import Attachment, PhotoLocationDraft
 from eimir.outbox.models import OutboxEvent
 from eimir.places.models import Place
-from tests.conftest import auth, requires_database
+from eimir.relationship import service as relationship_service
+from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 from tests.integration import test_attachment_binding as binding
 from tests.integration.test_attachment_binding import couple as couple
 
@@ -173,6 +174,88 @@ def test_shared_heart_moment_rejects_legacy_disable(client, couple, session):  #
     assert session.get(PhotoLocationDraft, UUID(second)) is not None
 
 
+@pytest.fixture
+def unit_of_work(production_client):  # type: ignore[no-untyped-def]
+    """The request session production uses: no autoflush before the photo Place lock.
+
+    The ordinary ``client`` session autoflushes, which hid #2353: a pending
+    gallery write was discarded when the photo Place re-read its target.
+    """
+    client, maker = production_client
+    with maker.begin() as session:
+        anna = make_account(session, "Anna")
+        ben = make_account(session, "Ben")
+        space = make_space(session, anna)
+        relationship_service.add_member(session, space.id, ben)
+        session.flush()
+        couple = {
+            "anna": anna,
+            "ben": ben,
+            "space": space,
+            "token_a": sign_in(session, anna),
+            "token_b": sign_in(session, ben),
+        }
+
+    def photo() -> str:
+        with maker.begin() as session:
+            return binding.ready_attachment(client, couple, session)
+
+    return client, couple, photo
+
+
+def test_photo_place_keeps_the_shared_heart_moment_gallery_and_cover(unit_of_work):  # type: ignore[no-untyped-def]
+    """Creating the photo Place must not drop the gallery it was derived from (#2353)."""
+    client, couple, ready_photo = unit_of_work
+    photo = ready_photo()
+    # The body and the request identity the Web client sends.
+    created = client.post(
+        f"{binding.base_path(couple['space'].id)}/heart-moments",
+        json={
+            "text": "",
+            "tags": [],
+            "emotion": "LOVED",
+            "visibility": "SHARED",
+            "happenedOn": "2025-06-13",
+            "attachments": [{"attachmentId": photo, "isSensitive": False, "position": 0}],
+            "selectedCoverAttachmentId": photo,
+        },
+        headers={**auth(couple["token_a"]), "Idempotency-Key": str(uuid4())},
+    )
+    assert created.status_code == 201
+    heart = created.json()
+    assert [item["id"] for item in heart["attachments"]] == [photo]
+    assert heart["selectedCoverAttachmentId"] == photo
+    assert len(places(client, couple, heart["id"], "heart-moments").json()["items"]) == 1
+
+    read = client.get(
+        f"{binding.base_path(couple['space'].id)}/heart-moments/{heart['id']}",
+        headers=auth(couple["token_b"]),
+    ).json()
+    assert [item["id"] for item in read["attachments"]] == [photo]
+    assert read["selectedCoverAttachmentId"] == photo
+
+
+def test_photo_place_keeps_the_memory_cover(unit_of_work):  # type: ignore[no-untyped-def]
+    client, couple, ready_photo = unit_of_work
+    first = ready_photo()
+    second = ready_photo()
+    memory = binding.memory(client, couple)
+    saved = client.put(
+        f"{binding.base_path(couple['space'].id)}/memories/{memory['id']}/attachments",
+        json={
+            "attachments": [
+                {"attachmentId": first, "position": 0},
+                {"attachmentId": second, "position": 1},
+            ],
+            "selectedCoverAttachmentId": second,
+        },
+        headers=binding.if_match(couple["token_a"], memory["version"]),
+    )
+    assert saved.status_code == 200
+    assert saved.json()["selectedCoverAttachmentId"] == second
+    assert len(places(client, couple, memory["id"]).json()["items"]) == 1
+
+
 def test_manual_correction_blocks_future_automatic_association(client, couple, session):  # type: ignore[no-untyped-def]
     first = binding.ready_attachment(client, couple, session)
     memory = binding.memory(client, couple)
@@ -278,7 +361,7 @@ def test_photo_places_stay_enabled_and_legacy_writes_preserve_pending_gps(client
     assert len(places(client, couple, memory["id"]).json()["items"]) == 1
 
 
-def test_private_binding_discards_gps_before_later_sharing(client, couple, session):  # type: ignore[no-untyped-def]
+def test_private_binding_never_creates_a_shared_place_even_after_sharing(client, couple, session):  # type: ignore[no-untyped-def]
     staged = binding.ready_attachment(client, couple, session)
     created = binding.heart_moment(client, couple, visibility="PRIVATE", attachment_id=staged)
     assert created.status_code == 201
@@ -397,3 +480,80 @@ def test_heart_moment_replacement_keeps_a_single_photo_place(client, couple, ses
     session.expire_all()
     assert session.get(PhotoLocationDraft, UUID(edited)) is None
     assert session.get(Attachment, UUID(original)).status == "DELETING"
+
+
+def gps_jpeg(latitude_seconds: int, longitude_seconds: int, latitude_minutes: int = 31) -> bytes:
+    """A photo taken at 52Â°<minutes>'<seconds>" N, 13Â°24'<seconds>" E (1" is about 31 m)."""
+    image = Image.new("RGB", (32, 24), (10, 20, 30))
+    exif = Image.Exif()
+    exif[0x8825] = {
+        1: "N",
+        2: (52, latitude_minutes, latitude_seconds),
+        3: "E",
+        4: (13, 24, longitude_seconds),
+    }
+    data = io.BytesIO()
+    image.save(data, "JPEG", exif=exif.tobytes())
+    return data.getvalue()
+
+
+def ready_at(client, couple, session, monkeypatch, *position, **kwargs):  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(binding, "image_bytes", lambda: gps_jpeg(*position, **kwargs))
+    return binding.ready_attachment(client, couple, session)
+
+
+def test_a_later_photo_at_the_same_spot_adds_no_second_place(  # type: ignore[no-untyped-def]
+    client, couple, session, monkeypatch
+):
+    first = ready_at(client, couple, session, monkeypatch, 0, 0)
+    memory = binding.memory(client, couple)
+    saved = attach(client, couple, memory, [first])
+    assert saved.status_code == 200
+    second = ready_at(client, couple, session, monkeypatch, 0, 0)
+    assert attach(client, couple, saved.json(), [first, second]).status_code == 200
+    assert len(places(client, couple, memory["id"]).json()["items"]) == 1
+    assert len(session.execute(select(Place)).scalars().all()) == 1
+
+
+def test_photos_a_few_metres_apart_share_one_place(  # type: ignore[no-untyped-def]
+    client, couple, session, monkeypatch
+):
+    first = ready_at(client, couple, session, monkeypatch, 0, 0)
+    second = ready_at(client, couple, session, monkeypatch, 1, 1)  # about 30-45 m away
+    memory = binding.memory(client, couple)
+    assert attach(client, couple, memory, [first, second]).status_code == 200
+    assert len(places(client, couple, memory["id"]).json()["items"]) == 1
+
+
+def test_separate_entries_at_one_spot_reuse_the_same_place(  # type: ignore[no-untyped-def]
+    client, couple, session, monkeypatch
+):
+    one = ready_at(client, couple, session, monkeypatch, 0, 0)
+    memory_one = binding.memory(client, couple)
+    assert attach(client, couple, memory_one, [one]).status_code == 200
+    two = ready_at(client, couple, session, monkeypatch, 1, 0)
+    memory_two = binding.memory(client, couple)
+    assert attach(client, couple, memory_two, [two]).status_code == 200
+    [first_place] = places(client, couple, memory_one["id"]).json()["items"]
+    [second_place] = places(client, couple, memory_two["id"]).json()["items"]
+    assert first_place["id"] == second_place["id"]
+    assert len(session.execute(select(Place)).scalars().all()) == 1
+    # Removing the association from one entry leaves the other one untouched.
+    unlinked = client.delete(
+        f"{binding.base_path(couple['space'].id)}/places/{first_place['id']}"
+        f"/memories/{memory_one['id']}",
+        headers=auth(couple["token_a"]),
+    )
+    assert unlinked.status_code == 204
+    assert places(client, couple, memory_one["id"]).json()["items"] == []
+    assert len(places(client, couple, memory_two["id"]).json()["items"]) == 1
+
+
+def test_distant_photos_still_get_their_own_places(  # type: ignore[no-untyped-def]
+    client, couple, session, monkeypatch
+):
+    here = ready_at(client, couple, session, monkeypatch, 0, 0)
+    there = ready_at(client, couple, session, monkeypatch, 0, 0, latitude_minutes=32)  # ~1.8 km
+    memory = binding.memory(client, couple)
+    assert attach(client, couple, memory, [here, there]).status_code == 200
+    assert len(places(client, couple, memory["id"]).json()["items"]) == 2

@@ -243,7 +243,7 @@ describe('ChapterProductPage editor lifecycle', () => {
       await screen.findByRole('button', { name: i18n.t('m5s3.chapter.menu') }),
     );
     await user.click(
-      await screen.findByRole('button', { name: i18n.t('m5s3.common.delete') }),
+      await screen.findByRole('button', { name: i18n.t('common.delete') }),
     );
     await waitFor(() =>
       expect(window.history.state?.[EDITOR_HISTORY_STATE_KEY]).toBeTruthy(),
@@ -318,7 +318,7 @@ describe('ChapterProductPage editor lifecycle', () => {
     renderChapter();
     await openEditor(user);
     const title = screen.getByRole('textbox', {
-      name: i18n.t('m5s3.common.title'),
+      name: i18n.t('common.title'),
     });
     expect(document.activeElement).toBe(title);
     expect(window.history.state?.[EDITOR_HISTORY_STATE_KEY]).toBeTruthy();
@@ -327,7 +327,7 @@ describe('ChapterProductPage editor lifecycle', () => {
 
     await waitFor(() =>
       expect(
-        screen.queryByRole('textbox', { name: i18n.t('m5s3.common.title') }),
+        screen.queryByRole('textbox', { name: i18n.t('common.title') }),
       ).toBeNull(),
     );
     expect(document.activeElement).toBe(
@@ -340,7 +340,7 @@ describe('ChapterProductPage editor lifecycle', () => {
     renderChapter();
     await openEditor(user);
     const title = screen.getByRole('textbox', {
-      name: i18n.t('m5s3.common.title'),
+      name: i18n.t('common.title'),
     }) as HTMLInputElement;
     const description = screen.getByLabelText(
       i18n.t('m5s3.common.description'),
@@ -376,7 +376,7 @@ describe('ChapterProductPage editor lifecycle', () => {
     renderChapter(createApis({ updateChapter }));
     await openEditor(user);
     const title = screen.getByRole('textbox', {
-      name: i18n.t('m5s3.common.title'),
+      name: i18n.t('common.title'),
     });
     await user.type(title, ' changed');
     await user.click(
@@ -390,7 +390,7 @@ describe('ChapterProductPage editor lifecycle', () => {
     window.history.back();
 
     expect(
-      screen.getByRole('textbox', { name: i18n.t('m5s3.common.title') }),
+      screen.getByRole('textbox', { name: i18n.t('common.title') }),
     ).toBeTruthy();
     expect(screen.queryByRole('alertdialog')).toBeNull();
   });
@@ -416,7 +416,7 @@ describe('ChapterProductPage editor lifecycle', () => {
     });
     await user.click(menuTrigger);
     await user.click(
-      await screen.findByRole('button', { name: i18n.t('m5s3.common.delete') }),
+      await screen.findByRole('button', { name: i18n.t('common.delete') }),
     );
     const confirmation = await screen.findByRole('alertdialog');
     expect(confirmation.textContent).toContain(
@@ -433,7 +433,7 @@ describe('ChapterProductPage editor lifecycle', () => {
 
     await user.click(menuTrigger);
     await user.click(
-      await screen.findByRole('button', { name: i18n.t('m5s3.common.delete') }),
+      await screen.findByRole('button', { name: i18n.t('common.delete') }),
     );
     await user.click(
       await screen.findByRole('button', {
@@ -459,12 +459,12 @@ describe('ChapterProductPage editor lifecycle', () => {
     const rows = (await screen.findAllByRole('button'))
       .filter((button) => button.classList.contains('item-menu-option'))
       .map((button) => button.textContent);
-    expect(rows).toEqual([i18n.t('common.edit'), i18n.t('m5s3.common.delete')]);
+    expect(rows).toEqual([i18n.t('common.edit'), i18n.t('common.delete')]);
 
     await user.click(screen.getByText(i18n.t('common.edit')));
-    await screen.findByRole('textbox', { name: i18n.t('m5s3.common.title') });
+    await screen.findByRole('textbox', { name: i18n.t('common.title') });
     expect(
-      screen.queryByRole('button', { name: i18n.t('m5s3.common.delete') }),
+      screen.queryByRole('button', { name: i18n.t('common.delete') }),
     ).toBeNull();
     expect(
       screen.queryByRole('button', { name: i18n.t('m5s3.chapter.menu') }),

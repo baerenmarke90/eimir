@@ -8,6 +8,8 @@ import type { CommentsApi } from '../api/generated/apis/CommentsApi';
 import type { CommentDetail } from '../api/generated/models/CommentDetail';
 import storyProducts from '../i18n/locales/storyProducts';
 import { CommentsPanel } from './CommentsPanel';
+import germanUi from '../i18n/locales/de';
+import germanFixture from '../../e2e/fixtures/locales/de';
 
 afterEach(cleanup);
 
@@ -112,7 +114,7 @@ describe('CommentsPanel', () => {
     });
     expect(document.activeElement).not.toBe(input);
     expect(
-      screen.queryByRole('button', { name: storyProducts.comments.cancel }),
+      screen.queryByRole('button', { name: germanUi.common.cancel }),
     ).toBeNull();
   });
   describe('inline comment success focus', () => {
@@ -265,7 +267,7 @@ describe('CommentsPanel', () => {
     expect(html).toContain('<strong>Alex</strong>');
     expect(html).not.toContain('Philipp Reis');
     expect(html).not.toContain('Alex Winter');
-    expect(html).not.toContain(storyProducts.comments.authorSelf);
+    expect(html).not.toContain(germanFixture.retiredCopy.commentAuthorSelf);
   });
 
   describe('"Kommentieren" sits at the end of the comment flow (#1015)', () => {

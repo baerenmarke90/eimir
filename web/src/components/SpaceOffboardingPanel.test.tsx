@@ -6,15 +6,14 @@ import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import { MembershipStatus } from '../api/generated/models/MembershipStatus';
 import spaceOffboarding from '../i18n/locales/spaceOffboarding';
 import { SpaceOffboardingPanel } from './SpaceOffboardingPanel';
+import germanUi from '../i18n/locales/de';
 
 function renderPanel({
   demoMode = false,
   onSpaceLeft = vi.fn(),
-  onOpenDataExport,
 }: {
   demoMode?: boolean;
   onSpaceLeft?: () => void | Promise<void>;
-  onOpenDataExport?: () => void;
 } = {}) {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -31,7 +30,6 @@ function renderPanel({
         spaceId="space-a"
         demoMode={demoMode}
         onSpaceLeft={onSpaceLeft}
-        onOpenDataExport={onOpenDataExport}
       />
     </QueryClientProvider>,
   );
@@ -45,12 +43,9 @@ function advanceToFinalConfirmation() {
   );
   expect(screen.getByRole('dialog')).toBeDefined();
   expect(screen.getByText(spaceOffboarding.consequencesTitle)).toBeDefined();
-  expect(
-    screen.getByRole('button', { name: spaceOffboarding.exportBefore }),
-  ).toBeDefined();
 
   fireEvent.click(
-    screen.getByRole('button', { name: spaceOffboarding.continueAction }),
+    screen.getByRole('button', { name: germanUi.common.continue }),
   );
   expect(screen.getByText(spaceOffboarding.finalTitle)).toBeDefined();
 }
@@ -60,9 +55,8 @@ afterEach(() => {
 });
 
 describe('SpaceOffboardingPanel', () => {
-  it('closes on system Back and releases its entry before the export detour (#1907)', async () => {
-    const onOpenDataExport = vi.fn();
-    renderPanel({ onOpenDataExport });
+  it('closes on system Back and releases its history entry (#1907)', async () => {
+    renderPanel();
     fireEvent.click(
       screen.getByRole('button', { name: spaceOffboarding.action }),
     );
@@ -79,11 +73,9 @@ describe('SpaceOffboardingPanel', () => {
       expect(window.history.state?.__eimirEditorEntry).toBeTruthy(),
     );
     fireEvent.click(
-      screen.getByRole('button', { name: spaceOffboarding.exportBefore }),
+      screen.getByRole('button', { name: germanUi.common.cancel }),
     );
-    await waitFor(() => expect(onOpenDataExport).toHaveBeenCalledTimes(1));
-    expect(window.history.state?.__eimirEditorEntry).toBeUndefined();
-    expect(screen.queryByRole('dialog')).toBeNull();
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
   it('keeps self-service Space exit unavailable in Demo mode', () => {
@@ -164,23 +156,27 @@ describe('SpaceOffboardingPanel', () => {
     });
   });
 
-  it('offers export as a host-routed detour without calling the exit API', () => {
+  it('points to a copy on request instead of an export detour', () => {
     const leaveSpy = vi.spyOn(
       SpacesApi.prototype,
       'leaveSpaceApiV1SpacesSpaceIdMembershipLeavePost',
     );
-    const onOpenDataExport = vi.fn();
-    renderPanel({ onOpenDataExport });
+    renderPanel();
 
     fireEvent.click(
       screen.getByRole('button', { name: spaceOffboarding.action }),
     );
-    fireEvent.click(
-      screen.getByRole('button', { name: spaceOffboarding.exportBefore }),
-    );
 
-    expect(onOpenDataExport).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.getByText(spaceOffboarding.consequenceExport)).toBeDefined();
+    expect(
+      Object.keys(spaceOffboarding).filter((key) => /^export/i.test(key)),
+    ).toEqual([]);
+    expect(
+      screen
+        .getAllByRole('button')
+        .map((button) => button.textContent)
+        .filter((text) => /export/i.test(text ?? '')),
+    ).toEqual([]);
     expect(leaveSpy).not.toHaveBeenCalled();
   });
 });

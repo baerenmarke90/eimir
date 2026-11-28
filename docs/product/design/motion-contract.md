@@ -1,6 +1,6 @@
 # eimir. Motion Contract
 
-**Version:** 1.9 (2026-11-21)<br>
+**Version:** 1.25 (2026-11-28)<br>
 **Status:** Normative lower-level design-system contract under Product Reference v1 once merged. Library decision **approved by the Product Owner on 2026-11-19**: an in-house motion layer on WAAPI and CSS for all primitives, Gesture follow included; Motion is not adopted ([6.6](#66-product-owner-decisions)). Haptics are approved ([4.10](#410-haptics)).<br>
 **Scope:** Canonical Web/Mobile Web UI, including the Capacitor-delivered Android app<br>
 **Issue:** [#2067](https://github.com/baerenmarke90/eimir/issues/2067)<br>
@@ -60,7 +60,7 @@ Motion state never decides whether content exists or is visible after the motion
 
 ### M4. Kept views never replay
 
-Showing a kept view again does not replay any one-shot motion in it (default). In CSS, an animation restarts when its element returns from `display: none`. So a one-shot CSS animation in a kept view must stop being applied once it has finished: the motion layer removes the attribute or class that applies it as soon as the animation ends (state `played`). Otherwise the motion runs as a Web Animation owned by the layer, which `display: none` does not restart.
+Showing a kept view again does not replay any one-shot motion in it (default). The kept primary tabs (`PrimaryTabPanels`) are not hidden with `display: none` since 1.21. A hidden tab keeps its rendering state and skips it (`content-visibility: hidden`), so showing it again restarts none of its CSS animations and needs no new layout pass. In CSS, an animation restarts when its element returns from `display: none`. So a one-shot CSS animation in a kept view must stop being applied once it has finished: the motion layer removes the attribute or class that applies it as soon as the animation ends (state `played`). Otherwise the motion runs as a Web Animation owned by the layer, which `display: none` does not restart.
 
 Ambient motion in a kept view pauses while the view is hidden and continues when it is shown. It does not start from its first frame again, and it never replays the entrance it followed.
 
@@ -182,7 +182,7 @@ Content arrives: a screen's opening stage, a module reveal, a staggered list, a 
 
 | Aspect | Rule |
 | --- | --- |
-| Variants | `fade` (opacity), `rise` (opacity + small `translate` up, at most 12 CSS px), `surface` (sheet/dialog/popover with backdrop, one lifecycle), `stage` (a staged opening of several beats), `stagger` (siblings one after another), `draw` (a line drawn in with `stroke-dashoffset`), `media` (a photo or video still replacing its placeholder, see below) |
+| Variants | `module` (the one entrance of a page module, see below), `fade` (opacity), `rise` (opacity + small `translate` up, at most 12 CSS px), `surface` (sheet/dialog/popover with backdrop, one lifecycle), `stage` (a staged opening of several beats), `stagger` (siblings one after another), `draw` (a line drawn in with `stroke-dashoffset`), `media` (a photo or video still replacing its placeholder, see below) |
 | Duration | `--duration-context` for a single element; `--duration-transition` for a small popover; `--duration-sequence-beat` per beat of a `stage`; longer roles only where an approved decision names them (for example `--duration-gesture-moment` in the Wir stage) |
 | Easing | `--easing-enter` |
 | Stagger | proposed new tokens (see [5.3](#53-token-extensions-proposed)): `motion.stagger.item` per sibling and `motion.stagger.maxItems`; items after the cap arrive together with the last staggered one. A `stagger` never moves items sideways inside a horizontal scroller (it would widen the strip; Guideline Wir decision) |
@@ -191,6 +191,16 @@ Content arrives: a screen's opening stage, a module reveal, a staggered list, a 
 | Remount | final state in the same frame (M5) |
 | Off screen | `on first reach` for module reveals, otherwise final state (M12) |
 | Reduced motion | final state at once; `surface` may keep a backdrop opacity change of at most `--duration-transition` |
+
+**`module` variant: one entrance for every module (Product Owner, 2026-11-26).** A module is a top-level block of a primary page: a section on Wir, a section or segment panel on Momente, Planen, Listen and Mehr, the memory world, a module that replaces its placeholder, the first item of an area that was empty. Every module enters the same way on every page:
+
+- **Look:** the module fades in and rises by `--motion-module-rise` (`motion.module.rise`, 8 px) over `--duration-module-enter` (`motion.duration.moduleEnter`, 600 ms) with `--easing-enter`. It enters as one block: never its heading and its body apart, and never its single items one by one.
+- **Order:** the modules shown together start one `--duration-stagger-item` apart in reading order, up to `motion.stagger.maxItems`; the rest start with the last one.
+- **When:** once per tab and app start, as the tab's opening (Wir: on the opening's clock and on first reach, `useWirReveal`; the other tabs: the root-tab entrance, `useRootTabIntro`). A module that arrives with late data joins in the time that is left, or is simply there (stage rules below). A tab revealed by a swipe or built in the background shows its modules at rest.
+- **Not modules:** the Wir hero (portraits, heart, check-in, time together, quote) is the Wir opening, with its own approved beats. Switching a segment (Planen, Momente) fades the chosen panel (`--duration-transition`). The first item of an empty area adds one glow after its module entrance (#1907 I1).
+- **Reduced motion:** `--duration-module-enter` is 0 ms: every module is at rest at once.
+
+The unit test `src/motion/moduleEntrance.test.ts` keeps every stylesheet that animates a module on this one look.
 
 **`stage` variant: data hold and late members (#2147).** An opening shows data that arrives from the network after its first paint (on Wir: the check-in, the place, the quote and the photos). These rules keep it on one clock:
 
@@ -239,7 +249,7 @@ Something already on screen changes or leaves: a value changes, an item is reord
   - a create task keeps its own entry;
   - every other change, such as a primary tab chosen from a detail page or a switch between a tab and its peer view (Momente and its map), is `in-place`.
 
-  The routed page travels with `navigate(page, direction, { offset: 'inset' })`, which moves only its `left` offset, by at most 32 CSS px. A transform would make the page the containing block of its fixed controls (the floating create action, the composer toolbar), which would then travel with the page and jump when it settles. So this one offset animation is sanctioned (M6). The arriving content fades on the main element from 0.92 with `crossfade(main, { from })` once the destination shows usable content, not while it still shows its loading state. A swipe that already moved the pages (Gesture follow) plays no second entrance.
+  A primary tab enters with `navigate(page, direction, { offset: 'slide' })`, which translates the page by up to 32 CSS px. Its fixed Compact create action belongs to the tab panel, outside the moving page. Forward and Back transitions use `offset: 'inset'` so fixed controls inside a detail page or composer stay anchored to the viewport (M6). Once the arriving content is ready, the shell fades it in from 0.92 with `crossfade(main, { from })`. A committed swipe has already brought the destination into place and skips this entrance.
 - Reduced motion: the new content is there at once; the restored position and focus are the same.
 
 **`disclose` (expand and collapse: accordion, "+N weitere", the check-in row).** M6 forbids layout animation in general. The sanctioned way, in order of preference:
@@ -247,7 +257,7 @@ Something already on screen changes or leaves: a value changes, an item is reord
 1. *No height animation.* The control changes state at once, revealed content uses Enter `fade`/`rise` (or `stagger` for "+N weitere" items, within the stagger cap), and content below moves to its new place at once. Use this whenever the content below is not being read.
 2. *Gap with translate.* When content below must visibly follow, the layer measures and moves it with `reorder`/`collapse-gap` (FLIP, `translate` only).
 3. *One bounded size transition.* Only where 1 and 2 cannot express it (the #2066 check-in row that closes under the names): a single `height`/`block-size` transition on **one** container per interaction, with `interpolate-size: allow-keywords` as a progressive enhancement. It lasts at most `--duration-context`, clips its content (`overflow: clip`), animates only in the direction that the decision names, is never used inside lists or on more than one element at once, and must not shift content the person is reading (scroll anchoring checked). Browsers without `interpolate-size` change in one step; this is acceptable by definition. Each use is listed in the owning document. On `main` today: `WirHeroStage.css` (check-in row), `QuietHint.css`, `RelationshipWaymarks.css`, the disclosure rule in `styles.css` (`grid-template-rows`) and three `height` transitions in `PhotoEditTask.css`. The migration checks each one against 1 and 2. Checked in #2074:
-   - The Wir check-in row stays option 3: the quote and the modules below must visibly follow the row as it closes (#2066). It closes only in the "way in" direction, on one container. Its height part lasts 2.5 × `--duration-context` after a `--duration-transition` delay, by the Product Owner's #2066 decision; this is a recorded exception to the cap above.
+   - The Wir check-in row stayed option 3 at this point: the quote and the modules below had to visibly follow the row as it closed (#2066). It closed only in the "way in" direction, on one container. Its height part lasted 2.5 × `--duration-context` after a `--duration-transition` delay, by the Product Owner's #2066 decision, as a recorded exception to the cap above. **Superseded on 2026-11-22**, see the last entry of this list.
    - The `QuietHint.css` fold-away stays option 3 within `--duration-transition`.
 
    Checked in #2077:
@@ -263,7 +273,10 @@ Something already on screen changes or leaves: a value changes, an item is reord
 
    Checked in #2080, when the guard began to count layout transitions:
    - **The Planen search row (`PlanningReference.css`) stays option 3, as a recorded exception to "height".** When the search opens or closes, the status row below it moves by the search row's height with one `margin-top` transition on that one row, within `--duration-context`, and only without reduced motion. The search settles onto this row (#2077), so the row must visibly make room instead of jumping under it. Nothing is read below it while the person opens the search.
-   - The guard registers each sanctioned use with its count (`REGISTERED_LAYOUT_TRANSITIONS`): `WirHeroStage.css`, `QuietHint.css`, `styles.css`, `CoupleExperiences.css` and `PlanningReference.css` once, and `PhotoEditTask.css` three times. Any other layout transition fails it.
+   - The guard registers each sanctioned use with its count (`REGISTERED_LAYOUT_TRANSITIONS`): `QuietHint.css`, `styles.css`, `CoupleExperiences.css` and `PlanningReference.css` once, and `PhotoEditTask.css` three times. Any other layout transition fails it.
+
+   Decided by the Product Owner on 2026-11-22:
+   - **The Wir check-in row moves to option 1.** The daily invitation (`wirCheckIn.ownPrompt`) now sits next to the plus and takes no room under the names, so the row is closed from the first frame on a day without a mark and the quote never slides up. While today's state loads, the row keeps its place only when this device last saw a mark today. A value that arrives opens the row at once and moves the quote down.
 - Reduced motion: final size at once.
 
 **`value` (numbers and short text).** Count changes, the days-together tick, timer digits:
@@ -345,6 +358,15 @@ Quiet life on a surface that is otherwise still: the slow ring breath on Wir, ga
 | Targets | never a tap target, portrait, readable text, or a Flight source or target |
 | Reduced motion | absent |
 
+**Pro showcase (#2310).** The four decorative scenes of the Pro paywall gallery (`components/proShowcase/ProScene.tsx`) are Ambient. Their cycle is the long role the Product Owner accepted with mockup v2 (`--pro-scene-cycle-duration` 16 s, the recap film 15 s). Their keyframes and roles are in `motion/pro-showcase.css`:
+
+- A scene runs `--motion-ambient-repeat` cycles and then rests at its composed still frame. It starts and ends at the phase of its cycle that equals that still frame (`--pro-scene-phase`), so neither the first play nor the rest jumps.
+- It plays only while it is the current gallery card and is seen (`data-ambient`). Otherwise it pauses in place and continues from there.
+- A card that never played shows the still frame (`data-started`).
+- With reduced motion it is absent.
+- The captions inside a scene are part of an `aria-hidden` illustration. The card's readable heading and copy never move.
+- The map glow follows the arc by `transform` through points of its curve. It does not use `offset-distance`, which is reserved for the Map domain.
+
 ### 4.6 Gesture follow (direct manipulation)
 
 Motion that follows the finger (or mouse, pen, scroll) instead of a clock. On `main` these are:
@@ -375,11 +397,19 @@ Motion that follows the finger (or mouse, pen, scroll) instead of a clock. On `m
 
 **As built (#2076).** All gesture owners use the building block's rules from `motion/gesture/`: `resolveOwnership`, `rubberBand`, `commitDistance` with the `pager`, `sheet` and `pull` presets, `decideRelease`, the tuned `VelocityTracker` and the sampled settle spring. Owners that must keep their own event plumbing (touch events with `preventDefault`, CSS offset properties, two moving pages) call these functions instead of `attachGestureFollow`.
 
+**Two-sided card deck (#2371, Product Owner 2026-11-28).** The favourite step of the shared Wish selection (`WishSelectionDeck.tsx`) is the first owner of `attachGestureFollow` itself. It uses the block's two-sided mode:
+
+- `direction: 'both'` measures travel from rest in either direction, and `onCommit(side)` and `committedOffset(side)` receive the side;
+- `onSettled(side)` reports the end of a committed settle; it is not called when a grab or `cancel()` interrupts the settle;
+- `commit(side)` runs the same commit and settle without a gesture, for the visible buttons and the arrow keys.
+
+Swipe right makes a candidate a private favourite, and swipe left leaves it out. The decision is recorded at release (M10). The decided card settles off screen, and the next card rises from the stack (`translate` and `opacity`, `--duration-transition`). The stage clips only while a card leaves. After the last card, the summary list takes over after `--duration-transition`. With reduced motion nothing travels. The non-gesture alternatives are the skip and favourite buttons, Arrow Left and Arrow Right on the focused card, and the previous-card button.
+
 | Gesture | Owner | Release handoff | Interruption | Haptics | Non-gesture alternative |
 | --- | --- | --- | --- | --- | --- |
-| Primary-tab pager | `useNavigationMotion.ts` | the current page (`left`, the shell exception in M6) and the neighbour (`transform`) continue on one sampled spring with the release velocity into Replace `navigate`; the end state is applied first, so nothing is held with `fill: forwards` | a touch on settling pages stops them where they are and continues the same swipe; a touch that cannot start a swipe lets the settle land | threshold tick, commit | the tab bar |
+| Primary-tab pager | `useNavigationMotion.ts` | the current page and the neighbouring panel translate together on one sampled spring, starting at the release velocity. The panel keeps moving when its content finishes loading | a touch on settling pages stops them where they are and continues the same swipe. A touch that cannot start a swipe lets the settle land | one commit pulse per page change | the tab bar |
 | Sheet drag-to-dismiss | `ShortTaskSheet.tsx` | cancel: a sampled spring back to rest with the release velocity (the transform transition is gone). Commit: Exit `surface-exit` with `--short-task-sheet-exit-duration`, the remaining height at the release velocity, between `--duration-feedback` and `--duration-transition`. Upward past rest it rubber-bands | grabbing a returning sheet stops the spring where it is | threshold tick, commit | the visible close control, System Back and Escape |
-| Pull to refresh | `usePullToRefresh.ts`, `PullToRefreshIndicator.tsx` | the refresh starts at release (M10) and shows the Loading spinner (`.eimir-motion-loading-spin`, `--duration-loading-cycle`) | — (the indicator returns at once) | threshold tick, commit | the automatic refetch when the app returns to the foreground or reconnects (`refetchOnWindowFocus`, `refetchOnReconnect`) |
+| Pull to refresh | `usePullToRefresh.ts`, `PullToRefreshIndicator.tsx` | the refresh starts at release (M10). The disc continues from where the finger left it, with half the finger's release velocity, on the sampled spring: to its resting place while the Loading spinner runs (`.eimir-motion-loading-spin`, `--duration-loading-cycle`) and back above the page when the refresh ends; a cancelled pull springs back to the top | grabbing a settling disc stops it where it is and continues the pull | threshold tick, commit | the automatic refetch when the app returns to the foreground or reconnects (`refetchOnWindowFocus`, `refetchOnReconnect`) |
 | List reorder | `ListEntryActions.tsx` | the dropped row and its siblings move with Replace `reorder` from their measured places (`reorder(container, before, { key, skip })`) | a new drag cancels running reorder moves | a tick per slot change, commit on an accepted drop | the arrow keys on the handle, with the order announced |
 | Photo arrangement | `PhotoArrangeTask.tsx`, `PhotoDraftSorting.tsx` with `@dnd-kit` | the library's sorting and drop animations take the token roles from `motion/gesture/dragAndDrop.ts`; with reduced motion they are `null` (instant) | the library's own | commit on a drop that changed the order | the keyboard sensor and the position buttons |
 | Photo zoom and crop | `ZoomablePhoto.tsx`, `PhotoCropTask.tsx` with `@panzoom/panzoom` | pinch, pan and wheel follow 1:1; step zooms are instant (`motion/gesture/panzoom.ts` passes `animate: false` with the token roles) | the library's own | none | zoom buttons, double-tap and the keyboard |
@@ -389,8 +419,10 @@ Decisions and limits of this step:
 - **Pull to refresh does not commit on a fling.** A quick downward flick at the top of a page is how people scroll back up, and an accidental refresh would replace what they are reading. It commits by distance (72 px) and cancels on a reversal.
 - **The pager's route lands when the shared settle ends.** The kept-tab panels swap visibility on a route change, so navigating at release would hide the outgoing page mid-travel. The decision is made at release and cannot be lost: a hidden page, a blur or a resize finishes the settle at once, and a fallback releases the drag if the route never commits. The settle is the spring's length: about 450 ms for the rest of a page at 390 px, less for a shorter travel.
 - **With reduced motion the pager pages stay still** while the swipe still works and commits at once. **Product Owner decision (2026-11-20; #2076, #2095):** the existing behaviour is kept. A whole page travelling sideways is large-area motion. This is a deliberate exception to the tracking rule above, which otherwise keeps tracking under reduced motion. Sheets, reorder and photos still track the finger with reduced motion.
-- **The pull indicator grows in height** while the finger pulls, without a transition, because it is an in-flow Loading indicator that makes room above the page. It is tracking, not an animation of a layout property; a transform-only indicator would need a layout change of the page top and is left for a later step.
+- **The pull indicator is out of flow and moves by `transform` and `opacity` only.** Its anchor has no height, so the page never reflows while the finger pulls or the disc settles. The disc follows half the finger travel (72 px of finger is the commit distance and the disc's own 36 px, so it is fully shown exactly where the pull commits), gives way with the shared rubber-band beyond 64 px, and is written once per animation frame without a React render per move. It emerges from the top edge of the main column instead of crossing the header. An earlier in-flow, height-growing indicator that snapped away on release is gone.
+- **A fetch that is already running does not kill the pull.** The pull follows the finger and commits as usual; the refresh is asked for at release and starts as soon as the surface is idle, or after 5 s at most, instead of a gesture that silently does nothing. The disc shows the Loading spinner while it waits.
 - **The lifeline preview card swipe** (`SharedStorySummary.tsx`, the Momente lifeline preview) follows the finger with its own slop, axis lock and commit distance, and returns to rest without the release velocity. Found by the pointer-tracking rule of #2080. It keeps its behaviour and is registered as a `gesture` owner; moving it onto the building block (`resolveOwnership`, `commitDistance`, `decideRelease` and the settle spring) is a follow-up with its own device acceptance. Its non-gesture alternative is the arrow keys and the pager dots.
+- **The memory worlds** (#2283; `StackWorld.tsx`, `RecordCrateWorld.tsx`, `MomentCloudWorld.tsx`, `PhotoBoothWorld.tsx`, `FridgeDoorWorld.tsx`, `PhotoAlbumWorld.tsx`, `ScratchCardWorld.tsx`, `MochiWorld.tsx`, `ConstellationWorld.tsx`, `PostWorld.tsx` and `MemoryJarWorld.tsx`, Momente › Erinnerungen) follow the finger with their own handling: the Stapel's sideways swipe of the top print, the Plattenkiste's crate flip, record scratch, tonearm and lyric scrub, the Momentwolke's pan, bubble fling and card swipe-to-close, the Fotoautomat's coin drag and wet-strip wave, the Kühlschranktür's note drag (with its own scroll-or-drag decision on touch), the Fotobuch's page turn by drag and fling, the Rubbellos' won ticket that follows the finger and is torn off, the Mochis' push, pinch, tickle and long press on the meadow, the Sternbild's shooting-star swipe, constellation trace and telescope aim, the Post's door pull, flap lift and card turn or carry, and the Glas' sideways jar shake, slip carry and its scroll-or-drag decision on touch. They are registered as `gesture` owners (1, 4, 2, 2, 2, 1, 1, 1, 1, 3 and 3 uses). The Momentwolke's springs (momentum, magnetic settle, pop, playful mode) write transforms from one frame loop; its glow drift runs a finite number of alternate cycles (`--motion-ambient-repeat`, M8) and, like the playful jiggle, pauses while the stage is not seen. Their flights and the platter spin run through `motion/recordCrate.ts`, and their keyframes, the two turntable loops (only while the motor runs) and the world timing roles live in `motion/memory-worlds.css`. Moving the gestures onto the building block is a follow-up with its own device acceptance. Their non-gesture alternatives are the keyboard (arrow keys, Home/End, Enter, Escape) and the visible buttons. The Fotoautomat's idle loops (bulb chase, strip sway, neon flicker, the wet-strip hint) run `--motion-ambient-repeat` cycles and pause while the booth is not seen; the loops of a run (the faster chase, the self-timer LED, the wait sign, the wet sheen) run only during their stage. The Kühlschranktür has no loops; its magnet hop, snap back and card open/close run through `motion/fridgeDoor.ts`, the notes never sway (Product Owner decision), and arrow keys move a focused note as the non-gesture alternative. The Fotobuch's 3D page turn is painted per frame by `motion/photoAlbum.ts` (timings, curves and the release decision live there); its one-time invite plays only when the book is first seen, and it has no loops. The Rubbellos' scratch stroke on the canvas foil (`ScratchFoil.tsx`) is registered as `input`, because the stroke moves nothing by itself; its tear flight and crumb dust run through `motion/scratchCard.ts`, and its sparkle twinkle runs `--motion-ambient-repeat` cycles and pauses while the ticket is not seen. The Mochis' idle loops (breathing, blinking, the balloons' sway and bob, clouds, stars and the sleeping z's) run `--motion-ambient-repeat` cycles, pause while the meadow is not seen and restart on the next interaction once at rest; the action buttons are the non-gesture alternative. The Sternbild's flights, trail, dust and telescope spring are frame-driven in `motion/constellation.ts`; its twinkle, glints, halo, moon glow, frost and snow run `--motion-ambient-repeat` cycles and pause while the sky is not seen, ambient shooting stars come at most four times per landing and never by day, and a star grows by `transform: scale` instead of its size. The Post's flag flutter and door twitch run `--motion-ambient-repeat` cycles and pause while the mailbox is not seen; its letter flights and card turns are CSS on the motion layer, and the buttons for door, flap, turn and shoebox are the non-gesture alternative. The Glas' jar physics, fold and tweens run from `motion/memoryJar.ts` with transform writes only; the jar shrinks and grows by transform instead of padding and margin, its candle flicker runs `--motion-ambient-repeat` cycles and pauses while the jar is not seen, and the tag button is the non-gesture alternative to shaking.
 - **Scroll-snap carousels** (8 `scroll-snap-type` declarations) stay native scrolling, as the tracking rule requires. **Range controls** are native `<input type="range">` or `role="slider"` elements with keyboard steps; the pager, the sheet and pull to refresh exclude them from their gestures.
 
 ### 4.7 Moment
@@ -399,7 +431,7 @@ A rare, multi-beat emotional choreography: a received partner gesture (`PartnerG
 
 | Aspect | Rule |
 | --- | --- |
-| Approval | each Moment needs an explicit Product Owner decision, recorded in the Motion Guideline (today: #455 gesture receipt, the connected moment, the shared achievement, the important-day Moment #2072) |
+| Approval | each Moment needs an explicit Product Owner decision, recorded in the Motion Guideline (today: #455 gesture receipt, the connected moment, the shared achievement, the important-day Moment #2072, the handwritten once message #2372) |
 | Duration | beats of `--duration-gesture-moment`, the whole of at most `--duration-gesture-sequence` |
 | Easing | `--easing-enter` for arrival, `--easing-settle` only for an approved landing |
 | Trigger | a confirmed result, a received event, or an approved occasion of the day (the important-day Moment); never pending state, a refetch or a cache update |
@@ -418,12 +450,22 @@ A rare, multi-beat emotional choreography: a received partner gesture (`PartnerG
 - **The keyframes are in the layer.** The receipt's choreography and the notification glyph beats are in `motion/moments.css`, which loads only with its owners. The connected moment and the shared achievement use the shared Enter and surface keyframes.
 - **The shared achievement is a single arrival, not a multi-beat Moment.** It is Enter `surface` with `surface-exit`, released by its presence.
 - **The receipt's ripple is now a soft filled halo instead of a scaled 2 px ring (M7).** The transfer-done glyph fades instead of wiping with `clip-path` (M6).
-- **Once messages** already reveal with Enter `shift` (`OnceMessages.css`). There is no multi-beat once-message choreography, so no Moment runs and there is no haptic. The privacy and screenshot rules are unchanged.
+- **Once messages** reveal with Enter `shift` (`OnceMessages.css`). Since #2372 (Product Owner, 2026-11-28), the opened message's words write themselves by hand as a Moment (`HandwrittenMessage.tsx`, identity `once.handwriting`, the message as its item):
+  - the words are laid out at runtime in the single-stroke font EMS Allure (`handwritingLayout.ts`, glyphs in `handwritingFont.ts`, SIL OFL 1.1), wrapped to the reading width and scaled with the reader's text size;
+  - each stroke draws in pen order with the Enter `draw` keyframes at one steady pen speed (`motion.handwriting.penSpeed`, `--easing-playback`), and the writing time is capped at `--duration-handwriting` (3600 ms), so a longer message writes faster;
+  - a tap shows the finished words at once;
+  - it plays once per message, and a return, a remount or a resize while writing shows the finished words;
+  - with reduced motion, a hidden page or another emphasized motion it shows its final state;
+  - there is no haptic;
+  - **Recorded exception to M13 (Product Owner, 2026-11-28):** the words appear as they are written instead of being readable from the first beat. Assistive technology gets them at once as text, the tap and reduced motion show them finished, and the writing time is bounded;
+  - text the font cannot write (emoji, non-Latin scripts, more than 280 characters) keeps the normal type;
+  - the privacy and screenshot rules are unchanged, and the writing happens only inside the protected reading view.
 
 **Approved instance: the important-day Moment on Wir** (Product Owner, 2026-11-20). The full specification is in [#2072](https://github.com/baerenmarke90/eimir/issues/2072); the rules below are its motion contract.
 
 - **Which days count:**
   - the couple's anniversary;
+  - a round day together (`ROUND_DAYS`: 100, 200, 500, 1000, then every thousand up to 10,000; Product Owner, 2026-11-28, #2370);
   - the partner's birthday;
   - the viewer's own birthday;
   - the couple's own important days, but only occasions that are visible to the viewer.
@@ -434,6 +476,14 @@ A rare, multi-beat emotional choreography: a received partner gesture (`PartnerG
   2. Then the heart in the middle fills, and about six small hearts rise and fade, about 1.5 s in total.
   3. There is one haptic tick on the first beat (4.10).
   4. At the same time the middle line cross-fades to the occasion copy (Replace `crossfade`; the copy comes from i18n).
+- **Rolling count (#2370):** on the anniversary the quiet line below the heart shows the days together instead of repeating the anniversary. On a round day the middle line shows them, and the quiet line steps back. In both cases the digits roll into place during beat 4:
+  - each digit strip moves from 0 to its value with `translate` only (M6, keyframes `eimir-motion-value-roll`), over `--duration-gesture-moment` with `--easing-enter`;
+  - digits start right to left, `--duration-stagger-item` apart, with the index capped at `--motion-stagger-max-items`;
+  - grouping separators and words stay still, and the number is formatted for the locale;
+  - the roll ends within the Moment's duration, so it is part of the one emphasized motion and adds none (M15);
+  - the strips are `aria-hidden`, and the formatted number stays the readable text (M13);
+  - only the `playing` phase animates, so a return or remount shows the number at rest (M3, M5).
+- **Ranking:** the anniversary comes first, then a round day, then birthdays and shared dates. A round day takes the place of a birthday that falls on the same day.
 - **Birthday accent:** on a birthday, that person's ring gets a warm accent: an opacity-only halo, never a scaled ring (M7), and a cake mark on the rim (Enter `fade`).
 - **Budget and scope:**
   - It counts as the screen's one emphasized motion, and the ring breath starts only after it.
@@ -456,13 +506,20 @@ These are not primitives. They are areas whose motion is defined by their own cl
     - reduced motion comes from the layer's one source (`useReducedMotion`);
     - playback pauses when the page is hidden, on `pagehide` and on window blur, and with the explicit pause control (`data-playing`);
     - with reduced motion it never starts on its own;
-    - story playback on Momente also pauses while it is less than half on screen and while a slide is held.
+    - story playback on Momente also pauses while no more than 60 % of the viewer is on screen (measured against the viewport height when the viewer is taller; #2192) and while a slide is held.
 
     The keyframes moved unchanged into two catalogues:
     - `motion/playback.css`: the recap film, the recap reader and the garden playback, loaded with them;
     - `motion/story-playback.css`: the Momente story.
 
-    The Playback property exception in M6 is used only by the film's scene cuts: `clip-path` for iris, wipe, shift, split and match, and `filter: blur()` for blur, focus and the caption word reveal. Each runs on one layer at a time, the scene spread or the caption.
+    The Playback property exception in M6 is used by the film's scene cuts: `clip-path` for iris, wipe, shift, split and match, and `filter: blur()` for blur, focus and the caption word reveal. Each runs on one layer at a time, the scene spread or the caption. The recap reader's quote marker (#2373, Product Owner 2026-11-28) also uses it: after the highlight scene has entered (`--duration-context`), a `clip-path` wipe from the inline start uncovers a soft marker behind the partner's quoted words over `--duration-marker-sweep` (keyframes `eimir-motion-recap-marker-sweep`). The reason is that the marker must follow every line wrap, and `transform` cannot reveal a multi-line inline background. The wipe runs on one layer, the marker copy behind the words, which CSS draws from `data-text`, so the words exist once in the accessibility tree. It plays again whenever the scene is shown, and reduced motion shows the marker at once.
+
+    Story playback uses it once more, for the rediscovery lead (`story.featuredKicker`) on Momente › Erinnerungen ([#2192](https://github.com/baerenmarke90/eimir/issues/2192)). The lead plays as the story's first slide, and its photo develops like instant film. It goes from a dark, colourless, soft print to the photo with `filter` (brightness, saturation, sepia, contrast, blur) and opacity, on the one photo layer:
+    - **Reason:** an opacity fade from a faint print could not be seen as developing on the device, and the Product Owner asked for a visible develop.
+    - **Timing:** it lasts `--duration-story-develop` (3.2 s) after one `--duration-sequence-beat`, and the lead slide dwells `--duration-story-lead-slide` (8 s) instead of `--duration-story-slide`.
+    - **Replay:** it runs each time the lead becomes the visible slide, like the slide entrance. It is part of that entrance, so it finishes even while the story is paused.
+    - **Loading:** while the photo loads, the frame shows the undeveloped film (`--color-media-scrim-strong`) instead of the shimmer, so loading and developing read as one moment.
+    - **Reduced motion:** the photo is shown at once.
   - **Scenes.** The layer's scene controller (`useScene` in `motion/scene.ts`) decides whether a scene plays: the page, its kept view and the scene itself are seen (the visibility controller), the owner reports it in use, and there is no reduced motion. Its owner spreads `data-motion-scene` on the scene root. While it is `paused`, `motion/scenes.css` holds every CSS animation inside in place, so a scene that returns continues where it paused (M4) and a hidden or offscreen scene renders no animation frames.
     - **The garden.** `GardenScene.tsx` is the scene root on the garden page, in full screen and in the Wir module. On Wir, the decorative preview also rests after `--duration-ambient-rest` of visible time (`useAmbientRest`, now in the layer, which also rests while the page or its kept view is hidden). The ambient effect timers pause with the page (`usePageVisible`). The #2070 depth bands are unchanged: every garden keyframe animates `transform`, `opacity` or a bounded `stroke-dashoffset`, so each band keeps its own compositor layer.
     - **The remote games.** The waiting dot ("the other one is playing") runs on the scene controller of its card.
@@ -529,6 +586,7 @@ These are not primitives. They are areas whose motion is defined by their own cl
 Motion that announces something the person did not trigger: partner arrivals, received gestures, realtime signals, unread markers, badge counts, quiet hints. It uses the primitives above (Flight `arrive`, Enter, Feedback `affection`, Moment) and adds these rules. The [#1212 review](1212-event-driven-arrival-motion.md) remains the source for which events qualify.
 
 - **Only live, identifiable events animate.** Polling, cache reconciliation and unread-count changes have no live identity and never animate (#1212). An unread dot or a badge count appears or changes **without motion** (at most Replace `value` for a count that the person is looking at).
+- **Recorded exception: the Wir distance (Product Owner, 2026-11-22).** When the app opens or resumes and the coarse distance band differs from the step this device last showed, the Verbunden hero plays one Flight `arrive` after its opening: a small light from each portrait to the heart, then Feedback `affection` on the filled shape and Replace `value` for the word. It takes the `arrival` slot of these rules and is dropped, never queued, when it cannot play. It does not play for a value older than the freshness window, on an important day, off screen, or within 30 minutes of the last one, and it has no haptic. The stored step is display state, not a motion identity. See the [decision record](references/wir-hero-heart-light/README.md).
 - **Priority**, highest first:
   1. a Moment for a received partner gesture or message;
   2. a partner arrival Flight;
@@ -545,7 +603,7 @@ Motion that announces something the person did not trigger: partner arrivals, re
 
 **Approved by the Product Owner on 2026-11-19:** the app gets haptic feedback, through the official `@capacitor/haptics` plugin. The gestures-and-haptics step (#2076) added them: `@capacitor/haptics` 8.0.2 (MIT, no runtime dependencies), registered by `motion/hapticsNative.ts` in the native app only, and the switch in Settings › Appearance (`HapticsSettings.tsx`).
 
-Wired triggers after #2076: the gesture threshold tick and commit of the pager, the sheet, pull to refresh, list reorder and the photo arrangement; the press of "Fertig" in the check-in; a gesture to the partner (`press`, a kiss `affection`) and its failed return (`refuse`); the important-day Moment (#2074).
+Wired triggers after #2076: the commit of the pager (no threshold tick), the gesture threshold tick and commit of the sheet, pull to refresh, list reorder and the photo arrangement; the press of "Fertig" in the check-in; a gesture to the partner (`press`, a kiss `affection`) and its failed return (`refuse`); the important-day Moment (#2074).
 
 Added in #2077:
 - the first beat of a received heart or kiss and of the connected moment (`moment`, 4.7 as built);
@@ -571,14 +629,19 @@ Rules:
 - **Budget:** at most one haptic per direct action plus the threshold tick of a gesture. No two haptics within `--duration-context`; the later one is dropped. No haptics for unprompted motion (arrivals, hints, realtime signals, received items the person is not looking at), Ambient, Enter, Replace, navigation by tap, Loading or Scenes' ambient life.
 - **User setting:** a visible on/off switch "Haptisches Feedback" (localized through i18n) in the app's settings, on by default, stored on the device only (not shared with the partner, not sent to the server). The switch is shown only in the native app (runtime platform check, AGENTS.md "Browser-only controls"), because the Web has no haptics.
 - **Reduced motion:** does not switch haptics off; they are a separate preference and also help people who reduce motion. A person who wants neither turns off the in-app switch.
-- **Android behaviour:** the plugin (version 8.0.2, MIT) vibrates through `Vibrator` with `VibrationEffect` one-shots and waveforms, and declares the normal-level `VIBRATE` permission (granted at install, no runtime prompt). It does **not** use `View.performHapticFeedback`, so it does not follow the system touch-feedback setting the way native controls do. The in-app switch is therefore required, and the gestures step verifies on a device:
-  - how Android 13+ "Vibration & haptics" settings and Do Not Disturb affect it;
-  - whether the light impacts feel like system ticks.
+- **Android behaviour (Product Owner correction, 2026-11-22):** Android uses system haptics such as the keyboard's instead of the waveforms from `@capacitor/haptics` 8.0.2 (100 ms selection, 50 ms light impact, 43 ms medium impact). The project plugin `SystemHaptics` calls `View.performHapticFeedback`, so feedback follows the device's tuning and its system touch-feedback setting. The in-app switch stays as the app-level control. The Plugin call column above remains the cross-platform contract and maps on Android as follows:
 
-  If they feel like buzzes instead of ticks, the step may propose a small project plugin on `performHapticFeedback` (`CONFIRM`, `REJECT`, `GESTURE_THRESHOLD_ACTIVATE`, `CLOCK_TICK`) through its own reuse review.
-  - Source review of 8.0.2 (#2076): on Android `selectionChanged()` vibrates only between `selectionStart()` and `selectionEnd()`, so the adapter sends the three calls in order. Its waveforms are 100 ms at amplitude 100 for a selection, 50 ms at 110 for a light impact and 43 ms at 180 for a medium impact. A 100 ms selection is longer than a system tick, so the threshold tick is the first candidate for the device check. The device acceptance on an Android test release is still open.
+  | Plugin call | Android system feedback | Fallback |
+  | --- | --- | --- |
+  | `selectionChanged()` | `GESTURE_THRESHOLD_ACTIVATE` (API 34) | `CLOCK_TICK` |
+  | `impact({ style: Light })` | `KEYBOARD_TAP` | none needed |
+  | `impact({ style: Medium })` | `VIRTUAL_KEY` | none needed |
+  | `notification({ type: Success })` | `CONFIRM` (API 30) | `VIRTUAL_KEY` |
+  | `notification({ type: Warning })` | `REJECT` (API 30) | `LONG_PRESS` |
+
+  Device acceptance on an Android test release is still open.
 - **Web fallback:** none. The adapter is a no-op outside the native app. The plugin's Web implementation calls `navigator.vibrate` directly, so the adapter never calls the plugin on the Web. Reasons: iOS Safari has no Vibration API; on Android browsers `navigator.vibrate` is a buzz that follows no system haptic setting; desktop has no vibration. A later Web use of `navigator.vibrate` would need its own decision.
-- **iOS:** the repository has a Capacitor iOS project; the same adapter applies there through the plugin's Taptic Engine implementation when iOS ships.
+- **iOS:** the repository has a Capacitor iOS project; the same adapter applies there through the `@capacitor/haptics` Taptic Engine implementation when iOS ships.
 
 ### 4.11 Gap audit
 
@@ -594,7 +657,7 @@ How each known motion need is covered by v1:
 | Photo decode fade, skeleton to content | Enter `media` | variant with remount rules |
 | Partner arrivals, realtime signals, unread markers, badges, hints | Attention rules (4.9) over existing primitives | cross-cutting rules, priority and rate limits |
 | Invalid input, failed send, conflict | Feedback `refuse`, Flight `return`, Replace `crossfade` | variants |
-| Count changes, days-together tick, timer digits | Replace `value` | variant; count-ups only in Playback or a Moment |
+| Count changes, days-together tick, timer digits | Replace `value` | variant; count-ups only in Playback or a Moment (the important-day Moment's rolling count, 4.7) |
 | Light/dark, token sets, app designs | Replace `appearance` | variant |
 | Haptics | 4.10 | approved by the Product Owner (2026-11-19); `@capacitor/haptics`, in-app switch, budget |
 | Several components on one choreography, per-screen budget | M15 | invariant |
@@ -622,7 +685,7 @@ Legend:
 | Primary tabs Wir, Momente, Planen (kept views) | Replace `navigate` (lateral); tab swipe is Gesture follow; nothing replays on return (M4) | covered |
 | Detail, create and edit pages; Mehr, settings and profile pages | Replace `navigate` forward/back | covered |
 | Startup splash to app handoff (`BrandedStartup.tsx`, native splash, `NativeSessionGate.tsx`) | On `main`, the system splash stays until the web shell reports its first paint (`LaunchScreenHold.java`). It then fades out over the platform's short animation time; this is a native duration, not a token, and it stays. The web start view continues the same tile and fades in only its wordmark and status (Enter `fade`, once per app start). The first app screen does not fade in again behind it (no double entrance), and the Wir opening starts after the handoff, on its own clock. With reduced motion the web part is instant | rule |
-| App resume from the background (`appStateChange` in `capacitorShell.ts`) | Not a new motion identity: no entrance, opening or Moment replays (M3). Ambient continues where it paused (M4). Refetched data appears without attention motion (4.9, #1212) | rule |
+| App resume from the background (`appStateChange` in `capacitorShell.ts`) | Not a new motion identity: no entrance, opening or Moment replays (M3). Ambient continues where it paused (M4). Refetched data appears without attention motion (4.9, #1212), except the recorded Wir distance change in 4.9 | rule |
 | Deep link and notification-tap arrival (`routeEntryHandoff.ts`, `devicePush.ts`) | Replace `navigate` forward into the target. On a cold start the target shows without the Wir opening. The Wir opening keeps its scope "once per app start, the first time Wir is shown at its top" (Motion Guideline) | rule |
 | Android system back and predictive back (Android 14+) | In-app back (Capacitor `backButton`) runs Replace `navigate` back after the gesture is released. The system owns the back-to-home preview when back leaves the app. A progress-driven in-app back preview inside the WebView is not available through Capacitor and is not built. The gestures step verifies the platform behaviour on the device | out (platform) |
 | Status-bar scrim (`useStatusBarScrim.ts`), floating create tuck | Replace `scroll-state` | covered |
@@ -672,7 +735,8 @@ Legend:
 | Onboarding, move-in and first-run empty states (#1907 I1, #2048) | Enter once per identity. Empty states are static. The first item added is Enter `rise` plus Feedback `success` | covered |
 | Paywall and purchase success (`ProPaywallPage.tsx`) | The paywall opens with Enter. Purchase success is Feedback `success` only after the store confirms it. No celebration Moment, so monetization stays calm (Freemium matrix, presentation rules) | rule |
 | Important days and birthdays (`OccasionMark.tsx`, `ImportantDatesPanel.tsx`, Wir) | Enter for the mark. On Wir, the approved **important-day Moment** (4.7, [#2072](https://github.com/baerenmarke90/eimir/issues/2072)) plays once per local day per device, after the opening. It never surfaces private or surprise dates. A "Gratulieren" action is out of scope by PO decision (2026-11-20) | covered |
-| Insights, recaps and the recap film | Enter `draw`/`fade` for insights; Playback for the recap film | covered |
+| Insights, recaps and the recap film | Enter `draw`/`fade` for insights; Playback for the recap film and the reader's quote marker (#2373, 4.8) | covered |
+| Wish selection favourites as a card deck (`WishSelectionDeck.tsx`, #2371) | Gesture follow, two-sided (4.6), with the commit haptic; the next card rises with Replace `crossfade` timing; the summary list is the existing Feedback `toggle` list | covered |
 | Wish selection draw (`WishSelection.css` roll) | A Loading-like draw that runs only until the result is known, then Feedback `success`. Instant with reduced motion | rule |
 | Games: garden, Heart Hunt, Picture Ping-Pong, Who of us, wish detective, remote games | Scenes domain | covered |
 | Voice notes and audio playback (`VoiceNotePlayer.tsx`) | The slider is Gesture follow. Playback progress updates the position directly, without per-tick animation | rule |
@@ -722,6 +786,8 @@ The existing roles cover all durations and easings. Staggering had no token: `us
 | `motion.stagger.item` | `--duration-stagger-item` | delay between siblings of a `stagger` | 60 ms |
 | `motion.stagger.module` | `--duration-stagger-module` | delay between modules arriving together after an opening stage | 220 ms (today's Wir step) |
 | `motion.stagger.maxItems` | `--motion-stagger-max-items` | siblings that stagger before the rest arrive together | 4 |
+| `motion.duration.moduleEnter` | `--duration-module-enter` | the module entrance of every page (4.1 `module`) | 600 ms |
+| `motion.module.rise` | `--motion-module-rise` | how far a module rises while it fades in (4.1 `module`) | 8 px |
 | `motion.gesture.*` | `MOTION_CONSTANTS.gesture` | Gesture follow thresholds (4.6), listed below | see below |
 | `motion.spring.settle` | `MOTION_CONSTANTS.spring` | the sampled settle spring of #2071 | stiffness 380, damping 39, mass 1 |
 | `motion.attention.sameKindInterval` | `MOTION_CONSTANTS.attention` | the same kind of unprompted motion plays at most once per interval per screen (4.9) | 30 000 ms |
@@ -765,10 +831,10 @@ Some values never follow reduced motion, theme or token set:
 | Play registry | `playRegistry.ts` | `claimPlay(identity, scope, owner, surface?)`, `hasPlayed`, `markPlayed`, `createSurfaceScope()` and `useSurfaceScope()`, `resetMotionSession()`. Scopes: `app-start`, `session`, `surface` |
 | Visibility controller | `visibility.ts` | `isVisibleNow(element)` and `observeVisibility(element, listener)`. Covers page visibility, the kept view and `IntersectionObserver`. The kept view is read from the `hidden` attribute on the `[data-primary-tab]` panel of `PrimaryTabPanels`, observed without changing the panel component |
 | Runner | `run.ts` | `run(element, keyframes, { duration, easing, delay, iterations, channel, interrupt, fill, willChange })`: the layer's one entry to `Element.animate()`. It keeps one animation per element and channel (M11), sets `will-change` only while the animation runs, and returns `null` for a zero duration. Also `interruptChannel` and `runningOn` |
-| Stage | `stage.ts`, `motion.css` | `useStage(identity, { duration, canStart, animationPrefix, hold, scope })` returns the stage root's ref. With `hold` it first waits, `data-motion-stage="waiting"`, while `useStageHold(identity, pending)` calls report pending data, for at most `hold` ms (#2147). It sets `data-motion-stage="playing"` while the opening runs (once per app start), mirrors the state on its `scope` in `data-motion-stage-scope`, pins the `eimir-motion-stage-*` CSS animations of late or remounted members to the shared clock (a `MutationObserver` places members that mount without a render of the stage), lets `data-motion-join` members play in the time that is left or rest, and removes the attributes on the opening's own deadline or when its kept view is hidden. `stagePhase`, `useStagePhase`, `subscribeStage`, `stageStartTime` and `stageDuration` report the opening (`idle`, `waiting`, `playing`, `ended`); `StageContext` lets a shared component (a portrait) hold the opening of the stage it is in. `stageFinished(identity)` resolves when the opening ended or was skipped; ambient motion and a Moment wait for it (M15). A stage that contains another stage uses its own `animationPrefix`: the root-tab entrance (`useRootTabIntro` in `client/rootTabIntro.ts`, keyframes `eimir-motion-root-rise`, once per tab and app start) wraps the Wir opening and never re-pins its members |
+| Stage | `stage.ts`, `motion.css` | `useStage(identity, { duration, canStart, animationPrefix, hold, scope })` returns the stage root's ref. With `hold` it first waits, `data-motion-stage="waiting"`, while `useStageHold(identity, pending)` calls report pending data, for at most `hold` ms (#2147). It sets `data-motion-stage="playing"` while the opening runs (once per app start), mirrors the state on its `scope` in `data-motion-stage-scope`, pins the `eimir-motion-stage-*` CSS animations of late or remounted members to the shared clock (a `MutationObserver` places members that mount without a render of the stage), lets `data-motion-join` members play in the time that is left or rest, and removes the attributes on the opening's own deadline or when its kept view is hidden. `stagePhase`, `useStagePhase`, `subscribeStage`, `stageStartTime` and `stageDuration` report the opening (`idle`, `waiting`, `playing`, `ended`); `StageContext` lets a shared component (a portrait) hold the opening of the stage it is in. `stageFinished(identity)` resolves when the opening ended or was skipped; ambient motion and a Moment wait for it (M15). A stage that contains another stage uses its own `animationPrefix`: the root-tab entrance (`useRootTabIntro` in `client/rootTabIntro.ts`, keyframes `eimir-motion-root-rise`, once per tab and app start, never in a tab a swipe reveals or that is built in the background) wraps the Wir opening and never re-pins its members; a segment panel keeps its own fade in its animation list during the entrance, so the entrance ending never restarts it. `stagesSettled()` resolves once no opening waits or plays; background work (building a neighbouring tab) waits for it |
 | Enter | `enter.ts`, `motion.css` | `useEnter(identity, { variant, scope, surface, firstReach, choreography, offset, index, step, budget })` returns `{ ref, props, state }`. `props` applies `data-motion-enter` until the entrance ends on its own `animationend` or `animationcancel`, or at its token deadline (M2, M4). Variants: `fade`, `rise`, `surface`, `stage`, `stagger`, `draw`, `media`. Also `staggerDelay(index, step)` |
 | Media reveal | `mediaReveal.ts` | `useMediaReveal(url)` returns `{ shown, fade, ref }`. Also `revealMedia(image, url)`, `isMediaShown(url)`, `mediaRevealMode(url, decodeMs)` |
-| Replace / Exit | `presence.ts`, `departing.ts`, `replace.ts` | `usePresentationPresence` and `useOverlayPresence` (moved from `components/useOverlayPresence.ts`), `useDepartingItems` (moved from `components/useDepartingItems.ts`), `crossfade(element, { from })`, `navigate(element, 'forward' \| 'back' \| 'next' \| 'previous' \| 'in-place', { offset: 'transform' \| 'inset' })`, `navigateTravel`, `valueChange`, `disclose`, `captureLayout(container, key?)` with `reorder(container, before, { key, skip })` (FLIP), `ScrollState` (hysteresis; `update` and `reset`) |
+| Replace / Exit | `presence.ts`, `departing.ts`, `replace.ts` | `usePresentationPresence` and `useOverlayPresence` (moved from `components/useOverlayPresence.ts`), `useDepartingItems` (moved from `components/useDepartingItems.ts`), `crossfade(element, { from })`, `navigate(element, 'forward' \| 'back' \| 'next' \| 'previous' \| 'in-place', { offset: 'transform' \| 'slide' \| 'inset' })`, `navigateTravel`, `valueChange`, `disclose`, `captureLayout(container, key?)` with `reorder(container, before, { key, skip })` (FLIP), `ScrollState` (hysteresis; `update` and `reset`) |
 | Surfaces | `motion.css` | Enter `surface` and Exit `surface-exit` as catalogue keyframes that the owner names on its open and `data-presence="exiting"` states. `eimir-motion-surface-in` and `-out` use the individual `translate` property, so they compose with the owner's own `transform`; their options are `--motion-surface-from`, `--motion-surface-to`, `--motion-surface-from-opacity` and `--motion-surface-to-opacity`. `eimir-motion-backdrop-in` and `-out` change opacity only. Used by `ShortTaskSheet.css`, the header notifications sheet in `shell.css`, the preference modals in `ProfilePage.css` (the scrim is its own `::before` layer), the quick-action popover and the occasions sheet. Presence stays `usePresentationPresence`; the exit releases on its own `animationend` |
 | Shared utilities | `utilities.css` | `.eimir-motion-disclosure` (Enter `shift`), `.eimir-motion-lift` (a hover state transition), `.eimir-motion-success` and `.eimir-motion-pulse` (Feedback `success` and `affection`). The entry imports it where `styles.css` defined them, so they keep their cascade position. The create entry names the catalogue's Enter keyframes, with `--motion-enter-from-opacity` for its soft fade |
 | Feedback | `feedback.ts` | `feedback(element, 'success' \| 'affection' \| 'refuse', { haptic })`. Press and toggle stay CSS state transitions of the component |
@@ -825,8 +891,8 @@ Three of these rules have reviewed registrations in the script, each with its us
 | Registration | Rule | Files | Uses |
 | --- | --- | ---: | ---: |
 | `REGISTERED_LOOPS` | `infinite`: the Scenes domain's playfields (4.8, M8) | 6 | 26 |
-| `REGISTERED_LAYOUT_TRANSITIONS` | layout transitions: the sanctioned `disclose` uses (4.2) | 6 | 8 |
-| `REGISTERED_POINTER_TRACKING` | pointer tracking: the Gesture follow owners (`gesture`, 4.6) and pointer input that moves nothing by itself (`input`: a cancelled press, a long-press slop, scroll intent, a drawn stroke, a scrubbed selection, the photo editor's handles) | 11 | 17 |
+| `REGISTERED_LAYOUT_TRANSITIONS` | layout transitions: the sanctioned `disclose` uses (4.2) | 5 | 7 |
+| `REGISTERED_POINTER_TRACKING` | pointer tracking: the Gesture follow owners (`gesture`, 4.6) and pointer input that moves nothing by itself (`input`: a cancelled press, a long-press slop, scroll intent, a drawn stroke, a scrubbed selection, the photo editor's handles) | 23 | 39 |
 
 The guard also rejects the animation libraries `motion`, `framer-motion`, `motion-plus*`, `gsap` and `animejs` in `web/package.json`, in `web/package-lock.json` (also as a transitive package) and as imports anywhere in `web/src`, unless a new decision in this contract allows one (6.6; Product Owner decision 2026-11-19).
 
@@ -1063,7 +1129,7 @@ Measured by the guard on `main` at `23e556cb7` plus #2080.
 | `Element.animate()` calls | 4 (`run.ts` once, `flight.ts` three times) | 0 |
 | `infinite` loops | 5 (Loading, `utilities.css`) | 26 registered Scenes loops in 6 files |
 | Layout properties in keyframes | 0 | 0 |
-| Layout transitions | 0 | 8 registered `disclose` uses in 6 files |
+| Layout transitions | 0 | 7 registered `disclose` uses in 5 files |
 | Pointer tracking | 1 (`gesture/follow.ts`) | 17 registered in 11 files |
 | Animation-library dependencies | 0 | 0 |
 
@@ -1099,7 +1165,7 @@ Each step is its own issue and pull request. Draft issue texts for steps 2 to 9 
    - Done in #2077. The feature keyframes moved to the catalogue (5.4), and the Moments run through `startMoment()` (4.7 as built). The `disclose` uses were checked (4.2), and the map connection was checked against M7 (4.8). 28 files left the allowlist (5.4).
    - Visible changes, each for a rule:
      - The Planen search settles onto its status row with opacity and a short vertical translate instead of a `clip-path` reveal (M6). It does not travel sideways, because the field spans the row and would widen the page.
-     - The Polaroid "develop" fades the photo in from a faint print instead of animating `filter` (M6).
+     - The Polaroid "develop" fades the photo in from a faint print instead of animating `filter` (M6). Inside the story, the rediscovery lead later replaced this fade with a Playback develop (4.8 as built).
      - The handmade sway runs on the layer's Ambient `sway` around the rest pose: it pauses while hidden and continues where it paused (M4, M8).
      - The receipt ripple is a soft halo (M7).
      - Lifeline rows stagger with `--duration-stagger-item` within the cap.
@@ -1151,6 +1217,22 @@ In addition to Motion Guideline section 10, a pull request with new or changed m
 
 | Version | Date | Change |
 | --- | --- | --- |
+| 1.25 | 2026-11-28 | Recap reader quote marker (#2373, Product Owner 2026-11-28): a Playback `clip-path` wipe on the marker behind a highlight's quoted words (4.8), and the token `motion.duration.markerSweep`. |
+| 1.24 | 2026-11-28 | Handwritten once message Moment (#2372, Product Owner 2026-11-28; 4.7) with a recorded M13 exception, the tokens `motion.duration.handwriting` (writing cap) and `motion.handwriting.penSpeed`. |
+| 1.23 | 2026-11-28 | Gesture follow two-sided mode (`direction: 'both'`, `onSettled`, `commit(side)`) and its first owner, the Wish selection card deck (#2371, Product Owner 2026-11-28; 4.6, 4.12). |
+| 1.22 | 2026-11-28 | Important-day Moment (#2370, Product Owner 2026-11-28): round days together become an occasion, and the days-together count rolls into place on the anniversary and on round days (4.7, keyframes `eimir-motion-value-roll`). |
+| 1.21 | 2026-11-26 | Fluid tab switching: hidden kept tabs skip rendering with `content-visibility: hidden` instead of `display: none`, so their CSS animations never restart and the per-reveal `getAnimations()` settle is gone (M4). While the pages slide sideways, the bar and the Wir marks pause their backdrop blur (Product Owner, 2026-11-26). The root-tab entrance never plays in a tab that a swipe reveals or that is built in the background, and a segment panel's fade no longer restarts when the entrance ends (the cold-start blink on Planen). Enter `module`: one entrance for every module on every page, with the tokens `motion.duration.moduleEnter` and `motion.module.rise` (Product Owner, 2026-11-26). |
+| 1.20 | 2026-11-26 | Pro showcase (#2310): four decorative Ambient scenes on the Pro paywall (4.5). Their keyframes and roles are in `motion/pro-showcase.css`; they run finite cycles, pause in place while they are not current or not seen, and are absent with reduced motion (M8). |
+| 1.19 | 2026-11-25 | Glas (#2283):<br>• `MemoryJarWorld.tsx` registered as a `gesture` owner not yet on the building block (3 uses; 4.6, 5.4);<br>• its frame-driven jar physics and fold in `motion/memoryJar.ts`, and its keyframes, roles and finite, paused candle in `motion/memory-worlds.css` (M8). |
+| 1.18 | 2026-11-25 | Post (#2283):<br>• `PostWorld.tsx` registered as a `gesture` owner not yet on the building block (3 uses; 4.6, 5.4);<br>• its keyframes, roles and finite, paused flag and door loops in `motion/memory-worlds.css` (M8). |
+| 1.17 | 2026-11-25 | Sternbild (#2283):<br>• `ConstellationWorld.tsx` registered as a `gesture` owner not yet on the building block (1 use; 4.6, 5.4);<br>• its frame-driven flights and telescope spring in `motion/constellation.ts`, and its keyframes, roles and finite, paused ambient loops in `motion/memory-worlds.css` (M8). |
+| 1.16 | 2026-11-25 | Mochis (#2283):<br>• `MochiWorld.tsx` registered as a `gesture` owner not yet on the building block (1 use; 4.6, 5.4);<br>• its keyframes, roles and finite, paused idle loops in `motion/memory-worlds.css` (M8). |
+| 1.15 | 2026-11-25 | Rubbellos (#2283):<br>• `ScratchCardWorld.tsx` registered as a `gesture` owner not yet on the building block (1 use) and `ScratchFoil.tsx` as `input` (1 use; 4.6, 5.4);<br>• its tear flight and dust in `motion/scratchCard.ts`, and its keyframes, roles and finite sparkle in `motion/memory-worlds.css` (M8). |
+| 1.14 | 2026-11-25 | Fotobuch (#2283):<br>• `PhotoAlbumWorld.tsx` registered as a `gesture` owner not yet on the building block (1 use; 4.6, 5.4);<br>• its frame-driven page turn in `motion/photoAlbum.ts` and the one-time invite keyframes and roles in `motion/memory-worlds.css`; no loops. |
+| 1.13 | 2026-11-25 | Kühlschranktür (#2283):<br>• `FridgeDoorWorld.tsx` registered as a `gesture` owner not yet on the building block (2 uses; 4.6, 5.4);<br>• its flights in `motion/fridgeDoor.ts` and its keyframes and timing roles in `motion/memory-worlds.css`; no loops. |
+| 1.12 | 2026-11-25 | Fotoautomat (#2283):<br>• `PhotoBoothWorld.tsx` registered as a `gesture` owner not yet on the building block (2 uses; 4.6, 5.4);<br>• its keyframes, timing roles and finite, paused idle loops in `motion/memory-worlds.css` (M8). |
+| 1.11 | 2026-11-25 | Momentwolke (#2283):<br>• `MomentCloudWorld.tsx` registered as a `gesture` owner not yet on the building block (2 uses; 4.6, 5.4);<br>• its keyframes (drift, pill, jiggle) and timing roles in `motion/memory-worlds.css`, with a finite glow drift that pauses off screen (M8). |
+| 1.10 | 2026-11-25 | Memory worlds (#2283):<br>• `StackWorld.tsx` and `RecordCrateWorld.tsx` registered as `gesture` owners not yet on the building block (4.6, 5.4);<br>• their keyframes, turntable loops and timing roles in `motion/memory-worlds.css`, their flights and platter spin in `motion/recordCrate.ts`. |
 | 1.9 | 2026-11-21 | Wir opening on one clock (#2147):<br>• Enter `stage` gains the data hold, the opening budget, late `data-motion-join` members and a wider `scope` (4.1, 5.4);<br>• the tokens `motion.stage.dataHold` and `motion.stage.openingBudget` (5.3);<br>• on Wir the check-in, the place, the quote, the photos and the modules in view are members of the one opening; the root-tab entrance no longer runs beside it; data after the opening is simply there;<br>• the partner's check-in arrival (Flight) waits until the opening ended (M15). |
 | 1.8 | 2026-11-20 | Guard closed (#2080):<br>• the ratchet allowlist removed; the guard rejects ad-hoc motion everywhere outside the layer (M14, 5.4);<br>• new guard rules for layout transitions, pointer tracking and animation-library dependencies, with the reviewed registrations `REGISTERED_LOOPS`, `REGISTERED_LAYOUT_TRANSITIONS` and `REGISTERED_POINTER_TRACKING` (5.4);<br>• the Planen search row `disclose` check (4.2) and the lifeline preview card swipe recorded as a gesture owner not yet on the building block (4.6);<br>• the segmented mark, the Herzversteck meter and the vault navigation on compositor or Feedback properties (8);<br>• the thin-stroke rule kept as a review rule (5.4, 9);<br>• the final inventory (7.6) and step 9 done (8). |
 | 1.7 | 2026-11-20 | Playback and Scenes (#2079):<br>• the Playback and Scenes domains as built (4.8): story playback and the recap film on the one reduced-motion source, the scene controller `useScene` with `data-motion-scene`, `useAmbientRest` in the layer, and the domain catalogues (5.4);<br>• the registered Scenes loops in the guard instead of the ratchet;<br>• the media skeleton on the Loading sweep and the gallery placeholder on the Loading pulse (5.4);<br>• the recap lead `disclose` check (4.2) and the first-content glow exception (4.3);<br>• the allowlist empty after step 8 (5.4, 8). |

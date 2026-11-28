@@ -23,9 +23,143 @@ import {
 } from '../client/useEditorHistoryEntry';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import taskBoundary from '../i18n/locales/taskBoundary';
-import taskSheets from '../i18n/locales/taskSheets';
 import { DraftExitPrompt } from './DraftExitPrompt';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
+import germanUi from '../i18n/locales/de';
+
+function DestinationDraftTask({
+  onDefaultExit,
+  destination,
+}: {
+  onDefaultExit: () => void;
+  destination: () => void;
+}) {
+  const editor = useTaskEditorLifecycle({
+    isDirty: true,
+    onClose: onDefaultExit,
+  });
+  return (
+    <>
+      <input aria-label="Draft" defaultValue="A thought worth keeping" />
+      <button type="button" onClick={() => editor.requestClose(destination)}>
+        Leave draft
+      </button>
+      <DraftExitPrompt
+        open={editor.showDiscardConfirm}
+        onKeep={editor.keepEditing}
+        onDiscard={editor.closeConfirmed}
+      />
+    </>
+  );
+}
+
+function BackDraftTask({ onExit }: { onExit: () => void }) {
+  const editor = useTaskEditorLifecycle({ isDirty: true, onClose: onExit });
+  return (
+    <>
+      <input aria-label="Draft" defaultValue="A thought worth keeping" />
+      <DraftExitPrompt
+        open={editor.showDiscardConfirm}
+        onKeep={editor.keepEditing}
+        onDiscard={editor.closeConfirmed}
+      />
+    </>
+  );
+}
+
+function NestedSheets({
+  onOuterClose,
+  onInnerClose,
+}: {
+  onOuterClose: () => void;
+  onInnerClose: () => void;
+}) {
+  const [outer, setOuter] = useState(true);
+  const [inner, setInner] = useState(true);
+  return (
+    <ShortTaskSheet
+      open={outer}
+      title="Outer reading"
+      onClose={() => {
+        onOuterClose();
+        setOuter(false);
+      }}
+    >
+      <ShortTaskSheet
+        open={inner}
+        title="Inner reading"
+        onClose={() => {
+          onInnerClose();
+          setInner(false);
+        }}
+      >
+        <p>Referenced text</p>
+      </ShortTaskSheet>
+    </ShortTaskSheet>
+  );
+}
+
+function GuardedNestedSheets({
+  guard,
+  onParentClose,
+  onChildClose,
+  onDiscardRequested,
+  onCloseBlocked,
+}: {
+  guard: 'none' | 'dirty' | 'blocked';
+  onParentClose: () => void;
+  onChildClose: () => void;
+  onDiscardRequested: () => void;
+  onCloseBlocked: () => void;
+}) {
+  const [parentOpen, setParentOpen] = useState(false);
+  const [childOpen, setChildOpen] = useState(false);
+  const parentTrigger = useRef<HTMLButtonElement>(null);
+  const childTrigger = useRef<HTMLButtonElement>(null);
+  return (
+    <>
+      <button
+        ref={parentTrigger}
+        type="button"
+        onClick={() => setParentOpen(true)}
+      >
+        Open parent
+      </button>
+      <ShortTaskSheet
+        open={parentOpen}
+        title="Parent choice"
+        restoreFocusRef={parentTrigger}
+        onClose={() => {
+          onParentClose();
+          setParentOpen(false);
+        }}
+      >
+        <button
+          ref={childTrigger}
+          type="button"
+          onClick={() => setChildOpen(true)}
+        >
+          Open child
+        </button>
+        <ShortTaskSheet
+          open={childOpen}
+          title="Child choice"
+          restoreFocusRef={childTrigger}
+          isDirty={guard === 'dirty'}
+          isCloseBlocked={guard === 'blocked'}
+          onDiscardRequested={onDiscardRequested}
+          onCloseBlocked={onCloseBlocked}
+          onClose={() => {
+            onChildClose();
+            setChildOpen(false);
+          }}
+        >
+          <input aria-label="Child draft" defaultValue="Unsaved choice" />
+        </ShortTaskSheet>
+      </ShortTaskSheet>
+    </>
+  );
+}
 
 function fireReactAnimationEnd(element: Element): void {
   fireEvent.animationEnd(element);
@@ -153,29 +287,12 @@ describe('ShortTaskSheet history ownership', () => {
         expect(document.body.style.overflow).not.toBe('hidden');
         expect(window.history.state[EDITOR_HISTORY_STATE_KEY]).toBeUndefined();
       });
-      function DraftTask() {
-        const editor = useTaskEditorLifecycle({
-          isDirty: true,
-          onClose: onDefaultExit,
-        });
-        return (
-          <>
-            <input aria-label="Draft" defaultValue="A thought worth keeping" />
-            <button
-              type="button"
-              onClick={() => editor.requestClose(destination)}
-            >
-              Leave draft
-            </button>
-            <DraftExitPrompt
-              open={editor.showDiscardConfirm}
-              onKeep={editor.keepEditing}
-              onDiscard={editor.closeConfirmed}
-            />
-          </>
-        );
-      }
-      render(<DraftTask />);
+      render(
+        <DestinationDraftTask
+          onDefaultExit={onDefaultExit}
+          destination={destination}
+        />,
+      );
       await waitFor(() =>
         expect(window.history.state[EDITOR_HISTORY_STATE_KEY]).toBeTruthy(),
       );
@@ -202,20 +319,7 @@ describe('ShortTaskSheet history ownership', () => {
 
   it('keeps the draft and parent guard when Back dismisses its discard prompt', async () => {
     const onExit = vi.fn();
-    function DraftTask() {
-      const editor = useTaskEditorLifecycle({ isDirty: true, onClose: onExit });
-      return (
-        <>
-          <input aria-label="Draft" defaultValue="A thought worth keeping" />
-          <DraftExitPrompt
-            open={editor.showDiscardConfirm}
-            onKeep={editor.keepEditing}
-            onDiscard={editor.closeConfirmed}
-          />
-        </>
-      );
-    }
-    render(<DraftTask />);
+    render(<BackDraftTask onExit={onExit} />);
     await waitFor(() =>
       expect(window.history.state[EDITOR_HISTORY_STATE_KEY]).toBeTruthy(),
     );
@@ -267,32 +371,9 @@ describe('ShortTaskSheet history ownership', () => {
   it('closes only the topmost of two nested sheets on Escape', async () => {
     const onOuterClose = vi.fn();
     const onInnerClose = vi.fn();
-    function NestedSheets() {
-      const [outer, setOuter] = useState(true);
-      const [inner, setInner] = useState(true);
-      return (
-        <ShortTaskSheet
-          open={outer}
-          title="Outer reading"
-          onClose={() => {
-            onOuterClose();
-            setOuter(false);
-          }}
-        >
-          <ShortTaskSheet
-            open={inner}
-            title="Inner reading"
-            onClose={() => {
-              onInnerClose();
-              setInner(false);
-            }}
-          >
-            <p>Referenced text</p>
-          </ShortTaskSheet>
-        </ShortTaskSheet>
-      );
-    }
-    render(<NestedSheets />);
+    render(
+      <NestedSheets onOuterClose={onOuterClose} onInnerClose={onInnerClose} />,
+    );
     const inner = screen.getByRole('dialog', { name: 'Inner reading' });
 
     // The browser dispatches cancel to the topmost modal dialog only.
@@ -433,7 +514,9 @@ describe('ShortTaskSheet history ownership', () => {
     trigger.focus();
     fireEvent.click(trigger);
     expect(document.body.style.overflow).toBe('hidden');
-    fireEvent.click(screen.getByRole('button', { name: taskSheets.close }));
+    fireEvent.click(
+      screen.getByRole('button', { name: germanUi.common.close }),
+    );
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() => expect(document.activeElement).toBe(trigger));
     expect(document.body.style.overflow).toBe('auto');
@@ -445,56 +528,15 @@ describe('ShortTaskSheet history ownership', () => {
       const onChildClose = vi.fn();
       const onDiscardRequested = vi.fn();
       const onCloseBlocked = vi.fn();
-      function NestedSheets() {
-        const [parentOpen, setParentOpen] = useState(false);
-        const [childOpen, setChildOpen] = useState(false);
-        const parentTrigger = useRef<HTMLButtonElement>(null);
-        const childTrigger = useRef<HTMLButtonElement>(null);
-        return (
-          <>
-            <button
-              ref={parentTrigger}
-              type="button"
-              onClick={() => setParentOpen(true)}
-            >
-              Open parent
-            </button>
-            <ShortTaskSheet
-              open={parentOpen}
-              title="Parent choice"
-              restoreFocusRef={parentTrigger}
-              onClose={() => {
-                onParentClose();
-                setParentOpen(false);
-              }}
-            >
-              <button
-                ref={childTrigger}
-                type="button"
-                onClick={() => setChildOpen(true)}
-              >
-                Open child
-              </button>
-              <ShortTaskSheet
-                open={childOpen}
-                title="Child choice"
-                restoreFocusRef={childTrigger}
-                isDirty={guard === 'dirty'}
-                isCloseBlocked={guard === 'blocked'}
-                onDiscardRequested={onDiscardRequested}
-                onCloseBlocked={onCloseBlocked}
-                onClose={() => {
-                  onChildClose();
-                  setChildOpen(false);
-                }}
-              >
-                <input aria-label="Child draft" defaultValue="Unsaved choice" />
-              </ShortTaskSheet>
-            </ShortTaskSheet>
-          </>
-        );
-      }
-      render(<NestedSheets />);
+      render(
+        <GuardedNestedSheets
+          guard={guard}
+          onParentClose={onParentClose}
+          onChildClose={onChildClose}
+          onDiscardRequested={onDiscardRequested}
+          onCloseBlocked={onCloseBlocked}
+        />,
+      );
       fireEvent.click(screen.getByRole('button', { name: 'Open parent' }));
       await waitFor(() =>
         expect(window.history.state[EDITOR_HISTORY_STATE_KEY]).toBeTruthy(),
@@ -585,8 +627,10 @@ describe('ShortTaskSheet history ownership', () => {
     render(<Task onExit={vi.fn()} onDiscard={vi.fn()} />);
     fireEvent.click(screen.getByText('Task choices'));
 
-    const closeButton = screen.getByRole('button', { name: taskSheets.close });
-    expect(closeButton.getAttribute('title')).toBe(taskSheets.close);
+    const closeButton = screen.getByRole('button', {
+      name: germanUi.common.close,
+    });
+    expect(closeButton.getAttribute('title')).toBe(germanUi.common.close);
     expect(closeButton.classList.contains('short-task-sheet-drag-zone')).toBe(
       true,
     );
@@ -598,6 +642,82 @@ describe('ShortTaskSheet history ownership', () => {
     );
   });
 
+  it('makes the footer keyboard-reachable exactly while it overflows and scrolls', () => {
+    let footerOverflows = false;
+    let notifyResize: () => void = () => undefined;
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(callback: () => void) {
+          notifyResize = callback;
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+    const isFooter = (element: Element) =>
+      element.classList.contains('short-task-sheet-footer');
+    vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockImplementation(
+      function (this: HTMLElement) {
+        return isFooter(this) && footerOverflows ? 400 : 100;
+      },
+    );
+    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(100);
+
+    render(
+      <ShortTaskSheet
+        open
+        title="Footer"
+        onClose={vi.fn()}
+        footer={<p>Saved</p>}
+      >
+        <p>Content</p>
+      </ShortTaskSheet>,
+    );
+    const footer = document.querySelector('.short-task-sheet-footer');
+    expect(footer).not.toBeNull();
+    expect(footer?.hasAttribute('tabindex')).toBe(false);
+
+    footerOverflows = true;
+    act(() => notifyResize());
+    expect(footer?.getAttribute('tabindex')).toBe('0');
+
+    footerOverflows = false;
+    act(() => notifyResize());
+    expect(footer?.hasAttribute('tabindex')).toBe(false);
+    vi.unstubAllGlobals();
+  });
+
+  it('can hide the close icon while the handle stays the labeled close target', () => {
+    const onClose = vi.fn();
+    render(
+      <ShortTaskSheet
+        open
+        title="No icon"
+        onClose={onClose}
+        showCloseIcon={false}
+      >
+        <p>Content</p>
+      </ShortTaskSheet>,
+    );
+
+    const closeButton = screen.getByRole('button', {
+      name: germanUi.common.close,
+    });
+    expect(closeButton.getAttribute('title')).toBe(germanUi.common.close);
+    expect(closeButton.querySelector('svg')).toBeNull();
+    expect(
+      closeButton.querySelector('.short-task-sheet-drag-handle'),
+    ).not.toBeNull();
+    expect(
+      closeButton
+        .closest('dialog')
+        ?.classList.contains('short-task-sheet-no-close-icon'),
+    ).toBe(true);
+    fireEvent.click(closeButton);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps modality and scroll locking through animated Close until the real exit signal', async () => {
     mockMatchMedia(false);
     document.body.style.overflow = 'auto';
@@ -607,7 +727,9 @@ describe('ShortTaskSheet history ownership', () => {
     fireEvent.click(trigger);
 
     const dialog = screen.getByRole('dialog') as HTMLDialogElement;
-    fireEvent.click(screen.getByRole('button', { name: taskSheets.close }));
+    fireEvent.click(
+      screen.getByRole('button', { name: germanUi.common.close }),
+    );
 
     await waitFor(() =>
       expect(dialog.getAttribute('data-presence')).toBe('exiting'),
@@ -1155,7 +1277,9 @@ describe('ShortTaskSheet history ownership', () => {
       </ShortTaskSheet>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: taskSheets.close }));
+    fireEvent.click(
+      screen.getByRole('button', { name: germanUi.common.close }),
+    );
     expect(onDiscardRequested).toHaveBeenCalledTimes(1);
     expect(onClose).not.toHaveBeenCalled();
     expect(screen.getByRole('dialog')).toBeDefined();
@@ -1172,7 +1296,9 @@ describe('ShortTaskSheet history ownership', () => {
       </ShortTaskSheet>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: taskSheets.close }));
+    fireEvent.click(
+      screen.getByRole('button', { name: germanUi.common.close }),
+    );
     expect(onCloseBlocked).toHaveBeenCalledTimes(1);
     expect(onClose).not.toHaveBeenCalled();
     expect(screen.getByRole('dialog')).toBeDefined();

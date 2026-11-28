@@ -80,12 +80,137 @@ projection including available signals for:
 - READY media object count and aggregate stored bytes;
 - background-job state, oldest pending job, and recent failed-job technical
   metadata;
-- privacy-safe warning codes for actionable configuration/runtime conditions.
+- the number of unarchived support reports in state `NEW`, and a `support_reports_unread`
+  warning when an unarchived `NEW` report older than 14 days exists while support reports
+  are enabled (counts only; no report content or identifiers). While
+  `EIMIR_SUPPORT_REPORTS_ENABLED` is off the count is always 0 and the warning
+  never appears, even when `NEW` reports exist from an earlier period in which
+  the switch was on;
+- `supportReportsOperatorAvailable`: whether the operator Reports section is
+  available, see [Support reports](#support-reports);
+- `storagePressure` / `storagePressureCount`: Spaces at or above 85 % of their
+  Cloud storage quota, fullest first, at most five listed (Space id, counted
+  bytes and quota only; always empty on Self-Hosted, which is unmetered), with
+  the `storage_quota_pressure` warning while any exist;
+- `expiringAdminGrants` / `expiringAdminGrantCount`: active `ADMIN_GRANT`
+  entitlement grants ending within the next seven days, soonest first, at most
+  five listed (Space id, grant id and end only), with the
+  `admin_grants_expiring` warning while any exist;
+- worker liveness: `workerStatus` / `videoWorkerStatus` (`ok`, `silent` or
+  `no_heartbeat_signal`) and `workerLastSeenAt`, see [Monitoring](#monitoring);
+- `emailFailuresLastHour` / `pushFailuresLastHour` (counts only);
+- `backupStatus`: `not_configured` until a backup job reports a signal; on Cloud
+  this adds the `backup_not_configured` warning;
+- privacy-safe warning codes for actionable configuration/runtime conditions;
+- `jobsFailedUnseen`: failed jobs that finished after an operator last marked
+  them as seen (all failed jobs while nobody has). The Situation page's "Needs
+  you" list and the `failed_jobs_present` warning use it; `jobsFailed` and
+  System › Jobs keep counting every failed job.
+
+**Marking as seen (#2342).** The "Needs you" rows for failed jobs and new
+reports carry a "Seen" button. `POST /api/v1/server-admin/failed-jobs/seen`
+stores the time on the instance settings for every ServerAdmin and records the
+content-free action `failed_jobs_seen` with the number of hidden jobs; the row
+returns as soon as a new job fails. Alert mails and pushes are unaffected. The
+reports button moves the reports that were new when the page loaded to
+`IN_PROGRESS` (see [Routes](#routes)). Other rows have no button; they leave
+when their condition is resolved.
 
 Where no authoritative runtime primitive exists yet, the API reports that the
 signal is not available instead of fabricating health. In particular, the
-current worker model has no heartbeat primitive and the media adapters do not
-expose a generic health probe.
+media adapters do not expose a generic health probe.
+
+## Monitoring
+
+`GET /api/v1/server-admin/monitoring?range=24h|30d|90d` returns history points
+(hourly for 24 h, daily for 30/90 days), a storage summary and service states.
+The data comes from four tables that hold counts, bytes, durations and
+timestamps only:
+
+- `worker_heartbeats`: each worker process writes its row every 60 seconds from
+  a small thread, together with the last time its loop made progress. A process
+  is alive when its row is at most 3 minutes old and its loop moved within the
+  job lease plus 3 minutes (5 minutes for the worker, 30 for the video worker),
+  so a long job does not look dead and a hung loop does. Rows older than seven
+  days are pruned.
+- `request_metric_minutes`: each API process counts requests, 5xx responses and
+  latency buckets per minute (health probes excluded) and adds them from a
+  background thread; kept for 48 hours.
+- `operational_metric_hours`: the hourly `monitoring_history` job writes one row
+  per hour (requests, server errors, p95, new accounts, active Spaces, stored
+  bytes, media filesystem usage when the local media store is used, failed jobs,
+  failed email and push deliveries); kept for 90 days.
+- `monitoring_alert_states`: see the alert job.
+
+The storage summary shows the media filesystem's used and total bytes and a
+linear "full in" estimate when the local media store is used and usage rises.
+With object storage there is no total; the page shows stored bytes only.
+
+`EIMIR_HEARTBEAT_PUSH_URL` (optional) is the push-monitor URL of the operator's
+own Uptime Kuma. The worker pings it after each heartbeat while the process is
+alive, so Kuma alerts when the worker or the whole host stops. The URL carries a
+token: it is never logged or returned by any API. `EIMIR_WORKER_NAME` gives a
+process a stable heartbeat name (default: the host name).
+
+`PUT /api/v1/server-admin/settings/monitoring-alerts` with `{"enabled": bool}`
+turns the alert mails on or off, and `PUT /api/v1/server-admin/settings/monitoring-push`
+turns the same alerts as app push on or off (#2314); both are on by default and
+both changes are recorded in the privileged audit like the other settings.
+
+### Alert mails and push
+
+The `monitoring_alerts` job runs every five minutes and alerts the allow-listed
+ServerAdmin accounts with a verified address when a condition becomes active,
+and at most once a day while it stays active. Nothing is sent on resolution,
+and conditions that become active while both switches are off are not sent
+later. Both channels share one state per condition: one activation is one mail
+and one push.
+
+- **Mail** goes to each verified allow-listed address, names the condition and
+  links to System › Monitoring (new reports link to Help › Reports).
+- **Push** goes once to each such account's registered devices, as an operator
+  notice of kind `OPERATOR_ALERT`: it belongs to no Space, never appears in a
+  couple's Notification Center, unread count or notification settings, and
+  names only the condition. On Android apps with encrypted preview v4 (#2337)
+  the notice names its topic (for example "ServerAdmin: new support report");
+  older apps and other platforms show the neutral eimir. notice and the topic
+  appears after the tap. The tap opens the matching ServerAdmin page
+  (failed jobs: System › Jobs; new reports: the new reports; a Space near its
+  quota: the Situation; otherwise System › Monitoring). It is resolved through
+  the account's current Space; if that fails (or the account is in no Space),
+  a v4 app still opens the topic's ServerAdmin page from the topic code on the
+  device instead of the notification list. The account's Quiet Hours
+  apply; alerts held overnight arrive as one notice that opens the latest
+  topic, while the mails name each one. Delivery and the tap re-check that the
+  account is still a verified allow-listed ServerAdmin. Notices expire after 24 hours and are
+  deleted a day later. On v4 an operator notice stays deliverable for up to an
+  hour (provider TTL and device preview window), so a device whose push
+  connection stalls briefly still receives it; couple notices keep five minutes.
+
+| Code | Active when |
+| --- | --- |
+| `failed_jobs` | a job failed after the last mailed failure |
+| `space_quota_pressure` | a Cloud Space uses at least 85 % of its quota |
+| `disk_pressure` | the local media filesystem is at least 85 % full |
+| `delivery_failures` | more than 5 email or push deliveries failed in the last hour |
+| `backup_not_configured` | Cloud without a backup signal (sent once only) |
+| `support_reports` | a new unarchived report arrived after the last notice, while reports are collected and the operator plugin can triage them |
+
+### Runbook: external watch with Uptime Kuma and Arcane
+
+eimir. cannot report its own outage. The operator therefore runs an Uptime Kuma
+instance on a **different host** than eimir. (if it ran on the same host, it
+would go down with it):
+
+1. In Uptime Kuma, add an **HTTP(s)** monitor for
+   `https://<your eimir host>/api/v1/health/ready` with a 60-second interval. It
+   answers 200 only while the API and its database work and returns no content.
+2. Add a **Push** monitor (heartbeat interval 120 seconds). Copy its push URL into
+   the eimir. configuration as `EIMIR_HEARTBEAT_PUSH_URL` for the worker and
+   redeploy. Kuma then alerts when the worker hangs, stops, or the host is gone.
+3. Set up a notification (for example email) for both monitors.
+4. Use Arcane for the container overview (running, health, restarts). Container
+   state alone does not show a hung worker; the push monitor does.
 
 The overview does not expose:
 
@@ -237,8 +362,9 @@ Preserving the Space does not preserve its ability to accept that replacement
 Account. Diagnose mailbox requests, proof binding and authorized Space selection
 before proposing deletion as a way to retry onboarding.
 
-The ServerAdmin danger zone invokes that same lifecycle behind recent
-authentication, impact confirmation and exact typed target confirmation. The
+The ServerAdmin danger zone invokes that same lifecycle behind impact
+confirmation and exact typed target confirmation; like every ServerAdmin
+action it needs no step-up re-authentication (Product Owner, 2026-11-26). The
 privileged audit records the operator request and projects the authoritative
 lifecycle outcomes as `account_deletion_completed` or
 `account_deletion_failed`. These outcome entries are an immutable operational
@@ -260,6 +386,9 @@ boolean settings history. `InstanceAdministrationActionEvent` records only:
 
 It never stores passwords, recovery proofs, free-form reasons, request bodies,
 private relationship payloads, IP-history profiling, or provider secrets.
+
+Part 3 of the redesign (#2324) adds `space_file_viewed` (every Space file load),
+`space_storage_quota_set` and `space_storage_quota_cleared` with the target Space.
 
 ## Registration and maintenance controls
 
@@ -299,6 +428,341 @@ still authenticate and accept invitations. Initial bootstrap remains an
 explicit lockout-recovery exception so a fresh Self-Hosted instance cannot be
 made permanently inaccessible before its first operator account exists.
 
+## Support reports
+
+The in-app support reports of [#2189](https://github.com/baerenmarke90/eimir/issues/2189)
+are read and answered in the **Reports** section of the ServerAdmin area. The
+section belongs to the operator plugin `eimir-admin` (entry point `admin`,
+capability `support.operator`, [Decision 0017 amendment](decisions/0017-pro-plugin-seam.md#amendment-2026-11-24-more-than-one-plugin)).
+The Core ships no reader: without the plugin there is no screen or API to read a
+report's note.
+
+### Availability
+
+The overview field `supportReportsOperatorAvailable` is `true` only while
+`EIMIR_SUPPORT_REPORTS_ENABLED` is on **and** the loaded plugins declare
+`support.operator`. The Web client shows the Reports navigation entry, and the
+`support_reports_unread` warning links into the section, only while the field is
+`true`. A direct link to `?section=reports` otherwise shows a "not available"
+state. Configuration: [Self-Hosted, operator plugin](SELF-HOSTING.md#operator-plugin-for-support-reports).
+
+### Routes
+
+All routes live under `/api/v1/server-admin/support-reports`, require the
+ServerAdmin guard, answer `Cache-Control: private, no-store` and answer `404`
+while `EIMIR_SUPPORT_REPORTS_ENABLED` is off.
+
+| Route | Purpose |
+| --- | --- |
+| `GET /` | List, optional `state` (`NEW`, `IN_PROGRESS`, `CLOSED`), `archived` (default `false`: unarchived reports; `true`: the archive), keyset `cursor`, `limit`; items carry kind, state, time, `archivedAt`, app version and build, `platform` and `os`, failure reference, whether a reply and a ticket exist and a `notePreview` (the note's first 160 characters on one line, Product Owner decision 2026-11-26, [#2327](https://github.com/baerenmarke90/eimir/issues/2327)), plus the `newCount` of unarchived `NEW` reports and the `stateCounts` of unarchived reports per state; never the full note |
+| `GET /{reportId}` | The report: note, technical client context, failure reference, request id, the opaque reporter account id (no name or email), the reply if any, the ticket link if any and `ticketAvailable` |
+| `PUT /{reportId}/state` | Set `NEW`, `IN_PROGRESS` or `CLOSED` |
+| `POST /seen` | Move the unarchived `NEW` reports created up to `through` to `IN_PROGRESS` (the Situation page's "Seen" button, #2342); returns `moved`, each report is audited like a single state change |
+| `PUT /{reportId}/archive` | Archive (`{"archived": true}`) or unarchive a report |
+| `DELETE /{reportId}` | Delete the report permanently (`204`), with its reply and ticket link |
+| `POST /{reportId}/reply` | The one reply, plain text of at most 500 characters |
+| `POST /{reportId}/ticket` | Create the tracker ticket from the operator's title and body |
+| `DELETE /{reportId}/ticket` | Clear a ticket link so a new ticket can be created |
+| `GET /templates` | The reply templates, sorted by name regardless of case |
+| `POST /templates` | Create a reply template (`201`) |
+| `PUT /templates/{templateId}` | Replace a template's name and text |
+| `DELETE /templates/{templateId}` | Delete a template (`204`) |
+
+Reads and writes need the ServerAdmin role only, without a step-up
+re-authentication. Reads are not audited. Each write records one content-free privileged audit
+entry: `support_report.state_set`, `support_report.reply_sent`,
+`support_report.ticket_created`, `support_report.ticket_cleared`,
+`support_report.archived`, `support_report.unarchived` or
+`support_report.deleted`. Report text never enters the audit, logs or metrics.
+Template writes are not audited (see [Reply templates](#reply-templates)).
+
+The plugin routers are mounted behind the normal-operation dependency, so in
+maintenance mode they answer `503` like other product routes, while the rest of
+the ServerAdmin area stays reachable.
+
+### Archive and delete
+
+- **Archive** is a marker (`archived_at`) next to the triage state, not a fourth
+  state. An archived report leaves the `NEW`, `IN_PROGRESS`, `CLOSED` and `all`
+  lists and no longer counts as new (also not for the `support_reports_unread`
+  warning), but keeps its state, so unarchiving restores it exactly. It stays
+  readable in the `Archived` view. Archiving does not change retention: the
+  90-day and 365-day deletion of the privacy notice applies to archived reports
+  unchanged.
+- **Delete** removes one report for good, with its reply and, through the
+  foreign key, its ticket link. It cannot be undone. The tracker issue of a
+  linked ticket is not touched (the tracker API cannot delete issues); the
+  confirmation dialog says so. The reporter's reply notice follows the report
+  and stops being current, and the reporter's own reply endpoint answers `404`.
+  A copy of the reports that a person already received as their personal data
+  copy stays in that copy. Deleting earlier than the retention periods is
+  within the privacy notice ("at the latest").
+
+### Reply
+
+A report receives exactly one reply. It is sent once and cannot be edited or
+withdrawn; a second attempt answers `409 SUPPORT_REPORT_ALREADY_REPLIED`. The
+reporter reads it as plain text in their notifications.
+
+### Reply templates
+
+The operator keeps reply texts and inserts one into a reply with a tap
+([#2327](https://github.com/baerenmarke90/eimir/issues/2327), Product Owner
+decisions 2026-11-26).
+
+- Templates are operator text in the plugin table `support_reply_templates`,
+  shared by all ServerAdmins of the instance, not i18n resources and not tied
+  to a report, Account or Space. They are stored as plain text and are not part
+  of any personal data copy or Space export.
+- A template has a name of 1 to 40 and a text of 1 to 500 characters after
+  trimming (`422` otherwise); a reply cannot be longer either. Names are unique
+  regardless of case (`409 SUPPORT_TEMPLATE_NAME_TAKEN`). At most 30 templates
+  exist (`409 SUPPORT_TEMPLATE_LIMIT`). An unknown or malformed id answers
+  `404 SUPPORT_TEMPLATE_NOT_FOUND`.
+- No placeholders: reports are anonymous, so there is no name to fill in.
+- Template writes need the ServerAdmin role only and leave no privileged audit
+  entry: they change operator text, not anything about a person. Sending a reply
+  stays audited as `support_report.reply_sent`.
+- Inserting a template never overwrites typed text: it goes to the caret or
+  replaces the selection; a result over 500 characters is not cut but blocks
+  sending until the operator shortens it.
+
+### Tickets
+
+- Only technical data leaves the server. The ticket body is the title and body
+  the operator types plus a fixed footer the server composes from the report id,
+  kind, app version, build, platform, failure reference and request id. The
+  stored note and the reply are never read into the tracker request. The
+  operator is responsible for not typing private text; the dialog says so.
+- The only tracker is GitHub Issues (`EIMIR_ADMIN_TRACKER=github`), using the
+  repository `EIMIR_ADMIN_GITHUB_REPOSITORY` and the token
+  `EIMIR_ADMIN_GITHUB_TOKEN`. Issues get the label `support-report`. The token
+  never reaches a client and never appears in logs. Without a configured tracker
+  the detail reports `ticketAvailable: false`, the UI hides the button and the
+  route answers `409 SUPPORT_TICKET_NOT_CONFIGURED`.
+- One ticket per report. Creation first reserves a `PENDING` link and commits
+  it, then calls the tracker, then stores the link as `CREATED`. A second request
+  answers `409 SUPPORT_TICKET_EXISTS` with the existing link. The title takes 1 to
+  256 characters (`422` validation otherwise); a body that exceeds 65,536
+  characters together with the footer answers `422 SUPPORT_TICKET_TOO_LONG`.
+- A tracker failure answers `502 SUPPORT_TICKET_FAILED` with a `retryable` flag
+  and leaves the link `PENDING`; nothing retries automatically. A `PENDING` link
+  older than five minutes, or one whose attempt failed in this session, is shown
+  as "uncertain, check the tracker". The operator checks the tracker and may then
+  clear the link (`DELETE`, after a confirmation that warns about a duplicate
+  ticket) and create it again. Clearing removes only the link; an issue that was
+  created stays in the tracker.
+- The link row is deleted with its report (retention, account deletion).
+
+### Runbook: downgrades
+
+- The plugin's migration chain creates `support_report_tickets` with a foreign
+  key to the Core table `support_reports` from Core migration `0175`, and in
+  revision `0002` the reply templates. Downgrading the plugin chain below `0002`
+  deletes every template. Before a
+  Core downgrade below `0175`, downgrade the admin plugin chain to its base
+  first.
+- The downgrade of Core migration `0177` drops `support_reports.archived_at`
+  (archive markers are lost) and deletes the audit rows of the three actions it
+  added (`archived`, `unarchived`, `deleted`).
+- The downgrade of Core migration `0176` deletes the privileged audit rows of
+  the four `support_report.*` actions, because the narrower action constraint
+  cannot hold them. Export them first if they must be kept.
+
+## People search and Space file
+
+ServerAdmin part 3 (#2324) adds one search and a Space file under People.
+
+- `GET /api/v1/server-admin/search?q=` matches the query against email
+  addresses (as a substring, with `%` and `_` taken literally) and against a
+  complete Account or Space id. It needs at least two characters other than
+  `%` and `_` unless it is a complete id, returns at most 20 Accounts and at
+  most 40 Spaces (those Accounts' Spaces and a Space matched by id). Names are
+  protected content and are never matched.
+- `GET /api/v1/server-admin/spaces/{spaceId}/file` returns the Space
+  lifecycle projection, its members (primary email, verification, sign-in
+  methods, membership status and dates), storage used against the Cloud quota
+  with bytes per media type, the entitlement summary and grant history, and
+  the newest 20 events (grants and privileged actions on this Space; views
+  are left out). It never returns display names, Space names or profile,
+  relationship dates or content. Every call records `space_file_viewed`.
+- `GET /api/v1/server-admin/accounts/{accountId}` lists the Account's Spaces
+  (id, membership status, since).
+
+This narrows the earlier rule that the lifecycle directory carries no
+Account correlation: the link between an Account and its Spaces is shown one
+Space or Account at a time to an allow-listed ServerAdmin, every Space file
+view is audited, and no endpoint lists the link in bulk. The privacy policy
+already says that administration tools show account data and never content.
+Support reports stay anonymous and never link to a Space.
+
+Each member in the Space file links to its Account detail, which shows the
+display name as before. The pairing of a Space with its members' names is
+therefore reachable in two steps; the Product Owner accepted this on
+2026-11-26, since the privacy policy names account data, including names,
+as visible in administration tools.
+
+### Individual storage quota
+
+On eimir. Cloud a ServerAdmin can give one Space an individual storage quota:
+
+```text
+PUT /api/v1/server-admin/spaces/{spaceId}/storage-quota
+{"quotaGb": 80, "effectiveUntil": "2026-12-31T23:59:59+01:00"}
+DELETE /api/v1/server-admin/spaces/{spaceId}/storage-quota
+```
+
+- While it is active the higher of it and the Free or Premium value applies
+  (Product Owner, 2026-11-26): it only ever raises storage, and buying Premium
+  is never undercut by a smaller individual value. A value not above the plan
+  has no effect, which the sheet says. Whole GB from 1 to 1024; an end date
+  must lie in the future and is optional. After it, or after `DELETE`, the tier value applies again at once;
+  no job is involved.
+- Over any quota nothing is deleted; only new bytes are refused. The Space
+  file warns before a value below the current usage is saved.
+- Self-Hosted is unmetered: both calls answer 404 and the action is absent.
+- It is stored in `space_storage_quota_overrides` (Space, bytes, until, set
+  by, set at) and removed with the Space. It is not copied by the operator
+  transfer. Uploads, the Situation pressure list and the storage alert read
+  it through `attachments.quota.space_quota`.
+- Set and clear are recorded as `space_storage_quota_set` and
+  `space_storage_quota_cleared`.
+
+## Pro and gift codes
+
+ServerAdmin part 5 ([#2328](https://github.com/baerenmarke90/eimir/issues/2328),
+[design](superpowers/specs/2026-11-26-server-admin-part5-pro-gifts-design.md))
+adds a **Pro** area: Premium figures, Google Play subscription states, eimir.
+gift codes and the running gifts. Google Play promo codes are left out
+(Product Owner, 2026-11-26).
+
+### Availability
+
+The area, its routes and the couple redemption exist only on eimir. Cloud
+(`EIMIR_DEPLOYMENT=cloud`) **and** with the Pro plugin loaded. Core computes
+the ServerAdmin overview field `proAreaAvailable` and the public instance
+status field `giftCodesAvailable` from the deployment and the loaded plugin
+names, without importing Pro. Otherwise the navigation entry and the redeem
+entry are absent, a `?section=pro` link opens the overview, and the routes
+answer `404`. Self-Hosted uses the offline licence instead of gift codes. The
+redeem entry is also hidden in the native app, decided by platform, until a
+Google Play payments-policy check.
+
+### Routes
+
+The operator routes live under `/api/v1/server-admin/pro`, require the
+ServerAdmin guard and answer `Cache-Control: private, no-store`.
+
+| Route | Purpose |
+| --- | --- |
+| `GET /overview` | Figures, Google Play states, batch summaries and running gifts |
+| `POST /gift-code-batches` | `{count, durationMonths, redeemableUntil?, note?}`: 1 to 100 codes of 1, 3, 6 or 12 months; returns the batch with its codes |
+| `GET /gift-code-batches/{batchId}` | One batch with each code and its state |
+| `POST /gift-code-batches/{batchId}/revoke` | Revokes every unredeemed code of the batch |
+| `PUT /gift-codes/{codeId}/handed-out` | `{handedOut}`: marks a code as given away, or back |
+| `POST /gift-codes/{codeId}/revoke` | Revokes one unredeemed code |
+
+A member of a Space redeems with
+`POST /api/v1/spaces/{spaceId}/gift-codes/redeem` and `{code}`; the answer is
+`{effectiveUntil, extended}` or a problem with one of the codes
+`GIFT_CODE_INVALID` (unknown, malformed, revoked or expired, one shape for
+all), `GIFT_CODE_USED`, `GIFT_CODE_SUBSCRIPTION_ACTIVE`,
+`GIFT_CODE_UNLIMITED` or `RATE_LIMITED`.
+
+### Figures
+
+All figures are aggregates; the overview shows no names:
+
+- **Spaces:** all Spaces, those with an effective Premium grant now, and of
+  those how many by Google Play and how many by gift (manual or code). A Space
+  with both counts once, under Google Play.
+- **Google Play states** of each Space's latest Google Play grant: active and
+  renewing, cancelled but still running, payment problem (grace period) and
+  ended in the last 30 days.
+- **Cancellations (30 days) are an approximation.** eimir. keeps no
+  cancellation history, so the figure counts the currently cancelled or
+  revoked subscriptions whose latest store event falls in the last 30 days.
+  A subscription cancelled and resumed within the window does not count; the
+  label says "approximately".
+- **Running gifts:** one row per Space with its real end (the latest end of
+  its running gifts), the origin (manual, or code with the batch note)
+  and a link to the Space file, sorted by end date with unlimited gifts last,
+  capped at 50 with a total.
+
+The Google Play billing backend is mock-tested only and the Play Console is not
+set up yet; without store data the Google Play card shows a calm empty state.
+
+### Gift code lifecycle
+
+- A batch holds 1 to 100 single-use codes `EIMIR-XXXX-XXXX` (8 characters
+  from a 31-character alphabet without 0, O, 1, I and L, about 40 bits, from
+  `secrets`). Input is normalized: case, spaces and hyphens are ignored and
+  the `EIMIR` prefix is optional.
+- A batch is redeemable for 12 months by default; another deadline must lie
+  between tomorrow and 24 months ahead. The private note (at most 120
+  characters) is operator-only and never shown to couples.
+- A code is **open**, **handed out** (the operator's mark, reversible),
+  **redeemed**, **revoked** or **expired**; the state derives from the
+  timestamps and the batch. A redeemed code links to the redeeming Space's
+  file until that Space is deleted.
+- Revoking a batch or a code affects only unredeemed codes; gifts already
+  redeemed keep running. Batches and codes record who created and who revoked
+  them (`created_by`, `revoked_by`, set to null when that Account is deleted).
+- A batch whose codes are all redeemed, revoked or expired is pruned 24 months
+  after its last change.
+
+### Redemption rules
+
+Codes are not bound to a Space: the first redeeming Space gets the gift, any
+active member may redeem, also before the partner joined. The new grant is an
+`ADMIN_GRANT` with `external_reference = "gift-code:<code id>"` and the batch
+in its metadata; it starts now and ends `duration` months after the latest end
+of the Space's valid Premium grants, or after now. So a code never costs a Space
+Pro time it already has:
+
+| Space state | Result |
+| --- | --- |
+| No Premium | Pro from now for the duration |
+| A running gift with an end, or a cancelled Google Play subscription that still runs | Appended after the latest end |
+| A renewing Google Play subscription, a grace period or a renewing trial | Refused (`GIFT_CODE_SUBSCRIPTION_ACTIVE`); the code stays unused and can be passed on |
+| Premium without an end date | Refused (`GIFT_CODE_UNLIMITED`); the code stays unused |
+| Google Play on hold or paused (stored as expired) | Treated like no subscription |
+
+Redemption takes a per-Space lock, then locks the code row, so two codes
+redeemed at once cannot read the same end and lose months, and one code
+cannot be redeemed twice. A replay by the Space that redeemed the code returns
+the stored end without touching the grant, but only while that grant still
+runs; otherwise the code reads as used.
+
+### Rate limits
+
+Redemption uses the existing rate-limit table: **5 attempts per Account and
+hour** and **20 attempts per Space and day**. Every attempt counts, successes
+and replays included, and nothing clears the counters. This deliberately
+departs from the design's first wording ("only failures count"): clearing the
+counters after a success let any member replay a code the Space had already
+redeemed to wipe the counted guesses and guess without limit.
+
+### Privacy and storage
+
+- The overview shows aggregates and Space short ids only; no names, no
+  recipient. eimir. stores no recipient of a code and sends no codes itself.
+- Each code is stored encrypted at rest (protected payload), so the operator
+  can show and copy it later, plus a keyed lookup hash (HMAC with a server
+  secret) as the unique lookup column; a database dump alone reveals no
+  redeemable code. The plain code never appears in logs, problem details,
+  audit metadata, alert mails or the grant row.
+- The lookup hash is keyed by `EIMIR_CURSOR_SIGNING_KEY`: changing that key
+  makes every outstanding unredeemed code invalid (couples then get
+  `GIFT_CODE_INVALID`); redeemed gifts keep running.
+- Revoking a single code is API-only
+  (`POST /api/v1/server-admin/pro/gift-codes/{codeId}/revoke`); the batch
+  sheet in the UI revokes all unredeemed codes of a batch at once.
+- The tables `gift_code_batches` and `gift_codes` belong to the first Pro
+  migration chain. They are operator data, not couple content, and are
+  excluded from every portability bundle (`EXCLUDED_TABLES`). Deleting a Space keeps its
+  redeemed code row (counts stay right) and drops the link.
+
 ## Business model
 
 Core ServerAdmin operations required to run a Self-Hosted eimir.
@@ -327,8 +791,7 @@ not be repaired from Membership order, join timestamps, invitation history,
 Account creation time, or client ordering.
 
 After the partners have been verified through an appropriate out-of-band
-process, a ServerAdmin with a current recent-authentication grant may perform
-the one-time recovery operation:
+process, a ServerAdmin may perform the one-time recovery operation:
 
 ```text
 POST /api/v1/server-admin/spaces/{spaceId}/configuration-manager/reconcile

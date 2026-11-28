@@ -8,6 +8,7 @@ import profileIdentity from '../i18n/locales/profileIdentity';
 import profiles from '../i18n/locales/profiles';
 import spaceOffboarding from '../i18n/locales/spaceOffboarding';
 import { SettingsPage } from './SettingsPage';
+import germanFixture from '../../e2e/fixtures/locales/de';
 
 const SPACE_ID = 'space-1';
 const ACCOUNT_ID = 'account-1';
@@ -109,7 +110,7 @@ describe('SettingsPage', () => {
     expect(html).not.toContain('important-date-reminder-card');
     expect(html).not.toContain('name="dashboardUpcomingItemLimit"');
     expect(html).not.toContain('theme-control');
-    expect(html).not.toContain('id="data-transfer"');
+    expect(html).not.toContain('id="settings-data"');
     expect(html).not.toContain('account-danger-zone');
   });
 
@@ -142,14 +143,15 @@ describe('SettingsPage', () => {
     expect(today).toContain(dailyQuote.settingsTitle);
     expect(today).toContain('settings-daily-quote');
     expect(today).not.toContain('important-date-reminder-card');
-    expect(today).not.toContain('id="data-transfer"');
+    expect(today).not.toContain('id="settings-data"');
 
     const appearance = renderSettingsPageFixture('/more/settings/appearance');
     expect(appearance).toContain('theme-control');
-    expect(appearance).not.toContain('id="data-transfer"');
+    expect(appearance).not.toContain('id="settings-data"');
 
     const data = renderSettingsPageFixture('/more/settings/data');
-    expect(data).toContain('id="data-transfer"');
+    expect(data).toContain('id="settings-data"');
+    expect(data).not.toContain('transfer');
     expect(data).not.toContain('account-danger-zone');
   });
 
@@ -163,7 +165,9 @@ describe('SettingsPage', () => {
     expect(html).toContain(
       `<h3 id="account-settings-title">${accountSettings.dangerTitle}</h3>`,
     );
-    expect(html).not.toContain(profileIdentity.settingsSensitiveEyebrow);
+    expect(html).not.toContain(
+      germanFixture.retiredCopy.sensitiveSettingsEyebrow,
+    );
     expect(html).toContain(accountSettings.deleteAction);
     expect(html).toContain('space-offboarding-panel');
     expect(html).toContain(spaceOffboarding.action);

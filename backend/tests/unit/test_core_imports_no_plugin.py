@@ -15,53 +15,11 @@ import pytest
 
 SOURCE = Path(__file__).resolve().parents[2] / "src"
 
-PLUGIN_PACKAGES = (
-    "eimir.calendar_sync",
-    "eimir.couple_games",
-    "eimir.daily_insights",
-    "eimir.date_ideas",
-    "eimir.garden",
-    "eimir.heart_hunt",
-    "eimir.once_messages",
-    "eimir.partner_quick_actions",
-    "eimir.photo_sources",
-    "eimir.picture_ping_pong",
-    "eimir.presence",
-    "eimir.quotes",
-    "eimir.recap_composition",
-    "eimir.relationship_passport",
-    "eimir.video_processing",
-)
-"""The in-tree Pro modules; Phase 2 moves them into their own distribution."""
+PLUGIN_PACKAGES: tuple[str, ...] = ()
+"""In-tree Pro packages; Phase 2 moved them into ``backend/pro`` (#2182)."""
 
-PLUGIN_MODULES = (
-    "eimir.pro_plugin",
-    "eimir.games.service",
-    "eimir.places.memory_map",
-    "eimir.providers.caldav",
-    *(
-        f"eimir.api.v1.{name}"
-        for name in (
-            "calendar_sync",
-            "couple_games",
-            "daily_insights",
-            "daily_quote",
-            "date_ideas",
-            "games",
-            "garden",
-            "heart_hunt",
-            "memory_map",
-            "once_messages",
-            "partner_location",
-            "partner_quick_actions",
-            "photo_sources",
-            "picture_ping_pong",
-            "recap_composition",
-            "relationship_passport",
-        )
-    ),
-)
-"""Single Pro modules inside otherwise Core packages."""
+PLUGIN_MODULES: tuple[str, ...] = ()
+"""Single in-tree Pro modules; none is left since the plugin object moved (#2182)."""
 
 
 def _module_name(path: Path) -> str:
@@ -71,7 +29,13 @@ def _module_name(path: Path) -> str:
     return ".".join(parts)
 
 
+PLUGIN_DISTRIBUTION_ROOTS: tuple[str, ...] = ("eimir_pro", "eimir_admin")
+"""The import roots of the plugin distributions (``backend/pro`` #2182, ``backend/admin`` #2189)."""
+
+
 def _is_plugin(module: str) -> bool:
+    if any(module == root or module.startswith(f"{root}.") for root in PLUGIN_DISTRIBUTION_ROOTS):
+        return True
     return any(
         module == package or module.startswith(f"{package}.") for package in PLUGIN_PACKAGES
     ) or any(module == name or module.startswith(f"{name}.") for name in PLUGIN_MODULES)
@@ -118,14 +82,21 @@ def test_core_module_imports_no_plugin_code(path: Path) -> None:
 
 def test_the_check_catches_a_plugin_import() -> None:
     tree = ast.parse(
-        "def f():\n    from eimir.garden import service\n"
-        "from eimir.api.v1 import date_ideas\nimport eimir.presence.models\n"
+        "def f():\n    from eimir_pro.garden import service\n"
+        "from eimir_pro.api import calendar_sync\nimport eimir_pro.presence.models\n"
+        "import eimir_pro.plugin\n"
+        "from eimir_admin import plugin\nimport eimir_admin.api.reports\n"
     )
     assert {
         name for name in _imported(tree, "eimir.wish_selections.service") if _is_plugin(name)
     } == {
-        "eimir.garden",
-        "eimir.garden.service",
-        "eimir.api.v1.date_ideas",
-        "eimir.presence.models",
+        "eimir_pro.garden",
+        "eimir_pro.garden.service",
+        "eimir_pro.api",
+        "eimir_pro.api.calendar_sync",
+        "eimir_pro.presence.models",
+        "eimir_pro.plugin",
+        "eimir_admin",
+        "eimir_admin.plugin",
+        "eimir_admin.api.reports",
     }

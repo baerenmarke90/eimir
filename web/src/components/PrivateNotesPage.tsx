@@ -82,9 +82,7 @@ function PrivateNoteFields({
   return (
     <>
       <div className="field-group">
-        <label htmlFor="private-note-title">
-          {t('privateArea.notes.titleLabel')}
-        </label>
+        <label htmlFor="private-note-title">{t('common.title')}</label>
         <input
           ref={titleValidation.inputRef}
           id="private-note-title"
@@ -309,9 +307,7 @@ export function PrivateNoteCreatePage({ api, accountId, spaceId }: Props) {
               {t('common.cancel')}
             </button>
             <button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending
-                ? t('privateArea.saving')
-                : t('privateArea.save')}
+              {mutation.isPending ? t('common.saving') : t('common.save')}
             </button>
           </div>
         </form>
@@ -554,9 +550,7 @@ export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
               {t('common.cancel')}
             </button>
             <button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending
-                ? t('privateArea.saving')
-                : t('privateArea.save')}
+              {mutation.isPending ? t('common.saving') : t('common.save')}
             </button>
           </div>
         </form>

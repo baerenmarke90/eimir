@@ -7,6 +7,7 @@ import {
   syncBackgroundSharing,
 } from '../client/approximateLocation';
 import { isClientOnline } from '../client/connectivity';
+import { isDemoModeConfigured } from '../client/demoMode';
 import {
   partnerLocationSettingsQueryKey,
   readPartnerLocationSettings,
@@ -68,6 +69,10 @@ export function PartnerLocationSync({
           partnerLocationSettingsQueryKey(accountId, spaceId),
           settings,
         );
+        // The Demo keeps its example positions: the settings above feed the
+        // Wir distance line, but a visitor's real position is never published
+        // over them and no background credential is rotated.
+        if (isDemoModeConfigured()) return;
         await syncBackgroundSharing({
           api,
           spaceId,

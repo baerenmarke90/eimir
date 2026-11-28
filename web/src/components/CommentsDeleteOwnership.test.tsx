@@ -126,7 +126,9 @@ function setup(kind: CommentParentKind = 'memory') {
 }
 async function deleteButton() {
   await userEvent.setup().click(screen.getByLabelText(copy.moreActions));
-  return screen.getByRole<HTMLButtonElement>('button', { name: copy.delete });
+  return screen.getByRole<HTMLButtonElement>('button', {
+    name: de.common.delete,
+  });
 }
 async function submit() {
   fireEvent.click(await deleteButton());

@@ -30,6 +30,11 @@ export async function expectOverviewActionPlacement(
   action: Locator,
   sameRow = false,
 ) {
+  // Expanded web: the page's create action sits in the top bar instead.
+  const inTopBar = await action.evaluate((element) =>
+    Boolean(element.closest('.product-topbar')),
+  );
+  if (inTopBar) return;
   const geometry = await action.evaluate((element) => {
     const header = element.closest('.content-overview-heading');
     const title = header?.querySelector('h1');

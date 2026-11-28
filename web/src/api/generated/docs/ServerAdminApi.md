@@ -4,31 +4,109 @@ All URIs are relative to *http://localhost*
 
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
+| [**clearServerAdminSpaceStorageQuota**](ServerAdminApi.md#clearserveradminspacestoragequota) | **DELETE** /api/v1/server-admin/spaces/{space_id}/storage-quota | Clear Server Admin Space Storage Quota |
 | [**deleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPost**](ServerAdminApi.md#deleteserveradminaccountapiv1serveradminaccountsaccountiddeletionpost) | **POST** /api/v1/server-admin/accounts/{accountId}/deletion | Delete Server Admin Account |
 | [**getServerAdminAccountApiV1ServerAdminAccountsAccountIdGet**](ServerAdminApi.md#getserveradminaccountapiv1serveradminaccountsaccountidget) | **GET** /api/v1/server-admin/accounts/{accountId} | Get Server Admin Account |
 | [**getServerAdminActionActivityApiV1ServerAdminActivityActionsGet**](ServerAdminApi.md#getserveradminactionactivityapiv1serveradminactivityactionsget) | **GET** /api/v1/server-admin/activity/actions | Get Server Admin Action Activity |
 | [**getServerAdminActivityApiV1ServerAdminActivityGet**](ServerAdminApi.md#getserveradminactivityapiv1serveradminactivityget) | **GET** /api/v1/server-admin/activity | Get Server Admin Activity |
+| [**getServerAdminMonitoringApiV1ServerAdminMonitoringGet**](ServerAdminApi.md#getserveradminmonitoringapiv1serveradminmonitoringget) | **GET** /api/v1/server-admin/monitoring | Get Server Admin Monitoring |
 | [**getServerAdminOverviewApiV1ServerAdminOverviewGet**](ServerAdminApi.md#getserveradminoverviewapiv1serveradminoverviewget) | **GET** /api/v1/server-admin/overview | Get Server Admin Overview |
 | [**getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGet**](ServerAdminApi.md#getserveradminprivilegedactivityapiv1serveradminactivityprivilegedget) | **GET** /api/v1/server-admin/activity/privileged | Get Server Admin Privileged Activity |
 | [**getServerAdminSettingsApiV1ServerAdminSettingsGet**](ServerAdminApi.md#getserveradminsettingsapiv1serveradminsettingsget) | **GET** /api/v1/server-admin/settings | Get Server Admin Settings |
 | [**getServerAdminSpaceApiV1ServerAdminSpacesSpaceIdGet**](ServerAdminApi.md#getserveradminspaceapiv1serveradminspacesspaceidget) | **GET** /api/v1/server-admin/spaces/{space_id} | Get Server Admin Space |
 | [**getServerAdminSpaceEntitlementApiV1ServerAdminSpacesSpaceIdEntitlementGet**](ServerAdminApi.md#getserveradminspaceentitlementapiv1serveradminspacesspaceidentitlementget) | **GET** /api/v1/server-admin/spaces/{space_id}/entitlement | Get Server Admin Space Entitlement |
+| [**getServerAdminSpaceFile**](ServerAdminApi.md#getserveradminspacefile) | **GET** /api/v1/server-admin/spaces/{space_id}/file | Get Server Admin Space File |
 | [**getServerAdminStorageApiV1ServerAdminStorageGet**](ServerAdminApi.md#getserveradminstorageapiv1serveradminstorageget) | **GET** /api/v1/server-admin/storage | Get Server Admin Storage |
 | [**grantServerAdminSpaceEntitlementApiV1ServerAdminSpacesSpaceIdEntitlementGrantsPost**](ServerAdminApi.md#grantserveradminspaceentitlementapiv1serveradminspacesspaceidentitlementgrantspost) | **POST** /api/v1/server-admin/spaces/{space_id}/entitlement/grants | Grant Server Admin Space Entitlement |
 | [**issueServerAdminOperatorRecoveryApiV1ServerAdminAccountsAccountIdRecoveryOperatorPost**](ServerAdminApi.md#issueserveradminoperatorrecoveryapiv1serveradminaccountsaccountidrecoveryoperatorpost) | **POST** /api/v1/server-admin/accounts/{accountId}/recovery/operator | Issue Server Admin Operator Recovery |
 | [**listServerAdminAccountsApiV1ServerAdminAccountsGet**](ServerAdminApi.md#listserveradminaccountsapiv1serveradminaccountsget) | **GET** /api/v1/server-admin/accounts | List Server Admin Accounts |
 | [**listServerAdminJobsApiV1ServerAdminJobsGet**](ServerAdminApi.md#listserveradminjobsapiv1serveradminjobsget) | **GET** /api/v1/server-admin/jobs | List Server Admin Jobs |
 | [**listServerAdminSpacesApiV1ServerAdminSpacesGet**](ServerAdminApi.md#listserveradminspacesapiv1serveradminspacesget) | **GET** /api/v1/server-admin/spaces | List Server Admin Spaces |
+| [**markFailedJobsSeenApiV1ServerAdminFailedJobsSeenPost**](ServerAdminApi.md#markfailedjobsseenapiv1serveradminfailedjobsseenpost) | **POST** /api/v1/server-admin/failed-jobs/seen | Mark Failed Jobs Seen |
 | [**reconcileServerAdminSpaceConfigurationManager**](ServerAdminApi.md#reconcileserveradminspaceconfigurationmanager) | **POST** /api/v1/server-admin/spaces/{space_id}/configuration-manager/reconcile | Reconcile Server Admin Space Configuration Manager |
 | [**requestServerAdminAccountEmailVerificationApiV1ServerAdminAccountsAccountIdEmailVerificationRequestPost**](ServerAdminApi.md#requestserveradminaccountemailverificationapiv1serveradminaccountsaccountidemailverificationrequestpost) | **POST** /api/v1/server-admin/accounts/{accountId}/email-verification/request | Request Server Admin Account Email Verification |
 | [**requestServerAdminAccountRecoveryEmailApiV1ServerAdminAccountsAccountIdRecoveryEmailPost**](ServerAdminApi.md#requestserveradminaccountrecoveryemailapiv1serveradminaccountsaccountidrecoveryemailpost) | **POST** /api/v1/server-admin/accounts/{accountId}/recovery/email | Request Server Admin Account Recovery Email |
 | [**revokeServerAdminAccountSessionsApiV1ServerAdminAccountsAccountIdSessionsRevokePost**](ServerAdminApi.md#revokeserveradminaccountsessionsapiv1serveradminaccountsaccountidsessionsrevokepost) | **POST** /api/v1/server-admin/accounts/{accountId}/sessions/revoke | Revoke Server Admin Account Sessions |
 | [**revokeServerAdminSpaceEntitlementGrantApiV1ServerAdminSpacesSpaceIdEntitlementGrantsGrantIdRevokePost**](ServerAdminApi.md#revokeserveradminspaceentitlementgrantapiv1serveradminspacesspaceidentitlementgrantsgrantidrevokepost) | **POST** /api/v1/server-admin/spaces/{space_id}/entitlement/grants/{grant_id}/revoke | Revoke Server Admin Space Entitlement Grant |
+| [**searchServerAdmin**](ServerAdminApi.md#searchserveradmin) | **GET** /api/v1/server-admin/search | Search Server Admin |
+| [**setServerAdminSpaceStorageQuota**](ServerAdminApi.md#setserveradminspacestoragequota) | **PUT** /api/v1/server-admin/spaces/{space_id}/storage-quota | Set Server Admin Space Storage Quota |
 | [**updateMaintenanceSettingApiV1ServerAdminSettingsMaintenancePut**](ServerAdminApi.md#updatemaintenancesettingapiv1serveradminsettingsmaintenanceput) | **PUT** /api/v1/server-admin/settings/maintenance | Update Maintenance Setting |
+| [**updateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPut**](ServerAdminApi.md#updatemonitoringalertssettingapiv1serveradminsettingsmonitoringalertsput) | **PUT** /api/v1/server-admin/settings/monitoring-alerts | Update Monitoring Alerts Setting |
+| [**updateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPut**](ServerAdminApi.md#updatemonitoringpushsettingapiv1serveradminsettingsmonitoringpushput) | **PUT** /api/v1/server-admin/settings/monitoring-push | Update Monitoring Push Setting |
 | [**updateRegistrationSettingApiV1ServerAdminSettingsRegistrationPut**](ServerAdminApi.md#updateregistrationsettingapiv1serveradminsettingsregistrationput) | **PUT** /api/v1/server-admin/settings/registration | Update Registration Setting |
 | [**updateServerAdminAccountSuspensionApiV1ServerAdminAccountsAccountIdSuspensionPut**](ServerAdminApi.md#updateserveradminaccountsuspensionapiv1serveradminaccountsaccountidsuspensionput) | **PUT** /api/v1/server-admin/accounts/{accountId}/suspension | Update Server Admin Account Suspension |
 | [**verifyServerAdminAccountEmailApiV1ServerAdminAccountsAccountIdEmailsAccountEmailIdVerifyPost**](ServerAdminApi.md#verifyserveradminaccountemailapiv1serveradminaccountsaccountidemailsaccountemailidverifypost) | **POST** /api/v1/server-admin/accounts/{accountId}/emails/{accountEmailId}/verify | Verify Server Admin Account Email |
 
+
+
+## clearServerAdminSpaceStorageQuota
+
+> clearServerAdminSpaceStorageQuota(spaceId)
+
+Clear Server Admin Space Storage Quota
+
+Remove the individual quota; the tier value applies again at once.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  ServerAdminApi,
+} from '';
+import type { ClearServerAdminSpaceStorageQuotaRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new ServerAdminApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+  } satisfies ClearServerAdminSpaceStorageQuotaRequest;
+
+  try {
+    const data = await api.clearServerAdminSpaceStorageQuota(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+`void` (Empty response body)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **204** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
 ## deleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPost
@@ -286,6 +364,76 @@ No authorization required
 | **200** | Successful Response |  -  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getServerAdminMonitoringApiV1ServerAdminMonitoringGet
+
+> ServerAdminMonitoring getServerAdminMonitoringApiV1ServerAdminMonitoringGet(range)
+
+Get Server Admin Monitoring
+
+Return history, storage forecast and service states for the chosen range.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  ServerAdminApi,
+} from '';
+import type { GetServerAdminMonitoringApiV1ServerAdminMonitoringGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new ServerAdminApi();
+
+  const body = {
+    // '24h' | '30d' | '90d' (optional)
+    range: range_example,
+  } satisfies GetServerAdminMonitoringApiV1ServerAdminMonitoringGetRequest;
+
+  try {
+    const data = await api.getServerAdminMonitoringApiV1ServerAdminMonitoringGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **range** | `24h`, `30d`, `90d` |  | [Optional] [Defaults to `&#39;24h&#39;`] [Enum: 24h, 30d, 90d] |
+
+### Return type
+
+[**ServerAdminMonitoring**](ServerAdminMonitoring.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -638,6 +786,76 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## getServerAdminSpaceFile
+
+> ServerAdminSpaceFile getServerAdminSpaceFile(spaceId)
+
+Get Server Admin Space File
+
+Everything an operator needs about one Space, without names or content.  Each call is recorded as &#x60;&#x60;space_file_viewed&#x60;&#x60; in the privileged audit.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  ServerAdminApi,
+} from '';
+import type { GetServerAdminSpaceFileRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new ServerAdminApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+  } satisfies GetServerAdminSpaceFileRequest;
+
+  try {
+    const data = await api.getServerAdminSpaceFile(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**ServerAdminSpaceFile**](ServerAdminSpaceFile.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## getServerAdminStorageApiV1ServerAdminStorageGet
 
 > ServerAdminStorageOverview getServerAdminStorageApiV1ServerAdminStorageGet()
@@ -705,7 +923,7 @@ No authorization required
 
 Grant Server Admin Space Entitlement
 
-Record a manual Premium grant for a Space (V1 launch entitlement source).  The operator path for beta testers, support and promotions. Paid Google Play purchases arrive through the store adapter in &#x60;eimir.billing&#x60; instead (docs/m6/ENTITLEMENT-BOUNDARY.md §7.1). It reuses the existing normalized &#x60;record_grant&#x60; source-update interface unchanged rather than adding a second grant-mutation path.  Granting unlimited Premium is as consequential as the other high-risk ServerAdmin actions in this router (account deletion, email verification, recovery issuance), so it requires the same step-up re-authentication.
+Record a manual Premium grant for a Space (V1 launch entitlement source).  The operator path for beta testers, support and promotions. Paid Google Play purchases arrive through the store adapter in &#x60;eimir.billing&#x60; instead (docs/m6/ENTITLEMENT-BOUNDARY.md §7.1). It reuses the existing normalized &#x60;record_grant&#x60; source-update interface unchanged rather than adding a second grant-mutation path.
 
 ### Example
 
@@ -1088,6 +1306,67 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## markFailedJobsSeenApiV1ServerAdminFailedJobsSeenPost
+
+> ServerAdminFailedJobsSeen markFailedJobsSeenApiV1ServerAdminFailedJobsSeenPost()
+
+Mark Failed Jobs Seen
+
+Hide the current failed jobs from the Situation page until a new job fails (#2342).  System &gt; Jobs, alert mails and pushes are unaffected. Shared by every ServerAdmin.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  ServerAdminApi,
+} from '';
+import type { MarkFailedJobsSeenApiV1ServerAdminFailedJobsSeenPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new ServerAdminApi();
+
+  try {
+    const data = await api.markFailedJobsSeenApiV1ServerAdminFailedJobsSeenPost();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+[**ServerAdminFailedJobsSeen**](ServerAdminFailedJobsSeen.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## reconcileServerAdminSpaceConfigurationManager
 
 > ServerAdminSpaceConfigurationManagerView reconcileServerAdminSpaceConfigurationManager(spaceId, serverAdminSpaceConfigurationManagerReconcileRequest)
@@ -1378,7 +1657,7 @@ No authorization required
 
 Revoke Server Admin Space Entitlement Grant
 
-Revoke one grant (e.g. an admin mistake, abuse, or a refund/chargeback).  Revoking a paying customer\&#39;s entitlement is as consequential as the other high-risk ServerAdmin actions in this router, so it requires the same step-up re-authentication.
+Revoke one grant (e.g. an admin mistake, abuse, or a refund/chargeback).
 
 ### Example
 
@@ -1449,6 +1728,150 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## searchServerAdmin
+
+> ServerAdminSearchResult searchServerAdmin(q)
+
+Search Server Admin
+
+Find Accounts by email part or id, their Spaces, and a Space by id.  Names are protected content and never matched. At most 20 Accounts come back, so the Account-Space link cannot be listed in bulk.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  ServerAdminApi,
+} from '';
+import type { SearchServerAdminRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new ServerAdminApi();
+
+  const body = {
+    // string (optional)
+    q: q_example,
+  } satisfies SearchServerAdminRequest;
+
+  try {
+    const data = await api.searchServerAdmin(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **q** | `string` |  | [Optional] [Defaults to `&#39;&#39;`] |
+
+### Return type
+
+[**ServerAdminSearchResult**](ServerAdminSearchResult.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## setServerAdminSpaceStorageQuota
+
+> ServerAdminSpaceStorage setServerAdminSpaceStorageQuota(spaceId, serverAdminStorageQuotaRequest)
+
+Set Server Admin Space Storage Quota
+
+Set an individual Cloud quota for the Space, optionally until a date.  The higher of it and the tier value applies while it is active, so a value below the tier has no effect. Over the quota nothing is deleted; only new bytes are refused.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  ServerAdminApi,
+} from '';
+import type { SetServerAdminSpaceStorageQuotaRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new ServerAdminApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+    // ServerAdminStorageQuotaRequest
+    serverAdminStorageQuotaRequest: ...,
+  } satisfies SetServerAdminSpaceStorageQuotaRequest;
+
+  try {
+    const data = await api.setServerAdminSpaceStorageQuota(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **serverAdminStorageQuotaRequest** | [ServerAdminStorageQuotaRequest](ServerAdminStorageQuotaRequest.md) |  | |
+
+### Return type
+
+[**ServerAdminSpaceStorage**](ServerAdminSpaceStorage.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## updateMaintenanceSettingApiV1ServerAdminSettingsMaintenancePut
 
 > ServerAdminSettings updateMaintenanceSettingApiV1ServerAdminSettingsMaintenancePut(serverAdminSettingUpdate)
@@ -1475,6 +1898,146 @@ async function example() {
 
   try {
     const data = await api.updateMaintenanceSettingApiV1ServerAdminSettingsMaintenancePut(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **serverAdminSettingUpdate** | [ServerAdminSettingUpdate](ServerAdminSettingUpdate.md) |  | |
+
+### Return type
+
+[**ServerAdminSettings**](ServerAdminSettings.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## updateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPut
+
+> ServerAdminSettings updateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPut(serverAdminSettingUpdate)
+
+Update Monitoring Alerts Setting
+
+Turn the monitoring alert mails to ServerAdmins on or off (#2317).
+
+### Example
+
+```ts
+import {
+  Configuration,
+  ServerAdminApi,
+} from '';
+import type { UpdateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPutRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new ServerAdminApi();
+
+  const body = {
+    // ServerAdminSettingUpdate
+    serverAdminSettingUpdate: ...,
+  } satisfies UpdateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPutRequest;
+
+  try {
+    const data = await api.updateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPut(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **serverAdminSettingUpdate** | [ServerAdminSettingUpdate](ServerAdminSettingUpdate.md) |  | |
+
+### Return type
+
+[**ServerAdminSettings**](ServerAdminSettings.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## updateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPut
+
+> ServerAdminSettings updateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPut(serverAdminSettingUpdate)
+
+Update Monitoring Push Setting
+
+Turn the monitoring alerts as app push to ServerAdmins on or off (#2314).
+
+### Example
+
+```ts
+import {
+  Configuration,
+  ServerAdminApi,
+} from '';
+import type { UpdateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPutRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new ServerAdminApi();
+
+  const body = {
+    // ServerAdminSettingUpdate
+    serverAdminSettingUpdate: ...,
+  } satisfies UpdateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPutRequest;
+
+  try {
+    const data = await api.updateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPut(body);
     console.log(data);
   } catch (error) {
     console.error(error);

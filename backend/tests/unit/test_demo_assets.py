@@ -32,23 +32,33 @@ def _rewrite_manifest(root: Path, mutate) -> None:  # type: ignore[no-untyped-de
 def test_repository_manifest_is_valid_complete_and_local() -> None:
     catalog = load_and_validate_assets()
 
-    assert len(catalog.assets) == 12
-    assert {asset.source_provider for asset in catalog.assets} == {"pixabay"}
+    stock = [asset for asset in catalog.assets if asset.source_provider == "pixabay"]
+    originals = [asset for asset in catalog.assets if asset.source_provider == "eimir"]
+
+    assert len(catalog.assets) == 14
+    assert len(stock) == 12
+    assert {asset.id for asset in originals} == {"avatar-lea", "avatar-alex"}
     assert len({asset.id for asset in catalog.assets}) == len(catalog.assets)
     assert len({asset.filename for asset in catalog.assets}) == len(catalog.assets)
     for asset in catalog.assets:
         assert asset.path.is_file()
         assert asset.source_asset_id
-        assert asset.source_page_url.startswith("https://pixabay.com/photos/")
         assert asset.creator
         assert asset.license_name
         assert asset.license_url.startswith("https://")
-        assert asset.license_basis_url == "https://pixabay.com/service/terms/"
         assert asset.alt_text_de
         assert asset.usage_context
-        assert asset.mime_type == "image/jpeg"
         assert asset.attribution_required is False
         assert asset.attribution_text is None
+    for asset in stock:
+        assert asset.source_page_url.startswith("https://pixabay.com/photos/")
+        assert asset.license_basis_url == "https://pixabay.com/service/terms/"
+        assert asset.mime_type == "image/jpeg"
+    # The persona portraits are supplied images of fictional people.
+    for asset in originals:
+        assert asset.source_page_url.startswith("https://github.com/baerenmarke90/eimir/")
+        assert asset.mime_type == "image/webp"
+        assert asset.usage_context[0].startswith("profile.avatar.")
 
 
 def test_story_references_only_manifest_assets_and_never_hotlinks() -> None:
@@ -159,4 +169,23 @@ def test_missing_alt_text_is_rejected(tmp_path: Path) -> None:
 
     _rewrite_manifest(root, mutate)
     with pytest.raises(DemoAssetError, match="alt_text_de"):
+        load_and_validate_assets(root)
+
+
+def test_supplied_image_must_point_into_the_project_repository(tmp_path: Path) -> None:
+    root = _copy_assets(tmp_path)
+
+    def mutate(document: dict[str, object]) -> None:
+        assets = document["assets"]
+        assert isinstance(assets, list)
+        avatar = next(
+            record
+            for record in assets
+            if isinstance(record, dict) and record.get("source_provider") == "eimir"
+        )
+        assert isinstance(avatar, dict)
+        avatar["source_page_url"] = "https://github.com/someone-else/project/blob/main/a.png"
+
+    _rewrite_manifest(root, mutate)
+    with pytest.raises(DemoAssetError, match=r"inside the eimir\. repository"):
         load_and_validate_assets(root)

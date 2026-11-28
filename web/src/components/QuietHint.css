@@ -33,8 +33,7 @@
   color: var(--color-brand-text);
 }
 
-.quiet-hint[data-tone="new"] .quiet-hint-icon,
-.quiet-hint-tag {
+.quiet-hint[data-tone="new"] .quiet-hint-icon {
   color: var(--color-discovery);
 }
 
@@ -44,17 +43,12 @@
   min-inline-size: 0;
 }
 
-.quiet-hint-tag {
-  font: var(--font-story-category);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
 .quiet-hint-copy p {
   margin: 0;
   font: var(--font-supporting-copy);
   line-height: 1.45;
   overflow-wrap: anywhere;
+  hyphens: auto;
 }
 
 .quiet-hint-actions {
@@ -79,6 +73,15 @@
 
 .quiet-hint-dismiss {
   color: var(--color-text-secondary);
+}
+
+/* A long action word wraps instead of being clipped at narrow widths with
+   large text (#2194). */
+.quiet-hint-action {
+  max-inline-size: 100%;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+  hyphens: auto;
 }
 
 @media (prefers-reduced-motion: no-preference) {

@@ -4,9 +4,9 @@ import { createMemoryRouter, MemoryRouter } from 'react-router-dom';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import { StoryKind } from '../api/generated/models/StoryKind';
 import { StoryOrder } from '../api/generated/models/StoryOrder';
-import type { ReferenceApis } from '../client/referenceFlow';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { dashboardQueryKey } from '../client/dashboardQueries';
+import type { ReferenceApis } from '../client/referenceFlow';
 import {
   parseStoryFilters,
   storyCacheResourceId,
@@ -118,9 +118,11 @@ describe('Momente #1790 C2 featured rediscovery wording', () => {
     expect(html).toContain(
       '<time class="rediscovery-date" dateTime="2025-08-24">',
     );
-    // The accessible name follows the visible headline.
+    // The story's open action names the lead with its visible headline.
     expect(html).toContain(
-      `aria-label="${de.story.featuredHighlight}: ${title}"`,
+      `aria-label="${storyProducts.discoverStory.openName
+        .replace('{{kind}}', de.story.featuredHighlight)
+        .replace('{{title}}', title)}"`,
     );
   });
 
@@ -198,8 +200,14 @@ describe('Momente and the Wir retrospective', () => {
     expect(html).not.toContain('momente-retrospective');
     const story = html.slice(html.indexOf('class="momente-story"'));
     expect(story).toContain('That day by the lake');
-    expect(story).toContain('href="/story/memories/historic-memory"');
-    expect(story).not.toContain('Unser aktueller Moment');
+    // The lead plays first and opens itself; the selected memory follows as
+    // a curated slide, and the lead is not repeated among the themes.
+    expect(story).toContain('data-story-slide="lead" data-state="current"');
+    expect(story).toContain('href="/story/memories/discover-lead"');
+    expect(story).toContain('data-story-slide="words" data-state="upcoming"');
+    expect(story).not.toContain(
+      '<h3 class="momente-story-title">Unser aktueller Moment',
+    );
     expect(story).toContain(
       `, ${storyProducts.discoverStory.themeCount_one.replace('{{count}}', '1')}`,
     );
@@ -315,18 +323,18 @@ describe('StoryProductPage', () => {
         html.matchAll(/data-story-theme="([a-zA-Z]+)"/g),
         (match) => match[1],
       ),
-    ).toEqual(['heartMoments', 'milestones', 'heartMoments']);
+    ).toEqual(['remember', 'heartMoments', 'milestones', 'remember']);
 
-    // Each content type keeps a distinct slide, not one shared card shell
-    // (regression #790): the Heart Moment as a quote, then the stamp.
+    // The "Wisst ihr noch?" lead is the first slide, then each content type
+    // keeps a distinct slide, not one shared card shell (regression #790):
+    // the Heart Moment as a quote, the Milestone behind its stamp bubble.
+    expect(html).toContain('data-story-slide="lead" data-state="current"');
     expect(html).toContain('momente-hero-media');
-    expect(html).toContain('data-story-slide="heart" data-state="current"');
+    expect(html).toContain('data-story-slide="heart" data-state="upcoming"');
     expect(html).toContain('momente-story-quote');
-    expect(html).toContain(
-      'data-story-slide="milestone" data-state="upcoming"',
-    );
     expect(html).toContain('momente-keepsake-stamp-mark');
-    expect(html).toContain('First apartment together');
+    // Only the visible and the next slide are mounted.
+    expect(html).not.toContain('data-story-slide="milestone"');
   });
 
   describe('issue #1784: Discover HeartMoment note follows its emotion', () => {
@@ -387,17 +395,20 @@ describe('StoryProductPage', () => {
       );
     });
 
-    it('names the Heart Moment in the visible open action', () => {
+    it('opens the lead first and keeps the Heart Moment as the next slide', () => {
       const html = renderStoryPage('/story', {
         items: [lead, heartMoment('SEEN')],
         hasMore: false,
         nextCursor: null,
       });
+      // The visible open action names the slide that is shown: the lead.
+      // How a current Heart Moment is named is covered in DiscoverStory.
       const open = /<a [^>]*momente-story-open[^>]*>/.exec(html)?.[0] ?? '';
-      expect(open).toContain('href="/story/heart-moments/heart-1"');
+      expect(open).toContain('href="/story/memories/mem-1"');
       expect(open).toContain(
-        `aria-label="${storyProducts.discoverStory.open}: ${de.story.kind.heartMoment} „I love you more each day“"`,
+        `aria-label="${de.common.open}: ${de.story.featuredHighlight} „Summer Lake Vacation“"`,
       );
+      expect(html).toContain('data-story-slide="heart" data-state="upcoming"');
     });
 
     it('keeps a neutral surface without an emotion', () => {
@@ -498,19 +509,23 @@ describe('StoryProductPage', () => {
       );
       expect(wrapperOpenTag).not.toContain('eimir-motion-reveal');
 
-      // The lead highlight's media loads eagerly: no deferred skeleton.
-      const heroStart = html.indexOf('momente-hero-media');
+      // The lead slide's media loads eagerly: no deferred skeleton.
       const storyStart = html.indexOf('class="momente-story"');
-      const heroHtml = html.slice(heroStart, storyStart);
+      const heroStart = html.indexOf('momente-hero-media');
+      const firstCurated = html.indexOf('momente-story-slide-photo');
+      expect(storyStart).toBeGreaterThan(-1);
+      expect(heroStart).toBeGreaterThan(storyStart);
+      const heroHtml = html.slice(heroStart, firstCurated);
       expect(heroHtml).not.toContain('data-media-deferred="true"');
 
-      // Only the visible slide and the next one are mounted and may load.
+      // Only the visible slide (the lead) and the next one are mounted and
+      // may load.
       const storyHtml = html.slice(
         storyStart,
         html.indexOf('id="momente-diary"'),
       );
       expect(storyHtml).toContain('Weekend Hike');
-      expect(storyHtml).toContain('Evening Swim');
+      expect(storyHtml).not.toContain('Evening Swim');
       expect(storyHtml).not.toContain('Morning Run');
       expect(storyHtml).not.toContain('data-timeline-reveal-key');
       expect(storyHtml).not.toContain('story-timeline-progressive-reveal');
@@ -777,17 +792,21 @@ describe('StoryProductPage', () => {
       expect(storyStart).toBeGreaterThan(-1);
       const storyHtml = html.slice(storyStart);
 
-      // The lead appears once, outside the uncapped backend selection; the
-      // story plays all 13 remaining entries, starting with the first.
-      expect(html).toContain('Moment 0');
-      expect(storyHtml).not.toContain('Moment 0<');
+      // The lead plays once as its own first slide, outside the uncapped
+      // backend selection; the curated themes hold all 13 remaining entries,
+      // and the first of them is the next slide.
+      expect(storyHtml).toContain('<h3 class="momente-hero-title">Moment 0<');
+      expect(storyHtml).not.toContain(
+        '<h3 class="momente-story-title">Moment 0<',
+      );
       expect(storyHtml).toContain('>Moment 1<');
       expect(storyHtml).toContain(
         `, ${storyProducts.discoverStory.themeCount_other.replace('{{count}}', '13')}`,
       );
+      // The lead's own theme shows a single progress segment.
       expect(
         storyHtml.match(/class="momente-story-segment"/g) ?? [],
-      ).toHaveLength(13);
+      ).toHaveLength(1);
     });
   });
 

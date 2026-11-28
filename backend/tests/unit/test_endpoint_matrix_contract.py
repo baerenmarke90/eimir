@@ -9,7 +9,7 @@ from tests.integration.test_endpoint_matrix import (
     SERVER_ADMIN_ONLY,
     SPACE_ENDPOINTS,
 )
-from tests.support.plugins import is_pro_operation, plugins_loaded
+from tests.support.plugins import is_admin_operation, is_pro_operation, plugins_loaded
 
 
 def test_contract_is_completely_covered() -> None:
@@ -19,6 +19,8 @@ def test_contract_is_completely_covered() -> None:
         (method.upper(), path)
         for path, operations in schema["paths"].items()
         for method in operations
+        # The operator plugin's routes are covered by ``admin/admin_tests``.
+        if not is_admin_operation(method, path)
     }
     covered = (
         {(endpoint.method, endpoint.template) for endpoint in SPACE_ENDPOINTS}

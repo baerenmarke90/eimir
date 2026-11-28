@@ -110,7 +110,18 @@ export const PRIMARY_APP_ROUTES = APP_ROUTES.filter(
   (route) => route.id !== 'games',
 );
 
+/** Only a root or its peer views belong to the primary pager. */
+export function primaryTabIndex(pathname: string): number {
+  const path = pathname.replace(/\/$/, '');
+  return PRIMARY_APP_ROUTES.findIndex(
+    (route) =>
+      route.path === path ||
+      ('peerPaths' in route && route.peerPaths.some((peer) => peer === path)),
+  );
+}
+
 export const DEFAULT_APP_ROUTE = APP_ROUTES[0].path;
+export const LEGACY_THREAD_ROUTE = '/faden';
 export const WISH_SELECTION_ROUTE = '/plan/choose';
 /** Pro date inspiration (#1892); a Planning subpage, not a Wish detail path. */
 export const DATE_IDEAS_ROUTE = '/plan/ideas';
@@ -134,6 +145,14 @@ export function subpageParentPath(pathname: string): string {
   // Activity is a More destination with a Today-owned path (#1907 A2).
   if (path === ACTIVITY_ROUTE) return '/more';
   if (path === '/search' || path === '/games' || path === '/server-admin')
+    return '/more';
+  // The private area root only redirects to its first section, so its section
+  // lists would loop back into themselves; Back leaves for More instead.
+  if (
+    /^\/more\/private\/(?:notes|gift-ideas|collections|partner-notes)$/.test(
+      path,
+    )
+  )
     return '/more';
   const parent = path.slice(0, path.lastIndexOf('/'));
   return parent || '/more';
@@ -176,6 +195,7 @@ export const PRO_PAYWALL_CONTEXTS = [
   'recaps',
   'memoryMap',
   'photoSources',
+  'storage',
   'calendar',
   'games',
   'general',
@@ -514,10 +534,7 @@ export function sharedNoteEditPath(noteId: string): string {
 }
 
 /**
- * Pro Vibe/Energy insights (#1151, placement updated by #1196). Discovery and
- * all three views live under More so the Mehr destination stays active while
- * people move between week, patterns and recap.
+ * Former home of the Pro Vibe/Energy insights (#1151). Einblicke was removed
+ * and deferred (#2210); the path only redirects old links to More.
  */
 export const MORE_INSIGHTS_ROUTE = '/more/insights';
-export const MORE_INSIGHTS_PATTERNS_ROUTE = `${MORE_INSIGHTS_ROUTE}/patterns`;
-export const MORE_INSIGHTS_RECAP_ROUTE = `${MORE_INSIGHTS_ROUTE}/recap`;

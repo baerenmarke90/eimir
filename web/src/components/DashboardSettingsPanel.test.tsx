@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   act,
   fireEvent,
@@ -7,25 +8,26 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { vi } from 'vitest';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { DashboardModulePreferenceList } from '../api/generated/models/DashboardModulePreferenceList';
-import experienceCopy from '../i18n/locales/coupleExperiences';
 import {
   DASHBOARD_MODULE_CATALOG,
   DASHBOARD_MODULE_KEYS,
   type DashboardModuleKey,
 } from '../client/dashboardModules';
 import { dashboardPreferencesQueryKey } from '../client/dashboardPreferences';
-import profileIdentity from '../i18n/locales/profileIdentity';
-import m5s5 from '../i18n/locales/m5s5';
+import experienceCopy from '../i18n/locales/coupleExperiences';
 import dailyQuote from '../i18n/locales/dailyQuote';
-import partnerLocation from '../i18n/locales/partnerLocation';
-import sharedNotes from '../i18n/locales/sharedNotes';
-import relationshipReflections from '../i18n/locales/relationshipReflections';
 import games from '../i18n/locales/games';
+import m5s5 from '../i18n/locales/m5s5';
+import partnerLocation from '../i18n/locales/partnerLocation';
+import profileIdentity from '../i18n/locales/profileIdentity';
+import relationshipReflections from '../i18n/locales/relationshipReflections';
+import sharedNotes from '../i18n/locales/sharedNotes';
+import wirNotices from '../i18n/locales/wirNotices';
 import { DashboardSettingsPanel } from './DashboardSettingsPanel';
+import germanUi from '../i18n/locales/de';
 
 const ACCOUNT_ID = 'account-1';
 const SPACE_ID = 'space-1';
@@ -92,6 +94,8 @@ function moduleLabel(moduleKey: string): string {
   if (moduleKey === 'shared_story_summary')
     return relationshipReflections.passport.wirStatisticsTitle;
   if (moduleKey === 'shared_garden') return games.garden.title;
+  if (moduleKey === 'games_waiting') return games.waiting.settingsLabel;
+  if (moduleKey === 'new_for_you') return wirNotices.title;
   const entry = DASHBOARD_MODULE_CATALOG.find((item) => item.key === moduleKey);
   if (!entry) throw new Error(`Unknown module key: ${moduleKey}`);
   const path = entry.labelKey.split('.').slice(1);
@@ -517,7 +521,7 @@ describe('DashboardSettingsPanel', () => {
         (screen.getByRole('radio', { name: '1' }) as HTMLInputElement).disabled,
       ).toBe(true);
     });
-    screen.getByText(profileIdentity.dashboardUpcomingSaving);
+    screen.getByText(germanUi.common.saving);
 
     await act(async () => {
       resolveUpdate?.({ moduleKey: 'upcoming', itemLimit: 3 });
@@ -978,7 +982,7 @@ describe('DashboardSettingsPanel', () => {
           }) as HTMLInputElement
         ).disabled,
       ).toBe(false);
-      screen.getByText(profileIdentity.dashboardModuleSaving);
+      screen.getByText(germanUi.common.saving);
 
       await act(async () => {
         resolveUpdate?.({ moduleKey: 'keepsake', visible: false });

@@ -7,6 +7,7 @@ import { ProfileVisibility } from '../api/generated/models/ProfileVisibility';
 import profileIdentity from '../i18n/locales/profileIdentity';
 import profiles from '../i18n/locales/profiles';
 import { ProfilePage } from './ProfilePage';
+import germanUi from '../i18n/locales/de';
 
 const SPACE_ID = 'space-1';
 const ACCOUNT_ID = 'account-1';
@@ -81,8 +82,10 @@ describe('Profile page reorganization', () => {
     expect(html).toContain('profile-identity-hero-card');
     expect(html).toContain('Alex');
     expect(html).toContain('Dies ist das Profil, das dein Partner sieht.');
-    expect(html).toContain(profileIdentity.editProfile);
-    expect(html).not.toContain(profileIdentity.saveProfile);
+    // Editing lives in the profile menu at the top right, not beside the name.
+    expect(html).toContain(profiles.menu);
+    expect(html).not.toContain(`aria-label="${profileIdentity.editProfile}"`);
+    expect(html).not.toContain(germanUi.common.save);
     expect(html).not.toContain(profileIdentity.changeAvatar);
   });
 

@@ -174,7 +174,7 @@ describe('WishProductPage actions menu', () => {
     expect(rows).toEqual([
       i18n.t('common.edit'),
       i18n.t('m5s3.wish.actionsHeading'),
-      i18n.t('m5s3.common.delete'),
+      i18n.t('common.delete'),
     ]);
 
     await user.click(screen.getByText(i18n.t('common.edit')));
@@ -182,7 +182,7 @@ describe('WishProductPage actions menu', () => {
       name: i18n.t('m5s3.common.saveChanges'),
     });
     expect(
-      screen.queryByRole('button', { name: i18n.t('m5s3.common.delete') }),
+      screen.queryByRole('button', { name: i18n.t('common.delete') }),
     ).toBeNull();
   });
 
@@ -193,7 +193,7 @@ describe('WishProductPage actions menu', () => {
       screen.getByRole('button', { name: i18n.t('m5s3.wish.menu') }),
     );
     await user.click(
-      await screen.findByRole('button', { name: i18n.t('m5s3.common.delete') }),
+      await screen.findByRole('button', { name: i18n.t('common.delete') }),
     );
     const confirmation = await screen.findByRole('alertdialog');
     expect(confirmation.textContent).toContain(
@@ -219,6 +219,36 @@ describe('WishProductPage actions menu', () => {
     expect(
       screen.queryByRole('button', { name: i18n.t('m5s3.wish.menu') }),
     ).toBeNull();
+  });
+
+  it('shows only a placeholder while an open game hides the wish (#2158 H)', () => {
+    renderWish({
+      ...OPEN_WISH,
+      title: '',
+      description: null,
+      tags: [],
+      creator: { id: 'account-alex', displayName: 'Alex' },
+      capabilities: { canComment: false, canDelete: false, canEdit: false },
+      hiddenDuringGame: true,
+    });
+    expect(
+      screen.getByRole('heading', {
+        name: i18n.t('wishConcealment.detailTitle'),
+      }),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(i18n.t('wishConcealment.detailBody', { name: 'Alex' })),
+    ).toBeTruthy();
+    expect(
+      screen
+        .getByRole('link', { name: i18n.t('wishConcealment.toGame') })
+        .getAttribute('href'),
+    ).toBe('/games/wish-detective');
+    // Nothing to edit, plan, complete, remind or propose.
+    expect(
+      screen.queryByRole('button', { name: i18n.t('m5s3.wish.menu') }),
+    ).toBeNull();
+    expect(screen.queryAllByRole('button')).toHaveLength(1);
   });
 });
 
@@ -352,7 +382,7 @@ describe('WishProductPage direct completion', () => {
     ).toBeTruthy();
 
     await user.click(
-      screen.getByRole('button', { name: i18n.t('m5s3.wish.completionDone') }),
+      screen.getByRole('button', { name: i18n.t('common.done') }),
     );
 
     expect(screen.getByText(i18n.t('m5s3.wish.completedBody'))).toBeTruthy();

@@ -30,6 +30,7 @@ import {
 } from '../client/sharedPlanning';
 import { postSnackbar } from '../client/snackbar';
 import { useTaskActivation } from '../client/useTaskActivation';
+import { withoutHiddenWishes } from '../client/wishConcealment';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AddActionButton } from './AddAction';
 import { sortByProductLabel } from '../client/productLabelOrder';
@@ -122,7 +123,8 @@ export function PlanWishLink({
     },
   });
   const items = sortByProductLabel(
-    wishes.data?.pages.flatMap((page) => page.items) ?? [],
+    // #2158 H: a wish an open game hides from the reader cannot be linked.
+    withoutHiddenWishes(wishes.data?.pages.flatMap((page) => page.items) ?? []),
     (wish) => wish.title,
     resolvedLocale(),
   );
@@ -311,7 +313,7 @@ export function PlanWishLink({
           >
             {t(
               mutation.isPending
-                ? 'm5s3.common.saving'
+                ? 'common.saving'
                 : 'm5s3.plan.confirmWishLink',
             )}
           </button>

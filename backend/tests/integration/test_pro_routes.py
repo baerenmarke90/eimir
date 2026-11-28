@@ -26,12 +26,20 @@ from eimir.entitlements.models import (
     EntitlementStatus,
     EntitlementTier,
 )
+from eimir.entitlements.service import NON_ENTITLEMENT_CAPABILITIES
 from eimir.main import create_app
-from eimir.plugins.manifest import PLUGIN_CAPABILITIES
+from eimir.plugins.manifest import PLUGIN_CAPABILITIES, PRO_CAPABILITIES
 from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 from tests.integration.test_endpoint_matrix import SPACE_ENDPOINTS
-from tests.support.plugins import operation_key, pro_operations, requires_pro, without_plugins
+from tests.support.plugins import (
+    CHAIN_PLUGIN_TABLES,
+    operation_key,
+    pro_distribution_installed,
+    pro_operations,
+    requires_pro,
+    without_plugins,
+)
 
 pytestmark = [pytest.mark.integration, requires_database]
 
@@ -41,6 +49,7 @@ _S = "/api/v1/spaces/{spaceId}"
 _EXIT = "an exit that stays available after a downgrade (freemium matrix)"
 _RECEPTION = "once-message reception and deletion are not paywallable (freemium matrix)"
 _SOFT = "soft-gated: the neutral unavailable state, no location stored or shown"
+_OPERATOR = "ServerAdmin operator tooling, not a Space capability"
 
 NON_PAYWALLABLE: dict[tuple[str, str], str] = {
     ("DELETE", f"{_S}/calendar-sync/connections/{{connectionId}}"): f"Disconnect, {_EXIT}",
@@ -80,6 +89,16 @@ NON_PAYWALLABLE: dict[tuple[str, str], str] = {
     ("DELETE", f"{_S}/partner-location/device-credential/{{deviceId}}"): (
         f"Revoking a device, {_EXIT}"
     ),
+    ("POST", f"{_S}/gift-codes/redeem"): "Redeeming a gift code is how a Free Space gets Pro",
+    ("POST", f"{_S}/games/{{surface}}/notices/read"): (
+        f"Clearing one's own game notices (#2345), {_EXIT}"
+    ),
+    ("GET", "/api/v1/server-admin/pro/overview"): _OPERATOR,
+    ("POST", "/api/v1/server-admin/pro/gift-code-batches"): _OPERATOR,
+    ("GET", "/api/v1/server-admin/pro/gift-code-batches/{batchId}"): _OPERATOR,
+    ("POST", "/api/v1/server-admin/pro/gift-code-batches/{batchId}/revoke"): _OPERATOR,
+    ("PUT", "/api/v1/server-admin/pro/gift-codes/{codeId}/handed-out"): _OPERATOR,
+    ("POST", "/api/v1/server-admin/pro/gift-codes/{codeId}/revoke"): _OPERATOR,
     ("PUT", "/api/v1/partner-location/device-snapshot"): (
         "Authenticated by a device credential, which only an active share issues"
     ),
@@ -91,7 +110,12 @@ _BODIES = {
 }
 _PARAMETER = re.compile(r"\{([^}]*)\}")
 # Path values that must be valid before a route reaches its capability check.
-_PATH_VALUES = {"animal": "SNAIL", "kind": "HAPPINESS", "imageId": "eimir-date-001"}
+_PATH_VALUES = {
+    "animal": "SNAIL",
+    "kind": "HAPPINESS",
+    "imageId": "eimir-date-001",
+    "surface": "HEART_HUNT",
+}
 
 
 def _path(template: str, space_id: str) -> str:
@@ -107,10 +131,13 @@ def _path(template: str, space_id: str) -> str:
 @pytest.fixture
 def integrations_on(monkeypatch):  # type: ignore[no-untyped-def]
     """Configured integrations, so a route reaches its capability check."""
-    from eimir.calendar_sync import google as calendar_google
-    from eimir.calendar_sync import service as calendar_sync
-    from eimir.photo_sources import service as photo_sources
-    from eimir.presence import service as presence
+    if not pro_distribution_installed():
+        # Without the Pro distribution no Pro route exists to configure.
+        return
+    from eimir_pro.calendar_sync import google as calendar_google
+    from eimir_pro.calendar_sync import service as calendar_sync
+    from eimir_pro.photo_sources import service as photo_sources
+    from eimir_pro.presence import service as presence
 
     monkeypatch.setattr(calendar_sync, "available", lambda: True)
     monkeypatch.setattr(calendar_google, "_require_client", lambda: object())
@@ -231,7 +258,9 @@ def test_without_the_plugin_its_capabilities_are_not_effective(session, couple) 
 def test_with_the_plugin_its_capabilities_are_effective(session, couple) -> None:  # type: ignore[no-untyped-def]
     _premium(session, couple)
     effective = entitlements.get_effective_space_entitlement(session, couple["space"].id)
-    assert set(effective.capabilities) >= PLUGIN_CAPABILITIES
+    # Operator access the plugin provides is never part of a grant.
+    assert set(effective.capabilities) >= PRO_CAPABILITIES - NON_ENTITLEMENT_CAPABILITIES
+    assert not set(effective.capabilities) & NON_ENTITLEMENT_CAPABILITIES
 
 
 def test_without_the_plugin_encryption_status_reports_the_pro_payload_tables(session) -> None:  # type: ignore[no-untyped-def]
@@ -240,4 +269,9 @@ def test_without_the_plugin_encryption_status_reports_the_pro_payload_tables(ses
 
     with without_plugins():
         reported = {report.table for report in lifecycle.payload_status(session)}
-    assert {row.table for row in protected_payload_tables()} <= reported
+    # The shared Core database has no plugin chain tables (tests/conftest.py), the
+    # state of a Core-only instance that never ran the plugin's chain; the Pro
+    # tests cover a chain table that exists.
+    expected = {row.table for row in protected_payload_tables()} - CHAIN_PLUGIN_TABLES
+    assert expected <= reported
+    assert not reported & CHAIN_PLUGIN_TABLES

@@ -1,6 +1,4 @@
 const taskBoundary = {
-  back: 'Zurück',
-  close: 'Schließen',
   invalidDate:
     'Bitte prüfe das Datum und wähle einen gültigen Tag, Monat und ein gültiges Jahr.',
   pending:

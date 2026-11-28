@@ -1,5 +1,4 @@
 const games = {
-  eyebrow: 'Spielen',
   title: 'Spielen',
   intro: 'Erinnerungen erraten und Neues übereinander erfahren.',
   status: {
@@ -31,13 +30,36 @@ const games = {
     garden: {
       role: 'Wachsen',
       title: 'Unser Garten',
-      description:
-        'Schickt euch jeden Tag einen Samen, wo immer ihr gerade seid.',
+      description: 'Schenkt euch jeden Tag Saatgut, wo immer ihr gerade seid.',
     },
     heartHunt: {
       role: 'Suchen',
       title: 'Herzversteck',
       description: 'Versteckt ein Herz in einem Foto. Wer findet es?',
+    },
+  },
+  waiting: {
+    settingsLabel: 'Spiele, die auf dich warten',
+    title: 'Du bist dran',
+    // #2345 B: tile lines name no one; in a couple's Space it is always the partner.
+    reasons: {
+      WHO_OF_US: 'Deine Antworten fehlen noch.',
+      WISH_DETECTIVE: 'Dein Zug.',
+      OUR_MOMENTS: 'Dein Zug.',
+      PICTURE_PING_PONG: 'Jetzt malst du weiter.',
+      HEART_HUNT: 'Ein Herz wartet aufs Finden.',
+      GARDEN_SEED: 'Saatgut wartet aufs Einpflanzen.',
+      GARDEN_BOUQUET: 'Ein Strauß für dich.',
+    },
+    // The short word under each Wir circle; the reason above is read aloud.
+    labels: {
+      WHO_OF_US: 'Wer von euch?',
+      WISH_DETECTIVE: 'Wunschdetektiv',
+      OUR_MOMENTS: 'Momente',
+      PICTURE_PING_PONG: 'Pingpong',
+      HEART_HUNT: 'Herzversteck',
+      GARDEN_SEED: 'Saatgut',
+      GARDEN_BOUQUET: 'Strauß',
     },
   },
   heartHunt: {
@@ -107,7 +129,6 @@ const games = {
       nameLabel: 'Wie soll der Moment heißen?',
       nameMissing: 'Gib dem Moment einen Namen, dann behalten wir das Foto.',
       keepConfirm: 'Als Moment speichern',
-      keeping: 'Wird gespeichert …',
       kept: 'Liegt in Momente',
       keepFailed:
         'Das Foto konnte nicht als Moment gespeichert werden. Versuch es noch einmal.',
@@ -195,7 +216,6 @@ const games = {
     },
   },
   momentsGame: {
-    back: 'Zurück zu Spielen',
     intro:
       'Dreht abwechselnd Karten um und findet die Fotos wieder, die zu euren gemeinsamen Erinnerungen gehören.',
     loadingTitle: 'Eure Momente werden gemischt',
@@ -210,14 +230,12 @@ const games = {
     sparseAction: 'Zu euren Momenten',
     turnLabel: 'Am Zug',
     turnValue: '{{name}} ist dran',
-    scoreAria: 'Gefundene Paare',
     boardAria: 'Memory-Spielfeld mit euren gemeinsamen Momenten',
     cardHidden: 'Karte {{index}} von {{total}}, verdeckt',
     cardPhotoRevealed: 'Foto zu {{title}}, aufgedeckt',
     cardContextRevealed: 'Erinnerung {{title}}, {{date}}, aufgedeckt',
     cardMatched: 'Gefundenes Paar: {{title}}, {{date}}',
     matchEyebrow: 'Wiedergefunden',
-    continue: 'Weiter',
     finishEyebrow: 'Eure Runde',
     finishTitle: 'Ihr habt alle Momente wiedergefunden.',
     finishBody: '{{count}} kleine Geschichten aus eurem gemeinsamen Leben.',
@@ -225,7 +243,6 @@ const games = {
     backToGames: 'Andere Spiele ansehen',
   },
   wishDetective: {
-    back: 'Zurück zu Spielen',
     intro:
       'Gebt euch drei Hinweise, reicht das Gerät weiter und findet heraus, wie gut ihr die Wünsche des anderen kennt.',
     loadingTitle: 'Eure Wünsche werden vorbereitet',
@@ -267,7 +284,6 @@ const games = {
     correctTitle: '{{name}} kennt deinen Wunsch.',
     incorrectTitle: 'Knapp daneben.',
     passedTitle: 'Gepasst.',
-    continue: 'Weiter',
     finishEyebrow: 'Eure Runde',
     finishTitle: 'Das war eure Wunschdetektiv-Runde.',
     finishBody: '{{correct}} von {{total}} Wünschen erkannt.',
@@ -364,7 +380,6 @@ const games = {
     firstResponder: '{{name}}, du zuerst',
     secondResponder: '{{name}}, jetzt du',
     choosePrompt: 'Wer von euch passt eher dazu?',
-    choicesAria: 'Wählt eine Person',
     choiceAria: '{{responder}} wählt {{choice}}',
     handoffEyebrow: 'Nicht verraten',
     handoffTitle: 'Gerät an {{name}} reichen',
@@ -384,7 +399,6 @@ const games = {
     finishDifferent_other:
       'Bei {{count}} Fragen habt ihr euch unterschiedlich gesehen.',
     restart: 'Noch einmal',
-    backToGames: 'Andere Spiele ansehen',
     questions: {
       morningLonger: 'Wer von euch braucht morgens länger?',
       movieSleeper: 'Wer schläft beim Film eher ein?',
@@ -403,31 +417,31 @@ const games = {
     loading: 'Der Garten wird geöffnet …',
     changedMeanwhile:
       'Im Garten hat sich gerade etwas getan. Wir haben ihn neu geladen.',
-    sentStatus: '{{messenger}} hat deinen Samen zu {{name}} gebracht.',
+    sentStatus: '{{messenger}} hat dein Saatgut zu {{name}} gebracht.',
     plantedStatus: 'Eingepflanzt.',
     wateredStatus: 'Gegossen. {{name}} sieht die Tropfen.',
     waterTitle: 'Welche Pflanze gießt du?',
     waterBody:
       'Tipp im Garten auf eine Pflanze. {{name}} sieht danach die Tropfen.',
-    cancel: 'Abbrechen',
-    arrivedTitle: '{{name}} hat dir einen Samen geschickt',
+    arrivedTitle: '{{name}} hat dir Saatgut geschenkt',
     quoted: '„{{words}}“',
     foldedCard: 'Ein Kärtchen mit lieben Worten',
     unfold: 'Aufklappen',
     plant: 'Einpflanzen',
     todayTitle: 'Heute für {{name}}',
-    todayBody: 'Such einen Samen aus. {{messenger}} bringt ihn zu {{name}}.',
-    chooseSeed: 'Samen auswählen',
+    todayBody:
+      'Such aus, was du verschenken möchtest. {{messenger}} bringt es zu {{name}}.',
+    chooseSeed: 'Saatgut auswählen',
     wordsQuestion: 'Liebe Worte dazu?',
     yourWords: 'Deine Worte: „{{words}}“',
     change: 'Ändern',
-    send: 'Samen losschicken',
-    waitingTitle: 'Dein Samen ist bei {{name}}',
+    send: 'Saatgut verschenken',
+    waitingTitle: 'Dein Saatgut ist bei {{name}}',
     waitingBody:
-      'Sobald {{name}} reinschaut, wird er eingepflanzt. Seid ihr heute beide da, wächst der ganze Garten ein Stück.',
+      'Sobald {{name}} reinschaut, wird es eingepflanzt. Seid ihr heute beide da, wächst der ganze Garten ein Stück.',
     sharedTitle: 'Ihr wart heute beide im Garten',
     sharedBody:
-      'Alles ist ein Stück gewachsen, und eure Laternen leuchten. Morgen gibt es neue Samen.',
+      'Alles ist ein Stück gewachsen, und eure Laternen leuchten. Morgen gibt es neues Saatgut.',
     sceneLabel_one: 'Euer Garten mit {{count}} Pflanze',
     sceneLabel_other: 'Euer Garten mit {{count}} Pflanzen',
     panHint: 'Wischen, um den ganzen Garten zu sehen',
@@ -436,7 +450,6 @@ const games = {
       close: 'Vollbild schließen',
       rotate: 'Dreh dein Handy, dann siehst du den ganzen Garten.',
     },
-    close: 'Schließen',
     storySent: 'Geschickt von {{name}}, {{date}}',
     youDative: 'dir',
     water: 'Eine Pflanze gießen',
@@ -467,10 +480,9 @@ const games = {
       gateLabel: 'Ein Gartentor wartet auf euer Wiedersehen am {{date}}',
       todayTitle: 'Heute seht ihr euch wieder',
       todayBody:
-        'Euer ganzer Garten blüht für euch. Heute müsst ihr keine Samen schicken.',
+        'Euer ganzer Garten blüht für euch. Heute braucht ihr kein Saatgut zu verschenken.',
       buntingLabel: 'Alles blüht, und eine Wimpelkette hängt über dem Garten',
       save: 'Wiedersehensgarten als Moment speichern',
-      saving: 'Wird gespeichert …',
       saved: 'In Momente gespeichert.',
       openMoment: 'Moment ansehen',
       memoryTitle: 'Unser Garten zum Wiedersehen',
@@ -518,10 +530,10 @@ const games = {
         'Ein doppelter Mondregenbogen: ihr habt heute beide gegossen',
       together: {
         swing:
-          'Ihr zwei sitzt zusammen auf der Schaukel, ihr habt heute beide einen Samen geschickt',
-        tree: 'Ihr zwei sitzt zusammen auf einer Bank unter eurem Baum, ihr habt heute beide einen Samen geschickt',
+          'Ihr zwei sitzt zusammen auf der Schaukel und habt euch heute Saatgut geschenkt',
+        tree: 'Ihr zwei sitzt zusammen auf einer Bank unter eurem Baum und habt euch heute Saatgut geschenkt',
         bench:
-          'Ihr zwei sitzt zusammen auf einer Bank, ihr habt heute beide einen Samen geschickt',
+          'Ihr zwei sitzt zusammen auf einer Bank und habt euch heute Saatgut geschenkt',
       },
       birdhouseLabel: 'Im Vogelhäuschen steckt ein Zettel von {{name}}',
       birdhouseStatus:
@@ -632,7 +644,6 @@ const games = {
       rename: 'Umbenennen',
       nameLabel: 'Wie heißt euer Garten?',
       nameHint: 'Bis zu 40 Zeichen. Leer lassen für „Unser Garten“.',
-      save: 'Speichern',
       renamedStatus: 'Euer Garten heißt jetzt „{{name}}“.',
       bind: 'Strauß binden',
       bindTitle: 'Strauß binden',
@@ -756,7 +767,7 @@ const games = {
       openAria: '{{title}} öffnen',
       resting: 'Euer Garten ruht gerade und wartet einfach auf euch.',
       bothWatered: 'Heute habt ihr beide gegossen.',
-      empty: 'Noch ist alles frei. Schickt euch den ersten Samen.',
+      empty: 'Noch ist alles frei. Schenkt euch euer erstes Saatgut.',
     },
     // A one-time offer inside the game to show the garden on Wir.
     wirHint: {
@@ -768,6 +779,42 @@ const games = {
       toWir: 'Zu Wir',
       failed:
         'Das hat gerade nicht geklappt. Du kannst es gleich noch einmal versuchen.',
+    },
+    history: {
+      title: 'Eure Gartengeschichte',
+      intro: 'Was in eurem Garten passiert ist, das Neueste zuerst.',
+      loading: 'Eure Gartengeschichte wird geladen …',
+      empty:
+        'Hier erzählt euer Garten bald, was zwischen euch passiert. Alles beginnt mit dem ersten Samen.',
+      error: 'Eure Gartengeschichte lässt sich gerade nicht laden.',
+      retry: 'Noch einmal versuchen',
+      more: 'Mehr anzeigen',
+      loadingMore: 'Wird geladen …',
+      moreError: 'Mehr ließ sich gerade nicht laden.',
+      today: 'Heute',
+      yesterday: 'Gestern',
+      speciesFrom: '{{species}} von {{name}}',
+      speciesFromYou: '{{species}} von dir',
+      seedSentOwn: 'Du hast {{name}} Saatgut geschenkt.',
+      seedSentPartner: '{{name}} hat dir Saatgut geschenkt.',
+      seedWaiting: 'Es wartet oben auf dich.',
+      plantedOwn: 'Du hast das Saatgut von {{name}} eingepflanzt.',
+      plantedPartner: '{{name}} hat dein Saatgut eingepflanzt.',
+      plantedItselfOwn:
+        'Dein Saatgut hat von selbst einen Platz im Beet gefunden.',
+      plantedItselfPartner:
+        'Das Saatgut von {{name}} hat von selbst einen Platz im Beet gefunden.',
+      sharedDay: 'Ihr wart beide da, und der ganze Garten ist gewachsen.',
+      bloomOwn: 'Eine Blume, die du geschickt hast, blüht zum ersten Mal.',
+      bloomPartner: 'Eine Blume von {{name}} blüht zum ersten Mal.',
+      moonflowerRevealed: 'Die Überraschung ist eine Mondblume.',
+      wateredOwn: 'Du hast gegossen.',
+      wateredPartner: '{{name}} hat gegossen.',
+      wateredTogether: 'Ihr habt beide gegossen, ein doppelter Regenbogen.',
+      bouquetOwn: 'Du hast {{name}} einen Strauß geschenkt.',
+      bouquetPartner: '{{name}} hat dir einen Strauß geschenkt.',
+      keptOwn: 'Du hast den Strauß von {{name}} in Momente gelegt.',
+      keptPartner: '{{name}} hat deinen Strauß in Momente gelegt.',
     },
     words: {
       THINKING_OF_YOU: 'Denk an dich',
@@ -867,9 +914,7 @@ const games = {
           winter: 'Winter',
         },
         pause: 'Anhalten',
-        resume: 'Weiter',
         again: 'Noch einmal',
-        close: 'Schließen',
       },
       feedback: {
         title: 'Nur für dich',

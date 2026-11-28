@@ -21,6 +21,7 @@ public final class NativePushNotifications {
     private static final String CATEGORY = "de.eimir.app.push.activation.";
     private static final String CHANNEL = "eimir_notifications";
     private static final int NOTIFICATION = 1;
+    private static final String EXTRA_NOTIFICATION_ID = "de.eimir.app.notificationId";
 
     public static void cancel(Context context) {
         NotificationManager manager = context.getSystemService(NotificationManager.class);
@@ -28,6 +29,53 @@ public final class NativePushNotifications {
         for (android.service.notification.StatusBarNotification notice : manager.getActiveNotifications()) {
             if (CHANNEL.equals(notice.getNotification().getChannelId())) manager.cancel(notice.getTag(), notice.getId());
         }
+    }
+
+    /**
+     * Removes the notice a person just opened. The body tap already cancels it
+     * (setAutoCancel), but an action button does not, so the open itself clears
+     * the notice no matter which control was used.
+     */
+    public static void cancelOpened(Context context, String notificationId) {
+        NotificationManager manager = context.getSystemService(NotificationManager.class);
+        if (manager == null) return;
+        if (notificationId != null) manager.cancel(notificationId, NOTIFICATION);
+        else manager.cancel(NOTIFICATION);
+    }
+
+    /**
+     * The notification ids of every eimir. notice still in the tray (#2345). The
+     * shared neutral slot carries its id as an extra, so it is listed too; a
+     * notice without an id (a plain wake) is not.
+     */
+    public static java.util.List<String> delivered(Context context) {
+        java.util.List<String> ids = new java.util.ArrayList<>();
+        NotificationManager manager = context.getSystemService(NotificationManager.class);
+        if (manager == null) return ids;
+        for (android.service.notification.StatusBarNotification notice : manager.getActiveNotifications()) {
+            String id = deliveredId(notice);
+            if (id != null && !ids.contains(id)) ids.add(id);
+        }
+        return ids;
+    }
+
+    /**
+     * Removes the tray notices of these notification ids (#2345): they were read,
+     * expired or are no longer current, wherever that happened.
+     */
+    public static void withdraw(Context context, java.util.Collection<String> notificationIds) {
+        NotificationManager manager = context.getSystemService(NotificationManager.class);
+        if (manager == null || notificationIds.isEmpty()) return;
+        for (android.service.notification.StatusBarNotification notice : manager.getActiveNotifications()) {
+            String id = deliveredId(notice);
+            if (id != null && notificationIds.contains(id)) manager.cancel(notice.getTag(), notice.getId());
+        }
+    }
+
+    private static String deliveredId(android.service.notification.StatusBarNotification notice) {
+        if (!CHANNEL.equals(notice.getNotification().getChannelId())) return null;
+        String id = notice.getNotification().extras.getString(EXTRA_NOTIFICATION_ID);
+        return id != null ? id : notice.getTag();
     }
 
     public static Intent notificationIntent(Context context, PushActivation activation) {
@@ -41,8 +89,17 @@ public final class NativePushNotifications {
     }
 
     public static Intent notificationIntent(Context context, PushActivation activation, String notificationId) {
+        return notificationIntent(context, activation, notificationId, null);
+    }
+
+    /**
+     * A ServerAdmin notice also carries its closed topic code (#2337), so a tap can
+     * open ServerAdmin even when the notice itself can no longer be resolved.
+     */
+    public static Intent notificationIntent(Context context, PushActivation activation, String notificationId, String operatorTopic) {
         Intent intent = notificationIntent(context, activation).putExtra("notificationId", notificationId);
         if (notificationId != null) intent.addCategory("de.eimir.app.push.notification." + notificationId);
+        if (operatorTopic != null) intent.putExtra("operatorTopic", operatorTopic);
         return intent;
     }
 
@@ -88,6 +145,15 @@ public final class NativePushNotifications {
         present(context, activation, notificationId, null, wishDate);
     }
 
+    /** What a locked screen shows when the person chose to hide sensitive content. */
+    private static android.app.Notification publicVersion(Context context) {
+        return new NotificationCompat.Builder(context, CHANNEL)
+            .setSmallIcon(R.drawable.ic_launcher_monochrome)
+            .setContentTitle(context.getString(R.string.app_name))
+            .setContentText(context.getString(R.string.push_notification_body))
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC).build();
+    }
+
     private static void present(Context context, PushActivation activation, String notificationId, PushPreview preview, WishDatePush wishDate) {
         synchronized (PushActivation.class) {
             if (!PushActivation.current(context, activation)) return;
@@ -100,29 +166,39 @@ public final class NativePushNotifications {
             if (manager == null) return;
             manager.createNotificationChannel(new NotificationChannel(CHANNEL,
                 context.getString(R.string.push_channel_name), NotificationManager.IMPORTANCE_DEFAULT));
-            PendingIntent tap = PendingIntent.getActivity(context, 0, notificationIntent(context, activation, notificationId),
+            PendingIntent tap = PendingIntent.getActivity(context, 0,
+                notificationIntent(context, activation, notificationId, preview != null ? preview.operatorTopic() : null),
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            // Every notice is VISIBILITY_PRIVATE with a neutral public version, and the
+            // channel sets no lock-screen override. Android's own lock-screen setting
+            // then decides alone (Product Owner, 2026-11-21, #2158): "Show all
+            // notification content" shows the full notice on a locked screen,
+            // "Hide sensitive content" shows only the public version below, and
+            // "Don't show notifications" shows nothing. The app forces neither.
             NotificationCompat.Builder notification = new NotificationCompat.Builder(context, CHANNEL)
                 .setSmallIcon(R.drawable.ic_launcher_monochrome).setContentTitle(context.getString(R.string.app_name))
                 .setContentText(context.getString(R.string.push_notification_body)).setContentIntent(tap)
                 .setAutoCancel(true).setCategory(NotificationCompat.CATEGORY_MESSAGE)
                 .setVisibility(NotificationCompat.VISIBILITY_PRIVATE);
+            if (notificationId != null) {
+                // Lets the app withdraw the notice once it was handled elsewhere (#2345).
+                android.os.Bundle extras = new android.os.Bundle();
+                extras.putString(EXTRA_NOTIFICATION_ID, notificationId);
+                notification.addExtras(extras);
+            }
             if (wishDate != null) {
                 String detail = wishDate.detail(context);
+                // A Wish date notice no longer overrides the setting with VISIBILITY_PUBLIC.
                 notification.setContentTitle(wishDate.headline).setContentText(detail)
                     .setStyle(new NotificationCompat.BigTextStyle().bigText(detail))
                     .setOnlyAlertOnce(true)
-                    .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                    .setPublicVersion(publicVersion(context))
                     .addAction(0, wishDate.action(context), tap);
             } else if (preview != null) {
                 String body = preview.body(context);
                 notification.setContentText(body).setStyle(new NotificationCompat.BigTextStyle().bigText(body))
                     .setOnlyAlertOnce(true)
-                    .setPublicVersion(new NotificationCompat.Builder(context, CHANNEL)
-                        .setSmallIcon(R.drawable.ic_launcher_monochrome)
-                        .setContentTitle(context.getString(R.string.app_name))
-                        .setContentText(context.getString(R.string.push_notification_body))
-                        .setVisibility(NotificationCompat.VISIBILITY_PUBLIC).build());
+                    .setPublicVersion(publicVersion(context));
                 String action = preview.action(context);
                 if (action != null) notification.addAction(0, action, tap);
             }

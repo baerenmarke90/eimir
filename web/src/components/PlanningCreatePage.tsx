@@ -508,14 +508,14 @@ export function PlanningCreatePage({
               }
             >
               {pending
-                ? t('m5s3.common.saving')
+                ? t('common.saving')
                 : parentSaved
                   ? t('common.retry')
-                  : t('m5s3.common.save')}
+                  : t('common.save')}
             </button>
           }
         />
-        <div ref={headingRef} tabIndex={-1} className="planning-task-focus" />
+        <div ref={headingRef} tabIndex={-1} className="sr-only" />
         <form
           id="planning-create-form"
           className="planning-intention-form"
@@ -703,7 +703,7 @@ export function PlanningCreatePage({
         </form>
         {pending ? (
           <p className="composer-status" role="status">
-            {t('m5s3.common.saving')}
+            {t('common.saving')}
           </p>
         ) : null}
         {offlineAttempt ? (

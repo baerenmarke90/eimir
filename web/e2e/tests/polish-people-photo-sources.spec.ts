@@ -12,6 +12,7 @@ import {
   signIn,
   TINY_PNG,
 } from '../support/storyTimelineFixture';
+import germanUi from '../../src/i18n/locales/de';
 
 const base = `/api/v1/spaces/${SPACE_ID}`;
 const attachment = {
@@ -250,7 +251,7 @@ for (const view of [
     ).toEqual(['https://accounts.google.com/authorize']);
     released = true;
     const retry = sheet.getByRole('button', {
-      name: sources.retryImport,
+      name: germanUi.common.retry,
       exact: true,
     });
     await expect(retry).toBeVisible();
@@ -380,7 +381,7 @@ for (const view of [
         }),
       ]);
       await expect(
-        editor.getByRole('button', { name: people.saveChanges, exact: true }),
+        editor.getByRole('button', { name: germanUi.common.save, exact: true }),
       ).toBeEnabled();
       expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
       const reflow = await page.evaluate(() => ({
@@ -404,7 +405,7 @@ for (const view of [
         `polish-avatar-${source}-${view.width}-${view.theme}.png`,
       );
       const save = editor.getByRole('button', {
-        name: people.saveChanges,
+        name: germanUi.common.save,
         exact: true,
       });
       // The former import pointer can land at Save's edge. Hover must not
@@ -431,7 +432,7 @@ for (const view of [
       await expect(
         page.getByRole('heading', { name: ME.displayName, exact: true }),
       ).toBeVisible();
-      await expect(page.getByLabel(people.visibilityLabel)).toHaveCount(0);
+      await expect(page.getByLabel('Sichtbarkeit')).toHaveCount(0);
       await expect(page.locator('.people-profile-hero img')).toBeVisible();
       expect(state.saved).toEqual([
         expect.objectContaining({

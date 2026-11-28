@@ -136,6 +136,7 @@ public class PushPreviewTest {
         assertNotNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
         value.put("v", 1);
         assertNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
+        // v3 requires its detail fields, so a v2 field set under v3 is rejected.
         value.put("v", 3);
         assertNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
         value.put("v", 2).put("body", "Invisible\u202econtent");
@@ -151,6 +152,85 @@ public class PushPreviewTest {
         PushPreview gesture = PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100);
         assertNotNull(gesture);
         assertFalse(gesture.body(context).contains("Never display"));
+    }
+
+    @Test public void onlyAV4OperatorNoticeNamesItsTopicAndMayLiveForAnHour() throws Exception {
+        JSONObject value = new JSONObject()
+            .put("v", 4).put("notificationId", "01a19706-45b8-741d-a0d2-3687565a6789")
+            .put("kind", "OPERATOR_ALERT").put("name", "").put("title", "")
+            .put("targetType", "SUPPORT_REPORTS").put("digest", false).put("issuedAt", 1000).put("expiresAt", 4600)
+            .put("body", "").put("when", "").put("place", "");
+        PushActivation active = activation(fixture().getString("activationId"));
+        PushPreview operator = PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100);
+        assertNotNull(operator);
+        assertEquals("SUPPORT_REPORTS", operator.operatorTopic());
+        assertEquals(context.getString(R.string.push_operator_support_reports), operator.body(context));
+        // A stalled push connection may deliver it late, within the hour.
+        assertNotNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 4500));
+        value.put("expiresAt", 4601);
+        assertNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
+        // Below v4 an operator notice keeps the five-minute window and no topic.
+        value.put("v", 3).put("expiresAt", 4600);
+        assertNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
+        value.put("expiresAt", 1300).put("targetType", "");
+        PushPreview neutral = PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100);
+        assertNotNull(neutral);
+        assertNull(neutral.operatorTopic());
+        // A couple notice never gets the longer window, also on v4.
+        value.put("v", 4).put("kind", "THINKING_OF_YOU").put("name", "Alex").put("expiresAt", 4600);
+        assertNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
+        // A topic code outside the closed shape never reaches the tap.
+        value.put("kind", "OPERATOR_ALERT").put("name", "").put("targetType", "support reports");
+        PushPreview odd = PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100);
+        assertNotNull(odd);
+        assertNull(odd.operatorTopic());
+        assertEquals(context.getString(R.string.push_operator_alert), odd.body(context));
+    }
+
+    @Test public void detailedPreviewIsStrictlyVersionedAndNamesWhenAndWhere() throws Exception {
+        JSONObject value = new JSONObject()
+            .put("v", 3).put("notificationId", "01a19706-45b8-741d-a0d2-3687565a6789")
+            .put("kind", "PLAN_CREATED").put("name", "Alex").put("title", "Dinner am See")
+            .put("targetType", "PLAN").put("digest", false).put("issuedAt", 1000).put("expiresAt", 1300)
+            .put("body", "").put("when", "2035-12-21T18:00:00+00:00").put("place", "Seeblick");
+        PushActivation active = activation(fixture().getString("activationId"));
+        PushPreview plan = PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100);
+        assertNotNull(plan);
+        String body = plan.body(context);
+        assertTrue(body, body.startsWith("Alex hat den Termin „Dinner am See“ geplant.\n"));
+        assertTrue(body, body.contains("2035") && body.endsWith(" · Seeblick"));
+        assertEquals(context.getString(R.string.push_view_plan), plan.action(context));
+        // A date-only Plan names its calendar day without a time.
+        value.put("when", "2035-12-21");
+        String day = PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100).body(context);
+        assertTrue(day, day.contains("2035") && !day.contains(":"));
+        // A start reminder names the Plan, its time and its place.
+        value.put("kind", "REMINDER_DUE").put("name", "");
+        String due = PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100).body(context);
+        assertTrue(due, due.startsWith("Bald geht es los: „Dinner am See“.\n") && due.endsWith(" · Seeblick"));
+        // Unknown kinds never show the detail.
+        value.put("kind", "FUTURE_REVIEWED_EVENT");
+        assertEquals(context.getString(R.string.push_notification_body),
+            PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100).body(context));
+        value.put("kind", "PLAN_CREATED");
+        value.put("place", new String(new char[81]).replace('\0', 'x'));
+        assertNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
+        value.put("place", "See\u202eblick");
+        assertNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
+        value.put("place", "Seeblick").put("when", "tomorrow evening");
+        assertNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
+        value.put("when", "");
+        value.remove("place");
+        assertNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
+        // v2 keeps its exact field set: the detail fields are not accepted there.
+        value.put("place", "").put("v", 2);
+        assertNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
+        value.remove("place");
+        value.remove("when");
+        assertNotNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
+        // v4 (#2337) is known; the next unknown version is rejected.
+        value.put("v", 5).put("when", "").put("place", "");
+        assertNull(PushPreview.decrypt(active, encrypt(active, value), fixtureKey(), 1100));
     }
 
     @Test public void onlyCompleteWishDatePayloadsCanBecomePublicAndTargetTheWishOrPlan() throws Exception {
@@ -195,6 +275,45 @@ public class PushPreviewTest {
         return encrypted.serialize();
     }
 
+    private JSONObject withdrawFixture() throws Exception {
+        try (java.io.InputStream input = InstrumentationRegistry.getInstrumentation().getContext()
+                .getAssets().open("push-withdraw-v1.json")) {
+            return new JSONObject(new String(readAsset(input), StandardCharsets.UTF_8));
+        }
+    }
+
+    /** #2345: a tray removal sealed by the Python sender opens to exactly its ids. */
+    @Test public void pythonWithdrawalDecryptsToItsIds() throws Exception {
+        JSONObject fixture = withdrawFixture();
+        PushActivation active = activation(fixture.getString("activationId"));
+        java.util.Set<String> ids = PushWithdrawal.decrypt(active, fixture.getString("jwe"), fixtureKey(), 1100);
+        java.util.Set<String> expected = new java.util.LinkedHashSet<>();
+        JSONArray listed = fixture.getJSONArray("notificationIds");
+        for (int index = 0; index < listed.length(); index++) expected.add(listed.getString(index));
+        assertEquals(expected, ids);
+    }
+
+    @Test public void withdrawalRejectsWrongKeyActivationKindExpiryAndBadIds() throws Exception {
+        JSONObject fixture = withdrawFixture();
+        PushActivation active = activation(fixture.getString("activationId"));
+        String compact = fixture.getString("jwe");
+        byte[] wrong = fixtureKey();
+        wrong[0] ^= 1;
+        assertNull(PushWithdrawal.decrypt(active, compact, wrong, 1100));
+        assertNull(PushWithdrawal.decrypt(activation("0f94bddd-bede-4676-a343-7202f117fef9"), compact, fixtureKey(), 1100));
+        assertNull(PushWithdrawal.decrypt(active, compact, fixtureKey(), 1000 + PushWithdrawal.VALIDITY + 1));
+        // A preview envelope is never read as a removal.
+        JSONObject preview = fixture();
+        assertNull(PushWithdrawal.decrypt(activation(preview.getString("activationId")),
+            preview.getJSONArray("cases").getJSONObject(0).getString("jwe"), fixtureKey(), 1100));
+        assertNull(PushWithdrawal.ids(new JSONArray()));
+        assertNull(PushWithdrawal.ids(new JSONArray().put("3F8A7F84-6A4E-4D43-9A3F-1D2C5B6E7A80")));
+        assertNull(PushWithdrawal.ids(new JSONArray().put("not-an-id")));
+        JSONArray many = new JSONArray();
+        for (int index = 0; index <= PushWithdrawal.MAX_IDS; index++) many.put(java.util.UUID.randomUUID().toString());
+        assertNull(PushWithdrawal.ids(many));
+    }
+
     private PushActivation activation(String id) {
         return new PushActivation("17b4a730-e98c-4af3-b19e-5fae9485200c", "https://api.example.invalid", "fcm", id, null);
     }
@@ -202,7 +321,7 @@ public class PushPreviewTest {
         java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();
         byte[] chunk = new byte[512];
         for (int count; (count = input.read(chunk)) != -1;) {
-            if (output.size() + count > 131072) throw new IllegalStateException("Fixture exceeds its bound");
+            if (output.size() + count > 262144) throw new IllegalStateException("Fixture exceeds its bound");
             output.write(chunk, 0, count);
         }
         return output.toByteArray();

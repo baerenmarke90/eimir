@@ -1,0 +1,15 @@
+eimir. Android 0.2.0-test.102
+
+- When a Transfer fails, the app now names the reason, and large exports are split into parts that stay within the size limit.
+- Pull to refresh now draws a small disc that follows your finger and springs back smoothly on release.
+- Swiping between tabs is smoother, with less jank on the tabs and on the map, and gives a single haptic tick per swipe.
+- Tapping a main tab now opens it at the top.
+- The partner map shows when each location was last updated.
+- Diary pages show their paper details more cleanly, and album map markers are simpler.
+- Discover story controls fade out after a short moment so the picture stays clear.
+- Push notification setup now shows its progress while it activates.
+- Lists and Notes use the same header at the top as Momente and Planen, and title-only pages have an even gap below the title.
+- On Wir, the light stays visible in Light mode, and the Zu zweit design preview no longer collapses in the picker.
+
+The product changes come from main at 3b70f422378b92e345bc0031a2c1a4d843d0dc54.
+Install over test.101 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 102.

@@ -39,7 +39,28 @@ function dispatchTouch(
   return event;
 }
 
+/** The indicator's resting offset below the top of its clip, in px. */
+function offsetOf(disc: HTMLElement): number {
+  const match = /calc\((?:([-\d.]+)px - 100%|-100% \+ ([-\d.]+)px)\)/.exec(
+    disc.style.transform,
+  );
+  if (!match) throw new Error(`No offset in "${disc.style.transform}"`);
+  return Number(match[1] ?? match[2]);
+}
+
+function attachDisc(ref: (element: HTMLElement | null) => void): HTMLElement {
+  const disc = document.createElement('span');
+  document.body.append(disc);
+  act(() => ref(disc));
+  return disc;
+}
+
 beforeEach(() => {
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+    callback(0);
+    return 1;
+  });
+  vi.stubGlobal('cancelAnimationFrame', () => {});
   Object.defineProperty(navigator, 'maxTouchPoints', {
     configurable: true,
     value: 1,
@@ -54,11 +75,44 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
   document.documentElement.classList.remove('app-pull-refresh-enabled');
   vi.restoreAllMocks();
 });
 
 describe('usePullToRefresh', () => {
+  it('checks nested scroll layout only once a downward gesture could refresh', () => {
+    const onRefresh = vi.fn();
+    const scroller = document.createElement('div');
+    scroller.style.overflowY = 'auto';
+    Object.defineProperty(scroller, 'scrollHeight', { value: 200 });
+    Object.defineProperty(scroller, 'clientHeight', { value: 100 });
+    const target = scroller.appendChild(document.createElement('span'));
+    document.body.append(scroller);
+    renderHook(() =>
+      usePullToRefresh({ enabled: true, blocked: false, onRefresh }),
+    );
+    const style = vi.spyOn(window, 'getComputedStyle');
+    act(() => {
+      dispatchTouch('touchstart', 100, 100, target);
+      dispatchTouch('touchend', undefined, 100, target);
+      dispatchTouch('touchstart', 100, 100, target);
+      dispatchTouch('touchmove', 108, 180, target);
+      dispatchTouch('touchend', undefined, 180, target);
+    });
+    expect(style).not.toHaveBeenCalled();
+    act(() => {
+      dispatchTouch('touchstart', 100, 100, target);
+      const move = dispatchTouch('touchmove', 190, 100, target);
+      expect(move.defaultPrevented).toBe(false);
+      dispatchTouch('touchend', undefined, 100, target);
+    });
+    expect(style).toHaveBeenCalledWith(scroller);
+    expect(onRefresh).not.toHaveBeenCalled();
+    scroller.remove();
+  });
+
   it('does not refresh for ordinary scrolling or a pull below the threshold', () => {
     const onRefresh = vi.fn();
     renderHook(() =>
@@ -106,6 +160,58 @@ describe('usePullToRefresh', () => {
     expect(
       document.documentElement.classList.contains('app-pull-refresh-enabled'),
     ).toBe(true);
+  });
+
+  it('keeps the browser refresh suppressed while any surface still enables the gesture', () => {
+    const root = document.documentElement;
+    const onRefresh = vi.fn();
+    const app = renderHook(() =>
+      usePullToRefresh({ enabled: true, blocked: false, onRefresh }),
+    );
+    const momente = renderHook(() =>
+      usePullToRefresh({ enabled: true, blocked: false, onRefresh }),
+    );
+    expect(root.classList.contains('app-pull-refresh-enabled')).toBe(true);
+
+    momente.unmount();
+    expect(root.classList.contains('app-pull-refresh-enabled')).toBe(true);
+    app.unmount();
+    expect(root.classList.contains('app-pull-refresh-enabled')).toBe(false);
+  });
+
+  it('ends a pull whose page scrolls away from the top, without reading the position per move', () => {
+    const onRefresh = vi.fn();
+    renderHook(() =>
+      usePullToRefresh({ enabled: true, blocked: false, onRefresh }),
+    );
+    let scrollY = 0;
+    let reads = 0;
+    Object.defineProperty(window, 'scrollY', {
+      configurable: true,
+      get: () => {
+        reads += 1;
+        return scrollY;
+      },
+    });
+
+    act(() => {
+      dispatchTouch('touchstart', 100);
+      dispatchTouch('touchmove', 120);
+    });
+    const readsBeforeMoves = reads;
+    act(() => {
+      dispatchTouch('touchmove', 140);
+      dispatchTouch('touchmove', 160);
+    });
+    expect(reads).toBe(readsBeforeMoves);
+
+    scrollY = 40;
+    act(() => {
+      window.dispatchEvent(new Event('scroll'));
+      dispatchTouch('touchmove', 230);
+      dispatchTouch('touchend');
+    });
+    expect(onRefresh).not.toHaveBeenCalled();
   });
 
   it('keeps a single refresh in flight across repeated gestures', async () => {
@@ -175,18 +281,221 @@ describe('usePullToRefresh', () => {
     button.remove();
   });
 
-  it('does nothing while another surface fetch is blocking the gesture', () => {
-    const onRefresh = vi.fn();
-    renderHook(() =>
-      usePullToRefresh({ enabled: true, blocked: true, onRefresh }),
+  it('keeps the pull alive while another fetch runs and starts the refresh when it ends', async () => {
+    const onRefresh = vi.fn().mockResolvedValue(undefined);
+    const { result, rerender } = renderHook(
+      ({ blocked }) => usePullToRefresh({ enabled: true, blocked, onRefresh }),
+      { initialProps: { blocked: true } },
     );
 
     act(() => {
       dispatchTouch('touchstart', 100);
-      dispatchTouch('touchmove', 220);
+      dispatchTouch('touchmove', 190);
+    });
+    // The person sees the pull follow their finger, not a dead surface.
+    expect(result.current.ready).toBe(true);
+
+    act(() => {
+      dispatchTouch('touchend');
+    });
+    expect(result.current.refreshing).toBe(true);
+    expect(onRefresh).not.toHaveBeenCalled();
+
+    await act(async () => {
+      rerender({ blocked: false });
+      await Promise.resolve();
+    });
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+    expect(result.current.refreshing).toBe(false);
+  });
+
+  it('does not lose the pull when a fetch starts in the middle of it', () => {
+    const onRefresh = vi.fn().mockResolvedValue(undefined);
+    const { result, rerender } = renderHook(
+      ({ blocked }) => usePullToRefresh({ enabled: true, blocked, onRefresh }),
+      { initialProps: { blocked: false } },
+    );
+    act(() => {
+      dispatchTouch('touchstart', 100);
+      dispatchTouch('touchmove', 150);
+    });
+    rerender({ blocked: true });
+    act(() => {
+      dispatchTouch('touchmove', 190);
+    });
+    expect(result.current.ready).toBe(true);
+  });
+
+  it('refreshes after a bounded wait when a fetch never ends', async () => {
+    vi.useFakeTimers();
+    const onRefresh = vi.fn().mockResolvedValue(undefined);
+    renderHook(() =>
+      usePullToRefresh({ enabled: true, blocked: true, onRefresh }),
+    );
+    act(() => {
+      dispatchTouch('touchstart', 100);
+      dispatchTouch('touchmove', 190);
       dispatchTouch('touchend');
     });
     expect(onRefresh).not.toHaveBeenCalled();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(6000);
+    });
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  describe('indicator motion', () => {
+    it('moves the disc by transform, fully shown exactly at the commit distance', () => {
+      const { result } = renderHook(() =>
+        usePullToRefresh({
+          enabled: true,
+          blocked: false,
+          onRefresh: vi.fn(),
+        }),
+      );
+      const disc = attachDisc(result.current.indicatorRef);
+      act(() => {
+        dispatchTouch('touchstart', 100);
+        dispatchTouch('touchmove', 100 + 72);
+      });
+      // Half the finger travel, which is the disc's own height at 72 px.
+      expect(offsetOf(disc)).toBe(36);
+      expect(result.current.ready).toBe(true);
+      expect(disc.style.opacity).toBe('1');
+    });
+
+    it('gives way with resistance instead of stopping hard', () => {
+      const { result } = renderHook(() =>
+        usePullToRefresh({
+          enabled: true,
+          blocked: false,
+          onRefresh: vi.fn(),
+        }),
+      );
+      const disc = attachDisc(result.current.indicatorRef);
+      act(() => {
+        dispatchTouch('touchstart', 100);
+        dispatchTouch('touchmove', 100 + 140);
+      });
+      const first = offsetOf(disc);
+      act(() => {
+        dispatchTouch('touchmove', 100 + 200);
+      });
+      const second = offsetOf(disc);
+      expect(first).toBeGreaterThan(64);
+      expect(second).toBeGreaterThan(first);
+      expect(second).toBeLessThan(64 + 48 + 0.001);
+    });
+
+    it('returns the disc to rest when released short of the commit distance', () => {
+      const { result } = renderHook(() =>
+        usePullToRefresh({
+          enabled: true,
+          blocked: false,
+          onRefresh: vi.fn(),
+        }),
+      );
+      const disc = attachDisc(result.current.indicatorRef);
+      act(() => {
+        dispatchTouch('touchstart', 100);
+        dispatchTouch('touchmove', 150);
+      });
+      expect(offsetOf(disc)).toBe(25);
+      act(() => {
+        dispatchTouch('touchend');
+      });
+      expect(offsetOf(disc)).toBe(0);
+      expect(disc.style.opacity).toBe('0');
+    });
+
+    it('holds the disc at its resting place while refreshing and hides it after', async () => {
+      let resolveRefresh: (() => void) | undefined;
+      const onRefresh = vi.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveRefresh = resolve;
+          }),
+      );
+      const { result } = renderHook(() =>
+        usePullToRefresh({ enabled: true, blocked: false, onRefresh }),
+      );
+      const disc = attachDisc(result.current.indicatorRef);
+      act(() => {
+        dispatchTouch('touchstart', 100);
+        dispatchTouch('touchmove', 100 + 110);
+        dispatchTouch('touchend');
+      });
+      expect(result.current.refreshing).toBe(true);
+      expect(offsetOf(disc)).toBe(36);
+      await act(async () => {
+        resolveRefresh?.();
+        await Promise.resolve();
+      });
+      expect(result.current.refreshing).toBe(false);
+      expect(offsetOf(disc)).toBe(0);
+    });
+
+    function stubAnimate(disc: HTMLElement) {
+      const animate = vi.fn((_keyframes: Keyframe[]) => ({
+        finished: new Promise<void>(() => {}),
+        currentTime: 0,
+        cancel: vi.fn(),
+        commitStyles: vi.fn(),
+      }));
+      Object.defineProperty(disc, 'animate', {
+        configurable: true,
+        value: animate,
+      });
+      return animate;
+    }
+
+    it('settles back on the shared spring from where the finger left it', () => {
+      window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+        matches: query.includes('pointer: coarse'),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }));
+      const { result } = renderHook(() =>
+        usePullToRefresh({
+          enabled: true,
+          blocked: false,
+          onRefresh: vi.fn(),
+        }),
+      );
+      const disc = attachDisc(result.current.indicatorRef);
+      const animate = stubAnimate(disc);
+      act(() => {
+        dispatchTouch('touchstart', 100);
+        dispatchTouch('touchmove', 150);
+        dispatchTouch('touchend');
+      });
+      expect(animate).toHaveBeenCalledTimes(1);
+      const frames = animate.mock.calls[0][0];
+      expect(String(frames[0].transform)).toContain('calc(25px - 100%)');
+      expect(String(frames.at(-1)?.transform)).toContain('calc(0px - 100%)');
+      expect(frames.length).toBeGreaterThan(3);
+      // The element's own style is already the end state: nothing is held.
+      expect(offsetOf(disc)).toBe(0);
+    });
+
+    it('lands at once with reduced motion', () => {
+      const { result } = renderHook(() =>
+        usePullToRefresh({
+          enabled: true,
+          blocked: false,
+          onRefresh: vi.fn(),
+        }),
+      );
+      const disc = attachDisc(result.current.indicatorRef);
+      const animate = stubAnimate(disc);
+      act(() => {
+        dispatchTouch('touchstart', 100);
+        dispatchTouch('touchmove', 150);
+        dispatchTouch('touchend');
+      });
+      expect(animate).not.toHaveBeenCalled();
+      expect(offsetOf(disc)).toBe(0);
+    });
   });
 
   it.each(['a', 'button'])(

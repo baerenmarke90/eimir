@@ -35,6 +35,7 @@ export function PersonIdentity({
   showName = true,
   imageAlt,
   fallbackAlt,
+  standIn = false,
   onImageError,
 }: {
   displayName: string;
@@ -43,6 +44,8 @@ export function PersonIdentity({
   showName?: boolean;
   imageAlt: string;
   fallbackAlt: string;
+  /** The picture is the neutral stand-in, not a photo of the person. */
+  standIn?: boolean;
   onImageError?: () => void;
 }) {
   const { i18n } = useTranslation();
@@ -52,7 +55,7 @@ export function PersonIdentity({
     [displayName, i18n.resolvedLanguage],
   );
   const broken = imageUrl !== null && imageUrl === failedImageUrl;
-  const avatarLabel = imageUrl && !broken ? imageAlt : fallbackAlt;
+  const avatarLabel = imageUrl && !broken && !standIn ? imageAlt : fallbackAlt;
 
   return (
     <span className="person-identity">

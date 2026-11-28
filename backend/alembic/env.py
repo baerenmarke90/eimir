@@ -20,6 +20,7 @@ from __future__ import annotations
 from logging.config import fileConfig
 
 from alembic import context
+from alembic.script import ScriptDirectory
 from pydantic import ValidationError
 from sqlalchemy import CheckConstraint, engine_from_config, pool
 from sqlalchemy.schema import SchemaItem
@@ -27,7 +28,9 @@ from sqlalchemy.schema import SchemaItem
 from eimir.config import DatabaseSettings
 from eimir.db.base import Base
 from eimir.db.registry import load_all_models
+from eimir.plugins.loader import loaded_plugins
 from eimir.plugins.manifest import PLUGIN_TABLE_NAMES
+from eimir.plugins.migrations import is_upgrade_to_head, upgrade_plugin_chains
 
 
 def _migration_connection() -> str:
@@ -78,6 +81,10 @@ def include_object(
     if type_ == "table" and reflected and compare_to is None and name in PLUGIN_TABLE_NAMES:
         # A plugin table without a model in this process: its plugin is not loaded.
         return False
+    if type_ == "table" and reflected and name is not None and name.startswith("alembic_version_"):
+        # A plugin chain's own version table (Decision 0017, decision 6): migration
+        # state, never a Core table that autogenerate may propose to drop.
+        return False
     if type_ != "check_constraint" or not reflected or name is None:
         return True
     table = getattr(object_, "table", None)
@@ -114,6 +121,15 @@ def run_migrations_online() -> None:
         )
         with context.begin_transaction():
             context.run_migrations()
+        # The plugin chains follow an upgrade that left Core at its head, each
+        # with its own version table (Decision 0017, decision 6).
+        if is_upgrade_to_head(
+            context.get_context(), ScriptDirectory.from_config(config).get_heads()
+        ):
+            if connection.in_transaction():
+                # Only the read of the Core heads above; nothing to keep.
+                connection.commit()
+            upgrade_plugin_chains(connection, loaded_plugins().plugins)
     # After the migration, read-only and never fatal: data of plugins that are
     # not loaded (Decision 0017).
     from eimir.plugins.dormant import warn_dormant_plugin_data_once

@@ -1,6 +1,6 @@
 .settings-page {
   display: grid;
-  gap: var(--space-6);
+  --page-stack-gap: var(--space-6);
   width: 100%;
   max-width: 48rem;
   margin: 0 auto;
@@ -59,8 +59,7 @@
 .settings-category-content > .settings-section,
 .settings-category-content > .form-card,
 .settings-functional-panel,
-.settings-appearance-block > .form-card,
-.settings-data-block > .transfer-panel {
+.settings-appearance-block > .form-card {
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -77,8 +76,7 @@
 
 .settings-section-head h2,
 .settings-sensitive-head h2,
-.settings-appearance-block h2,
-.settings-data-block .transfer-panel > h2 {
+.settings-appearance-block h2 {
   margin: 0;
 }
 
@@ -288,7 +286,7 @@
   display: block;
   width: 44px;
   height: 26px;
-  border: var(--border-surface-width) solid var(--color-border);
+  border: var(--border-surface-width) solid var(--color-switch-outline);
   border-radius: 999px;
   background: var(--color-surface-subtle);
   transition:
@@ -313,13 +311,13 @@
    accent, so it uses the on-accent token and never a brand tone (the dark
    brand-strong thumb on a brand-surface track was unreadable). */
 .space-module-switch[aria-checked="true"] .space-module-switch-track {
-  border-color: var(--color-brand-strong);
-  background: var(--color-brand-strong);
+  border-color: var(--color-switch-track-on);
+  background: var(--color-switch-track-on);
 }
 
 .space-module-switch[aria-checked="true"] .space-module-switch-thumb {
   transform: translateX(18px);
-  background: var(--color-on-accent);
+  background: var(--color-switch-thumb-on);
 }
 
 .space-module-switch:focus-visible {
@@ -775,7 +773,7 @@
   width: 44px;
   height: 26px;
   margin: 0;
-  border: var(--border-surface-width) solid var(--color-border);
+  border: var(--border-surface-width) solid var(--color-switch-outline);
   border-radius: var(--radius-pill);
   background: var(--color-surface);
   cursor: pointer;
@@ -798,12 +796,12 @@
 }
 
 .dashboard-module-option input[type="checkbox"]:checked {
-  border-color: var(--color-brand-strong);
-  background: var(--color-brand-strong);
+  border-color: var(--color-switch-track-on);
+  background: var(--color-switch-track-on);
 }
 
 .dashboard-module-option input[type="checkbox"]:checked::after {
-  background: var(--color-on-accent);
+  background: var(--color-switch-thumb-on);
   transform: translate(18px, -50%);
 }
 
@@ -961,20 +959,9 @@
   }
 }
 
-.settings-data-block .transfer-panel > p,
 .settings-appearance-block > .form-card > p {
   max-width: 66ch;
   color: var(--color-text-secondary);
-}
-
-.settings-data-block .transfer-columns {
-  margin-top: var(--space-2);
-}
-
-.settings-data-block .transfer-scope-option,
-.settings-data-block .transfer-confirm {
-  min-height: 44px;
-  align-items: center;
 }
 
 .settings-sensitive-zone {
@@ -1020,7 +1007,7 @@
 
 @media (max-width: 760px) {
   .settings-page {
-    gap: var(--space-5);
+    --page-stack-gap: var(--space-5);
     padding-bottom: var(--space-8);
   }
 

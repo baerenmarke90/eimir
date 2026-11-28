@@ -74,10 +74,20 @@ import {
     ServerAdminEntitlementRevokeRequestToJSON,
 } from '../models/ServerAdminEntitlementRevokeRequest';
 import {
+    type ServerAdminFailedJobsSeen,
+    ServerAdminFailedJobsSeenFromJSON,
+    ServerAdminFailedJobsSeenToJSON,
+} from '../models/ServerAdminFailedJobsSeen';
+import {
     type ServerAdminJobList,
     ServerAdminJobListFromJSON,
     ServerAdminJobListToJSON,
 } from '../models/ServerAdminJobList';
+import {
+    type ServerAdminMonitoring,
+    ServerAdminMonitoringFromJSON,
+    ServerAdminMonitoringToJSON,
+} from '../models/ServerAdminMonitoring';
 import {
     type ServerAdminOverview,
     ServerAdminOverviewFromJSON,
@@ -98,6 +108,11 @@ import {
     ServerAdminRecoveryProofFromJSON,
     ServerAdminRecoveryProofToJSON,
 } from '../models/ServerAdminRecoveryProof';
+import {
+    type ServerAdminSearchResult,
+    ServerAdminSearchResultFromJSON,
+    ServerAdminSearchResultToJSON,
+} from '../models/ServerAdminSearchResult';
 import {
     type ServerAdminSessionRevocationResult,
     ServerAdminSessionRevocationResultFromJSON,
@@ -134,15 +149,34 @@ import {
     ServerAdminSpaceEntitlementViewToJSON,
 } from '../models/ServerAdminSpaceEntitlementView';
 import {
+    type ServerAdminSpaceFile,
+    ServerAdminSpaceFileFromJSON,
+    ServerAdminSpaceFileToJSON,
+} from '../models/ServerAdminSpaceFile';
+import {
     type ServerAdminSpaceList,
     ServerAdminSpaceListFromJSON,
     ServerAdminSpaceListToJSON,
 } from '../models/ServerAdminSpaceList';
 import {
+    type ServerAdminSpaceStorage,
+    ServerAdminSpaceStorageFromJSON,
+    ServerAdminSpaceStorageToJSON,
+} from '../models/ServerAdminSpaceStorage';
+import {
     type ServerAdminStorageOverview,
     ServerAdminStorageOverviewFromJSON,
     ServerAdminStorageOverviewToJSON,
 } from '../models/ServerAdminStorageOverview';
+import {
+    type ServerAdminStorageQuotaRequest,
+    ServerAdminStorageQuotaRequestFromJSON,
+    ServerAdminStorageQuotaRequestToJSON,
+} from '../models/ServerAdminStorageQuotaRequest';
+
+export interface ClearServerAdminSpaceStorageQuotaRequest {
+    spaceId: string;
+}
 
 export interface DeleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPostRequest {
     accountId: string;
@@ -151,6 +185,10 @@ export interface DeleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeleti
 
 export interface GetServerAdminAccountApiV1ServerAdminAccountsAccountIdGetRequest {
     accountId: string;
+}
+
+export interface GetServerAdminMonitoringApiV1ServerAdminMonitoringGetRequest {
+    range?: GetServerAdminMonitoringApiV1ServerAdminMonitoringGetRangeEnum;
 }
 
 export interface GetServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRequest {
@@ -169,6 +207,10 @@ export interface GetServerAdminSpaceApiV1ServerAdminSpacesSpaceIdGetRequest {
 }
 
 export interface GetServerAdminSpaceEntitlementApiV1ServerAdminSpacesSpaceIdEntitlementGetRequest {
+    spaceId: string;
+}
+
+export interface GetServerAdminSpaceFileRequest {
     spaceId: string;
 }
 
@@ -228,7 +270,24 @@ export interface RevokeServerAdminSpaceEntitlementGrantApiV1ServerAdminSpacesSpa
     serverAdminEntitlementRevokeRequest: ServerAdminEntitlementRevokeRequest;
 }
 
+export interface SearchServerAdminRequest {
+    q?: string;
+}
+
+export interface SetServerAdminSpaceStorageQuotaRequest {
+    spaceId: string;
+    serverAdminStorageQuotaRequest: ServerAdminStorageQuotaRequest;
+}
+
 export interface UpdateMaintenanceSettingApiV1ServerAdminSettingsMaintenancePutRequest {
+    serverAdminSettingUpdate: ServerAdminSettingUpdate;
+}
+
+export interface UpdateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPutRequest {
+    serverAdminSettingUpdate: ServerAdminSettingUpdate;
+}
+
+export interface UpdateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPutRequest {
     serverAdminSettingUpdate: ServerAdminSettingUpdate;
 }
 
@@ -251,6 +310,52 @@ export interface VerifyServerAdminAccountEmailApiV1ServerAdminAccountsAccountIdE
  * 
  */
 export class ServerAdminApi extends runtime.BaseAPI {
+
+    /**
+     * Creates request options for clearServerAdminSpaceStorageQuota without sending the request
+     */
+    async clearServerAdminSpaceStorageQuotaRequestOpts(requestParameters: ClearServerAdminSpaceStorageQuotaRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling clearServerAdminSpaceStorageQuota().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/server-admin/spaces/{space_id}/storage-quota`;
+        urlPath = urlPath.replace('{space_id}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Remove the individual quota; the tier value applies again at once.
+     * Clear Server Admin Space Storage Quota
+     */
+    async clearServerAdminSpaceStorageQuotaRaw(requestParameters: ClearServerAdminSpaceStorageQuotaRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.clearServerAdminSpaceStorageQuotaRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Remove the individual quota; the tier value applies again at once.
+     * Clear Server Admin Space Storage Quota
+     */
+    async clearServerAdminSpaceStorageQuota(requestParameters: ClearServerAdminSpaceStorageQuotaRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.clearServerAdminSpaceStorageQuotaRaw(requestParameters, initOverrides);
+    }
 
     /**
      * Creates request options for deleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPost without sending the request
@@ -423,6 +528,49 @@ export class ServerAdminApi extends runtime.BaseAPI {
      */
     async getServerAdminActivityApiV1ServerAdminActivityGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<ServerAdminActivityItem>> {
         const response = await this.getServerAdminActivityApiV1ServerAdminActivityGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getServerAdminMonitoringApiV1ServerAdminMonitoringGet without sending the request
+     */
+    async getServerAdminMonitoringApiV1ServerAdminMonitoringGetRequestOpts(requestParameters: GetServerAdminMonitoringApiV1ServerAdminMonitoringGetRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['range'] != null) {
+            queryParameters['range'] = requestParameters['range'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/server-admin/monitoring`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Return history, storage forecast and service states for the chosen range.
+     * Get Server Admin Monitoring
+     */
+    async getServerAdminMonitoringApiV1ServerAdminMonitoringGetRaw(requestParameters: GetServerAdminMonitoringApiV1ServerAdminMonitoringGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ServerAdminMonitoring>> {
+        const requestOptions = await this.getServerAdminMonitoringApiV1ServerAdminMonitoringGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ServerAdminMonitoringFromJSON(jsonValue));
+    }
+
+    /**
+     * Return history, storage forecast and service states for the chosen range.
+     * Get Server Admin Monitoring
+     */
+    async getServerAdminMonitoringApiV1ServerAdminMonitoringGet(requestParameters: GetServerAdminMonitoringApiV1ServerAdminMonitoringGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminMonitoring> {
+        const response = await this.getServerAdminMonitoringApiV1ServerAdminMonitoringGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -666,6 +814,53 @@ export class ServerAdminApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for getServerAdminSpaceFile without sending the request
+     */
+    async getServerAdminSpaceFileRequestOpts(requestParameters: GetServerAdminSpaceFileRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getServerAdminSpaceFile().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/server-admin/spaces/{space_id}/file`;
+        urlPath = urlPath.replace('{space_id}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Everything an operator needs about one Space, without names or content.  Each call is recorded as ``space_file_viewed`` in the privileged audit.
+     * Get Server Admin Space File
+     */
+    async getServerAdminSpaceFileRaw(requestParameters: GetServerAdminSpaceFileRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ServerAdminSpaceFile>> {
+        const requestOptions = await this.getServerAdminSpaceFileRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ServerAdminSpaceFileFromJSON(jsonValue));
+    }
+
+    /**
+     * Everything an operator needs about one Space, without names or content.  Each call is recorded as ``space_file_viewed`` in the privileged audit.
+     * Get Server Admin Space File
+     */
+    async getServerAdminSpaceFile(requestParameters: GetServerAdminSpaceFileRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminSpaceFile> {
+        const response = await this.getServerAdminSpaceFileRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for getServerAdminStorageApiV1ServerAdminStorageGet without sending the request
      */
     async getServerAdminStorageApiV1ServerAdminStorageGetRequestOpts(): Promise<runtime.RequestOpts> {
@@ -742,7 +937,7 @@ export class ServerAdminApi extends runtime.BaseAPI {
     }
 
     /**
-     * Record a manual Premium grant for a Space (V1 launch entitlement source).  The operator path for beta testers, support and promotions. Paid Google Play purchases arrive through the store adapter in `eimir.billing` instead (docs/m6/ENTITLEMENT-BOUNDARY.md §7.1). It reuses the existing normalized `record_grant` source-update interface unchanged rather than adding a second grant-mutation path.  Granting unlimited Premium is as consequential as the other high-risk ServerAdmin actions in this router (account deletion, email verification, recovery issuance), so it requires the same step-up re-authentication.
+     * Record a manual Premium grant for a Space (V1 launch entitlement source).  The operator path for beta testers, support and promotions. Paid Google Play purchases arrive through the store adapter in `eimir.billing` instead (docs/m6/ENTITLEMENT-BOUNDARY.md §7.1). It reuses the existing normalized `record_grant` source-update interface unchanged rather than adding a second grant-mutation path.
      * Grant Server Admin Space Entitlement
      */
     async grantServerAdminSpaceEntitlementApiV1ServerAdminSpacesSpaceIdEntitlementGrantsPostRaw(requestParameters: GrantServerAdminSpaceEntitlementApiV1ServerAdminSpacesSpaceIdEntitlementGrantsPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ServerAdminSpaceEntitlementView>> {
@@ -753,7 +948,7 @@ export class ServerAdminApi extends runtime.BaseAPI {
     }
 
     /**
-     * Record a manual Premium grant for a Space (V1 launch entitlement source).  The operator path for beta testers, support and promotions. Paid Google Play purchases arrive through the store adapter in `eimir.billing` instead (docs/m6/ENTITLEMENT-BOUNDARY.md §7.1). It reuses the existing normalized `record_grant` source-update interface unchanged rather than adding a second grant-mutation path.  Granting unlimited Premium is as consequential as the other high-risk ServerAdmin actions in this router (account deletion, email verification, recovery issuance), so it requires the same step-up re-authentication.
+     * Record a manual Premium grant for a Space (V1 launch entitlement source).  The operator path for beta testers, support and promotions. Paid Google Play purchases arrive through the store adapter in `eimir.billing` instead (docs/m6/ENTITLEMENT-BOUNDARY.md §7.1). It reuses the existing normalized `record_grant` source-update interface unchanged rather than adding a second grant-mutation path.
      * Grant Server Admin Space Entitlement
      */
     async grantServerAdminSpaceEntitlementApiV1ServerAdminSpacesSpaceIdEntitlementGrantsPost(requestParameters: GrantServerAdminSpaceEntitlementApiV1ServerAdminSpacesSpaceIdEntitlementGrantsPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminSpaceEntitlementView> {
@@ -980,6 +1175,45 @@ export class ServerAdminApi extends runtime.BaseAPI {
      */
     async listServerAdminSpacesApiV1ServerAdminSpacesGet(requestParameters: ListServerAdminSpacesApiV1ServerAdminSpacesGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminSpaceList> {
         const response = await this.listServerAdminSpacesApiV1ServerAdminSpacesGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for markFailedJobsSeenApiV1ServerAdminFailedJobsSeenPost without sending the request
+     */
+    async markFailedJobsSeenApiV1ServerAdminFailedJobsSeenPostRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/server-admin/failed-jobs/seen`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Hide the current failed jobs from the Situation page until a new job fails (#2342).  System > Jobs, alert mails and pushes are unaffected. Shared by every ServerAdmin.
+     * Mark Failed Jobs Seen
+     */
+    async markFailedJobsSeenApiV1ServerAdminFailedJobsSeenPostRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ServerAdminFailedJobsSeen>> {
+        const requestOptions = await this.markFailedJobsSeenApiV1ServerAdminFailedJobsSeenPostRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ServerAdminFailedJobsSeenFromJSON(jsonValue));
+    }
+
+    /**
+     * Hide the current failed jobs from the Situation page until a new job fails (#2342).  System > Jobs, alert mails and pushes are unaffected. Shared by every ServerAdmin.
+     * Mark Failed Jobs Seen
+     */
+    async markFailedJobsSeenApiV1ServerAdminFailedJobsSeenPost(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminFailedJobsSeen> {
+        const response = await this.markFailedJobsSeenApiV1ServerAdminFailedJobsSeenPostRaw(initOverrides);
         return await response.value();
     }
 
@@ -1220,7 +1454,7 @@ export class ServerAdminApi extends runtime.BaseAPI {
     }
 
     /**
-     * Revoke one grant (e.g. an admin mistake, abuse, or a refund/chargeback).  Revoking a paying customer\'s entitlement is as consequential as the other high-risk ServerAdmin actions in this router, so it requires the same step-up re-authentication.
+     * Revoke one grant (e.g. an admin mistake, abuse, or a refund/chargeback).
      * Revoke Server Admin Space Entitlement Grant
      */
     async revokeServerAdminSpaceEntitlementGrantApiV1ServerAdminSpacesSpaceIdEntitlementGrantsGrantIdRevokePostRaw(requestParameters: RevokeServerAdminSpaceEntitlementGrantApiV1ServerAdminSpacesSpaceIdEntitlementGrantsGrantIdRevokePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ServerAdminSpaceEntitlementView>> {
@@ -1231,11 +1465,111 @@ export class ServerAdminApi extends runtime.BaseAPI {
     }
 
     /**
-     * Revoke one grant (e.g. an admin mistake, abuse, or a refund/chargeback).  Revoking a paying customer\'s entitlement is as consequential as the other high-risk ServerAdmin actions in this router, so it requires the same step-up re-authentication.
+     * Revoke one grant (e.g. an admin mistake, abuse, or a refund/chargeback).
      * Revoke Server Admin Space Entitlement Grant
      */
     async revokeServerAdminSpaceEntitlementGrantApiV1ServerAdminSpacesSpaceIdEntitlementGrantsGrantIdRevokePost(requestParameters: RevokeServerAdminSpaceEntitlementGrantApiV1ServerAdminSpacesSpaceIdEntitlementGrantsGrantIdRevokePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminSpaceEntitlementView> {
         const response = await this.revokeServerAdminSpaceEntitlementGrantApiV1ServerAdminSpacesSpaceIdEntitlementGrantsGrantIdRevokePostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for searchServerAdmin without sending the request
+     */
+    async searchServerAdminRequestOpts(requestParameters: SearchServerAdminRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['q'] != null) {
+            queryParameters['q'] = requestParameters['q'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/server-admin/search`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Find Accounts by email part or id, their Spaces, and a Space by id.  Names are protected content and never matched. At most 20 Accounts come back, so the Account-Space link cannot be listed in bulk.
+     * Search Server Admin
+     */
+    async searchServerAdminRaw(requestParameters: SearchServerAdminRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ServerAdminSearchResult>> {
+        const requestOptions = await this.searchServerAdminRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ServerAdminSearchResultFromJSON(jsonValue));
+    }
+
+    /**
+     * Find Accounts by email part or id, their Spaces, and a Space by id.  Names are protected content and never matched. At most 20 Accounts come back, so the Account-Space link cannot be listed in bulk.
+     * Search Server Admin
+     */
+    async searchServerAdmin(requestParameters: SearchServerAdminRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminSearchResult> {
+        const response = await this.searchServerAdminRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for setServerAdminSpaceStorageQuota without sending the request
+     */
+    async setServerAdminSpaceStorageQuotaRequestOpts(requestParameters: SetServerAdminSpaceStorageQuotaRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling setServerAdminSpaceStorageQuota().'
+            );
+        }
+
+        if (requestParameters['serverAdminStorageQuotaRequest'] == null) {
+            throw new runtime.RequiredError(
+                'serverAdminStorageQuotaRequest',
+                'Required parameter "serverAdminStorageQuotaRequest" was null or undefined when calling setServerAdminSpaceStorageQuota().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/server-admin/spaces/{space_id}/storage-quota`;
+        urlPath = urlPath.replace('{space_id}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: ServerAdminStorageQuotaRequestToJSON(requestParameters['serverAdminStorageQuotaRequest']),
+        };
+    }
+
+    /**
+     * Set an individual Cloud quota for the Space, optionally until a date.  The higher of it and the tier value applies while it is active, so a value below the tier has no effect. Over the quota nothing is deleted; only new bytes are refused.
+     * Set Server Admin Space Storage Quota
+     */
+    async setServerAdminSpaceStorageQuotaRaw(requestParameters: SetServerAdminSpaceStorageQuotaRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ServerAdminSpaceStorage>> {
+        const requestOptions = await this.setServerAdminSpaceStorageQuotaRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ServerAdminSpaceStorageFromJSON(jsonValue));
+    }
+
+    /**
+     * Set an individual Cloud quota for the Space, optionally until a date.  The higher of it and the tier value applies while it is active, so a value below the tier has no effect. Over the quota nothing is deleted; only new bytes are refused.
+     * Set Server Admin Space Storage Quota
+     */
+    async setServerAdminSpaceStorageQuota(requestParameters: SetServerAdminSpaceStorageQuotaRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminSpaceStorage> {
+        const response = await this.setServerAdminSpaceStorageQuotaRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -1283,6 +1617,104 @@ export class ServerAdminApi extends runtime.BaseAPI {
      */
     async updateMaintenanceSettingApiV1ServerAdminSettingsMaintenancePut(requestParameters: UpdateMaintenanceSettingApiV1ServerAdminSettingsMaintenancePutRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminSettings> {
         const response = await this.updateMaintenanceSettingApiV1ServerAdminSettingsMaintenancePutRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for updateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPut without sending the request
+     */
+    async updateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPutRequestOpts(requestParameters: UpdateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPutRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['serverAdminSettingUpdate'] == null) {
+            throw new runtime.RequiredError(
+                'serverAdminSettingUpdate',
+                'Required parameter "serverAdminSettingUpdate" was null or undefined when calling updateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPut().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/server-admin/settings/monitoring-alerts`;
+
+        return {
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: ServerAdminSettingUpdateToJSON(requestParameters['serverAdminSettingUpdate']),
+        };
+    }
+
+    /**
+     * Turn the monitoring alert mails to ServerAdmins on or off (#2317).
+     * Update Monitoring Alerts Setting
+     */
+    async updateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPutRaw(requestParameters: UpdateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPutRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ServerAdminSettings>> {
+        const requestOptions = await this.updateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPutRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ServerAdminSettingsFromJSON(jsonValue));
+    }
+
+    /**
+     * Turn the monitoring alert mails to ServerAdmins on or off (#2317).
+     * Update Monitoring Alerts Setting
+     */
+    async updateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPut(requestParameters: UpdateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPutRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminSettings> {
+        const response = await this.updateMonitoringAlertsSettingApiV1ServerAdminSettingsMonitoringAlertsPutRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for updateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPut without sending the request
+     */
+    async updateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPutRequestOpts(requestParameters: UpdateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPutRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['serverAdminSettingUpdate'] == null) {
+            throw new runtime.RequiredError(
+                'serverAdminSettingUpdate',
+                'Required parameter "serverAdminSettingUpdate" was null or undefined when calling updateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPut().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/server-admin/settings/monitoring-push`;
+
+        return {
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: ServerAdminSettingUpdateToJSON(requestParameters['serverAdminSettingUpdate']),
+        };
+    }
+
+    /**
+     * Turn the monitoring alerts as app push to ServerAdmins on or off (#2314).
+     * Update Monitoring Push Setting
+     */
+    async updateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPutRaw(requestParameters: UpdateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPutRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ServerAdminSettings>> {
+        const requestOptions = await this.updateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPutRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ServerAdminSettingsFromJSON(jsonValue));
+    }
+
+    /**
+     * Turn the monitoring alerts as app push to ServerAdmins on or off (#2314).
+     * Update Monitoring Push Setting
+     */
+    async updateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPut(requestParameters: UpdateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPutRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminSettings> {
+        const response = await this.updateMonitoringPushSettingApiV1ServerAdminSettingsMonitoringPushPutRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -1453,6 +1885,15 @@ export class ServerAdminApi extends runtime.BaseAPI {
 
 }
 
+/**
+ * @export
+ */
+export const GetServerAdminMonitoringApiV1ServerAdminMonitoringGetRangeEnum = {
+    _24h: '24h',
+    _30d: '30d',
+    _90d: '90d'
+} as const;
+export type GetServerAdminMonitoringApiV1ServerAdminMonitoringGetRangeEnum = typeof GetServerAdminMonitoringApiV1ServerAdminMonitoringGetRangeEnum[keyof typeof GetServerAdminMonitoringApiV1ServerAdminMonitoringGetRangeEnum];
 /**
  * @export
  */

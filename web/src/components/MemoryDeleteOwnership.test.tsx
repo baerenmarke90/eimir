@@ -135,7 +135,7 @@ function setup(mode: 'detail' | 'edit' = 'detail') {
       />
     );
   }
-  function Application({
+  function application({
     accountId = 'account-1',
     spaceId = 'space-1',
   }: {
@@ -176,7 +176,7 @@ function setup(mode: 'detail' | 'edit' = 'detail') {
       </QueryClientProvider>
     );
   }
-  const view = render(<Application />);
+  const view = render(application({}));
   const openMenu = () =>
     userEvent
       .setup()
@@ -185,7 +185,7 @@ function setup(mode: 'detail' | 'edit' = 'detail') {
     await openMenu();
     await userEvent
       .setup()
-      .click(screen.getByRole('button', { name: memoryProduct.delete }));
+      .click(screen.getByRole('button', { name: de.common.delete }));
     return screen.getByRole('button', {
       name: memoryProduct.deleteConfirm,
     });
@@ -231,7 +231,7 @@ function setup(mode: 'detail' | 'edit' = 'detail') {
     leave,
     path,
     switchScope: (scope: { accountId?: string; spaceId?: string }) =>
-      view.rerender(<Application {...scope} />),
+      view.rerender(application(scope)),
   };
 }
 
@@ -525,7 +525,7 @@ describe('Memory delete response and task ownership', () => {
       .click(screen.getByRole('link', { name: 'Return to first memory' }));
     await s.openMenu();
     const pending = await screen.findByRole('button', {
-      name: memoryProduct.delete,
+      name: de.common.delete,
     });
     expect(pending.hasAttribute('disabled')).toBe(true);
     await s.settle();

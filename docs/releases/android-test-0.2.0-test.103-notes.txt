@@ -1,0 +1,15 @@
+eimir. Android 0.2.0-test.103
+
+- In Appearance, a new Designfarben card below Eure Farben lets you pick the design colours independently of the layout; "Passend zum Design" keeps the active design's palette.
+- The Thread (Faden) and Handwritten designs are retired. A saved choice of either switches to Connected, and old Thread links open Wir.
+- You can send a problem report or feedback from inside the app, from an error screen or the More page. The reply to a report arrives once as a simple notification, and your reports are included in your personal data copy.
+- The in-app Transfer export and import is closed. Moving a Space is handled by the operator.
+- Swiping between the main pages is smoother, follow-up touches behave consistently, and a page you swiped away keeps its own view.
+- The keyboard stays open while autofill suggestions are shown.
+- The app stays open when the launcher icon changes after signing in, and the launcher works on Android 8 and 9 again.
+- The footer of a short task sheet stays reachable above the keyboard.
+- The app starts faster because language packs now load on demand.
+- Clearer German wording for the daily garden gift in Unser Garten, Wir, the garden history and the inbox, and for the matching push notifications.
+
+The product changes come from main at 1f3037c9b2673b5ed4eed8abd8378bd191be2ecf.
+Install over test.102 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 103.

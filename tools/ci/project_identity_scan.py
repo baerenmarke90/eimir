@@ -226,7 +226,7 @@ def classify(path: Path, line: str, match: str) -> tuple[Classification, str]:
         )
 
     if (
-        path == Path("backend/src/eimir/date_ideas/data/catalog.json")
+        path == Path("backend/pro/src/eimir_pro/date_ideas/data/catalog.json")
         and match == "side by side"
         and normalized.count("side by side") == 1
         and any(phrase in normalized for phrase in DATE_IDEA_SIDE_BY_SIDE_PHRASES)

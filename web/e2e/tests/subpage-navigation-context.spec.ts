@@ -3,14 +3,12 @@ import AxeBuilder from '../support/axe';
 import { expect, test } from '@playwright/test';
 import copy from '../../src/i18n/locales/coupleExperiences';
 import de from '../../src/i18n/locales/de';
-import experiences from '../../src/i18n/locales/experiences';
-import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import navigation from '../../src/i18n/locales/navigation';
 import placeCopy from '../../src/i18n/locales/photoPlaces';
 import storyProducts from '../../src/i18n/locales/storyProducts';
-import taskCopy from '../../src/i18n/locales/taskBoundary';
 import fixtureCopy from '../fixtures/locales/de';
 import { mockMapTiles } from '../support/mapTiles';
+import { expectTitleOnlyContentGap } from '../support/pageHeader';
 import { openComposerPlace } from '../support/memoryDiary';
 import {
   ACCOUNT_ID,
@@ -26,6 +24,41 @@ import { editViaMenu } from '../support/itemMenu';
 
 const fixture = fixtureCopy.subpageNavigation;
 const base = `/api/v1/spaces/${SPACE_ID}`;
+
+for (const width of [320, 390, 720, 1280]) {
+  test(`title-only pages share one gap at ${width}px`, async ({ page }) => {
+    test.slow();
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await installMocks(page);
+    await signIn(page);
+    for (const [path, firstContent] of [
+      ['/story/years', '.story-years-recaps-entry'],
+      ['/more/settings/today', '.settings-category-content'],
+      ['/plan/wishes/new', '.planning-intention-form'],
+      ['/plan/choose', '.wish-selection-form'],
+      ['/more/notes/new', '.shared-note-audience'],
+    ]) {
+      await test.step(path, async () => {
+        await page.goto(path, { waitUntil: 'domcontentloaded' });
+        if (width === 320) {
+          await page.evaluate(() => {
+            document.documentElement.style.fontSize = '200%';
+          });
+        }
+        await expectTitleOnlyContentGap(page.locator(firstContent));
+      });
+    }
+    await page.goto('/story/chapters', { waitUntil: 'domcontentloaded' });
+    const headerWithIntro = page.locator('.page-heading');
+    await expect(headerWithIntro.locator('p').last()).toBeVisible();
+    await expect(headerWithIntro).not.toHaveAttribute(
+      'data-title-only',
+      'true',
+    );
+  });
+}
+
 const photo = readFileSync(
   new URL(
     '../../../backend/demo_assets/images/lake-sunrise.jpg',
@@ -68,7 +101,10 @@ for (const width of [390, 1280]) {
     await page
       .getByRole('link', { name: navigation.more, exact: true })
       .click();
-    const back = page.getByRole('button', { name: taskCopy.back, exact: true });
+    const back = page.getByRole('button', {
+      name: de.common.back,
+      exact: true,
+    });
     for (const name of [
       de.more.destinations.media,
       de.more.destinations.chapters,
@@ -211,10 +247,10 @@ for (const [width, theme, large] of [
       });
     const back = page
       .locator('.composer-header')
-      .getByRole('button', { name: taskCopy.back, exact: true });
+      .getByRole('button', { name: de.common.back, exact: true });
     await expect(back).toHaveCount(1);
     await expect(back).toBeVisible();
-    await expect(back).toHaveAccessibleName(taskCopy.back);
+    await expect(back).toHaveAccessibleName(de.common.back);
     const backBox = await back.boundingBox();
     expect(backBox?.width).toBeGreaterThanOrEqual(44);
     expect(backBox?.height).toBeGreaterThanOrEqual(44);
@@ -290,11 +326,11 @@ for (const [width, theme, large] of [
       page.getByRole('link', { name: 'OpenStreetMap', exact: true }),
     ).toHaveAttribute('href', 'https://www.openstreetmap.org/copyright');
     await page
-      .getByRole('button', { name: taskCopy.back, exact: true })
+      .getByRole('button', { name: de.common.back, exact: true })
       .click();
     await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
     await expect(place).toBeFocused();
-    await editViaMenu(page, memoryProduct.edit);
+    await editViaMenu(page, de.common.edit);
     await openComposerPlace(page);
     const picker = page.getByRole('dialog', {
       name: placeCopy.add,
@@ -306,12 +342,12 @@ for (const [width, theme, large] of [
         .getByText(fixture.address, { exact: true }),
     ).toBeVisible();
     await picker
-      .getByRole('button', { name: experiences.finish, exact: true })
+      .getByRole('button', { name: de.common.done, exact: true })
       .click();
     await expect(picker).toHaveCount(0);
     await page
       .locator('.composer-header')
-      .getByRole('link', { name: taskCopy.back, exact: true })
+      .getByRole('link', { name: de.common.back, exact: true })
       .click();
     await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
     await back.click();
@@ -458,7 +494,7 @@ for (const [width, theme] of [
       await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
       await page
         .locator('.composer-header')
-        .getByRole('button', { name: taskCopy.back, exact: true })
+        .getByRole('button', { name: de.common.back, exact: true })
         .click();
       await expect(page).toHaveURL(/\/today$/);
       await expect(page.locator('.shared-experience-section')).toHaveCount(0);
@@ -542,11 +578,11 @@ for (const shared of [true, false]) {
     await expect(
       page
         .locator('.composer-header')
-        .getByRole('button', { name: taskCopy.back, exact: true }),
+        .getByRole('button', { name: de.common.back, exact: true }),
     ).toHaveCount(1);
     await page
       .locator('.composer-header')
-      .getByRole('button', { name: taskCopy.back, exact: true })
+      .getByRole('button', { name: de.common.back, exact: true })
       .click();
     await expect(page).toHaveURL(/\/story$/);
   });
@@ -575,7 +611,10 @@ for (const [width, theme, large] of [
       await page.evaluate(() => {
         document.documentElement.style.fontSize = '200%';
       });
-    const back = page.getByRole('button', { name: taskCopy.back, exact: true });
+    const back = page.getByRole('button', {
+      name: de.common.back,
+      exact: true,
+    });
     const title = page.getByRole('heading', { level: 1 });
     await expect(back).toHaveCount(1);
     await expect(title).toHaveCount(1);
@@ -617,7 +656,7 @@ for (const [width, theme, large] of [
     await expect(back).toHaveCount(1);
     await expect(
       page.locator('.page-heading-title-row').getByRole('button', {
-        name: taskCopy.back,
+        name: de.common.back,
         exact: true,
       }),
     ).toHaveCount(1);

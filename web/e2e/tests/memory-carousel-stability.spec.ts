@@ -18,6 +18,7 @@ import {
   installMediaOwnershipMetrics,
   mediaOwnershipMetrics,
 } from '../support/mediaOwnershipMetrics';
+import { fulfillMomenteReadAhead } from '../support/momenteReadAhead';
 import {
   installNativeAppLifecycle,
   nativeAppState,
@@ -554,6 +555,7 @@ async function installApiMocks(
     }
 
     if (await fulfillNoOccasionSources(route)) return;
+    if (await fulfillMomenteReadAhead(route)) return;
     unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {
@@ -1407,7 +1409,7 @@ test('Memory carousel keeps document and layout position stable across pointer a
   const beforeOpen = await geometry(page);
   await pointerClickWithoutScroll(page, activeItem);
   const lightbox = page.locator('.media-lightbox');
-  const close = lightbox.getByRole('button', { name: GALLERY.close });
+  const close = lightbox.getByRole('button', { name: de.common.close });
   await expect(close).toBeFocused();
   const lightboxInteraction = await lightboxInteractionContract(page);
   expect(lightboxInteraction.usesSharedTrack).toBe(true);
@@ -1590,7 +1592,7 @@ for (const width of [320, 390] as const) {
         expectStableGeometry(beforeLightbox, await geometry(page));
       }
 
-      await lightbox.getByRole('button', { name: GALLERY.close }).click();
+      await lightbox.getByRole('button', { name: de.common.close }).click();
       await expect(lightbox).toHaveCount(0);
       expect(unexpectedRequests).toEqual([]);
 
@@ -1804,7 +1806,7 @@ test('photo overlay controls remain separate, readable and operable in fullscree
   const dialog = page.getByRole('dialog');
   const privacy = privacyControl(dialog, sensitiveMedia.hide);
   const close = dialog.getByRole('button', {
-    name: GALLERY.close,
+    name: de.common.close,
     exact: true,
   });
   await expect(privacy).toBeVisible();

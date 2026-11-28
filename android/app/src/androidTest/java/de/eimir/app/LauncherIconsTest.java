@@ -8,6 +8,9 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.pm.ActivityInfo;
+import android.content.pm.ShortcutInfo;
+import android.content.pm.ShortcutManager;
+import android.os.SystemClock;
 import android.graphics.Rect;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
@@ -26,6 +29,26 @@ public class LauncherIconsTest {
     @After
     public void reset() throws Exception {
         LauncherIcons.apply(context, "original");
+        // Clears a recorded choice, because original is now current.
+        LauncherIcons.request(context, "original");
+    }
+
+    @Test
+    public void aRequestKeepsTheCurrentEntryUntilTheAppLeavesTheScreen() throws Exception {
+        LauncherIcons.apply(context, "original");
+        LauncherIcons.request(context, "sunset");
+        Intent launcher = new Intent(Intent.ACTION_MAIN)
+                .addCategory(Intent.CATEGORY_LAUNCHER).setPackage(context.getPackageName());
+        List<ResolveInfo> activities = context.getPackageManager().queryIntentActivities(launcher, 0);
+        assertEquals(1, activities.size());
+        assertEquals(LauncherIcons.COMPONENTS.get("original"), activities.get(0).activityInfo.name);
+        assertEquals("sunset", context.getSharedPreferences("eimir_launcher_icon", Context.MODE_PRIVATE)
+                .getString("pending", null));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void anUnknownRequestIsRejected() throws Exception {
+        LauncherIcons.request(context, "unknown");
     }
 
     @Test
@@ -39,6 +62,11 @@ public class LauncherIconsTest {
             assertEquals(id, 1, activities.size());
             assertEquals(LauncherIcons.COMPONENTS.get(id), activities.get(0).activityInfo.name);
             assertEquals("de.eimir.app.LauncherActivity", activities.get(0).activityInfo.targetActivity);
+            ActivityInfo shortcutEntry = manager.getActivityInfo(
+                new ComponentName(context.getPackageName(), activities.get(0).activityInfo.name),
+                PackageManager.GET_META_DATA);
+            assertEquals("Every selected icon exposes the static menu", R.xml.app_shortcuts,
+                shortcutEntry.metaData.getInt("android.app.shortcuts"));
             Intent callback = new Intent(Intent.ACTION_VIEW,
                     android.net.Uri.parse("de.eimir.app://recent-authentication/oidc"))
                     .addCategory(Intent.CATEGORY_BROWSABLE).setPackage(context.getPackageName());
@@ -120,17 +148,58 @@ public class LauncherIconsTest {
     @Test
     public void selectedLauncherStartsTheRegisteredNativeBridge() throws Exception {
         LauncherIcons.apply(context, "sage");
-        Intent launch = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
+        ShortcutManager shortcuts = context.getSystemService(ShortcutManager.class);
+        ShortcutInfo wish = null;
+        long deadline = SystemClock.uptimeMillis() + 10_000;
+        while (wish == null && SystemClock.uptimeMillis() < deadline) {
+            for (ShortcutInfo entry : shortcuts.getManifestShortcuts()) {
+                if ("wish".equals(entry.getId()) && entry.getActivity() != null
+                        && LauncherIcons.COMPONENTS.get("sage").equals(entry.getActivity().getClassName())) wish = entry;
+            }
+            if (wish == null) SystemClock.sleep(50);
+        }
+        assertNotNull("The selected icon publishes its parsed static shortcuts", wish);
+        Intent shortcut = wish.getIntent();
+        assertEquals("The debug shortcut stays inside its installed package",
+            context.getPackageName(), shortcut.getComponent().getPackageName());
+        assertEquals("de.eimir.app.AppShortcutActivity", shortcut.getComponent().getClassName());
+        assertTrue("Exercise the real static-shortcut task flags",
+            (shortcut.getFlags() & Intent.FLAG_ACTIVITY_CLEAR_TASK) != 0);
+        Intent launch = AppShortcutActivity.destination(context, shortcut);
         assertNotNull(launch);
+        assertEquals(0, launch.getFlags() & Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        java.util.concurrent.atomic.AtomicReference<LauncherActivity> original = new java.util.concurrent.atomic.AtomicReference<>();
+        java.util.concurrent.atomic.AtomicReference<String> coldId = new java.util.concurrent.atomic.AtomicReference<>();
         try (ActivityScenario<android.app.Activity> scenario = ActivityScenario.launch(launch)) {
             scenario.onActivity(activity -> {
                 assertTrue(activity instanceof LauncherActivity);
                 LauncherActivity shell = (LauncherActivity) activity;
+                original.set(shell);
                 assertNotNull(shell.getBridge().getPlugin("AppIcon"));
                 assertNotNull(shell.getBridge().getPlugin("NativeSessionStorage"));
                 assertNotNull(shell.getBridge().getPlugin("EimirPush"));
                 assertNotNull(shell.getBridge().getPlugin("PlanCalendar"));
+                assertNotNull(shell.getBridge().getPlugin("AppShortcuts").getInstance());
+                AppShortcutDelivery.Request cold = AppShortcutDelivery.current.peek();
+                assertNotNull("Cold entry waits for the Web shell", cold);
+                assertEquals("wish", cold.action);
+                coldId.set(cold.id);
+                assertFalse("Recreation cannot replay the launch", shell.getIntent().hasExtra("shortcutAction"));
             });
+            // The actual disposable Activity receives the destructive OS flags.
+            context.startActivity(new Intent(shortcut).putExtra("shortcutAction", "plan"));
+            deadline = SystemClock.uptimeMillis() + 10_000;
+            while (SystemClock.uptimeMillis() < deadline) {
+                AppShortcutDelivery.Request current = AppShortcutDelivery.current.peek();
+                if (current != null && !current.id.equals(coldId.get())) break;
+                SystemClock.sleep(50);
+            }
+            AppShortcutDelivery.current.acknowledge(coldId.get());
+            AppShortcutDelivery.Request warm = AppShortcutDelivery.current.peek();
+            assertNotNull("Warm entry survives the older acknowledgement", warm);
+            assertEquals("plan", warm.action);
+            scenario.onActivity(activity -> assertSame("A static shortcut must retain the existing WebView owner", original.get(), activity));
+            AppShortcutDelivery.current.acknowledge(warm.id);
         }
     }
 

@@ -83,6 +83,11 @@
 
         </activity>
 
+        <!-- Static shortcuts clear only this disposable task, preserving the live shell. -->
+        <activity android:name=".AppShortcutActivity" android:exported="true"
+            android:taskAffinity="" android:noHistory="true" android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.NoDisplay" />
+
         <activity android:name=".RuntimeRecoveryActivity" android:exported="false"
             android:theme="@style/AppTheme.NoActionBar" />
 
@@ -125,6 +130,7 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/app_shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -138,6 +144,7 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/app_shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -151,6 +158,7 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/app_shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -164,6 +172,7 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/app_shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -177,6 +186,7 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/app_shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -190,6 +200,7 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/app_shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -203,6 +214,7 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/app_shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -216,6 +228,7 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/app_shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -229,6 +242,7 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/app_shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -242,6 +256,7 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/app_shortcuts" />
         </activity-alias>
 
         <activity-alias
@@ -255,6 +270,7 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/app_shortcuts" />
         </activity-alias>
 
         <provider

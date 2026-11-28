@@ -1,5 +1,15 @@
-import type { ComponentProps } from 'react';
+import {
+  type ComponentProps,
+  createContext,
+  type ReactElement,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
+import { useMediaQuery } from '../client/useMediaQuery';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
 import './AddAction.css';
 
@@ -10,6 +20,75 @@ type AddActionLabel = {
   pending?: boolean;
   floating?: boolean;
 };
+
+/**
+ * Where an Expanded page's own create action goes: the end of the top bar. The
+ * shell provides the slot element; without one (no top bar) the action stays
+ * where the page rendered it.
+ */
+export const TopbarCreateSlotContext = createContext<HTMLElement | null>(null);
+
+/**
+ * Compact: a fixed action belongs to its tab, outside the page that slides
+ * under it. Expanded: it moves into the top bar while its tab is the visible
+ * one (a parked tab keeps its action hidden in place).
+ */
+function FloatingActionPlacement({ children }: { children: ReactElement }) {
+  const compact = useMediaQuery('(max-width: 839px)');
+  const slot = useContext(TopbarCreateSlotContext);
+  const [panel, setPanel] = useState<HTMLElement | null>(null);
+  const [panelShown, setPanelShown] = useState(true);
+  const locatePanel = useCallback((origin: HTMLSpanElement | null) => {
+    setPanel(origin?.closest<HTMLElement>('.primary-tab-panel') ?? null);
+  }, []);
+  useEffect(() => {
+    if (!panel) {
+      setPanelShown(true);
+      return;
+    }
+    const read = () =>
+      setPanelShown(
+        !panel.hidden && panel.getAttribute('aria-hidden') !== 'true',
+      );
+    read();
+    const observer = new MutationObserver(read);
+    observer.observe(panel, {
+      attributes: true,
+      attributeFilter: ['hidden', 'aria-hidden'],
+    });
+    return () => observer.disconnect();
+  }, [panel]);
+  if (compact)
+    return (
+      <>
+        <span hidden ref={locatePanel} data-floating-create-origin />
+        {panel ? createPortal(children, panel) : children}
+      </>
+    );
+  return (
+    <>
+      <span
+        style={{ display: 'none' }}
+        ref={locatePanel}
+        data-floating-create-origin
+      />
+      {slot ? (
+        <>
+          {panelShown ? createPortal(children, slot) : null}
+          <span
+            aria-hidden="true"
+            style={{
+              display: 'inline-block',
+              blockSize: 'var(--touch-target-comfortable)',
+            }}
+          />
+        </>
+      ) : (
+        children
+      )}
+    </>
+  );
+}
 
 /** Shared content also supports existing task-origin links and file labels. */
 export function AddActionContent({
@@ -59,7 +138,7 @@ export function AddActionButton({
   ...props
 }: Omit<ComponentProps<'button'>, 'children'> & AddActionLabel) {
   const visibleLabel = pending && pendingLabel ? pendingLabel : label;
-  return (
+  const button = (
     <button
       type="button"
       {...props}
@@ -79,6 +158,11 @@ export function AddActionButton({
       />
     </button>
   );
+  return floating ? (
+    <FloatingActionPlacement>{button}</FloatingActionPlacement>
+  ) : (
+    button
+  );
 }
 
 /** Keep navigation, modified clicks, state and focus as native link behavior. */
@@ -90,7 +174,7 @@ export function AddActionLink({
   ...props
 }: Omit<ComponentProps<typeof Link>, 'children'> &
   Pick<AddActionLabel, 'label' | 'icon' | 'floating'>) {
-  return (
+  const link = (
     <Link
       {...props}
       className={`button-link add-action ${className}`}
@@ -100,5 +184,10 @@ export function AddActionLink({
     >
       <AddActionContent label={label} icon={icon} floating={floating} />
     </Link>
+  );
+  return floating ? (
+    <FloatingActionPlacement>{link}</FloatingActionPlacement>
+  ) : (
+    link
   );
 }

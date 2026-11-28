@@ -128,7 +128,7 @@ function setup() {
     await openMenu();
     await userEvent
       .setup()
-      .click(screen.getByRole('button', { name: copy.delete }));
+      .click(screen.getByRole('button', { name: de.common.delete }));
     return screen.getByRole('button', {
       name: copy.deleteConfirm,
     });
@@ -417,8 +417,11 @@ describe('Milestone delete response ownership', () => {
       .click(screen.getByRole('link', { name: 'Return to milestone' }));
     await h.openMenu();
     expect(
-      (screen.getByRole('button', { name: copy.delete }) as HTMLButtonElement)
-        .disabled,
+      (
+        screen.getByRole('button', {
+          name: de.common.delete,
+        }) as HTMLButtonElement
+      ).disabled,
     ).toBe(true);
     await h.settle();
   });

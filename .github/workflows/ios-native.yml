@@ -1,0 +1,59 @@
+name: iOS native
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/ios-native.yml'
+      - 'ios/**'
+      - 'web/capacitor.config.ts'
+      - 'web/package.json'
+      - 'web/package-lock.json'
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-native-${{ github.ref }}${{ github.event.action == 'labeled' && github.event.label.name != 'ci:full' && format('-ignored-label-{0}', github.run_id) || '' }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    # Match the repository's heavy native-check policy (#2096).
+    if: github.event_name != 'pull_request' || ((startsWith(github.head_ref, 'release/') || (github.event.pull_request.draft == false && contains(github.event.pull_request.labels.*.name, 'ci:full'))) && (github.event.action != 'labeled' || github.event.label.name == 'ci:full'))
+    name: iOS simulator build
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '26.13.1'
+      - name: Record Xcode and SDK versions
+        run: |
+          xcodebuild -version
+          xcodebuild -showsdks
+      - name: Prepare the packaged Web product and native plugins
+        working-directory: web
+        env:
+          VITE_EIMIR_API_BASE_URL: https://api.eimir.invalid
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run cap:build:web
+          npx cap sync ios
+      - name: Build the complete iOS app without signing
+        run: |
+          set -euo pipefail
+          xcodebuild -project ios/App/App.xcodeproj -scheme App \
+            -configuration Debug -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/ios-native" \
+            CODE_SIGNING_ALLOWED=NO build | tee "$RUNNER_TEMP/ios-native-build.log"
+      - name: Upload native build diagnostics
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ios-native-build
+          path: ${{ runner.temp }}/ios-native-build.log
+          if-no-files-found: ignore

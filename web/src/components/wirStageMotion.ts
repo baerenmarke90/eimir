@@ -28,23 +28,21 @@ export function wirIntroBeat(): number {
  * CSS beats in WirMotion.css and WirHeroStage.css are the same numbers; the
  * unit test keeps them in step and inside the opening budget.
  *
- * - portraits with their rings, names and marks: own 0, partner 0.3, 1.6 each;
- * - the heart line: arms 0.7 for 1.0, heart 1.2 for 1.1;
- * - today's check-in under the names: 1.9 for 1.2, once the partner's
+ * - portraits with their rings and marks: own 0, partner 0.3, 1.6 each;
+ * - the heart with its moon fill and the light: 1.2 for 1.1;
+ * - today's check-in under the portraits: 1.9 for 1.2, once the partner's
  *   portrait has landed, so it never fades inside a fading column (joins late);
- * - the ampersand, the time together and the place: 1.8 for 1.3 (the place
- *   joins late), then a current place's pin wiggles once at 2.6;
+ * - the time together: 1.8 for 1.3;
  * - the daily quote: 2.2 for 1.3 (joins late);
- * - the modules in view: 2.5 for their header and 2.7 for their body, one
- *   `--duration-stagger-item` apart in reading order, within 1.8 beats.
+ * - the modules in view: from 2.5, each as one block with Enter `module`
+ *   (Motion Contract 4.1), one `--duration-stagger-item` apart in reading
+ *   order, within 1.8 beats.
  */
 export const WIR_STAGE_BEATS = Object.freeze({
   portraits: { start: 0, partnerLead: 0.3, length: 1.6 },
-  arms: { start: 0.7, length: 1 },
   heart: { start: 1.2, length: 1.1 },
   checkIn: { start: 1.9, length: 1.2 },
   bridge: { start: 1.8, length: 1.3 },
-  wiggle: { start: 2.6 },
   quote: { start: 2.2, length: 1.3 },
   modules: { start: 2.5, length: 1.8 },
 });
@@ -54,18 +52,14 @@ function moduleStaggerSteps(): number {
   return Math.max(0, motionCount('stagger-max-items') - 1);
 }
 
-/**
- * The opening's own clock: the last slot ends with the latest staggered
- * module, or with the pin's wiggle (one gesture moment).
- */
+/** The opening's own clock: the last slot ends with the latest module. */
 export function wirStageDuration(): number {
   const beat = wirIntroBeat();
   if (beat <= 0) return 0;
-  const { modules, wiggle } = WIR_STAGE_BEATS;
-  return Math.max(
+  const { modules } = WIR_STAGE_BEATS;
+  return (
     beat * (modules.start + modules.length) +
-      durationMs('stagger-item') * moduleStaggerSteps(),
-    beat * wiggle.start + durationMs('gesture-moment'),
+    durationMs('stagger-item') * moduleStaggerSteps()
   );
 }
 

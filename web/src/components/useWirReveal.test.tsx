@@ -14,6 +14,25 @@ import { invalidateMotionTokens } from '../motion/tokens';
 import { resetWirRevealForTests, useWirReveal } from './useWirReveal';
 import { WIR_STAGE, wirModuleSlot } from './wirStageMotion';
 
+function Opening({
+  pending,
+  duration,
+  children,
+}: {
+  pending: boolean;
+  duration: number;
+  children: React.ReactNode;
+}) {
+  const ref = useStage<HTMLDivElement>(WIR_STAGE, { duration, hold: 400 });
+  useStageHold(WIR_STAGE, pending);
+  return (
+    <div>
+      <div ref={ref} />
+      {children}
+    </div>
+  );
+}
+
 function Module({ className }: { className: string }) {
   const { ref, revealProps } = useWirReveal<HTMLElement>(className);
   return (
@@ -115,25 +134,6 @@ describe('useWirReveal on the Wir opening clock (#2147)', () => {
     reduced.restore();
     invalidateMotionTokens();
   });
-
-  function Opening({
-    pending,
-    duration,
-    children,
-  }: {
-    pending: boolean;
-    duration: number;
-    children: React.ReactNode;
-  }) {
-    const ref = useStage<HTMLDivElement>(WIR_STAGE, { duration, hold: 400 });
-    useStageHold(WIR_STAGE, pending);
-    return (
-      <div>
-        <div ref={ref} />
-        {children}
-      </div>
-    );
-  }
 
   /** Every phase the module showed, in order. */
   function history() {

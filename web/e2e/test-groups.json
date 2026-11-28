@@ -302,8 +302,8 @@
     },
     "story-discover-tapestry.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 16,
-      "reason": "Wir-only retrospective placement, canonical order inside Fotostory themes, authorized and sensitive story media, motion-gated autoplay with pause and keyboard paging, Compact/Expanded reflow, explicit bounded renewal (pull gesture and Expanded button) with stable confirmed results, daily freshness, offline/rate/access denial and untitled Diary photo reading."
+      "baselineTests": 15,
+      "reason": "Wir-only retrospective placement, canonical order inside Fotostory themes, authorized and sensitive story media, motion-gated autoplay with pause and keyboard paging, Compact/Expanded reflow, explicit bounded renewal (pull gesture) with stable confirmed results, daily freshness, offline/rate/access denial and untitled Diary photo reading."
     },
     "story-featured-metadata.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -356,10 +356,6 @@
       "baselineTests": 28,
       "reason": "Feature-owned Today composition, monthly mosaic 1/2/3-photo reference states, concealed media, optional story summary, category navigation/return, reflow, keyboard and Light/Dark accessibility. PO #1736 supersedes the former monthly carousel presentation."
     },
-    "today-pro-insights.spec.ts": {
-      "disposition": "PR_CRITICAL",
-      "baselineTests": 11
-    },
     "today-recent-trace.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 5
@@ -391,6 +387,11 @@
     "app-icon-selection.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 6
+    },
+    "memory-world-selection.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 15,
+      "reason": "Erinnerungswelten (#2283): per-person world choice with Free/Pro boundary, kept Pro world after downgrade, explicit save, reflow/accessibility of the world sheet, and the chosen world shown in Momente › Erinnerungen with its switch back to the setting."
     },
     "heart-hunt.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -444,8 +445,8 @@
     },
     "wir-design-selection.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 24,
-      "reason": "Wir design selection and retention, quote/statistics order persistence with direct pointer tracking, and concise notification/private/profile settings across Compact/Expanded themes and large text."
+      "baselineTests": 29,
+      "reason": "Wir design and independent palette selection, retention and retired-design fallback, quote/statistics order persistence with direct pointer tracking, and concise notification/private/profile settings across Compact/Expanded themes and large text."
     },
     "moment-relation-picker.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -554,7 +555,7 @@
     },
     "subpage-navigation-context.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "reason": "Feature-owned secondary navigation and its header row (#1907 C4: title beside Back, large-text fallback, Expanded column), More origin/empty-year/nested-year return, moment context and Wir acceptance; selected for the actual utility destinations and shared navigation consumers."
+      "reason": "Feature-owned secondary navigation and its header row (#1907 C4: title beside Back, large-text fallback, Expanded column), the title-only content gap across block, grid and composer pages, More origin/empty-year/nested-year return, moment context and Wir acceptance; selected for the actual utility destinations and shared navigation consumers."
     },
     "activity-navigation-return.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -652,8 +653,8 @@
     },
     "partner-distance-wir.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 11,
-      "reason": "Feature-owned #1792 partner-distance Wir slice: distance line inside the couple hero (far/nearby/range/earlier/own-location-missing/unavailable, no placeholder), map link only when the partner shares the map level, body-only coordinates and no polling, viewer-only Settings › Wir display toggle without sharing writes, the dedicated where-we-are map task with an approximate area, show-us, text alternative and neutral unavailable state, plus Compact/Expanded Light/Dark/large-text evidence. No always-run expansion."
+      "baselineTests": 12,
+      "reason": "Feature-owned #1792 partner-distance Wir slice: distance line inside the couple hero (far/nearby/range/earlier/own-location-missing/unavailable, no placeholder), map link only when the partner shares the map level, body-only coordinates and no polling, viewer-only Settings › Wir display toggle without sharing writes, the dedicated where-we-are map task with an approximate area, show-us, tapping a person's avatar or sheet row to bring them into view (#2158), text alternative and neutral unavailable state, plus Compact/Expanded Light/Dark/large-text evidence. No always-run expansion."
     },
     "shopping-list-offline.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -675,10 +676,60 @@
       "baselineTests": 6,
       "reason": "Feature-owned #1907 F2 acceptance: the occasion line on Timeline cards and the Memory detail for the anniversary and a partner birthday, its accessible description, exclusion of private and person-linked dates, open/return, the one-shot reveal and its reduced-motion variant, and readability at 390 Dark, 360 with 200 % text and Expanded 1280."
     },
+    "wir-new-for-you.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 6,
+      "reason": "Feature-owned acceptance for the Wir new-for-you reel and the waiting-games tiles (#2345 B, Product Owner 2026-11-27): today's plan first, then unread notices newest first with real previews, games as tiles, at 360/390 Light and 390/430 Dark with axe and no page overflow; a card arrives once per device (after the opening, or at once while Wir is open), opening a tile reads it and a return replays nothing; reduced motion shows cards at once. Evidence screenshots. No always-run expansion."
+    },
     "wir-garden.spec.ts": {
       "disposition": "FULL_REGRESSION",
       "baselineTests": 7,
       "reason": "Feature-owned acceptance for the optional Wir garden module (Product Owner 2026-11-17): off by default without a garden read, turned on in Settings › Wir, the read-only scene with one status line and a named link into the game at 390 Light/Dark with axe and no overflow, no live polling on Wir, a locked Pro row and no read without games.couple while a saved choice stays, and Expanded 1280 Light/Dark evidence with reduced motion; the one-time in-game offer after a first garden moment at 390 Light/Dark with axe, accepted through the Wir preference, leading to the module on Wir and not offered again; the preview pauses in its hidden kept view and continues on return without entering again (#2079). No always-run expansion."
+    },
+    "storage-section.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 6,
+      "reason": "Settings Data is the storage page since the Transfer Bundle left the product (ADR 0020, #2243 S3): the storage section of #2141 Q5 with room, almost full from 80 percent and full with its Pro and media ways out and return, the Pro couple reading its 50 GB in words, the calm Self-Hosted sentence without a meter, and no export or import control left on the page even for an old deep link; Compact 360/390/430 Light/Dark, reduced motion, 200 percent text, Expanded 1280 and axe."
+    },
+    "storage-upload-refusal.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 1,
+      "reason": "A photo the full storage refuses (#2141 Q5 state 12): the composer keeps words and the other photo, the refused photo says why in plain words, and after removing it the rest saves; Compact 360/390/430, Dark with reduced motion and axe."
+    },
+    "support-report.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 4,
+      "reason": "Support reports (#2189): from the error state a person opens the sheet, sends once with exactly the allowed fields and the failure shown there, sees a calm success, returns to the same screen and later reads the operator's reply as plain text in the notification list (HTML-looking text stays literal); from More the Help & feedback row exists only while the instance accepts reports, feedback needs text and attaches no failure, and an offline note is kept and delivered once after reconnect; the sheet lives in the shell, so a reconnect refetch that replaces the error state keeps it open with the typed note; the sheet states in Compact 360/390/430, Expanded 1280, Light/Dark and reduced motion with axe on the open sheet."
+    },
+    "server-admin-monitoring.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 3,
+      "reason": "ServerAdmin monitoring (#2317): System > Monitoring opens with a calm empty history on a fresh installation, the range switch asks the server for 30 days and marks itself pressed, the alert mail switch and the separate alert push switch (#2314) each write exactly one settings change and keep it when another range is read; the Situation's no-backup item on Cloud leads to Monitoring; with history the error-rate, response-time and storage lines render in Compact 360/390/430 and Expanded 1280, Light/Dark with axe, reduced motion and 200 % text without horizontal overflow."
+    },
+    "server-admin-people.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 2,
+      "reason": "ServerAdmin People and the Space file (#2324): People opens at one search and marks itself current, an email part finds the Space without showing any name, the Space file shows members by email, plan, storage by media type and history; the storage sheet warns below the current usage, saves an individual 80 GB quota once and the file shows it, and removing it brings the plan's storage back; the Space file and the storage sheet in Compact 360/390/430 and Expanded 1280, Light/Dark with axe, reduced motion and 200 % text without horizontal overflow, and the search results at 200 % text."
+    },
+    "server-admin-pro.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 4,
+      "reason": "ServerAdmin Pro and eimir. gift codes (#2328): on eimir. Cloud the Pro area is current, a fresh instance shows calm empty Google Play and code states, the operator creates three 3-month codes with a private note in exactly one write, the new batch opens in its sheet with the codes, copying one confirms it in the shared snackbar, and the batch waits in the list and reopens; figures, Google Play chips, batches and running gifts in Compact 360/390/430 and Expanded 1280, Light/Dark with axe, every icon at most 32 px and the area title, tile labels, create button and Pro navigation label not squeezed, the batch sheet in Light/Dark with axe, reduced motion and 200 % text without horizontal overflow; on the web Pro page the quiet entry opens the redeem sheet, a code is sent in capitals once, the confirmation takes focus and closing shows Pro active; an already redeemed code is explained next to the field (described by it, focused, aria-invalid) and the typed code stays."
+    },
+    "server-admin-situation.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 4,
+      "reason": "ServerAdmin Situation and areas (#2315): the operator sees the summary and the Needs you queue (new reports with the plugin, failed jobs, a Space near its Cloud quota), opens failed jobs into System > Jobs with the area and page marked current and returns with Back; an old ?section=activity link lands in System > Activity; without the operator plugin there is no Help area and a calm empty queue; a missing worker signal never reads as available; Compact 360/390/430 bottom bar and Expanded 1280 side list in Light/Dark with axe, reduced motion and 200 % text without horizontal overflow."
+    },
+    "server-admin-support-reports.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 5,
+      "reason": "ServerAdmin support reports (#2189) and Help reply templates (#2327): the operator opens Help from the ServerAdmin area navigation only while the admin plugin is installed, opens a report from the new-report queue (cards quote a note preview of at most 160 characters and the state segments carry their counts), changes its state directly with exactly one write, sends the one reply and sees it read-only, creates a ticket from the dialog that sends only the typed title and body and sees the tracker link, and returns to the list with focus restored; the operator archives a report (no dialog, one write), finds it only in the Archived view with its state kept, brings it back, and permanently deletes one only through the confirmation dialog (cancel holds focus and deletes nothing; a linked ticket is named as staying in the tracker); an uncertain PENDING ticket is cleared only after the duplicate warning is confirmed; the list, detail, archive/delete actions, delete dialog, archived view, ticket dialog and uncertain state in Compact 360/390/430 and Expanded 1440, Light/Dark, reduced motion and 200 % text with axe on the section and the dialog; Help > Reply templates: the operator creates a template in the sheet (one write), inserts it into a report reply with a chip and sends it once, follows the Edit link from another report, changes and then deletes the template after a confirmation, with the empty page, the sheet, the list at 360/390/430 and the page at 1280 in Light/Dark with axe."
+    },
+    "app-shortcuts.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 8,
+      "reason": "Feature-owned native app-icon ingress: queued cold actions wait for login and authorized Space, all three composers save explicitly, warm reselect preserves drafts and deferred entry waits for existing Save; Android/iOS bridge simulation, Compact/Expanded and Light/Dark/reduced motion. Actual OS packaging and callbacks are separate native gates."
     }
   }
 }

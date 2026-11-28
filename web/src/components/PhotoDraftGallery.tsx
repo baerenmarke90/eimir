@@ -255,7 +255,7 @@ export function PhotoDraftGallery({
                       onClick={() => onEdit(item.key)}
                     >
                       <EimirIcon name="crop" />
-                      <span aria-hidden="true">{t('photoEdit.edit')}</span>
+                      <span aria-hidden="true">{t('common.edit')}</span>
                     </button>
                   ) : null}
                   {addAction && item.canRemove !== false ? (

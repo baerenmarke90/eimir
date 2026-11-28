@@ -2,25 +2,11 @@
   display: grid;
   gap: var(--space-4);
 }
-.app-icon-summary {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-4);
-}
-.app-icon-summary > div {
-  display: grid;
-  gap: var(--space-1);
-}
-.app-icon-summary > button {
-  margin-inline-start: auto;
-}
-.app-icon-summary img,
+.app-icon-trigger-image,
 .app-icon-preview img {
   border-radius: var(--radius-large);
   flex-shrink: 0;
 }
-.app-icon-summary span,
 .app-icon-platform,
 .app-icon-personal,
 .app-icon-intro {

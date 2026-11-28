@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Collection as AbstractCollection
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
@@ -434,6 +435,15 @@ def project_event(session: Session, event: OutboxEvent) -> None:
             NotificationKind(event_type.value),
             expires_at=event.payload.due_at,
         )
+    if event_type is EventType.SUPPORT_REPLY and _is_support_report_subject(event.subject_type):
+        # #2189: one notice per reply, only for the reporter of the report.
+        _project_target_notification(
+            session,
+            event,
+            EngagementTarget.SUPPORT_REPORT,
+            event.subject_id,
+            NotificationKind.SUPPORT_REPLY,
+        )
 
     if event_type is EventType.VIDEO_PROCESSING_FAILED and event.subject_type == "attachment":
         from eimir.attachments import binding
@@ -764,6 +774,8 @@ def _target_is_projectable(
         return current.round is not None and current.round.id == target_id
     if target_type is EngagementTarget.RECAP:
         return session.scalar(_recap_is_readable(context, target_id)) is not None
+    if target_type is EngagementTarget.SUPPORT_REPORT:
+        return session.scalar(_support_report_is_own(context, target_id)) is not None
     model = _TARGET_MODELS[target_type]
     statement = readable(model, context).where(model.id == target_id)
     if not (allow_private_heart and target_type is EngagementTarget.HEART_MOMENT):
@@ -782,6 +794,32 @@ def _recap_is_readable(context: AuthorizationContext, target_id: Any) -> Any:
         RecapEdition.space_id == context.space_id,
         RecapEdition.status == "READY",
         RecapEdition.saved_at.is_not(None),
+    )
+
+
+def _is_support_report_subject(subject_type: str) -> bool:
+    """True for the subject type the support reply event carries (#2189).
+
+    The producer's constant is the single source, so a rename cannot silently
+    stop the notice. Imported lazily like the report model below: the Core
+    support module is not loaded until a reply event is projected.
+    """
+    from eimir.support_reports.service import REPLY_SUBJECT_TYPE
+
+    return subject_type == REPLY_SUBJECT_TYPE
+
+
+def _support_report_is_own(context: AuthorizationContext, target_id: Any) -> Any:
+    """A support reply notice belongs only to the report's own reporter (#2189).
+
+    A report is not Space content: the viewer's account decides, not the Space.
+    The notice disappears with the report (account deletion, retention).
+    """
+    from eimir.support_reports.models import SupportReport
+
+    return select(SupportReport.id).where(
+        SupportReport.id == target_id,
+        SupportReport.account_id == context.account_id,
     )
 
 
@@ -808,6 +846,12 @@ def _projectable_predicate(
         and_(
             target_type_column == EngagementTarget.RECAP.value,
             _recap_is_readable(context, target_id_column).exists(),
+        )
+    )
+    clauses.append(
+        and_(
+            target_type_column == EngagementTarget.SUPPORT_REPORT.value,
+            _support_report_is_own(context, target_id_column).exists(),
         )
     )
     for target_type, model in _TARGET_MODELS.items():
@@ -950,6 +994,11 @@ def _current_notification_predicate(session: Session, context: AuthorizationCont
         ),
         _current_random_predicate(current, context),
     )
+
+
+def current_notification_predicate(session: Session, context: AuthorizationContext) -> Any:
+    """The centre's "still current" rule, for other reads of the same notices (#2345 B)."""
+    return _current_notification_predicate(session, context)
 
 
 def _current_random_predicate(
@@ -1233,11 +1282,55 @@ def mark_notification_read(
         .with_for_update()
     )
     notification = session.execute(statement).scalar_one_or_none()
+    if notification is None and include_external:
+        notification = _operator_notification_for_update(session, context, identifier)
     if notification is None:
         raise NotFoundError("Notification not found.", ErrorCode.NOTIFICATION_NOT_FOUND)
     if notification.read_at is None:
         notification.read_at = clock.now()
         session.flush()
+        _withdraw_from_devices(session, [notification.id])
+    return notification
+
+
+def _withdraw_from_devices(session: Session, notification_ids: list[UUID]) -> None:
+    """A notice read here leaves the trays of the recipient's other devices (#2345)."""
+    if not notification_ids:
+        return
+    from eimir.engagement import push_withdraw
+
+    push_withdraw.enqueue_withdrawals(session, notification_ids)
+
+
+def _operator_notification_for_update(
+    session: Session, context: AuthorizationContext, identifier: UUID
+) -> Notification | None:
+    """A tapped operator notice (#2314) of the caller, opened through any Space path.
+
+    Operator notices belong to no Space; the tap carries only the notice id. It
+    resolves for its own recipient while that Account is still a ServerAdmin.
+    """
+    from eimir.authorization.server_admin import is_server_admin
+    from eimir.identity.models import Account
+
+    notification = session.execute(
+        select(Notification)
+        .where(
+            Notification.id == identifier,
+            Notification.space_id.is_(None),
+            Notification.kind == NotificationKind.OPERATOR_ALERT.value,
+            Notification.recipient_account_id == context.account_id,
+        )
+        .with_for_update()
+    ).scalar_one_or_none()
+    account = session.get(Account, context.account_id)
+    if (
+        notification is None
+        or account is None
+        or account.disabled_at is not None
+        or not is_server_admin(session, account)
+    ):
+        return None
     return notification
 
 
@@ -1257,7 +1350,98 @@ def mark_all_notifications_read(
             _current_notification_predicate(session, context),
         )
         .values(read_at=cutoff)
+        .returning(Notification.id)
+        .execution_options(synchronize_session=False)
     )
-    result = session.execute(statement)
-    updated = getattr(result, "rowcount", 0)
-    return MarkAllResult(read_through=cutoff, updated=int(updated or 0))
+    read = list(session.scalars(statement))
+    _withdraw_from_devices(session, read)
+    return MarkAllResult(read_through=cutoff, updated=len(read))
+
+
+def mark_notifications_read_for(
+    session: Session,
+    context: AuthorizationContext,
+    *,
+    kinds: AbstractCollection[NotificationKind],
+    target_types: AbstractCollection[EngagementTarget] | None = None,
+) -> int:
+    """Mark the reader's unread notices of a surface read once it was opened (#2345).
+
+    Opening a destination by any way (Wir, its own tab, a push) handles what its
+    notices announced, so the inbox and the device trays must not keep them.
+    Only the reader's own rows in this Space change; hidden or no-longer-current
+    rows are included so a later currency change never revives them as unread.
+    ``target_types`` narrows kinds shared by several destinations; ``None``
+    matches every target, including target-less notices.
+    """
+    if not kinds:
+        return 0
+    conditions = [
+        Notification.space_id == context.space_id,
+        Notification.recipient_account_id == context.account_id,
+        Notification.read_at.is_(None),
+        Notification.kind.in_([kind.value for kind in kinds]),
+    ]
+    if target_types is not None:
+        conditions.append(Notification.target_type.in_([target.value for target in target_types]))
+    read = list(
+        session.scalars(
+            update(Notification)
+            .where(*conditions)
+            .values(read_at=clock.now())
+            .returning(Notification.id)
+            .execution_options(synchronize_session=False)
+        )
+    )
+    _withdraw_from_devices(session, read)
+    return len(read)
+
+
+SETTLED_LOOKUP_LIMIT = 50
+
+
+def settled_notification_ids(
+    session: Session, context: AuthorizationContext, notification_ids: AbstractCollection[UUID]
+) -> list[UUID]:
+    """Which notices a device still shows that no longer need attention (#2345).
+
+    A device tray keeps a notice until something removes it. A notice is settled
+    when it was read, expired, deleted or is no longer current (the game moved
+    on, the plan was cancelled). Ids of another Space of the reader are left
+    alone: their currency is judged when that Space is active. An id that is not
+    the reader's own counts as settled exactly like a deleted one, so the answer
+    never tells whether a foreign id exists. A ServerAdmin notice belongs to no
+    Space and is settled once read.
+    """
+    requested = list(dict.fromkeys(notification_ids))[:SETTLED_LOOKUP_LIMIT]
+    if not requested:
+        return []
+    own = session.execute(
+        select(Notification.id, Notification.space_id, Notification.read_at).where(
+            Notification.id.in_(requested),
+            Notification.recipient_account_id == context.account_id,
+        )
+    ).all()
+    owned = {row.id: row for row in own}
+    pending = set(
+        session.scalars(
+            select(Notification.id).where(
+                Notification.id.in_([row.id for row in own if row.space_id == context.space_id]),
+                Notification.space_id == context.space_id,
+                Notification.recipient_account_id == context.account_id,
+                Notification.read_at.is_(None),
+                _current_notification_predicate(session, context),
+            )
+        )
+    )
+    settled: list[UUID] = []
+    for identifier in requested:
+        row = owned.get(identifier)
+        if row is None:
+            settled.append(identifier)
+        elif row.space_id is None:
+            if row.read_at is not None:
+                settled.append(identifier)
+        elif row.space_id == context.space_id and identifier not in pending:
+            settled.append(identifier)
+    return settled

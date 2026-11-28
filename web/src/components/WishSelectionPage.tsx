@@ -56,6 +56,7 @@ import {
 import { type TaskOriginMetadata, useTaskOrigin } from '../client/taskOrigin';
 import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
+import { withoutHiddenWishes } from '../client/wishConcealment';
 import {
   ownIdeaSelectionIds,
   ownSelectionIds,
@@ -352,7 +353,10 @@ function WishSelectionTask({
     [
       ...new Map<string, { id: string; title: string }>(
         [
-          ...(wishes.data?.pages.flatMap((page) => page.items) ?? []),
+          // #2158 H: a wish an open game hides from the reader is no choice.
+          ...withoutHiddenWishes(
+            wishes.data?.pages.flatMap((page) => page.items) ?? [],
+          ),
           ...(view?.candidates
             .filter((candidate) => candidate.status === 'OPEN')
             .map((candidate) => ({
@@ -1078,19 +1082,20 @@ function WishSelectionTask({
         {t('wishSelection.selected', { count: totalSelected })}
       </p>
       <button type="button" onClick={() => setStep('hub')}>
-        {t('wishSelection.pickDone')}
+        {t('common.done')}
       </button>
     </div>
   );
 
   return (
     <div className="page wish-selection-task">
-      <header className="page-heading wish-selection-heading">
+      <header
+        className="page-heading wish-selection-heading"
+        data-title-only={!intro || undefined}
+      >
         <TaskBackButton inline type="button" disabled={busy} onClick={goBack}>
           {t(
-            activeMode === 'plan'
-              ? 'wishSelection.toSelection'
-              : 'taskBoundary.back',
+            activeMode === 'plan' ? 'wishSelection.toSelection' : 'common.back',
           )}
         </TaskBackButton>
         <div>
@@ -1101,7 +1106,7 @@ function WishSelectionTask({
         </div>
       </header>
       {intro ? <p className="wish-selection-intro">{intro}</p> : null}
-      <div ref={focusRef} tabIndex={-1} className="planning-task-focus" />
+      <div ref={focusRef} tabIndex={-1} className="sr-only" />
       {query.error ? (
         <ProblemState
           error={query.error}
@@ -1370,7 +1375,7 @@ function WishSelectionTask({
                   >
                     {t(
                       busy
-                        ? 'wishSelection.saving'
+                        ? 'common.saving'
                         : view.id
                           ? 'wishSelection.replace'
                           : 'wishSelection.start',
@@ -1504,6 +1509,10 @@ function WishSelectionTask({
           }
           candidateMedia={candidateMedia}
           ideasLang={ideasLang}
+          startWithDeck={
+            ownSelectionIds(view).length + ownIdeaSelectionIds(view).length ===
+            0
+          }
         />
       ) : null}
 
@@ -1859,7 +1868,7 @@ function WishSelectionTask({
             ) : null}
             <div className="wish-selection-actions">
               <button type="submit" disabled={busy || !planTitle.trim()}>
-                {t(busy ? 'wishSelection.saving' : 'wishSelection.savePlan')}
+                {t(busy ? 'common.saving' : 'wishSelection.savePlan')}
               </button>
               <p className="wish-selection-support">
                 {t('m5s3.plan.sharedBody')}

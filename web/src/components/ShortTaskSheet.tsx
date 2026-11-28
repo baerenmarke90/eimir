@@ -127,6 +127,7 @@ export function ShortTaskSheet({
   role = 'dialog',
   className = '',
   closeLabel,
+  showCloseIcon = true,
   id,
   ref,
 }: {
@@ -145,6 +146,12 @@ export function ShortTaskSheet({
   role?: 'dialog' | 'alertdialog';
   className?: string;
   closeLabel?: string;
+  /**
+   * False hides only the Close icon (#2189 support sheet, Product Owner
+   * 2026-11-23). The handle button stays the labeled close target for keyboard
+   * and screen readers; pull, backdrop and Back/Escape still close.
+   */
+  showCloseIcon?: boolean;
   id?: string;
   ref?: Ref<ShortTaskSheetHandle>;
 }) {
@@ -174,6 +181,7 @@ export function ShortTaskSheet({
   const dragVelocityRef = useRef(new VelocityTracker());
   const suppressNextClickRef = useRef(false);
   const gestureHandlersRef = useRef<DragGestureHandlers | null>(null);
+  const footerRef = useRef<HTMLDivElement>(null);
   const closeConfirmed = useEditorHistoryEntry({
     isActive: open,
     isDirty,
@@ -197,7 +205,7 @@ export function ShortTaskSheet({
     return true;
   }
 
-  const resolvedCloseLabel = closeLabel?.trim() || t('taskSheets.close');
+  const resolvedCloseLabel = closeLabel?.trim() || t('common.close');
   const {
     present: retainedPresence,
     presenceState,
@@ -215,6 +223,32 @@ export function ShortTaskSheet({
     }
     wasPresentRef.current = present;
   }, [present, restoreFocusRef]);
+
+  // The footer scrolls once its content outgrows the bounded height (large text,
+  // long messages). A scrollable region must be keyboard-reachable, so it joins
+  // the tab order exactly while it overflows and not otherwise. The attribute is
+  // set on the element instead of through state: a state update from this layout
+  // effect would re-render the sheet synchronously, flush its pending passive
+  // effects early and reorder focus hand-offs when the sheet closes.
+  useLayoutEffect(() => {
+    const footerElement = footerRef.current;
+    if (!footerElement) return;
+    const measure = () => {
+      if (footerElement.scrollHeight > footerElement.clientHeight) {
+        footerElement.setAttribute('tabindex', '0');
+      } else {
+        footerElement.removeAttribute('tabindex');
+      }
+    };
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(footerElement);
+    for (const child of Array.from(footerElement.children)) {
+      observer.observe(child);
+    }
+    return () => observer.disconnect();
+  });
 
   useEffect(() => {
     onPresenceChange?.(present);
@@ -703,7 +737,7 @@ export function ShortTaskSheet({
     <dialog
       ref={dialogRef}
       id={id}
-      className={`short-task-sheet ${className}`}
+      className={`short-task-sheet${showCloseIcon ? '' : ' short-task-sheet-no-close-icon'} ${className}`}
       data-presence={presenceState}
       role={role}
       aria-modal="true"
@@ -839,14 +873,16 @@ export function ShortTaskSheet({
           onClick={() => requestClose()}
         >
           <span className="short-task-sheet-drag-handle" aria-hidden="true" />
-          <svg
-            className="short-task-sheet-close-icon inline-icon"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-            focusable="false"
-          >
-            <path d="M6 6 18 18M18 6 6 18" />
-          </svg>
+          {showCloseIcon ? (
+            <svg
+              className="short-task-sheet-close-icon inline-icon"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="M6 6 18 18M18 6 6 18" />
+            </svg>
+          ) : null}
         </button>
       </header>
       <section
@@ -859,7 +895,11 @@ export function ShortTaskSheet({
         </h2>
         {children}
       </section>
-      {footer ? <div className="short-task-sheet-footer">{footer}</div> : null}
+      {footer ? (
+        <div ref={footerRef} className="short-task-sheet-footer">
+          {footer}
+        </div>
+      ) : null}
     </dialog>,
     document.body,
   );

@@ -253,6 +253,8 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("GET", "/api/v1/spaces/{spaceId}/appearance/app-icon"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/appearance/wir-design"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/appearance/person-colours"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/appearance/memory-world"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/appearance/wir-reels"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/personal-settings"),
     Endpoint(
         "PATCH",
@@ -264,6 +266,18 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         "PATCH",
         "/api/v1/spaces/{spaceId}/appearance/person-colours",
         body={"colours": None},
+        if_match=True,
+    ),
+    Endpoint(
+        "PATCH",
+        "/api/v1/spaces/{spaceId}/appearance/memory-world",
+        body={"worldId": "story"},
+        if_match=True,
+    ),
+    Endpoint(
+        "PATCH",
+        "/api/v1/spaces/{spaceId}/appearance/wir-reels",
+        body={"styleId": "circles"},
         if_match=True,
     ),
     Endpoint(
@@ -440,22 +454,6 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         body={"energyLevel": 50},
         if_match=True,
     ),
-    Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-check-in/insights"),
-    Endpoint(
-        "GET",
-        "/api/v1/spaces/{spaceId}/daily-check-in/weekly-review",
-        query={"week_start": "2026-10-26"},
-    ),
-    Endpoint(
-        "POST",
-        "/api/v1/spaces/{spaceId}/daily-check-in/weekly-review",
-        body={"weekStart": "2026-10-26", "evidenceToken": "a" * 64},
-    ),
-    Endpoint(
-        "PUT",
-        "/api/v1/spaces/{spaceId}/daily-check-in/weekly-feedback/{recommendationKey}",
-        body={"rating": "HELPFUL"},
-    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-quote"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-quote/catalog"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-quote/preferences"),
@@ -467,6 +465,13 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/date-ideas"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/date-ideas/images/{imageId}"),
+    # Redemption rules (Cloud-only 404, rate limits, refusals) live in the Pro
+    # test_gift_code_routes; membership answers before the deployment check.
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/gift-codes/redeem",
+        body={"code": "EIMIR-ABCD-EFGH"},
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/moments/candidates"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/wishes/candidates"),
     # Herzversteck owns its privacy, photo and unknown-round rules in test_heart_hunt; the
@@ -564,7 +569,10 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         "/api/v1/spaces/{spaceId}/games/our-moments/end",
         body={"gameId": "00000000-0000-0000-0000-000000000001"},
     ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/games/waiting"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/games/{surface}/notices/read"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/garden"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/games/garden/history"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/games/garden/seeds", body={"species": "POPPY"}),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/games/garden/seeds/{seedId}/plant"),
     Endpoint(
@@ -857,6 +865,12 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         resource_absence="NOTIFICATION_NOT_FOUND",
     ),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/notifications/read-all"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/notifications/wir"),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/notifications/settled",
+        body={"notificationIds": ["00000000-0000-0000-0000-000000000001"]},
+    ),
     Endpoint(
         "POST",
         "/api/v1/spaces/{spaceId}/notifications/{notificationId}/open",
@@ -1547,39 +1561,8 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         if_match=True,
         resource_absence="PLAN_NOT_FOUND",
     ),
-    Endpoint(
-        "POST",
-        "/api/v1/spaces/{spaceId}/transfer/exports",
-        body={"scope": "SHARED"},
-    ),
-    Endpoint(
-        "GET",
-        "/api/v1/spaces/{spaceId}/transfer/exports/{exportId}",
-        resource_absence="TRANSFER_NOT_FOUND",
-        placeholders=("exportId",),
-    ),
-    Endpoint(
-        "GET",
-        "/api/v1/spaces/{spaceId}/transfer/exports/{exportId}/download",
-        resource_absence="TRANSFER_NOT_FOUND",
-        placeholders=("exportId",),
-    ),
-    Endpoint("POST", "/api/v1/spaces/{spaceId}/transfer/imports"),
-    Endpoint(
-        "GET",
-        "/api/v1/spaces/{spaceId}/transfer/imports/{importId}",
-        resource_absence="TRANSFER_NOT_FOUND",
-        placeholders=("importId",),
-    ),
-    Endpoint(
-        "POST",
-        "/api/v1/spaces/{spaceId}/transfer/imports/{importId}/apply",
-        resource_absence="TRANSFER_NOT_FOUND",
-        placeholders=("importId",),
-    ),
-    Endpoint("GET", "/api/v1/spaces/{spaceId}/transfer/skipped-videos"),
-    Endpoint("DELETE", "/api/v1/spaces/{spaceId}/transfer/skipped-videos"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/attachment-upload-policy"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/storage"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/attachments", body=ATTACHMENT),
     Endpoint(
         "POST",
@@ -1648,6 +1631,8 @@ AUTHENTICATED_ONLY: tuple[tuple[str, str], ...] = (
     ("GET", "/api/v1/push-endpoints/unifiedpush-configuration"),
     ("POST", "/api/v1/push-endpoints"),
     ("DELETE", "/api/v1/push-endpoints/{endpointId}"),
+    ("POST", "/api/v1/support-reports"),
+    ("GET", "/api/v1/support-reports/{reportId}/reply"),
     ("POST", "/api/v1/auth/sign-out"),
     ("POST", "/api/v1/auth/password"),
     ("POST", "/api/v1/auth/email/verification/request"),
@@ -1670,13 +1655,6 @@ AUTHENTICATED_ONLY: tuple[tuple[str, str], ...] = (
 """Account-scoped but not space-scoped. Anonymous requests receive 401."""
 
 SERVER_ADMIN_ONLY: tuple[tuple[str, str], ...] = (
-    ("GET", "/api/v1/auth/recent-authentication/server-admin"),
-    ("GET", "/api/v1/auth/recent-authentication/server-admin/capabilities"),
-    ("POST", "/api/v1/auth/recent-authentication/server-admin/password"),
-    ("POST", "/api/v1/auth/recent-authentication/server-admin/passkeys/start"),
-    ("POST", "/api/v1/auth/recent-authentication/server-admin/passkeys/finish"),
-    ("POST", "/api/v1/auth/recent-authentication/server-admin/oidc/{connectionId}/start"),
-    ("POST", "/api/v1/auth/recent-authentication/server-admin/oidc/{connectionId}/callback"),
     ("GET", "/api/v1/server-admin/overview"),
     ("GET", "/api/v1/server-admin/spaces"),
     ("GET", "/api/v1/server-admin/spaces/{space_id}"),
@@ -1684,9 +1662,17 @@ SERVER_ADMIN_ONLY: tuple[tuple[str, str], ...] = (
     ("GET", "/api/v1/server-admin/spaces/{space_id}/entitlement"),
     ("POST", "/api/v1/server-admin/spaces/{space_id}/entitlement/grants"),
     ("POST", "/api/v1/server-admin/spaces/{space_id}/entitlement/grants/{grant_id}/revoke"),
+    ("PUT", "/api/v1/server-admin/spaces/{space_id}/storage-quota"),
+    ("DELETE", "/api/v1/server-admin/spaces/{space_id}/storage-quota"),
+    ("GET", "/api/v1/server-admin/spaces/{space_id}/file"),
+    ("GET", "/api/v1/server-admin/search"),
     ("GET", "/api/v1/server-admin/settings"),
     ("PUT", "/api/v1/server-admin/settings/registration"),
     ("PUT", "/api/v1/server-admin/settings/maintenance"),
+    ("PUT", "/api/v1/server-admin/settings/monitoring-alerts"),
+    ("PUT", "/api/v1/server-admin/settings/monitoring-push"),
+    ("POST", "/api/v1/server-admin/failed-jobs/seen"),
+    ("GET", "/api/v1/server-admin/monitoring"),
     ("GET", "/api/v1/server-admin/activity"),
     ("GET", "/api/v1/server-admin/activity/actions"),
     ("GET", "/api/v1/server-admin/activity/privileged"),
@@ -1701,6 +1687,13 @@ SERVER_ADMIN_ONLY: tuple[tuple[str, str], ...] = (
     ("POST", "/api/v1/server-admin/accounts/{accountId}/recovery/operator"),
     ("POST", "/api/v1/server-admin/accounts/{accountId}/emails/{accountEmailId}/verify"),
     ("POST", "/api/v1/server-admin/accounts/{accountId}/deletion"),
+    # The Pro area (ServerAdmin part 5): Pro plugin routes, 404 outside eimir. Cloud.
+    ("GET", "/api/v1/server-admin/pro/overview"),
+    ("POST", "/api/v1/server-admin/pro/gift-code-batches"),
+    ("GET", "/api/v1/server-admin/pro/gift-code-batches/{batchId}"),
+    ("POST", "/api/v1/server-admin/pro/gift-code-batches/{batchId}/revoke"),
+    ("PUT", "/api/v1/server-admin/pro/gift-codes/{codeId}/handed-out"),
+    ("POST", "/api/v1/server-admin/pro/gift-codes/{codeId}/revoke"),
 )
 """Instance-scoped operations that require authenticated ServerAdmin authority."""
 
@@ -1863,7 +1856,7 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
             session.flush()
             # Composed through the plugin code: the request route is not mounted in
             # the Core-only configuration.
-            from eimir.recap_composition import composer
+            from eimir_pro.recap_composition import composer
 
             recap_id = str(
                 composer.request_period(
@@ -1904,7 +1897,6 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
             "planId": plan["id"],
             "reminderId": reminder["id"],
             "ruleKey": "important_date_reminder",
-            "recommendationKey": "quiet_time",
             "moduleKey": "upcoming",
             "placeId": place["id"],
             "chapterId": chapter["id"],
@@ -1931,6 +1923,8 @@ def scenario(client, session: Session, request: pytest.FixtureRequest):  # type:
             "bouquetId": str(uuid4()),
             # A closed visitor code, not a database row.
             "animal": "SNAIL",
+            # A closed game page code (#2345), not a database row.
+            "surface": "HEART_HUNT",
             "attachmentId": attachment["attachment"]["id"],
         },
     }

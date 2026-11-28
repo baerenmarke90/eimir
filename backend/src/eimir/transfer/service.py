@@ -32,7 +32,6 @@ from eimir.authorization import AuthorizationContext, PrivacyClass
 from eimir.core.clock import now
 from eimir.core.errors import BadRequestError, ConflictError, ErrorCode, NotFoundError
 from eimir.core.ids import new_id, parse_id
-from eimir.daily_checkins.models import RecommendationKey, RecommendationRating
 from eimir.db.locks import lock_subject
 from eimir.db.session import schedule_after_rollback
 from eimir.identity.models import Account, AccountEmail
@@ -106,13 +105,10 @@ FILE_TABLES: dict[str, tuple[str, ...]] = {
     "private/notes.json": ("private_notes",),
     "private/gift-ideas.json": ("gift_ideas",),
     "private/collections.json": ("private_collections", "private_collection_items"),
-    "private/weekly-insight-feedback.json": ("daily_insight_feedback",),
 }
 PRIVATE_FILES = frozenset(name for name in FILE_TABLES if name.startswith("private/"))
 PRIVATE_ROOTS = frozenset({"private_notes", "gift_ideas", "private_collections"})
-ACCOUNT_SCOPED_CONFIG_TABLES = frozenset(
-    {"rule_preferences", "reminder_preferences", "daily_insight_feedback"}
-)
+ACCOUNT_SCOPED_CONFIG_TABLES = frozenset({"rule_preferences", "reminder_preferences"})
 CHILD_PARENT: dict[str, tuple[str, str]] = {
     "collection_items": ("collection_id", "collections"),
     "collection_suggestions": ("collection_id", "collections"),
@@ -173,7 +169,6 @@ INSERT_ORDER = (
     "reminder_offsets",
     "reminder_preferences",
     "rule_preferences",
-    "daily_insight_feedback",
     "comments",
     "recap_editions",
     "recap_sources",
@@ -383,22 +378,6 @@ def _portable_rows(
     all_tables = {name for names in FILE_TABLES.values() for name in names}
 
     for table_name in all_tables:
-        if table_name == "daily_insight_feedback":
-            table = _table(session, table_name, metadata)
-            rows[table_name] = (
-                []
-                if scope is TransferScope.SHARED
-                else [
-                    dict(row)
-                    for row in session.execute(
-                        select(table).where(
-                            table.c.space_id == authorization.space_id,
-                            table.c.account_id == authorization.account_id,
-                        )
-                    ).mappings()
-                ]
-            )
-            continue
         if table_name in CHILD_PARENT or table_name in RELATION_REQUIREMENTS:
             continue
         table = _table(session, table_name, metadata)
@@ -639,19 +618,26 @@ def _write_export_archive(
             preference = appearance_service.read_preference(session, authorization)
             account_document["personalAppearance"] = {
                 "appIconId": preference.icon_id if preference else "original",
-                "wirDesign": (preference.wir_design if preference else DEFAULT_WIR_DESIGN.value),
+                "wirDesign": (
+                    preference.effective_wir_design if preference else DEFAULT_WIR_DESIGN
+                ).value,
             }
             if preference is not None and preference.person_colours:
                 account_document["personalAppearance"]["personColours"] = preference.person_colours
+            if preference is not None and (palette := preference.effective_palette) is not None:
+                account_document["personalAppearance"]["designPalette"] = palette.value
+            if preference is not None and preference.memory_world is not None:
+                account_document["personalAppearance"]["memoryWorld"] = (
+                    preference.effective_memory_world.value
+                )
+            if preference is not None and preference.wir_reel_style is not None:
+                account_document["personalAppearance"]["wirReelStyle"] = (
+                    preference.effective_wir_reel_style.value
+                )
             from eimir.personal_settings import service as personal_settings
 
             account_document["personalSettings"] = personal_settings.portable_snapshot(
                 session, authorization.account_id, authorization.space_id
-            )
-            from eimir.plugins import lifecycle as plugin_lifecycle
-
-            account_document.update(
-                plugin_lifecycle.export_account_document(session, authorization, scope)
             )
             from eimir.engagement.models import GentleMemoryExclusion, GentleProfile
 
@@ -949,7 +935,9 @@ def request_apply(
             raise ConflictError(
                 "Imported video needs the video capability.", ErrorCode.TRANSFER_VIDEOS_NEED_PRO
             )
-        if not recoverable_videos(session, authorization.space_id, transfer.summary):
+        if not recoverable_videos(
+            session, authorization.space_id, authorization.account_id, transfer.summary
+        ):
             raise ConflictError(
                 "This file holds no skipped video of this Space.",
                 ErrorCode.TRANSFER_NOTHING_TO_RECOVER,
@@ -968,7 +956,12 @@ def request_apply(
     if videos_only:
         require_fit(
             storage,
-            sum(row.size for row in recoverable_videos(session, authorization.space_id, summary)),
+            sum(
+                row.size
+                for row in recoverable_videos(
+                    session, authorization.space_id, authorization.account_id, summary
+                )
+            ),
         )
     elif skip_videos and has_videos:
         require_fit(storage, _stored_count(summary, "storageNeededWithoutVideos"))
@@ -1056,7 +1049,7 @@ def _load_documents(
                         "Transfer domain document is invalid.", ErrorCode.TRANSFER_RELATION_INVALID
                     )
                 seen_tables.add(table_name)
-                tables[table_name] = rows
+                tables[table_name] = [_upgrade_legacy_row(table_name, row) for row in rows]
         media: list[dict[str, Any]] = []
         if "media/index.json" in validated.entries:
             media_doc = parse_json_bytes(archive.read("media/index.json"))
@@ -1083,6 +1076,23 @@ def _row_snake(row: Mapping[str, Any]) -> dict[str, Any]:
     return {_camel_to_snake(str(key)): value for key, value in row.items()}
 
 
+def _upgrade_legacy_row(table_name: str, row: dict[str, Any]) -> dict[str, Any]:
+    """Translate a column an older v1 archive still carries into the current schema.
+
+    Plans exported before #2158 D carry the countdown opt-in ``anticipationEnabled``,
+    where false only meant "not chosen": true pins the Plan, false is automatic.
+    Any other value is left for schema validation to reject.
+    """
+    if table_name != "plans" or "anticipationEnabled" not in row or "anticipation" in row:
+        return row
+    flag = row["anticipationEnabled"]
+    if not isinstance(flag, bool):
+        return row
+    upgraded = {key: value for key, value in row.items() if key != "anticipationEnabled"}
+    upgraded["anticipation"] = "ALWAYS" if flag else "AUTOMATIC"
+    return upgraded
+
+
 def _validate_ids_and_privacy(
     scope: TransferScope,
     personal_owner: UUID | None,
@@ -1093,7 +1103,6 @@ def _validate_ids_and_privacy(
     globally_seen: set[UUID] = set()
     for table_name, json_rows in tables.items():
         table_ids: set[UUID] = set()
-        feedback_keys: set[str] = set()
         for raw in json_rows:
             row = _row_snake(raw)
             raw_id = row.get("id")
@@ -1148,21 +1157,6 @@ def _validate_ids_and_privacy(
                         "Transfer privacy scope is invalid.",
                         ErrorCode.TRANSFER_PRIVACY_SCOPE_INVALID,
                     )
-            if table_name == "daily_insight_feedback":
-                key = row.get("recommendation_key")
-                rating = row.get("rating")
-                if (
-                    not isinstance(key, str)
-                    or not isinstance(rating, str)
-                    or key not in {item.value for item in RecommendationKey}
-                    or rating not in {item.value for item in RecommendationRating}
-                    or key in feedback_keys
-                ):
-                    raise TransferArchiveError(
-                        "Transfer recommendation preference is invalid.",
-                        ErrorCode.TRANSFER_RELATION_INVALID,
-                    )
-                feedback_keys.add(str(key))
             for column in ACCOUNT_REFERENCE_COLUMNS:
                 if (
                     row.get(column) is not None
@@ -2015,12 +2009,18 @@ def _video_parents(graph: ValidatedGraph) -> dict[str, tuple[str, str, int]]:
 
 
 def recoverable_videos(
-    session: Session, space_id: UUID, summary: Mapping[str, object] | None, *, lock: bool = False
+    session: Session,
+    space_id: UUID,
+    imported_by: UUID,
+    summary: Mapping[str, object] | None,
+    *,
+    lock: bool = False,
 ) -> list[TransferSkippedVideo]:
-    """Skipped videos of this Space that the staged file holds again (#2141).
+    """Skipped videos of this member that the staged file holds again (#2141).
 
     A video is recognised by its source attachment ID and its manifest checksum,
-    so a changed file never fills a gallery with a different video.
+    so a changed file never fills a gallery with a different video. Only the
+    member who imported a video sees and recovers it; the partner never does.
     """
     sources = (summary or {}).get("videoSources")
     if not isinstance(sources, list):
@@ -2036,6 +2036,7 @@ def recoverable_videos(
         select(TransferSkippedVideo)
         .where(
             TransferSkippedVideo.space_id == space_id,
+            TransferSkippedVideo.imported_by == imported_by,
             TransferSkippedVideo.source_attachment_id.in_(
                 [parse_id(source) for source, _ in keys if parse_id(source) is not None]
             ),
@@ -2841,33 +2842,20 @@ def apply_import_bundle(
                     authorization=authorization,
                     ids=ids,
                 )
-                if table_name == "daily_insight_feedback":
-                    # Additive restore never replaces the caller's current choice.
-                    result = cast(
-                        "CursorResult[Any]",
-                        session.execute(
-                            pg_insert(table)
-                            .values(**values)
-                            .on_conflict_do_nothing(
-                                index_elements=["space_id", "account_id", "recommendation_key"]
-                            )
-                        ),
-                    )
-                else:
-                    # Additive import never replaces what the Space has: when an
-                    # equivalent row already exists (a link, a nickname, a
-                    # reminder offset), the existing one stays (#2141).
-                    statement = pg_insert(table).values(**protect_values(table_name, values))
-                    result = cast(
-                        "CursorResult[Any]",
-                        session.execute(
-                            statement.on_conflict_do_nothing(
-                                index_elements=[column.name for column in table.primary_key]
-                            )
-                            if table_name in _DEFERRED_UNIQUE_TABLES
-                            else statement.on_conflict_do_nothing()
-                        ),
-                    )
+                # Additive import never replaces what the Space has: when an
+                # equivalent row already exists (a link, a nickname, a
+                # reminder offset), the existing one stays (#2141).
+                statement = pg_insert(table).values(**protect_values(table_name, values))
+                result = cast(
+                    "CursorResult[Any]",
+                    session.execute(
+                        statement.on_conflict_do_nothing(
+                            index_elements=[column.name for column in table.primary_key]
+                        )
+                        if table_name in _DEFERRED_UNIQUE_TABLES
+                        else statement.on_conflict_do_nothing()
+                    ),
+                )
                 if result.rowcount == 0 and row_source is not None:
                     not_added.add(row_source)
         # Remember each skipped video where it belonged, so the same file can
@@ -2886,6 +2874,7 @@ def apply_import_bundle(
                         _uuid(item["ownerSourceId"], ErrorCode.TRANSFER_MEMBER_MAPPING_INVALID)
                     ],
                     import_id=transfer.id,
+                    imported_by=authorization.account_id,
                     source_attachment_id=_uuid(source, ErrorCode.TRANSFER_RELATION_INVALID),
                     checksum=graph.checksums[f"media/{source}/original"],
                     size=int(item["size"]),
@@ -2945,7 +2934,9 @@ def _recover_videos(
     from eimir.heart_moments.models import HeartMoment
     from eimir.memories.models import Memory
 
-    rows = recoverable_videos(session, authorization.space_id, transfer.summary, lock=True)
+    rows = recoverable_videos(
+        session, authorization.space_id, authorization.account_id, transfer.summary, lock=True
+    )
     media = {
         (str(item["sourceId"]), graph.checksums.get(f"media/{item['sourceId']}/original")): item
         for item in graph.media
@@ -3063,24 +3054,37 @@ def _recover_videos(
 
 
 def dismiss_skipped_videos(session: Session, authorization: AuthorizationContext) -> int:
-    """Forget the Space's skipped videos; nothing else changes (#2141)."""
+    """Forget the skipped videos this member imported; nothing else changes (#2141).
+
+    There is nothing to dismiss for a member who imported none, including the
+    partner of the member who did: that is ``404``, never the partner's rows.
+    """
     from sqlalchemy import delete
 
     result = session.execute(
-        delete(TransferSkippedVideo).where(TransferSkippedVideo.space_id == authorization.space_id)
+        delete(TransferSkippedVideo).where(
+            TransferSkippedVideo.space_id == authorization.space_id,
+            TransferSkippedVideo.imported_by == authorization.account_id,
+        )
     )
-    return int(getattr(result, "rowcount", 0) or 0)
+    removed = int(getattr(result, "rowcount", 0) or 0)
+    if not removed:
+        raise NotFoundError("No skipped videos to dismiss.", "RESOURCE_NOT_FOUND")
+    return removed
 
 
 def skipped_videos(session: Session, authorization: AuthorizationContext) -> tuple[int, int]:
-    """How many skipped videos the Space remembers, and their total size."""
+    """How many skipped videos this member imported, and their total size."""
     from sqlalchemy import func
 
     count, size = session.execute(
         select(
             func.count(TransferSkippedVideo.id),
             func.coalesce(func.sum(TransferSkippedVideo.size), 0),
-        ).where(TransferSkippedVideo.space_id == authorization.space_id)
+        ).where(
+            TransferSkippedVideo.space_id == authorization.space_id,
+            TransferSkippedVideo.imported_by == authorization.account_id,
+        )
     ).one()
     return int(count), int(size)
 

@@ -13,6 +13,24 @@ import { Choreography, resetChoreographiesForTests } from './choreography';
 import { type EnterOptions, staggerDelay, useEnter } from './enter';
 import { createSurfaceScope, resetPlayRegistryForTests } from './playRegistry';
 
+function Swapping() {
+  const [asButton, setAsButton] = useState(false);
+  return (
+    <>
+      <Entering
+        identity="wir.portrait.own"
+        options={{ variant: 'rise' }}
+        tag={asButton ? 'button' : 'div'}
+      />
+      <button
+        type="button"
+        data-testid="swap"
+        onClick={() => setAsButton(true)}
+      />
+    </>
+  );
+}
+
 let reduced: FakeMediaQuery;
 let clearRoles: () => void;
 
@@ -125,23 +143,6 @@ describe('useEnter', () => {
   });
 
   it('remounts in its final state in the first frame, without restart or flash', () => {
-    function Swapping() {
-      const [asButton, setAsButton] = useState(false);
-      return (
-        <>
-          <Entering
-            identity="wir.portrait.own"
-            options={{ variant: 'rise' }}
-            tag={asButton ? 'button' : 'div'}
-          />
-          <button
-            type="button"
-            data-testid="swap"
-            onClick={() => setAsButton(true)}
-          />
-        </>
-      );
-    }
     render(<Swapping />);
     expect(item()?.dataset.motionEnter).toBe('rise');
     // The span becomes a button mid-entrance (a new element, same identity).

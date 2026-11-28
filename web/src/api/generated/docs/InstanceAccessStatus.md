@@ -9,12 +9,14 @@ Name | Type
 ------------ | -------------
 `accountCreation` | string
 `auth` | [AuthCapabilities](AuthCapabilities.md)
+`giftCodesAvailable` | boolean
 `maintenanceMode` | boolean
 `oidcConnections` | [Array&lt;OidcConnectionView&gt;](OidcConnectionView.md)
 `oidcSignupAvailable` | boolean
 `registrationAvailable` | boolean
 `registrationUnavailableReason` | string
 `selfServiceSignupAvailable` | boolean
+`supportReportsAvailable` | boolean
 `termsOfUseVersion` | string
 
 ## Example
@@ -26,12 +28,14 @@ import type { InstanceAccessStatus } from ''
 const example = {
   "accountCreation": null,
   "auth": null,
+  "giftCodesAvailable": null,
   "maintenanceMode": null,
   "oidcConnections": null,
   "oidcSignupAvailable": null,
   "registrationAvailable": null,
   "registrationUnavailableReason": null,
   "selfServiceSignupAvailable": null,
+  "supportReportsAvailable": null,
   "termsOfUseVersion": null,
 } satisfies InstanceAccessStatus
 

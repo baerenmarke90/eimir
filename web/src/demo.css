@@ -38,43 +38,26 @@
   color: #ff658e;
 }
 
-.demo-launch {
-  position: fixed;
-  right: clamp(1rem, 3vw, 2rem);
-  bottom: clamp(1rem, 3vw, 2rem);
-  z-index: 50;
-  display: none;
+/* Quiet invitation inside the login card, before anyone registers. */
+.login-demo-link {
+  display: flex;
   align-items: center;
   justify-content: center;
   min-height: 2.75rem;
-  padding: 0.7rem 1rem;
-  border: var(--border-surface-width) solid var(--color-border);
-  border-radius: 999px;
-  background: var(--color-surface-raised);
-  box-shadow: 0 0.75rem 2rem var(--color-shadow-card);
-  color: var(--color-text);
-  font: inherit;
+  margin-top: var(--space-4);
+  color: var(--color-brand-text);
   font-weight: 650;
+  text-align: center;
   text-decoration: none;
 }
 
-#root:has(.login-shell) .demo-launch {
-  display: inline-flex;
-}
-
-.demo-launch:hover {
-  text-decoration: none;
+.login-demo-link:hover {
+  text-decoration: underline;
 }
 
 @media (max-width: 720px) {
   .demo-instance-banner {
     flex-direction: column;
     gap: 0.1rem;
-  }
-
-  .demo-launch {
-    right: 1rem;
-    bottom: 1rem;
-    left: 1rem;
   }
 }

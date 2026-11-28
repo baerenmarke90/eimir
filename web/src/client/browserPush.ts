@@ -17,6 +17,7 @@ import {
   notificationUnreadCountQueryKey,
 } from './notificationQueries';
 import { MORE_NOTIFICATIONS_ROUTE } from './routes';
+import type { NotificationTray } from './trayNoticeSync';
 
 const CACHE = 'eimir-browser-push-v1';
 const BINDING = '/_eimir/browser-push-binding';
@@ -144,6 +145,34 @@ async function clearBrowser(
   }
   await (await registration.pushManager.getSubscription())?.unsubscribe();
 }
+
+const PUSH_TAG = 'eimir-push:';
+
+async function trayNotices(): Promise<Notification[]> {
+  if (!supported()) return [];
+  const registration = await navigator.serviceWorker.getRegistration('/');
+  if (!registration) return [];
+  return (await registration.getNotifications()).filter((notification) =>
+    notification.tag.startsWith(PUSH_TAG),
+  );
+}
+
+/**
+ * The browser's shown eimir. notices, for the read-state sync (#2345). The
+ * service worker tags each with its notification id.
+ */
+export const browserNotificationTray: NotificationTray = {
+  delivered: async () =>
+    (await trayNotices()).map((notification) =>
+      notification.tag.slice(PUSH_TAG.length),
+    ),
+  withdraw: async (notificationIds) => {
+    const settled = new Set(notificationIds);
+    for (const notification of await trayNotices())
+      if (settled.has(notification.tag.slice(PUSH_TAG.length)))
+        notification.close();
+  },
+};
 
 let signedOutGeneration = 0;
 

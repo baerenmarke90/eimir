@@ -34,12 +34,36 @@ jobs:
       actions: write
       contents: read
     steps:
+      - name: Checkout the capability probe
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Read the code-scanning state of this repository
+        # Decision 0019, D5: a private personal repository has no CodeQL; the
+        # probe refuses that state unless the Product Owner's acceptance is set.
+        id: supply_chain
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EIMIR_SUPPLY_CHAIN_EXCEPTION: ${{ vars.EIMIR_SUPPLY_CHAIN_EXCEPTION }}
+        run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}" > "$RUNNER_TEMP/repository.json"
+          python3 scripts/supply_chain_state.py assess \
+            --repository-json "$RUNNER_TEMP/repository.json" \
+            --github-output "$GITHUB_OUTPUT"
+
       - name: Dispatch workflows whose main revision is untested
         env:
           GH_TOKEN: ${{ github.token }}
           FORCE: ${{ inputs.force || 'false' }}
+          CODE_SCANNING: ${{ steps.supply_chain.outputs.code_scanning }}
         run: |
           set -euo pipefail
+          case "$CODE_SCANNING" in
+            available | unavailable) ;;
+            *) echo "Unknown code-scanning state: ${CODE_SCANNING}" >&2; exit 1 ;;
+          esac
 
           # Keep this list in sync with the Nightly Regression Report triggers and
           # tools/ci/test_nightly_regression.py.
@@ -47,6 +71,7 @@ jobs:
             ci.yml
             web-browser-qa.yml
             android-launcher-icons.yml
+            ios-native.yml
             backend-encrypted.yml
             media-video.yml
             codeql.yml
@@ -58,6 +83,10 @@ jobs:
           echo "main is at ${main_sha}" | tee -a "$GITHUB_STEP_SUMMARY"
 
           for workflow in "${workflows[@]}"; do
+            if [ "$workflow" = codeql.yml ] && [ "$CODE_SCANNING" = unavailable ]; then
+              echo "- ${workflow}: not dispatched, code scanning is unavailable on ${GITHUB_REPOSITORY} (Decision 0019, D5)" >> "$GITHUB_STEP_SUMMARY"
+              continue
+            fi
             # Any dispatched run of this revision that was not cancelled counts:
             # green needs no repeat, red is reported once instead of nightly.
             tested=$(gh api \

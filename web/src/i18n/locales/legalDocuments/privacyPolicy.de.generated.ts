@@ -4,7 +4,7 @@ import type { LegalDocument } from '../../../legal/legalDocument';
 export const privacyPolicyDe: LegalDocument = {
   document: 'privacy-policy',
   locale: 'de-DE',
-  version: '2026-11-18.draft-6',
+  version: '2026-11-25.draft-14',
   status: 'draft',
   title: 'Datenschutzhinweise für eimir.',
   placeholders: [
@@ -96,7 +96,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Du kannst deine Daten jederzeit exportieren und dein Konto jederzeit löschen.',
+              text: 'Du kannst jederzeit eine Kopie deiner Daten verlangen und dein Konto jederzeit löschen.',
             },
           ],
           children: [],
@@ -266,7 +266,16 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Deine E-Mail-Adresse brauchen wir, um dein Konto anzulegen und dich anzumelden. Ohne sie können wir dir kein Konto bereitstellen. Alle anderen Angaben sind freiwillig.',
+              text: 'Deine E-Mail-Adresse brauchen wir, um dein Konto anzulegen und dich anzumelden. Ohne sie können wir dir kein Konto bereitstellen. Weitere Profilangaben sind freiwillig.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Wird dir „Mit Google anmelden“ angeboten und wählst du es aus, erfährt Google, dass du dich bei eimir. anmelden möchtest. Wir prüfen Googles Anmeldebestätigung. Bei der Registrierung übernehmen wir die bestätigte E-Mail-Adresse und, soweit vorhanden, einen Namen als Anzeigenamen. Damit wir dich bei der nächsten Anmeldung erkennen, verknüpfen wir dein Konto mit Googles Anbieter- und Nutzerkennung und speichern den Zeitpunkt der letzten Nutzung. Dein Google-Passwort und eure Inhalte werden dabei nicht ausgetauscht. Du kannst Google als Anmeldemethode entfernen, sobald du eine weitere Anmeldemethode eingerichtet hast. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO.',
             },
           ],
           children: [],
@@ -295,7 +304,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Was ihr „Für uns beide“ speichert, seht ihr beide. Gemeinsame Erinnerungen und ähnliche Inhalte kann dein Partner auch bearbeiten und im Datenexport herunterladen, auch wenn du sie erstellt hast.',
+              text: 'Was ihr „Für uns beide“ speichert, seht ihr beide. Gemeinsame Erinnerungen und ähnliche Inhalte kann dein Partner auch bearbeiten und in seiner Datenkopie (Abschnitt 14) erhalten, auch wenn du sie erstellt hast.',
             },
           ],
           children: [],
@@ -322,7 +331,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Teilst du dein „Gefühl für heute“ oder deinen Akku, speichern wir diese Angaben nur für den aktuellen und den vorherigen Tag und löschen sie danach automatisch. Ob und wann dein Partner sie sieht, folgt den Einstellungen eures Space.',
+              text: 'Teilst du dein „Gefühl für heute“ oder deinen Akku, speichern wir diese Angaben nur für den aktuellen Tag. Ist der Tag vorbei, verschwinden sie in eimir., und wir löschen sie beim nächsten automatischen Aufräumen, das jede Stunde läuft. Ob und wann dein Partner sie sieht, folgt den Einstellungen eures Space.',
             },
           ],
           children: [],
@@ -452,7 +461,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Einmalnachrichten sind nicht Teil des Datenexports. Sicherungen können den verschlüsselten Umschlag bis zum Ablauf ihrer Aufbewahrungsfrist enthalten. Benachrichtigungen dazu enthalten keine Inhalte, und per E-Mail benachrichtigen wir dich über Einmalnachrichten nicht.',
+              text: 'Einmalnachrichten sind nicht Teil der Datenkopie (Abschnitt 14). Sicherungen können den verschlüsselten Umschlag bis zum Ablauf ihrer Aufbewahrungsfrist enthalten. Benachrichtigungen dazu enthalten keine Inhalte, und per E-Mail benachrichtigen wir dich über Einmalnachrichten nicht.',
             },
           ],
           children: [],
@@ -586,7 +595,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Für die Adresssuche und um zu gespeicherten Koordinaten einen Ortsnamen und eine Adresse zu ermitteln, nutzen wir den Dienst Photon auf Grundlage von OpenStreetMap, betrieben von der komoot GmbH, Potsdam. Unser Server übermittelt dafür nur deinen Suchbegriff oder die Koordinaten und die eingestellte Sprache, keine Fotos, Kontodaten oder anderen Inhalte. Der Dienst sieht die IP-Adresse unseres Servers, nicht deine. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO für die Suche und Art. 6 Abs. 1 lit. f DSGVO für Orte aus Fotos.',
+              text: 'Für die Adresssuche und um zu gespeicherten Koordinaten einen Ortsnamen und eine Adresse zu ermitteln, nutzen wir den Dienst Photon auf Grundlage von OpenStreetMap, betrieben von der komoot GmbH, Schönefeld. Unser Server übermittelt dafür nur deinen Suchbegriff oder die Koordinaten und die eingestellte Sprache, keine Fotos, Kontodaten oder anderen Inhalte. Der Dienst sieht die IP-Adresse unseres Servers, nicht deine. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO für die Suche und Art. 6 Abs. 1 lit. f DSGVO für Orte aus Fotos.',
             },
           ],
           children: [],
@@ -640,7 +649,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Wir speichern pro Person nur die aktuelle gerundete Position, verschlüsselt (Abschnitt 5). Jede neue Position ersetzt die alte, spätestens 24 Stunden nach der Messung löschen wir sie, und wenn du das Teilen beendest, löschen wir sie sofort. Endet Pro für euren Space, beenden wir das Teilen und löschen die Positionen; es beginnt nicht von selbst wieder. Wir erstellen keinen Bewegungsverlauf, nehmen die Positionen nicht in Exporte auf und nutzen sie nur für Entfernung und Kartenbereich. Deine eigene Position schickst du nur, damit wir die Entfernung zu deinem Partner berechnen können. Wir speichern sie dafür nicht.',
+              text: 'Wir speichern pro Person nur die aktuelle gerundete Position, verschlüsselt (Abschnitt 5). Jede neue Position ersetzt die alte, spätestens 24 Stunden nach der Messung löschen wir sie, und wenn du das Teilen beendest, löschen wir sie sofort. Endet Pro für euren Space, beenden wir das Teilen und löschen die Positionen; es beginnt nicht von selbst wieder. Wir erstellen keinen Bewegungsverlauf, nehmen die Positionen in keine Datenkopie auf und nutzen sie nur für Entfernung und Kartenbereich. Deine eigene Position schickst du nur, damit wir die Entfernung zu deinem Partner berechnen können. Wir speichern sie dafür nicht.',
             },
           ],
           children: [],
@@ -676,8 +685,8 @@ export const privacyPolicyDe: LegalDocument = {
     },
     {
       kind: 'heading',
-      id: '10-fotos-aus-anderen-diensten',
-      content: [{ kind: 'text', text: '10. Fotos aus anderen Diensten' }],
+      id: '10-fotodienste-und-kalender',
+      content: [{ kind: 'text', text: '10. Fotodienste und Kalender' }],
     },
     {
       kind: 'list',
@@ -714,7 +723,25 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO.',
+              text: 'Verbindest du mit Pro einen CalDAV-Kalender oder, sofern angeboten, Google Kalender, kannst du einen Zielkalender für die Pläne eures Space auswählen. Wir lesen dazu die Liste verfügbarer Kalender. Beim Abgleich erhält der gewählte Kalender Titel, Datum oder Uhrzeit und, soweit vorhanden, Beschreibung, Ortsnamen und einen Link zum Plan. Bei diskreten Plänen senden wir nur den Listentitel und den Termin. Wer den Zielkalender lesen darf, kann diese Angaben sehen.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Für die Verbindung speichern wir deine CalDAV-Serveradresse, deinen Benutzernamen und dein Kalenderpasswort oder bei Google einen Schlüssel für die weitere Synchronisation, jeweils verschlüsselt. Außerdem speichern wir den gewählten Kalender und technische Kennungen, um spätere Änderungen dem richtigen Termin zuzuordnen. Trennst du die Verbindung oder löschst du dein Konto, entfernen wir die Zugangsdaten aus eimir. Bereits übertragene Termine bleiben im externen Kalender, bis sie dort gelöscht werden. Googles Zugriffsfreigabe kannst du auch direkt in deinem Google-Konto widerrufen.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Rechtsgrundlage für die von dir gewählte Fotoübernahme und den Kalenderabgleich ist Art. 6 Abs. 1 lit. b DSGVO.',
             },
           ],
           children: [],
@@ -736,7 +763,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'In „Eure Woche“ wählen wir Beobachtungen und Anregungen aus. Für gemeinsame Erinnerungen und Herzmomente machen wir Schlagwortvorschläge. Wenn dabei ein KI-Sprachmodell zum Einsatz kommt, läuft es in unserer eigenen Serverumgebung. Eure Inhalte gehen dafür nicht an externe KI-Anbieter.',
+              text: 'Für gemeinsame Erinnerungen und Herzmomente machen wir Schlagwortvorschläge. Wenn dabei ein KI-Sprachmodell zum Einsatz kommt, läuft es in unserer eigenen Serverumgebung. Eure Inhalte gehen dafür nicht an externe KI-Anbieter.',
             },
           ],
           children: [],
@@ -745,7 +772,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Das Modell erhält nur gemeinsame Inhalte und nur die Ausschnitte, die für den jeweiligen Vorschlag nötig sind, niemals „Nur für mich“-Inhalte. Für „Eure Woche“ berechnen wir aus euren Einträgen für „Gefühl für heute“ und Akku einfache Beobachtungen, zum Beispiel ob sich eure Energie verändert hat. Das Modell erhält dafür keine Texte, Fotos, Namen oder Orte, sondern nur diese Beobachtungen, und wählt dazu passende Anregungen aus.',
+              text: 'Das Modell erhält nur gemeinsame Inhalte und nur die Ausschnitte, die für den jeweiligen Vorschlag nötig sind, niemals „Nur für mich“-Inhalte.',
             },
           ],
           children: [],
@@ -842,8 +869,8 @@ export const privacyPolicyDe: LegalDocument = {
     },
     {
       kind: 'heading',
-      id: '14-datenexport',
-      content: [{ kind: 'text', text: '14. Datenexport' }],
+      id: '14-datenkopie',
+      content: [{ kind: 'text', text: '14. Datenkopie' }],
     },
     {
       kind: 'list',
@@ -853,7 +880,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Du kannst deine Daten jederzeit kostenlos in den Einstellungen unter „Daten und Portabilität“ exportieren. Der gemeinsame Export enthält die gemeinsamen Inhalte eures Space, auch die deines Partners. Deine „Nur für mich“-Inhalte enthält nur dein persönlicher Export.',
+              text: 'Du kannst jederzeit kostenlos eine Kopie deiner Daten in einem maschinenlesbaren Format von uns verlangen, unabhängig davon, ob ihr Pro nutzt. Schreib uns dazu an kontakt@reiswienudel.de (Abschnitt 23). Die gemeinsame Kopie enthält die gemeinsamen Inhalte eures Space, auch die deines Partners. Deine „Nur für mich“-Inhalte enthält nur deine persönliche Kopie.',
             },
           ],
           children: [],
@@ -862,7 +889,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Wir erstellen die Exportdatei auf unseren Servern, halten sie 24 Stunden verschlüsselt zum Herunterladen bereit und löschen sie dann. Passkeys, Sitzungen, Zugangsschlüssel und Einmalnachrichten exportieren wir nicht. Hast du die Datei heruntergeladen, liegt sie in deiner Verantwortung.',
+              text: 'Wir erstellen die Kopie auf deine Anfrage und übergeben sie dir. Passkeys, Sitzungen, Zugangsschlüssel und Einmalnachrichten nehmen wir nicht auf. Deine persönliche Kopie enthält dagegen deine eigenen Problemmeldungen und dein Feedback mit unseren Antworten (Abschnitt 19). Hast du die Kopie erhalten, liegt sie in deiner Verantwortung.',
             },
           ],
           children: [],
@@ -931,6 +958,12 @@ export const privacyPolicyDe: LegalDocument = {
             [
               {
                 kind: 'text',
+                text: 'eine Problemmeldung oder ein Feedback, das du noch nicht gesendet hast, mit deinem Text, der Art der Meldung und nach einem Sendeversuch dem Fehler-Code, für dein Konto, bis du die Meldung sendest oder verwirfst, dich abmeldest oder Konto oder Space wechselst (Abschnitt 19),',
+              },
+            ],
+            [
+              {
+                kind: 'text',
                 text: 'für Einmalnachrichten den privaten Schlüssel dieses Geräts, bis du den Empfang ausschaltest oder die Daten im Browser oder in der App löschst; geöffnete Einmalnachrichten hält eimir. nur im Arbeitsspeicher, solange du sie ansiehst,',
               },
             ],
@@ -977,7 +1010,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Bei jedem Aufruf von eimir. fallen technische Daten an, zum Beispiel deine IP-Adresse, der Zeitpunkt, die aufgerufene Adresse, der Statuscode und Angaben zu deinem Browser. Unsere Server und die vorgelagerte Infrastruktur unseres Hosting-Anbieters verarbeiten sie, um eimir. auszuliefern, und halten einen Teil davon in Protokollen fest. Das Protokoll unserer Anwendung enthält nur Zeitpunkt, Art und Adresse der Anfrage, den Statuscode und die Dauer, ohne IP-Adresse und ohne Inhalte. Die Adresse kann technische Kennungen enthalten, etwa die eures Space. Protokolle löschen wir nach 30 Tagen.',
+              text: 'Bei jedem Aufruf von eimir. fallen technische Daten an, zum Beispiel deine IP-Adresse, der Zeitpunkt, die aufgerufene Adresse, der Statuscode und Angaben zu deinem Browser. Unsere Server und die vorgelagerte Infrastruktur unseres Hosting-Anbieters verarbeiten sie, um eimir. auszuliefern, und halten einen Teil davon in Protokollen fest. Das Protokoll unserer Anwendung enthält nur Zeitpunkt, Art und Adresse der Anfrage, den Statuscode, die Dauer und eine Kennung der Anfrage, ohne IP-Adresse und ohne Inhalte. Die Adresse kann technische Kennungen enthalten, etwa die eures Space. Protokolle löschen wir nach 30 Tagen.',
             },
           ],
           children: [],
@@ -1026,33 +1059,45 @@ export const privacyPolicyDe: LegalDocument = {
       content: [
         {
           kind: 'text',
-          text: 'Wir setzen in eimir. keine Analyse-, Tracking- oder Werbedienste ein, weder in der Web-App noch in den Apps. Die Android-App enthält keine Bibliotheken für Analyse, Werbung oder Absturzberichte. Wir verkaufen keine Daten und geben sie nicht für Werbung weiter.',
+          text: 'Wir setzen in eimir. keine Analyse-, Tracking- oder Werbedienste ein, weder in der Web-App noch in den Apps. Die Android-App enthält keine Bibliotheken für Analyse, Werbung oder Absturzberichte. Fehler- und Geräteangaben erhalten wir nur, wenn du uns selbst ein Problem meldest (Abschnitt 19). Wir verkaufen keine Daten und geben sie nicht für Werbung weiter.',
         },
       ],
     },
     {
       kind: 'heading',
-      id: '18-eimir-pro-und-zahlungen',
-      content: [{ kind: 'text', text: '18. eimir. Pro und Zahlungen' }],
-    },
-    {
-      kind: 'paragraph',
-      content: [
-        {
-          kind: 'text',
-          text: 'eimir. Pro kann derzeit noch nicht gekauft werden. Sobald das möglich ist, gilt:',
-        },
-      ],
+      id: '18-eimir-pro-uber-google-play',
+      content: [{ kind: 'text', text: '18. eimir. Pro über Google Play' }],
     },
     {
       kind: 'list',
-      ordered: false,
+      ordered: true,
       items: [
         {
           content: [
             {
               kind: 'text',
-              text: 'Für den Kauf verarbeiten wir, wer Pro für welchen Space gekauft hat, Laufzeit, Status und Rechnungsangaben.',
+              text: 'Wird dir Pro in der Android-App zum Kauf angeboten, läuft der Kauf über Google Play. Vertragspartner für den Kauf über Google Play im Europäischen Wirtschaftsraum ist Google Commerce Limited, Dublin (Irland). Google verarbeitet die Bestellung und deine Zahlungsdaten im Rahmen des Kaufs in eigener Verantwortung. Zahlungsdaten wie Kartennummern erhält eimir. nicht. Für den Store gelten die ',
+            },
+            {
+              kind: 'link',
+              text: 'Google-Play-Bedingungen',
+              href: 'https://play.google.com/intl/ALL_de/about/play-terms/',
+            },
+            { kind: 'text', text: ' und die ' },
+            {
+              kind: 'link',
+              text: 'Datenschutzerklärung von Google',
+              href: 'https://policies.google.com/privacy?hl=de',
+            },
+            { kind: 'text', text: '.' },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Öffnest du den Kauf, übermittelt eimir. Google den gewählten Tarif und eine zufällige Kaufkennung. Diese Kennung verknüpfen wir intern mit deinem eimir.-Konto und eurem Space. Dein Name, deine E-Mail-Adresse und eure Inhalte werden dabei nicht an Google übermittelt.',
             },
           ],
           children: [],
@@ -1061,7 +1106,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Die Zahlung wickelt ein Zahlungsdienstleister ab, den wir hier nennen, sobald der Kauf möglich ist. Zahlungsdaten wie Kartennummern speichern wir nicht selbst. Kaufst du in einem App-Store, verarbeitet dessen Betreiber die Zahlung in eigener Verantwortung.',
+              text: 'Zur Freischaltung und Wiederherstellung prüfen wir den von Google ausgestellten Kaufnachweis bei Google Play. Auch bei Änderungen wie Kündigung oder Erstattung gleichen wir den Abo-Status mit Google ab. Für die Zuordnung speichern wir einen Prüfwert des Kaufnachweises, Produkt und Tarif, Status, Laufzeit und Verlängerungseinstellung. Dein Partner sieht, ob Pro für euren Space aktiv ist. Deine Zahlungsdaten sind für ihn nicht sichtbar.',
             },
           ],
           children: [],
@@ -1070,16 +1115,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Dein Partner sieht, dass Pro für euren Space aktiv ist, aber keine Zahlungsangaben.',
-            },
-          ],
-          children: [],
-        },
-        {
-          content: [
-            {
-              kind: 'text',
-              text: 'Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO. Rechnungsdaten bewahren wir auf, solange handels- und steuerrechtliche Pflichten es verlangen, für Rechnungen derzeit acht Jahre, für bestimmte Buchungsunterlagen bis zu zehn Jahre (Art. 6 Abs. 1 lit. c DSGVO).',
+              text: 'Wir verarbeiten die Kaufzuordnung und den Status, um euch Pro bereitzustellen (Art. 6 Abs. 1 lit. b DSGVO). Soweit wir Abrechnungsbelege für gesetzliche Nachweispflichten aufbewahren müssen, ist die Rechtsgrundlage Art. 6 Abs. 1 lit. c DSGVO (Abschnitt 22).',
             },
           ],
           children: [],
@@ -1088,15 +1124,114 @@ export const privacyPolicyDe: LegalDocument = {
     },
     {
       kind: 'heading',
-      id: '19-wenn-du-uns-schreibst',
-      content: [{ kind: 'text', text: '19. Wenn du uns schreibst' }],
-    },
-    {
-      kind: 'paragraph',
+      id: '19-wenn-du-uns-schreibst-oder-ein-problem-meldest',
       content: [
         {
           kind: 'text',
-          text: 'Schreibst du uns, verarbeiten wir deine Nachricht und deine Kontaktdaten, um dir zu antworten (Art. 6 Abs. 1 lit. b oder lit. f DSGVO). Meldest du uns einen rechtswidrigen Inhalt, verarbeiten wir deine Angaben, um den Hinweis zu prüfen (Art. 6 Abs. 1 lit. c DSGVO in Verbindung mit Art. 16 der Verordnung (EU) 2022/2065). Bittest du uns, dafür in deine Inhalte zu sehen, tun wir das nur im nötigen Umfang. Wir löschen deine Nachricht, wenn wir sie nicht mehr brauchen und keine gesetzliche Pflicht entgegensteht.',
+          text: '19. Wenn du uns schreibst oder ein Problem meldest',
+        },
+      ],
+    },
+    {
+      kind: 'list',
+      ordered: true,
+      items: [
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Schreibst du uns, verarbeiten wir deine Nachricht und deine Kontaktdaten, um dir zu antworten (Art. 6 Abs. 1 lit. b oder lit. f DSGVO). Meldest du uns einen rechtswidrigen Inhalt, verarbeiten wir deine Angaben, um den Hinweis zu prüfen (Art. 6 Abs. 1 lit. c DSGVO in Verbindung mit Art. 16 der Verordnung (EU) 2022/2065). Bittest du uns, dafür in deine Inhalte zu sehen, tun wir das nur im nötigen Umfang. Wir löschen deine Nachricht, wenn wir sie nicht mehr brauchen und keine gesetzliche Pflicht entgegensteht.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'In eimir. kannst du uns unter „Hilfe & Feedback“ oder direkt aus einer Fehleranzeige ein Problem melden oder Feedback schicken. Bevor du sendest, zeigt dir eimir., was mitgeschickt wird. Mit einer Meldung erhalten wir:',
+            },
+          ],
+          children: [
+            [
+              {
+                kind: 'text',
+                text: 'ob es um ein Problem oder um Feedback geht, und deinen Text mit höchstens 2.000 Zeichen; bei einem Problem ist er freiwillig, bei Feedback nötig,',
+              },
+            ],
+            [
+              {
+                kind: 'text',
+                text: 'wenn du ein Problem aus einer Fehleranzeige meldest, einen technischen Fehler-Code zu genau diesem Fehler: die Art der Anfrage, die betroffene Funktion als allgemeine Adresse ohne Kennungen und ohne Suchangaben, den Statuscode oder die Art des Verbindungsfehlers, den Fehlercode unseres Servers und ob du die App oder die Web-App nutzt, außerdem, soweit vorhanden, die Kennung der fehlgeschlagenen Anfrage, mit der wir sie in unseren Protokollen wiederfinden (Abschnitt 16),',
+              },
+            ],
+            [
+              {
+                kind: 'text',
+                text: 'Angaben zu App und Gerät: App-Version und Build, ob du die App oder einen Browser nutzt, Betriebssystem und Browser mit ihrer Versionsnummer, Sprache, helles oder dunkles Design, ob du online bist, deine Ortszeit und Zeitzone; kein Gerätemodell und keine Gerätekennung,',
+              },
+            ],
+            [
+              {
+                kind: 'text',
+                text: 'die interne Kennung deines Kontos, damit wir dir antworten können.',
+              },
+            ],
+          ],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Inhalte aus eurem Space wie Erinnerungen, Notizen, Pläne, Listen, Nachrichten oder Fotos, außerdem Dateinamen, Orte, Kontaktdaten, Zugangsschlüssel und Daten anderer Menschen schickt eimir. dabei nicht mit. Was du selbst in den Text schreibst, erhalten wir allerdings. Schreib dort bitte nur, was wir brauchen, um dein Anliegen zu verstehen. Die Angaben zu App und Gerät liest eimir. erst aus, wenn du die Meldung abschickst. Ohne dass du eine Meldung sendest, erhalten wir keine Fehler- oder Geräteangaben.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Wir nutzen deine Meldung, um das Problem zu beheben, dein Feedback zu prüfen und dir bei Bedarf zu antworten. Deinen Text, den Fehler-Code und die Angaben zu App und Gerät speichern wir verschlüsselt. Die Art der Meldung, der Bearbeitungsstand und die Zeitpunkte bleiben unverschlüsselt. Wir begrenzen die Zahl der Meldungen pro Konto (Abschnitt 16).',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Wir können dir auf eine Meldung einmal kurz antworten, mit höchstens 500 Zeichen. Die Antwort erscheint als Benachrichtigung in eimir., die nur du siehst. Eine Push-Benachrichtigung dazu enthält den Antworttext nicht, und per E-Mail schicken wir die Antwort nicht. Es gibt keinen Chat und keinen Verlauf: Auf die Antwort kannst du nicht antworten, aber du kannst jederzeit eine neue Meldung schicken. Bist du gerade in keinem Space, speichern wir die Antwort, du erhältst aber keine Benachrichtigung.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Eine abgeschlossene Meldung löschen wir 90 Tage nach ihrem Abschluss, jede Meldung spätestens 365 Tage nach dem Absenden, jeweils mit unserer Antwort. Löschst du dein Konto, löschen wir deine Meldungen und Antworten sofort. Deine Meldungen mit unseren Antworten enthält deine persönliche Datenkopie (Abschnitt 14), die du nach Abschnitt 23 anfragen kannst.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO, soweit du uns ein Problem mit eimir. meldest, und für Feedback unser berechtigtes Interesse, eimir. anhand deiner Rückmeldung zu verbessern (Art. 6 Abs. 1 lit. f DSGVO). Die Angaben zu App und Gerät liest eimir. aus, weil du die Meldung ausdrücklich abschickst (§ 25 Abs. 2 Nr. 2 TDDDG).',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Wenn unser Support GitHub Issues zur Fehlerbearbeitung nutzt, können wir zu einer Meldung ein technisches Ticket anlegen. GitHub erhält die von uns geschriebene Fehlerbeschreibung, die Kennung und Art der Meldung, App-Version, Build, Plattform und, soweit vorhanden, Fehler-Code und Anfragekennung. Damit können wir das Ticket deiner Meldung zuordnen. Dein Meldungstext, unsere Antwort und deine Kontokennung werden nicht automatisch übertragen. Wer das Ticket lesen kann, richtet sich nach den Zugriffsrechten des GitHub-Projekts. Ein öffentliches Projekt ist für alle lesbar. Die Fristen in Nummer 6 gelten für die Meldung in eimir. Ihre Löschung entfernt auch die Verknüpfung in unserer Datenbank. Die Angaben im GitHub-Ticket bleiben bestehen, bis sie dort gesondert entfernt werden. Für eine Löschanfrage kannst du uns unter der Adresse in Abschnitt 1 erreichen.',
+            },
+          ],
+          children: [],
         },
       ],
     },
@@ -1135,7 +1270,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'die komoot GmbH, Potsdam, für Adresssuche und Ortsnamen (Abschnitt 9),',
+              text: 'die komoot GmbH, Schönefeld, für Adresssuche und Ortsnamen (Abschnitt 9),',
             },
           ],
           children: [],
@@ -1153,7 +1288,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Dienste, die du selbst verbindest oder aufrufst, etwa dein Immich-Server, ein UnifiedPush-Dienst, Google Fotos, Google Maps oder eine verlinkte Website (Abschnitte 9, 10, 12 und 13),',
+              text: 'Dienste, die du selbst verbindest oder aufrufst, etwa dein Immich- oder CalDAV-Server, ein UnifiedPush-Dienst, Google für Anmeldung, Kalender, Fotos oder Maps sowie eine verlinkte Website (Abschnitte 3, 9, 10, 12 und 13),',
             },
           ],
           children: [],
@@ -1162,7 +1297,16 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'ein Zahlungsdienstleister, den wir hier nennen, sobald du eimir. Pro kaufen kannst (Abschnitt 18),',
+              text: 'Google Play für den von dir gestarteten Android-Kauf und die Prüfung des Abos (Abschnitt 18),',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'GitHub und Personen mit Zugriff auf das jeweilige GitHub-Projekt, wenn unser Support dort ein technisches Ticket anlegt (Abschnitt 19),',
             },
           ],
           children: [],
@@ -1175,6 +1319,15 @@ export const privacyPolicyDe: LegalDocument = {
             },
           ],
           children: [],
+        },
+      ],
+    },
+    {
+      kind: 'paragraph',
+      content: [
+        {
+          kind: 'text',
+          text: 'Für die Speicherung der verschlüsselten Mediendateien ist künftig Hetzner Object Storage als S3-kompatibler Dienst vorgesehen. Vor einer Umstellung informieren wir dich über den beauftragten Anbieter und den Speicherort.',
         },
       ],
     },
@@ -1193,7 +1346,7 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Unsere Server stehen in Wien (Österreich).',
+              text: 'Unsere App- und Datenbankserver stehen in Wien (Österreich). Die Region des geplanten externen Medienspeichers geben wir vor der Umstellung an (Abschnitt 20).',
             },
           ],
           children: [],
@@ -1202,8 +1355,14 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Google kann die Daten für Push-Benachrichtigungen auch in den USA verarbeiten. Für Unternehmen in den USA, die nach dem EU-U.S. Data Privacy Framework zertifiziert sind, hat die EU-Kommission ein angemessenes Datenschutzniveau festgestellt (Art. 45 DSGVO). Google LLC ist danach zertifiziert.',
+              text: 'Google kann Daten für Push-Benachrichtigungen, die Google-Anmeldung, Google-Funktionen und Google Play auch in den USA verarbeiten. Für Übermittlungen an die zertifizierte Google LLC gilt der Angemessenheitsbeschluss der EU-Kommission zum EU-U.S. Data Privacy Framework (Art. 45 DSGVO). Einzelheiten findest du in ',
             },
+            {
+              kind: 'link',
+              text: 'Googles Angaben zu internationalen Datenübermittlungen',
+              href: 'https://policies.google.com/privacy/frameworks?hl=de',
+            },
+            { kind: 'text', text: '.' },
           ],
           children: [],
         },
@@ -1226,8 +1385,23 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Für Dienste, die du selbst verbindest oder aufrufst, etwa deinen Immich-Server, Google Fotos oder Google Maps, gelten deren Standorte und Datenschutzhinweise.',
+              text: 'Wo Daten bei einem von dir gewählten Immich-Server, CalDAV-Kalender oder anderen verbundenen Dienst verarbeitet werden, hängt vom jeweiligen Betreiber ab. Angaben dazu findest du in dessen Datenschutzhinweisen.',
             },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Bei technischen Support-Tickets kann GitHub Daten in den USA verarbeiten. GitHub, Inc. ist nach dem EU-U.S. Data Privacy Framework zertifiziert. GitHub beschreibt die Garantien einschließlich der EU-Standardvertragsklauseln in seinen ',
+            },
+            {
+              kind: 'link',
+              text: 'Datenschutzhinweisen',
+              href: 'https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement',
+            },
+            { kind: 'text', text: '.' },
           ],
           children: [],
         },
@@ -1283,6 +1457,26 @@ export const privacyPolicyDe: LegalDocument = {
         },
         {
           content: [
+            { kind: 'strong', text: 'Herzversteck:' },
+            {
+              kind: 'text',
+              text: ' Die Spielrunde und das zugehörige Foto sind bis 14 Tage nach dem Fund zugänglich, ohne Fund bis 30 Tage nach Beginn. Die stündliche Bereinigung entfernt abgelaufene Runden und stößt die Löschung der Spielfotos an. Ein als Erinnerung gespeichertes Foto bleibt als eigene Kopie erhalten.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            { kind: 'strong', text: 'Kalenderverbindung:' },
+            {
+              kind: 'text',
+              text: ' Die Zugangsdaten bleiben bis zum Trennen der Verbindung oder zur Löschung deines Kontos. Für bereits übertragene Termine gilt die Aufbewahrung im Zielkalender.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
             { kind: 'strong', text: 'Einmalnachrichten:' },
             {
               kind: 'text',
@@ -1304,7 +1498,10 @@ export const privacyPolicyDe: LegalDocument = {
         {
           content: [
             { kind: 'strong', text: '„Gefühl für heute“ und Akku:' },
-            { kind: 'text', text: ' bis zum Ende des folgenden Tages.' },
+            {
+              kind: 'text',
+              text: ' bis zum Ende des Tages, gelöscht spätestens beim nächsten stündlichen Aufräumen.',
+            },
           ],
           children: [],
         },
@@ -1337,8 +1534,21 @@ export const privacyPolicyDe: LegalDocument = {
         },
         {
           content: [
-            { kind: 'strong', text: 'Exportdateien:' },
-            { kind: 'text', text: ' 24 Stunden.' },
+            { kind: 'strong', text: 'Datenkopien auf Anfrage:' },
+            {
+              kind: 'text',
+              text: ' Wir löschen die für dich erstellte Datei nach der Übergabe.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            { kind: 'strong', text: 'Problemmeldungen und Feedback:' },
+            {
+              kind: 'text',
+              text: ' nach dem Abschluss 90 Tage, höchstens 365 Tage nach dem Absenden, jeweils mit unserer Antwort; beim Löschen deines Kontos sofort. Für gesondert erstellte GitHub-Tickets gilt Abschnitt 19 Nummer 8.',
+            },
           ],
           children: [],
         },
@@ -1359,7 +1569,12 @@ export const privacyPolicyDe: LegalDocument = {
             { kind: 'strong', text: 'Bilddateien:' },
             {
               kind: 'text',
-              text: ' bis zu 2.000 Medieneinträge ohne feste Altersgrenze. Die Bereinigung bei Abmeldung, Konto- und Space-Wechsel ist in Abschnitt 15 beschrieben. Einstellungen und Merker bleiben, bis du sie im Browser oder in der App löschst.',
+              text: ' bis zu 2.000 Medieneinträge ohne feste Altersgrenze. Die Bereinigung bei Abmeldung, Konto- und Space-Wechsel ist in Abschnitt 15 beschrieben. ',
+            },
+            { kind: 'strong', text: 'Nicht gesendete Meldungen:' },
+            {
+              kind: 'text',
+              text: ' bis du sie sendest oder verwirfst, dich abmeldest oder Konto oder Space wechselst. Einstellungen und Merker bleiben, bis du sie im Browser oder in der App löschst.',
             },
           ],
           children: [],
@@ -1385,10 +1600,10 @@ export const privacyPolicyDe: LegalDocument = {
         },
         {
           content: [
-            { kind: 'strong', text: 'Rechnungsdaten für eimir. Pro:' },
+            { kind: 'strong', text: 'Kaufzuordnung und Abo-Status:' },
             {
               kind: 'text',
-              text: ' so lange, wie gesetzliche Aufbewahrungspflichten bestehen.',
+              text: ' Wir speichern die technische Zuordnung zum Space, um Käufe abzugleichen, wiederherzustellen und eine doppelte Freischaltung zu vermeiden. Sie kann nach Aboende und nach Löschung des kaufenden Kontos beim Space erhalten bleiben. Mit der endgültigen Löschung des Space entfallen die dort gespeicherten Zuordnungen. Für gesetzlich aufzubewahrende Abrechnungsbelege gilt die jeweilige gesetzliche Frist. Für Bestellungen im Google-Konto gelten Googles eigene Aufbewahrungsregeln.',
             },
           ],
           children: [],
@@ -1417,7 +1632,16 @@ export const privacyPolicyDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Vieles kannst du direkt in eimir. erledigen: dein Profil und deine Einstellungen ändern, Inhalte löschen, deine Daten unter „Daten und Portabilität“ exportieren und dein Konto unter „App und Konto“ löschen. Für alles andere schreib uns an kontakt@reiswienudel.de.',
+              text: 'Vieles kannst du direkt in eimir. erledigen: dein Profil und deine Einstellungen ändern, Inhalte löschen, dein Konto unter „App und Konto“ löschen. Du kannst die Löschung auch ',
+            },
+            {
+              kind: 'link',
+              text: 'ohne App per E-Mail anfordern',
+              href: 'https://eimir.de/konto-loeschen/',
+            },
+            {
+              kind: 'text',
+              text: '. Eine Kopie deiner Daten (Auskunft und Übertragbarkeit) schicken wir dir auf Anfrage (Abschnitt 14). Für alles andere schreib uns an kontakt@reiswienudel.de.',
             },
           ],
           children: [],

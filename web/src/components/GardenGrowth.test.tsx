@@ -16,6 +16,7 @@ import type { GardenView } from '../api/generated/models/GardenView';
 import { gardenFlight } from '../client/garden';
 import games from '../i18n/locales/games';
 import { GardenGamePage, type GardenServices } from './GardenGamePage';
+import germanUi from '../i18n/locales/de';
 
 vi.mock('../client/gardenImage', () => ({
   renderSvgPng: vi.fn().mockResolvedValue(new Blob(['png'])),
@@ -104,6 +105,9 @@ function services(initial: GardenView): Required<GardenServices> {
     closeBouquet: vi.fn().mockResolvedValue({ ...initial, bouquet: null }),
     saveToMoments: vi.fn().mockResolvedValue({ memoryId: 'memory-1' }),
     loadMilestones: vi.fn().mockResolvedValue([]),
+    loadHistory: vi
+      .fn()
+      .mockResolvedValue({ items: [], nextCursor: null, hasMore: false }),
   };
 }
 
@@ -197,7 +201,9 @@ describe('garden growth and life', () => {
     const input = within(book).getByLabelText(growth.nameLabel);
     expect(input.getAttribute('maxlength')).toBe('40');
     fireEvent.change(input, { target: { value: '  Rosengarten ' } });
-    fireEvent.click(within(book).getByRole('button', { name: growth.save }));
+    fireEvent.click(
+      within(book).getByRole('button', { name: germanUi.common.save }),
+    );
     await waitFor(() => expect(api.rename).toHaveBeenCalledWith('Rosengarten'));
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Rosengarten' }),
@@ -439,7 +445,7 @@ describe('garden growth and life', () => {
     expect((input as HTMLInputElement).value).toBe('Pieks');
     expect(within(hedgehog).getByText('5 / 40')).toBeTruthy();
     fireEvent.click(
-      within(hedgehog).getByRole('button', { name: growth.save }),
+      within(hedgehog).getByRole('button', { name: germanUi.common.save }),
     );
 
     // Optimistic: the name shows before the server answers.
@@ -486,7 +492,9 @@ describe('garden growth and life', () => {
       within(snail).getByLabelText(growth.visitors.question.snail),
       { target: { value: 'Schnecki' } },
     );
-    fireEvent.click(within(snail).getByRole('button', { name: growth.save }));
+    fireEvent.click(
+      within(snail).getByRole('button', { name: germanUi.common.save }),
+    );
 
     expect(await within(snail).findByText(growth.visitors.failed)).toBeTruthy();
     const input = within(snail).getByLabelText(

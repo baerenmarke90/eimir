@@ -1,6 +1,5 @@
 export default {
   add: 'Video hinzufügen',
-  label: 'Fotos & Videos',
   preview: 'Video-Vorschau',
   preparing: 'Video wird auf deinem Gerät vorbereitet …',
   preparationFailed:
@@ -36,7 +35,6 @@ export default {
   proBody:
     'Mit eimir. Pro könnt ihr kurze Videos festhalten. Bereits gespeicherte Videos bleiben auch später zugänglich.',
   proAction: 'eimir. Pro ansehen',
-  position: 'Video {{position}} von {{count}}',
   selected: 'Ausgewählte Fotos und Videos',
   selectedItem: 'Video ausgewählt',
   failures_one: 'Eine Aufnahme braucht deine Hilfe.',

@@ -12,6 +12,7 @@ Name | Type
 `createdAt` | Date
 `id` | string
 `kind` | [NotificationKind](NotificationKind.md)
+`operatorRoute` | string
 `readAt` | Date
 `selectionSize` | number
 `sourceEventId` | string
@@ -32,6 +33,7 @@ const example = {
   "createdAt": null,
   "id": null,
   "kind": null,
+  "operatorRoute": null,
   "readAt": null,
   "selectionSize": null,
   "sourceEventId": null,

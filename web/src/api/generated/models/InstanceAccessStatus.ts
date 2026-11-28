@@ -56,6 +56,12 @@ export interface InstanceAccessStatus {
      */
     auth?: AuthCapabilities;
     /**
+     * Whether a Space member can redeem an eimir. gift code here: eimir. Cloud with the gift code plugin loaded. Clients show the redeem entry only when true.
+     * @type {boolean}
+     * @memberof InstanceAccessStatus
+     */
+    giftCodesAvailable?: boolean;
+    /**
      * 
      * @type {boolean}
      * @memberof InstanceAccessStatus
@@ -91,6 +97,12 @@ export interface InstanceAccessStatus {
      * @memberof InstanceAccessStatus
      */
     selfServiceSignupAvailable?: boolean;
+    /**
+     * Whether this instance accepts in-app support reports. Clients show the report entry points only when true.
+     * @type {boolean}
+     * @memberof InstanceAccessStatus
+     */
+    supportReportsAvailable?: boolean;
     /**
      * Version of the eimir. Cloud terms of use that a new Account must accept, sent back as `acceptedTermsVersion` when requesting or redeeming a signup proof. `null` where no such terms apply, including every Self-Hosted instance.
      * @type {string}
@@ -141,12 +153,14 @@ export function InstanceAccessStatusFromJSONTyped(json: any, ignoreDiscriminator
         
         'accountCreation': json['accountCreation'] == null ? undefined : json['accountCreation'],
         'auth': json['auth'] == null ? undefined : AuthCapabilitiesFromJSON(json['auth']),
+        'giftCodesAvailable': json['giftCodesAvailable'] == null ? undefined : json['giftCodesAvailable'],
         'maintenanceMode': json['maintenanceMode'],
         'oidcConnections': json['oidcConnections'] == null ? undefined : ((json['oidcConnections'] as Array<any>).map(OidcConnectionViewFromJSON)),
         'oidcSignupAvailable': json['oidcSignupAvailable'] == null ? undefined : json['oidcSignupAvailable'],
         'registrationAvailable': json['registrationAvailable'],
         'registrationUnavailableReason': json['registrationUnavailableReason'],
         'selfServiceSignupAvailable': json['selfServiceSignupAvailable'] == null ? undefined : json['selfServiceSignupAvailable'],
+        'supportReportsAvailable': json['supportReportsAvailable'] == null ? undefined : json['supportReportsAvailable'],
         'termsOfUseVersion': json['termsOfUseVersion'] === undefined ? undefined : json['termsOfUseVersion'] === null ? null : json['termsOfUseVersion'],
     };
 }
@@ -164,12 +178,14 @@ export function InstanceAccessStatusToJSONTyped(value?: InstanceAccessStatus | n
         
         'accountCreation': value['accountCreation'],
         'auth': AuthCapabilitiesToJSON(value['auth']),
+        'giftCodesAvailable': value['giftCodesAvailable'],
         'maintenanceMode': value['maintenanceMode'],
         'oidcConnections': value['oidcConnections'] == null ? undefined : ((value['oidcConnections'] as Array<any>).map(OidcConnectionViewToJSON)),
         'oidcSignupAvailable': value['oidcSignupAvailable'],
         'registrationAvailable': value['registrationAvailable'],
         'registrationUnavailableReason': value['registrationUnavailableReason'],
         'selfServiceSignupAvailable': value['selfServiceSignupAvailable'],
+        'supportReportsAvailable': value['supportReportsAvailable'],
         'termsOfUseVersion': value['termsOfUseVersion'],
     };
 }

@@ -25,11 +25,15 @@ The publication jobs:
 
 1. Publication requires the repository
    Actions variable `EIMIR_TEST_CHANNEL_ENABLED=true`, the owning repository and
-   its `main` ref. Pull requests never receive publishing permissions.
+   its `main` ref. The owning repository is `baerenmarke90/eimir` unless the variable
+   `EIMIR_TEST_CHANNEL_REPOSITORY` names another one (see
+   [Pinned Core repository](#pinned-core-repository-decision-0019)). Pull requests
+   never receive publishing permissions.
 2. For a merge (`push`), admits only the current `main` commit and skips the full
    regression. For a manual or report dispatch, checks once for the exact
    revision's newest dispatched full-regression runs of CI, Web
-   Browser QA, CodeQL SAST, Self-Hosted Deployment Guard, Self-Hosted Recovery and Media Video.
+   Browser QA, CodeQL SAST (only where code scanning is available; see "In the private
+   repository" below), Self-Hosted Deployment Guard, Self-Hosted Recovery and Media Video.
    Missing, pending, skipped, failed or cancelled workflows cannot admit a build.
    An unfinished candidate exits without building; the next required workflow
    completion retries it. No runner waits for other workflows. Completion events
@@ -43,7 +47,10 @@ The publication jobs:
    The full regression runs Browser QA for every tested main revision, including
    backend-only and operator changes.
 3. Runs the channel contracts, then reuses Release Evidence with Android excluded:
-   build-once runtime archives, hashes, SPDX SBOMs and verified attestations.
+   build-once runtime archives, hashes, SPDX SBOMs and verified attestations, or,
+   where attestations are unavailable, the verified `supply-chain-state.json` record.
+   The backend image is the default `pro` stage of `backend/Dockerfile`: the Core
+   with the Pro plugin distribution `eimir-pro` (#2182).
    The private test channel additionally includes the restricted `media-runtime`
    derivative, built from that exact backend image, with its own archive, SPDX
    SBOM, provenance and offline verification. Release Evidence requires a fresh
@@ -51,7 +58,8 @@ The publication jobs:
    a failed feed check keeps the previous channel in place. Nothing builds on the
    Docker host.
 4. Loads all three archives, verifies source/version/platform labels, publishes to the
-   existing GHCR backend/Web/media packages and checks the exact registry manifests and
+   GHCR backend/Web/media packages (names and visibility: see "Private channel
+   packages" below) and checks the exact registry manifests and
    pulled-back image identities. Docker pushes only `linux/amd64`, so containerd
    provenance indexes are not deployment references. The single registry
    manifest's config digest must match the exact config bytes in the verified
@@ -83,6 +91,104 @@ private tmpfs, CPU/memory/PID limits and migration dependency remain intact.
 General Cloud/Self-Hosted production admission still defaults off; this private
 channel selection does not approve a public/store or general production rollout.
 
+## Pinned Core repository (Decision 0019)
+
+After the repository cut-over ([Decision 0019](decisions/0019-repository-split-and-cutover.md),
+[runbook](CUTOVER-RUNBOOK.md)) the channel is published from the private Pro and release
+repository `eimir-pro`, and the official image is built from a **pinned revision of the public
+Core repository** `eimir-core` plus the Pro tree. The same workflows run in the throwaway
+rehearsal repositories first. Every name is a plain Actions variable of the publishing
+repository; none is a secret, and an unset or empty variable keeps the monorepo behaviour
+described above exactly.
+
+| Variable | Monorepo (unset) | Pro repository | Rehearsal (example) |
+| --- | --- | --- | --- |
+| `EIMIR_TEST_CHANNEL_REPOSITORY` | `baerenmarke90/eimir` | `baerenmarke90/eimir-pro` | `baerenmarke90/eimir-rehearsal-pro` |
+| `EIMIR_CORE_REPOSITORY` | empty: Core is the same checkout | `baerenmarke90/eimir-core` | `baerenmarke90/eimir-rehearsal-core` |
+| `EIMIR_TEST_CHANNEL_INSTANCE` | `eimir-test` | `eimir-test` | `eimir-rehearsal` |
+
+Rules the publisher enforces before any registry or branch write:
+
+- Repository names are `OWNER/eimir` or `OWNER/eimir-` followed by lowercase letters, digits
+  and single hyphens. The Core repository must differ from the publishing repository and
+  have the same owner. The workflow guard and the script both compare the running
+  repository with `EIMIR_TEST_CHANNEL_REPOSITORY`.
+- The instance name is `eimir-` followed by lowercase letters, digits and single hyphens.
+  It derives the branch `deploy/<instance>`, the Compose project name, the database network
+  `<instance>-data` and host `<instance>-postgres`, the two external stores
+  `<instance>_cloud_media_data` and `<instance>_cloud_deletion_journal_data` and the proxy
+  aliases `<instance>-api` and `<instance>-web`. A rehearsal instance therefore never
+  attaches to the `eimir-test` database, stores or proxy aliases; it needs its own database
+  project and both external volumes, created by the Product Owner in Arcane with fictional
+  data only. The proxy network `mailcow-proxy` is shared.
+
+### How a Core change reaches the test instance
+
+The scheduled workflow **Core Advance** (`.github/workflows/core-advance.yml`, minutes 7 and
+37 of every hour, runbook decision D2) runs in the publishing repository only:
+
+1. **Plan.** It reads Core `main` and the Core revision that `channel.json` on
+   `deploy/<instance>` selects. Equal: nothing to do. Core `main` must descend from the
+   selected revision; a rewritten Core history fails the run and needs a manual decision.
+2. **Pro tests.** For a newer Core revision the job "Pro tests against Core <SHA>" checks out
+   exactly that revision and runs the Pro extraction dry run
+   (`tools/ci/pro_extraction_dry_run.sh` of that Core revision, Pro from this checkout,
+   unit and integration tests with PostgreSQL).
+3. **Advance or report.** Only green tests dispatch the publisher with
+   `private_test_channel=true`, `core_revision` and `core_advance_run`. A failed, cancelled or
+   skipped test opens the issue **Core advance blocked** (or adds the revision to it) and
+   fails the run. The same happens when the publisher run for that revision failed.
+
+The publisher then admits the build only when:
+
+- the dispatch names a Core Advance run of this repository on `main` at the same Pro
+  revision, and that run's job "Pro tests against Core <SHA>" for exactly this Core revision
+  succeeded (checked through the Actions API, not taken from the inputs). When a Pro merge
+  landed while the tests ran, the publisher skips without a failure and the next Core
+  Advance run tests the new Pro revision;
+- the Core revision is on Core `main` and descends from the selected Core revision (the pin
+  only moves forward, also against a concurrent publication);
+- the Pro revision is still the current `main` and the pair is not selected already.
+
+Release Evidence checks out the pinned Core revision, lays the Pro tree over it and builds
+the backend, Web and media images from that one tree. The composition copies only tracked
+Core files and refuses the build when the Core revision contains `backend/pro/` or
+`backend/admin/`, when the Pro tree would replace a Core file with different content, when
+the Pro tree lacks the official uv workspace (`backend/pyproject.toml`, `backend/uv.lock`)
+or a plugin project file, or when the `[project]` table of `backend/pyproject.toml` differs
+between Core and Pro (a Core dependency change needs a Pro pull request that updates the
+workspace files). Core CI files and the repository documents (`README.md`, `LICENSE` and
+similar) of the Pro tree stay as they are. `evidence-index.json` and `channel.json` bind
+both revisions: `sourceRevision` is the Pro revision and `coreSource` names the Core
+repository and revision. The generated `README.md` names both.
+
+A merge to Pro `main` (push) rebuilds with the Core revision the channel already selects.
+When the channel selects no Core revision yet, for example right after the deployment
+branches were seeded from the old repository, the push run fails and asks for Core Advance;
+dispatch **Actions -> Core Advance -> Run workflow** once. In this mode full-regression
+completions and the Nightly Regression Report do not start the publisher.
+
+**A blocked revision is not tested again** while its issue is open, so a persistent failure
+is visible once and does not cost a test run every 30 minutes. Fix the cause (usually a Pro
+pull request against the new Core), then close the issue or dispatch Core Advance with
+**retest**. A newer Core revision is tested as usual.
+
+**Credentials.** Nothing is stored in the Core repository. `GITHUB_TOKEN` of the publishing
+repository reads a public Core. Only a private Core repository (the rehearsal) needs the
+secret `EIMIR_CORE_READ_TOKEN` in the publishing repository: a fine-grained personal access
+token limited to that one Core repository with **Contents: read** (Metadata read is implied),
+expiring after the rehearsal. It is used for the Core checkout and the Core API reads only.
+Core Advance itself has `contents: read`, `actions: read`/`write` (dispatch) and
+`issues: write`; it never writes code, packages or branches.
+
+**Cost.** In a private repository every scheduled run is billed: the plan job alone uses about
+one runner minute per run (about 48 per day when nothing changes). In the monorepo every job
+is skipped at no runner cost.
+
+**Rollback.** Unchanged: switch the Arcane sync to the rollback branch or turn Auto Sync off
+([Rollback](#rollback)). To stop following Core, disable the Core Advance workflow; the
+channel keeps the last selected pair and Pro merges keep rebuilding with it.
+
 ## One-time GitHub setup
 
 Merge the implementation PR through ordinary required checks. Then:
@@ -94,8 +200,9 @@ Merge the implementation PR through ordinary required checks. Then:
    branch **main**, with **private_test_channel=true**, release version `0.0.0`,
    and **confirm_publish=false**. The private selector excludes all product-release
    jobs; the placeholder version is unused. Subsequent nightly regressions are automatic.
-3. If package access is not inherited, grant this repository **Write** under the
-   existing `eimir-backend` and `eimir-web` packages' Actions access settings.
+3. If package access is not inherited, grant this repository **Write** under each
+   channel package's Actions access settings (the packages named in "Private channel
+   packages" below).
    Only the publisher job requests package and channel-branch write permissions.
 4. If a ruleset protects `deploy/eimir-test`, allow the channel publisher under
    that branch's policy. Do not relax `main` protections. A rejected branch write
@@ -103,9 +210,143 @@ Merge the implementation PR through ordinary required checks. Then:
 5. Confirm a successful publisher and the three files `compose.yaml`,
    `channel.json`, `README.md` on `deploy/eimir-test`; there must be no `.env`.
 
-The workflow does not change package visibility. For private packages, configure
-a read-only package credential in Arcane's Container Registries, never in Compose,
-a Git URL or the application environment.
+The workflow cannot change package visibility. See "Private channel packages" below for
+the mandatory visibility step after the first publication of any new package name, and
+configure a read-only package credential in Arcane's Container Registries, never in
+Compose, a Git URL or the application environment.
+
+## Private channel packages (Decision 0019, phase 0b)
+
+Images built by this channel contain the Pro code, so the channel publishes to **private**
+packages `ghcr.io/baerenmarke90/eimir-cloud-backend`, `eimir-cloud-web` and
+`eimir-cloud-media` ([#2202](https://github.com/baerenmarke90/eimir/issues/2202)). The
+repository stays public until the cut-over. The former public packages `eimir-backend`,
+`eimir-web` and `eimir-media` receive no new versions and stay as the rollback until the
+Product Owner approves their retirement, one package at a time and not before 2026-11-30.
+Product-release (Self-Hosted `v0.x`) images are not part of this channel and keep their
+names.
+
+Two plain repository **Actions variables** can change the publisher. Neither is a secret.
+
+| Variable | Values | Effect |
+| --- | --- | --- |
+| `EIMIR_TEST_CHANNEL_PACKAGE_PREFIX` | unset/empty (default `eimir-cloud`), or `eimir` for the legacy public packages | Package name prefix. Only `eimir` or `eimir-` followed by lowercase letters, digits and single hyphens is accepted; anything else refuses publication before any push. `eimir` is the explicit rollback to the old public packages; deleting the variable does **not** roll back. |
+| `EIMIR_TEST_CHANNEL_PROMOTE` | unset/empty or `true` (default), or `false` | `false` stages: all three images are pushed and verified and the generated files are produced, but `deploy/eimir-test` is **not** advanced. Any other value refuses publication. Optional; not part of the standard flow. |
+
+The job summary of the publisher lists the three pinned references and whether the channel
+was promoted or only staged.
+
+## In the private repository: no attestations and no CodeQL (Decision 0019, D5)
+
+After the cut-over this channel is published from the private `eimir-pro` repository of a
+personal account. GitHub offers neither artifact attestations nor code scanning there. The
+Product Owner accepted that on November 25, 2026 (cut-over runbook, decision D5); the full
+contract is in [SBOM and attestations, section 11](m6/SBOM-ATTESTATIONS.md#11-repositories-without-attestations-or-code-scanning-decision-0019-d5).
+
+| Variable | Where | Value | Effect |
+| --- | --- | --- | --- |
+| `EIMIR_SUPPLY_CHAIN_EXCEPTION` | `eimir-pro` only; never in `eimir-core` | `decision-0019-d5` | Accepts the missing attestations and CodeQL on a private personal repository. Without it the evidence build stops there; on a repository with the capabilities it is refused. |
+
+With the variable set:
+
+- Release Evidence records `attestation` and `codeScanning` as `unavailable`, with the
+  reason and the repository, in `supply-chain-state.json` inside the checksummed evidence;
+  the attestation job verifies that exact record instead of attestations and refuses
+  any bundle next to it;
+- the channel gate and the nightly regression do not require CodeQL; every other
+  required workflow still has to be green;
+- the job summaries and a notice annotation name the gap, so it is never a silent pass.
+
+What the test channel then proves: the exact archives, hashes and SPDX SBOMs of one
+source revision, the registry digests checked against them, and the private package
+check. What it does not prove: a signed build provenance or SBOM claim, and a CodeQL
+analysis. The follow-ups before any Self-Hosted delivery of Pro images are a free Python
+security linter (for example Bandit) and key-based image signing; neither is implemented
+yet.
+
+### New packages start public here: set them to Private (mandatory)
+
+GitHub's documentation says a package is private when it is first published. The first
+publication of the `eimir-cloud-*` packages disproved that: all three were created
+**public** and an anonymous manifest request returned HTTP 200. The probable cause is the
+`org.opencontainers.image.source` label, which points at the public repository (the cause
+is not confirmed). The Product Owner set the three packages to Private by hand; afterwards
+the anonymous request returned HTTP 403, and the next publisher run (45161925807) still
+wrote to the private packages.
+
+For **every new package name** (the three above are done; a future repository or name
+creates new ones):
+
+1. Publish once (optionally with `EIMIR_TEST_CHANNEL_PROMOTE=false`).
+2. Immediately open each package (profile -> Packages -> the package -> **Package
+   settings** -> **Danger Zone** -> **Change package visibility**) and choose **Private**.
+   Never choose Public: GitHub does not allow making a package private again.
+3. Check anonymously. A private package must answer 401, 403 or 404, never 200:
+
+   ```sh
+   package=eimir-cloud-web   # repeat for backend and media
+   digest=sha256:...         # the digest from the job summary
+   token=$(curl -s "https://ghcr.io/token?service=ghcr.io&scope=repository:baerenmarke90/$package:pull" \
+     | python3 -c "import sys, json; print(json.load(sys.stdin)['token'])")
+   curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $token" \
+     -H "Accept: application/vnd.oci.image.manifest.v1+json" \
+     "https://ghcr.io/v2/baerenmarke90/$package/manifests/$digest"
+   ```
+
+**The publisher enforces the check.** Before it exports or promotes anything, the publisher
+requests every pushed digest anonymously. Any HTTP 200 fails the job and names the public
+packages; set them to Private and use **Re-run failed jobs**. Any other answer than 401,
+403 or 404 (for example a rate limit or a server error) also fails the job, because privacy
+is then unproven. The legacy prefix `eimir` is exempt: those packages are public on purpose.
+The check detects, it cannot prevent: GHCR creates the package at the first push, so a new
+name is publicly readable for the short time until you set it to Private. GitHub's REST API
+for packages only lists, reads, deletes and restores packages (checked 2026-11-23), so the
+publisher cannot set visibility itself. If GitHub still refuses the first push of a new
+package, open the package settings and use **Manage Actions access -> Add Repository** with
+the Write role, then re-run the failed job.
+
+### Switch procedure for a new package name (each step needs the Product Owner's approval)
+
+This is how the move to `eimir-cloud-*` was done and how a future name is introduced.
+
+1. Create a rollback branch from the current tip of `deploy/eimir-test` (the publisher never
+   writes to it); for the move to `eimir-cloud-*` it is `deploy/eimir-test-rollback` and holds
+   the old public digests.
+2. Optionally set `EIMIR_TEST_CHANNEL_PROMOTE=false`: the next merge to `main` stages the new
+   images and the test instance keeps running on its previous images.
+3. Set the new packages to Private and check them anonymously (previous section).
+4. Prove the pull before promoting. A pull of a public image succeeds with or without a
+   credential and proves nothing, so use a private one:
+   - create a personal access token (classic) with **only** `read:packages` (fine-grained
+     tokens cannot access Packages), valid for about 12 months, and save it in Arcane under
+     Images -> Registries (host `ghcr.io`, username `baerenmarke90`, the token as password).
+     Arcane selects credentials by host name. Never put the token in Compose, a Git URL,
+     the application environment, an issue or the repository;
+   - in Arcane, pull one staged image by its digest from the job summary
+     (Images -> Pull Image, for example `ghcr.io/baerenmarke90/eimir-cloud-web@sha256:...`).
+5. Promote: set `EIMIR_TEST_CHANNEL_PROMOTE=true` or delete the variable. The next merge
+   advances `deploy/eimir-test`; Arcane Git Sync redeploys on the new images. Check that the
+   containers are healthy and that the app signs in.
+6. Retire the old packages only after at least 7 days of healthy operation, only with explicit
+   approval per package, and never before the date above. GitHub refuses deletion of a public
+   package with a version above 5,000 downloads; then use GitHub Support. Deleted packages
+   can be restored for 30 days.
+
+### Rollback
+
+1. In Arcane open the `eimir-test` Git Sync, change the branch to `deploy/eimir-test-rollback`
+   and sync. This does not depend on the publisher and works while the old public packages
+   exist.
+2. Set `EIMIR_TEST_CHANNEL_PACKAGE_PREFIX=eimir` **explicitly**. The default is now
+   `eimir-cloud`, so deleting the variable does not roll back; with `eimir` the next merge
+   publishes to the old public names again (no privacy check applies to them).
+3. To return, set the Arcane branch back to `deploy/eimir-test` and delete the prefix
+   variable (or set it to `eimir-cloud`).
+
+A redeploy is not a database rollback (see [Self-Hosted Recovery](SELF-HOSTED-RECOVERY.md));
+the old and new images carry the same code revision at the switch, so no schema change is
+involved. When the registry token expires, running containers keep running but new pulls
+fail until a new read-only token is saved in Arcane.
 
 ## Preserve the existing instance
 
@@ -213,6 +454,16 @@ Operator notes: list only addresses that the intended tester has already registe
 because whoever first verifies a listed address owns that match (relevant when an OIDC provider marks
 addresses as verified). Settings are cached per process, so a change to the list takes effect after the
 API is restarted or redeployed.
+## Optional support reports
+
+The generated API/worker environment retains the instance-local expression
+`EIMIR_SUPPORT_REPORTS_ENABLED` (default false, #2189). Keep it false until the admin
+reader for the reports exists; the channel never freezes a runner value into it.
+
+The operator plugin settings `EIMIR_PLUGINS` (default `pro`), `EIMIR_ADMIN_TRACKER`,
+`EIMIR_ADMIN_GITHUB_REPOSITORY` and `EIMIR_ADMIN_GITHUB_TOKEN` are instance-local
+expressions as well (#2266); name `admin` in `EIMIR_PLUGINS` to load the Reports section.
+
 ## Optional calendar sync
 
 The generated API/worker environment retains instance-local expressions for
@@ -377,7 +628,7 @@ setup is added. Released Self-Hosted/Production contracts remain unchanged.
 
 ## Optional server-local AI
 
-For weekly reviews and tag proposals, the application channel forwards the
+For tag proposals, the application channel forwards the
 optional `EIMIR_RECAP_AI_URL`, `EIMIR_RECAP_AI_MODEL` and
 `EIMIR_RECAP_AI_TIMEOUT_SECONDS` expressions to API and worker. Keep local inference in a separate Arcane project on `eimir-test-data`,
 so an application Git Sync update does not remove an operator-added service.

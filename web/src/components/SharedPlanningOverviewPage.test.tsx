@@ -26,6 +26,11 @@ function infinitePage<T>(items: T[]) {
   };
 }
 
+/** The journey hint reads both lifecycle lists as one page. */
+function journeyPages<T>(items: T[]) {
+  return { pages: [items], pageParams: [null] };
+}
+
 const CREATOR = { id: 'account-lea', displayName: 'Lea' };
 
 function wish(overrides: {
@@ -126,6 +131,76 @@ describe('SharedPlanningOverviewPage', () => {
       i18n.t('m5s3.overview.createdBy', { name: 'Lea' }),
     );
   });
+  it('keeps wishes an open game hides as placeholders below the alphabet (#2158 H)', () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const ALEX = { id: 'account-alex', displayName: 'Alex' };
+    queryClient.setQueryData(
+      ['m5-s3', 'wishes', 'space-1'],
+      infinitePage([
+        wish({ id: 'z', title: 'Zoo', status: 'OPEN' }),
+        {
+          ...wish({ id: 'hidden-1', title: '', status: 'OPEN' }),
+          createdBy: ALEX.id,
+          creator: ALEX,
+          capabilities: { canComment: false, canDelete: false, canEdit: false },
+          hiddenDuringGame: true,
+        },
+      ]),
+    );
+    const html = renderToStaticMarkup(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/plan#wishes']}>
+          <SharedPlanningOverviewPage
+            apis={{} as SharedPlanningApis}
+            spaceId="space-1"
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    const titles = [...html.matchAll(/<strong>([^<]+)<\/strong>/g)].map(
+      (match) => match[1],
+    );
+    expect(titles).toEqual([
+      'Zoo',
+      i18n.t('wishConcealment.rowTitle', { name: 'Alex' }),
+    ]);
+    expect(html).toContain(i18n.t('wishConcealment.groupTitle'));
+    expect(html).toContain(i18n.t('wishConcealment.rowHint'));
+    expect(html).toContain('href="/games/wish-detective"');
+    // The placeholder opens nothing: only the visible wish links to a detail.
+    expect(html).not.toContain('/plan/wishes/hidden-1');
+    expect(html).not.toContain(i18n.t('m5s3.overview.wishesEmpty'));
+  });
+
+  it('shows the placeholders instead of the empty state when they are all there is', () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    queryClient.setQueryData(
+      ['m5-s3', 'wishes', 'space-1'],
+      infinitePage([
+        {
+          ...wish({ id: 'hidden-1', title: '', status: 'OPEN' }),
+          hiddenDuringGame: true,
+        },
+      ]),
+    );
+    const html = renderToStaticMarkup(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/plan#wishes']}>
+          <SharedPlanningOverviewPage
+            apis={{} as SharedPlanningApis}
+            spaceId="space-1"
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(html).toContain(i18n.t('wishConcealment.groupTitle'));
+    expect(html).not.toContain(i18n.t('m5s3.overview.wishesEmpty'));
+  });
+
   it('offers one entry for what to do next and continues an open round (#1907 J1)', () => {
     const render = (round: { id: string | null } | null) => {
       const queryClient = new QueryClient({
@@ -159,7 +234,7 @@ describe('SharedPlanningOverviewPage', () => {
     expect(idle).not.toContain('href="/plan/ideas"');
     const running = render({ id: 'round-1' });
     expect(running).toContain(i18n.t('wishSelection.entryRunning'));
-    expect(running).toContain(`>${i18n.t('wishSelection.entryContinue')}</a>`);
+    expect(running).toContain(`>${i18n.t('common.continue')}</a>`);
   });
 
   it('renders only the shared M3 planning product areas', () => {
@@ -636,7 +711,7 @@ describe('SharedPlanningOverviewPage wish journey (#1790 F2)', () => {
     );
     client.setQueryData(
       ['m5-s3', 'wishes', 'space-1', 'journey-hint'],
-      [
+      journeyPages([
         {
           ...wish({ id: 'a', title: 'A', status: 'PLANNED' }),
           plan: journeyPlan('p-a'),
@@ -647,7 +722,7 @@ describe('SharedPlanningOverviewPage wish journey (#1790 F2)', () => {
           plan: journeyPlan('p-b'),
           hasMemory: false,
         },
-      ],
+      ]),
     );
 
     const html = renderPlanning(client, '/plan');
@@ -675,7 +750,7 @@ describe('SharedPlanningOverviewPage wish journey (#1790 F2)', () => {
     };
     client.setQueryData(
       ['m5-s3', 'wishes', 'space-1', 'journey-hint'],
-      [completed],
+      journeyPages([completed]),
     );
     const waiting = renderPlanning(client, '/plan');
     expect(waiting).toContain(
@@ -685,7 +760,7 @@ describe('SharedPlanningOverviewPage wish journey (#1790 F2)', () => {
 
     client.setQueryData(
       ['m5-s3', 'wishes', 'space-1', 'journey-hint'],
-      [{ ...completed, hasMemory: true }],
+      journeyPages([{ ...completed, hasMemory: true }]),
     );
     expect(renderPlanning(client, '/plan')).not.toContain(
       'planen-wish-journey-hint',

@@ -10,19 +10,25 @@ Two layers are deliberately kept separate:
 
 from __future__ import annotations
 
+import importlib.util
 import os
 import shutil
 import tempfile
 from collections.abc import Iterator
 
 import pytest
-from sqlalchemy import Engine, create_engine, text
+from sqlalchemy import Engine, create_engine, inspect, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from tests.support.encryption import EncryptionConfigurator
 
 # Never accidentally run against a real instance.
 os.environ.setdefault("EIMIR_ENVIRONMENT", "test")
+
+# The suite runs with the Pro plugin when its distribution is installed, as
+# before Phase 2 (#2182); the Core-only configuration sets EIMIR_PLUGINS="".
+if importlib.util.find_spec("eimir_pro") is not None:
+    os.environ.setdefault("EIMIR_PLUGINS", "pro")
 
 # Encryption at rest has no default in production. Tests that construct
 # production settings for unrelated reasons inherit an explicit "disabled" here;
@@ -130,11 +136,14 @@ def _restore_pillow_pixel_limit() -> Iterator[None]:
 
 def pytest_ignore_collect(collection_path, config):  # type: ignore[no-untyped-def]
     """Core-only configuration: do not even import the Pro feature test modules."""
-    from tests.support.plugins import PRO_TEST_MODULES, plugins_loaded
+    from tests.support.plugins import (
+        PRO_TEST_MODULES,
+        plugins_loaded,
+    )
 
+    relative = collection_path.as_posix().rsplit("/tests/", 1)[-1]
     if plugins_loaded():
         return None
-    relative = collection_path.as_posix().rsplit("/tests/", 1)[-1]
     return True if relative in PRO_TEST_MODULES else None
 
 
@@ -183,13 +192,28 @@ def engine() -> Iterator[Engine]:
 
     from eimir.db.base import Base
     from eimir.db.registry import load_all_models
-    from eimir.pro_plugin import plugin as pro_plugin
+    from tests.support.plugins import (
+        CHAIN_PLUGIN_TABLES,
+        admin_distribution_installed,
+        pro_distribution_installed,
+    )
 
     load_all_models()
     # The migrations create the Pro tables whether or not the plugin is loaded,
-    # so the Core-only configuration needs them too (Decision 0017).
-    for module in pro_plugin.model_modules():
-        import_module(module)
+    # so the Core-only configuration needs them too when the Pro models are
+    # installed (Decision 0017). Without ``eimir-pro`` only Core tables exist here.
+    if pro_distribution_installed():
+        from eimir_pro.plugin import plugin as pro_plugin
+
+        for module in pro_plugin.model_modules():
+            import_module(module)
+    # The operator plugin's tables come from its own chain, not from Core
+    # migrations; the models create them here when the distribution is installed.
+    if admin_distribution_installed():
+        from eimir_admin.plugin import plugin as admin_plugin
+
+        for module in admin_plugin.model_modules():
+            import_module(module)
 
     # Test probe for owner/privacy authorization. It deliberately exists only
     # here: alembic/env.py does not know it, so it appears in no migration and
@@ -198,7 +222,40 @@ def engine() -> Iterator[Engine]:
 
     db_engine = create_engine(INTEGRATION_DATABASE_URL, future=True)
     Base.metadata.create_all(db_engine)
+    # A plugin chain table does not live in the shared Core database: Core
+    # migrations that downgrade past its parent tables (support_reports, accounts,
+    # spaces, entitlement_grants) could not drop them otherwise. The plugin's own
+    # tests create it per module.
+    # ``drop_all`` orders them, so a chain table goes before the one it references.
+    Base.metadata.drop_all(
+        db_engine,
+        tables=[
+            Base.metadata.tables[name]
+            for name in CHAIN_PLUGIN_TABLES
+            if name in Base.metadata.tables
+        ],
+        checkfirst=True,
+    )
+    # Without ``eimir-pro`` the Pro tables have no models here. They come from the
+    # Core migration chain, and the Core manifest executor works on them.
+    plugin_tables_from_migrations = not pro_distribution_installed()
+    if plugin_tables_from_migrations:
+        from eimir.plugins.manifest import PLUGIN_TABLE_NAMES
+
+        missing = (
+            PLUGIN_TABLE_NAMES - CHAIN_PLUGIN_TABLES - set(inspect(db_engine).get_table_names())
+        )
+        if missing:
+            raise RuntimeError(
+                "Without eimir-pro the test database must be freshly migrated "
+                f"(alembic upgrade head); missing plugin tables: {', '.join(sorted(missing))}."
+            )
     yield db_engine
+    if plugin_tables_from_migrations:
+        # They reference Core tables, so they go first.
+        with db_engine.begin() as connection:
+            for name in PLUGIN_TABLE_NAMES:
+                connection.execute(text(f'DROP TABLE IF EXISTS "{name}" CASCADE'))
     Base.metadata.drop_all(db_engine)
     db_engine.dispose()
 
@@ -242,9 +299,12 @@ def _clear_database(engine: Engine) -> None:
     """Remove committed test data in foreign-key-safe order."""
     from eimir.db.base import Base
 
+    present = set(inspect(engine).get_table_names())
     with engine.begin() as connection:
         for table in reversed(Base.metadata.sorted_tables):
-            connection.execute(table.delete())
+            # A plugin chain table only exists while its own tests run.
+            if table.name in present:
+                connection.execute(table.delete())
 
 
 @pytest.fixture

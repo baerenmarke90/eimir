@@ -1098,12 +1098,12 @@ test.describe('Today R4: the living home of a relationship', () => {
     );
     const stage = page.locator('.wir-stage');
     await expect(stage).toBeVisible();
-    // One name under each portrait, and the page heading stays for assistive
-    // technology without being painted.
-    await expect(stage.locator('.wir-stage-name')).toHaveCount(2);
+    // The two portraits speak for themselves: no painted names on Wir, and
+    // the page heading stays for assistive technology without being painted.
+    await expect(stage.locator('.wir-stage-name')).toHaveCount(0);
     await expect(page.locator('.today-content h1')).toHaveCount(1);
 
-    // The heart line carries the time together and opens the story overview.
+    // The heart carries the time together and opens the story overview.
     const bridge = stage.locator('.wir-bridge');
     await expect(bridge).toBeVisible();
     await expect(bridge).toHaveAttribute('href', '/story/our-story');
@@ -1130,7 +1130,7 @@ test.describe('Today R4: the living home of a relationship', () => {
     for (const portrait of geometry.portraits) {
       expect(Math.abs(portrait.width - portrait.height)).toBeLessThan(1);
     }
-    // The line spans the space between the portraits without entering them.
+    // The heart's row stays between the portraits without entering them.
     expect(geometry.line).not.toBeNull();
     expect(geometry.line?.left ?? 0).toBeGreaterThanOrEqual(
       geometry.portraits[0].right,
@@ -2300,8 +2300,15 @@ test('the add action stays put while a tab slides in', async ({ page }) => {
   await signInAndOpenToday(page);
   await expect(page.locator('[data-floating-create]:visible')).toHaveCount(1);
   // Keep the real slide observable even when Chromium misses a frame on CI.
-  await page.addStyleTag({
-    content: '.product-main { --duration-transition: 600ms; }',
+  // Motion reads its roles from the root element and caches them by the
+  // root's attributes, so the longer role goes on the root's own style: a
+  // rule on `.product-main` was never read, and the 180 ms slide could end
+  // before the first sampled frame after the tap.
+  await page.evaluate(() => {
+    document.documentElement.style.setProperty(
+      '--duration-transition',
+      '600ms',
+    );
   });
   for (const [label, destination] of [
     ['Momente', '/story'],

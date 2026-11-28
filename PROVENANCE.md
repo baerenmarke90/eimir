@@ -119,11 +119,11 @@ repository's existing authorized assets. No predecessor assets were consulted.
 
 ## Date-idea catalog and images
 
-`backend/src/eimir/date_ideas/data/catalog.json` is the eimir. editorial
+`backend/pro/src/eimir_pro/date_ideas/data/catalog.json` is the eimir. editorial
 date-idea catalog (#1892): 200 original ideas in German and English, written
 for eimir. and delivered as a versioned handoff with its JSON Schema.
 
-`backend/src/eimir/date_ideas/data/images/` holds 25 editorial images for that
+`backend/pro/src/eimir_pro/date_ideas/data/images/` holds 25 editorial images for that
 catalog (15 per idea, 10 per category). They were generated with OpenAI's
 built-in image-generation tool without reference images; `images.json`
 records each file, size, German and English alt text and the exact prompt.
@@ -133,24 +133,47 @@ are served only through the Pro-gated API.
 
 ## Daily Saying catalog
 
-`backend/src/eimir/quotes/daily_sayings.json` contains 1,000 sayings in ten
-categories (100 each), in German and English. All of them are AI-generated
-text without an individual author. The Product Owner supplied and selected the
-German originals for eimir. on 2026-11-18, and they are used under the
-repository license. The English versions are AI-assisted translations of the
-German originals, contributed under
+`backend/pro/src/eimir_pro/quotes/daily_sayings.json` contains 519 entries in ten
+categories, each in German and English: 474 sayings and 45 "Klassiker".
+
+The 474 sayings are text without an individual author. They are AI-generated
+drafts (the Product Owner's editorial AI and the earlier AI catalog of
+2026-11-18), edited and approved one by one by the Product Owner on 2026-11-26,
+and they are used under the repository license. They were also checked for
+repetition of an idea already in the catalog and, where practical, by web
+search for well-known quotations; looser echoes of familiar thoughts remain
+and were reported to the Product Owner. The English versions are AI-assisted
+translations of the German originals, contributed under
 [CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/). The
 card shows the sayings without author credit or citation. They carry the rights
 classification `EDITORIAL_CURATED`, and each entry records its collection, work
 and rights basis in the same file.
 
+The 45 Klassiker are public-domain quotations from works published in 1930 or
+earlier by authors who died in 1955 or earlier: 29 German originals (Goethe,
+Marie von Ebner-Eschenbach, Novalis, Hebbel, Nietzsche, Schiller, Heine,
+Lichtenberg) and 16 English originals (Emerson, Tagore, Chesterton, Wilde,
+Austen, Brontë, Alcott, Eliot, Gibran, Montgomery, Cather). The card shows
+author and work. Spelling of the German originals is modernised. The translation
+into the other language is our own, contributed under CC0 1.0 Universal, and
+the card labels it as a translation. Their rights classification is
+`PUBLIC_DOMAIN` for the original wording and `EDITORIAL_CURATED` for the
+translation.
+
 The previous catalog is archived, not served. It held German and English
 public-domain quotations, traditional sayings, public remarks and the earlier
 `eimir.` editorial sayings. The archived file is
-`backend/archive/quotes/daily_sayings.before-ai-sayings-2026-11-18.json`.
+`backend/pro/archive/quotes/daily_sayings.before-ai-sayings-2026-11-18.json`.
 Its source editions, credits and licensing terms (including the TextGrid
 CC BY 3.0 DE credit and the CC0 1.0 translations) remain recorded in that file
 and in the git history. Restoring any of it requires the credits recorded there.
+
+## Home Screen quick-action symbols
+
+The three Android vector drawables `shortcut_moment.xml`, `shortcut_wish.xml`
+and `shortcut_plan.xml` are original geometric symbols authored with AI assistance
+for this project on 2026-11-26, under the repository license. No external icon
+artwork or source code was copied. iOS uses UIKit's system quick-action symbols.
 
 ## Contributors
 

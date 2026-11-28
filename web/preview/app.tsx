@@ -7,6 +7,7 @@ import { App } from '../src/App';
 import { dateAwareStructuralSharing } from '../src/client/structuralSharing';
 import { useControlPressFeedback } from '../src/client/useControlPressFeedback';
 import { useFloatingCreateScrollTuck } from '../src/client/useFloatingCreateScrollTuck';
+import { i18nReady } from '../src/i18n';
 import { initializeTheme } from '../src/theme';
 import messages from './locales/preview.json';
 import { seedPreviewSession } from './replay';
@@ -123,11 +124,14 @@ export function startPreview(
 ): void {
   seedPreviewSession(language);
   initializeTheme();
-  ReactDOM.createRoot(root).render(
-    <MemoryRouter initialEntries={['/today']}>
-      <QueryClientProvider client={queryClient}>
-        <PreviewApp unavailableMessage={messages[language].unavailable} />
-      </QueryClientProvider>
-    </MemoryRouter>,
+  // The product language loads on demand; render once it is available.
+  void i18nReady.then(() =>
+    ReactDOM.createRoot(root).render(
+      <MemoryRouter initialEntries={['/today']}>
+        <QueryClientProvider client={queryClient}>
+          <PreviewApp unavailableMessage={messages[language].unavailable} />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    ),
   );
 }

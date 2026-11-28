@@ -115,13 +115,65 @@ def test_switching_between_the_free_designs_stays_free(client, couple) -> None:
     assert connected.json() == {"designId": "connected", "version": 2}
 
 
+def test_palette_override_is_personal_and_leaves_layout_writes_independent(client, couple) -> None:
+    url = path(couple)
+    initial = client.get(url, headers=couple["a"])
+    assert "paletteId" not in initial.json()
+
+    palette = client.patch(
+        url,
+        headers={**couple["a"], "If-Match": initial.headers["ETag"]},
+        json={"paletteId": "connected"},
+    )
+    assert palette.status_code == 200
+    assert palette.json() == {"designId": "connected", "paletteId": "connected", "version": 1}
+
+    layout = client.patch(
+        url,
+        headers={**couple["a"], "If-Match": palette.headers["ETag"]},
+        json={"designId": "warm"},
+    )
+    assert layout.status_code == 200
+    assert layout.json() == {"designId": "warm", "paletteId": "connected", "version": 2}
+    assert client.get(url, headers=couple["a"]).json() == layout.json()
+    assert client.get(url, headers=couple["b"]).json() == initial.json()
+
+    stale_reset = client.patch(
+        url,
+        headers={**couple["a"], "If-Match": palette.headers["ETag"]},
+        json={"paletteId": None},
+    )
+    assert stale_reset.status_code == 409
+    reset = client.patch(
+        url,
+        headers={**couple["a"], "If-Match": layout.headers["ETag"]},
+        json={"paletteId": None},
+    )
+    assert reset.status_code == 200
+    assert reset.json() == {"designId": "warm", "version": 3}
+
+
+@requires_pro
+def test_pro_palette_uses_existing_cosmetic_capability(client, session, couple) -> None:
+    url = path(couple)
+    initial = client.get(url, headers=couple["a"])
+    headers = {**couple["a"], "If-Match": initial.headers["ETag"]}
+    assert client.patch(url, headers=headers, json={"paletteId": "home_rooms"}).status_code == 403
+
+    grant(session, couple)
+    saved = client.patch(url, headers=headers, json={"paletteId": "home_rooms"})
+    assert saved.status_code == 200
+    assert saved.json() == {"designId": "connected", "paletteId": "home_rooms", "version": 1}
+
+
 def test_pro_designs_are_exactly_the_alternative_designs() -> None:
     assert {design for design in WirDesignId if design not in FREE_WIR_DESIGNS} == {
         WirDesignId.SHARED_ALBUM,
         WirDesignId.MODERN,
         WirDesignId.CLASSIC,
         WirDesignId.QUIET_TOGETHER,
-        WirDesignId.HANDWRITING,
+        WirDesignId.HOME_ROOMS,
+        WirDesignId.SHARED_RHYTHM,
     }
 
 
@@ -133,7 +185,8 @@ def test_pro_designs_are_exactly_the_alternative_designs() -> None:
         WirDesignId.MODERN,
         WirDesignId.CLASSIC,
         WirDesignId.QUIET_TOGETHER,
-        WirDesignId.HANDWRITING,
+        WirDesignId.HOME_ROOMS,
+        WirDesignId.SHARED_RHYTHM,
     ],
 )
 def test_every_alternative_is_pro_for_both_partners(client, session, couple, design_id) -> None:
@@ -223,7 +276,7 @@ def test_membership_owner_scope_invalid_ids_and_required_concurrency(
         ).status_code
         == 409
     )
-    for design_id in ("unknown", "https://example.test/icon.png"):
+    for design_id in ("handwriting", "together_index", "unknown", "https://example.test/icon.png"):
         assert (
             client.patch(
                 path(couple),
@@ -269,12 +322,14 @@ def test_personal_export_includes_only_callers_choice_and_deletion_purges_it(
         account_id=couple["anna"].id,
         space_id=couple["space"].id,
         wir_design="shared_album",
+        wir_design_palette="warm",
     )
     partner = AppIconPreference(
         icon_id="original",
         account_id=couple["ben"].id,
         space_id=couple["space"].id,
         wir_design="classic",
+        wir_design_palette="connected",
     )
     session.add_all([own, partner])
     session.flush()
@@ -286,6 +341,7 @@ def test_personal_export_includes_only_callers_choice_and_deletion_purges_it(
                 assert account_document["personalAppearance"] == {
                     "appIconId": "original",
                     "wirDesign": "shared_album",
+                    "designPalette": "warm",
                 }
             else:
                 assert "personalAppearance" not in account_document
@@ -294,6 +350,42 @@ def test_personal_export_includes_only_callers_choice_and_deletion_purges_it(
     session.expire_all()
     assert session.get(AppIconPreference, own.id) is None
     assert session.get(AppIconPreference, partner.id) is not None
+
+
+@pytest.mark.parametrize("retired_design", ["handwriting", "together_index"])
+def test_retired_design_resolves_to_default_and_can_be_replaced(
+    client, session, couple, retired_design
+) -> None:
+    session.add(
+        AppIconPreference(
+            icon_id="original",
+            account_id=couple["anna"].id,
+            space_id=couple["space"].id,
+            wir_design=retired_design,
+        )
+    )
+    session.flush()
+
+    current = client.get(path(couple), headers=couple["a"])
+    assert current.status_code == 200
+    assert current.json() == {"designId": "connected", "version": 1}
+
+    context = AuthorizationContext(account_id=couple["anna"].id, space_id=couple["space"].id)
+    with (
+        build_export_archive(session, context, TransferScope.PERSONAL) as buffer,
+        ZipFile(buffer) as archive,
+    ):
+        account_document = json.loads(archive.read("accounts.json"))
+    assert account_document["personalAppearance"]["wirDesign"] == "connected"
+
+    saved = client.patch(
+        path(couple),
+        headers={**couple["a"], "If-Match": current.headers["ETag"]},
+        json={"designId": "warm"},
+    )
+    assert saved.status_code == 200
+    assert saved.json() == {"designId": "warm", "version": 2}
+    assert session.scalars(select(AppIconPreference.wir_design)).all() == ["warm"]
 
 
 def test_personal_export_without_a_stored_preference_reports_the_default_design(

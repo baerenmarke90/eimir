@@ -20,6 +20,7 @@ import { captureAuthorizedQuery } from '../client/queryIdentity';
 import { planDetailPath, wishDetailPath } from '../client/routes';
 import { createSharedPlanningApis } from '../client/sharedPlanning';
 import { useTaskActivation } from '../client/useTaskActivation';
+import { isHiddenDuringGame } from '../client/wishConcealment';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AddActionButton } from './AddAction';
 import { AutoLoadMore } from './AutoLoadMore';
@@ -227,12 +228,20 @@ function ScopedStoryPlanningLinks({
             // A linked discreet Plan shows only its list title (#1790 F3).
             return { ...plan, title: planListTitle(plan, t), kind: 'plans' };
           }),
-          ...wishes.items.map(
-            async (wishId): Promise<Target> => ({
-              ...(await apis.wishes.getWish({ spaceId, wishId }, { signal })),
-              kind: 'wishes',
-            }),
-          ),
+          ...wishes.items.map(async (wishId): Promise<Target> => {
+            const wish = await apis.wishes.getWish(
+              { spaceId, wishId },
+              { signal },
+            );
+            // #2158 H: an open game hides this wish; it keeps a neutral name.
+            return isHiddenDuringGame(wish)
+              ? {
+                  ...wish,
+                  title: t('wishConcealment.linkedTitle'),
+                  kind: 'wishes',
+                }
+              : { ...wish, kind: 'wishes' };
+          }),
         ]);
       } catch (error) {
         throw await normalizeClientError(error);
@@ -337,7 +346,7 @@ function ScopedStoryPlanningLinks({
     return initialPlanId ? (
       <div className="story-planning-handoff">
         {linked.isLoading || mutation.isPending ? (
-          <p role="status">{t('m5s3.common.saving')}</p>
+          <p role="status">{t('common.saving')}</p>
         ) : null}
         {linked.error ? (
           <ProblemState
@@ -580,10 +589,16 @@ function PlanningTargetPicker({
     ? []
     : sortByProductLabel(
         query.data?.pages.flatMap((page) =>
-          page.items.map((item) => ({
-            id: item.id,
-            title: 'discreet' in item ? planListTitle(item, t) : item.title,
-          })),
+          // #2158 H: a wish an open game hides from the reader is no choice.
+          page.items
+            .filter(
+              (item) =>
+                !('hiddenDuringGame' in item) || !isHiddenDuringGame(item),
+            )
+            .map((item) => ({
+              id: item.id,
+              title: 'discreet' in item ? planListTitle(item, t) : item.title,
+            })),
         ) ?? [],
         (item) => item.title,
         resolvedLocale(),

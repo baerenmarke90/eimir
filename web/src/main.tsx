@@ -10,6 +10,7 @@ import { identityBuildVariable } from './client/identityEnvironment';
 import { releaseLaunchScreenWhenPainted } from './client/launchScreen';
 import { isNativeSessionStorageAvailable } from './client/nativeSessionStorage';
 import { startNativeSystemTheme } from './client/nativeSystemTheme';
+import { startSystemColors } from './client/systemColors';
 import { planPathFromCalendarLink } from './client/routes';
 import { restoreNativeSession } from './client/sessionPersistence';
 import { useControlPressFeedback } from './client/useControlPressFeedback';
@@ -17,7 +18,7 @@ import { useFloatingCreateScrollTuck } from './client/useFloatingCreateScrollTuc
 import { useStatusBarScrim } from './client/useStatusBarScrim';
 import { DemoBanner } from './components/DemoBanner';
 import { NativeSessionGate } from './components/NativeSessionGate';
-import { useTranslation } from './i18n';
+import { i18nReady, useTranslation } from './i18n';
 import { registerProductionServiceWorker } from './pwa';
 import { initializeTheme } from './theme';
 import './styles.css';
@@ -52,6 +53,7 @@ import './design/identity-roles.css';
 import './design/person-colors.css';
 import './design/identity-components.css';
 import './design/app-designs.css';
+import './design/system-colors.css';
 import { dateAwareStructuralSharing } from './client/structuralSharing';
 
 // Resolve calendar links before the router and sign-in read the entry URL.
@@ -65,6 +67,7 @@ markNativeRuntime();
 void registerNativeHaptics();
 initializeTheme();
 startNativeSystemTheme();
+startSystemColors();
 registerProductionServiceWorker();
 
 const queryClient = new QueryClient({
@@ -95,9 +98,6 @@ const demoResetTimerEnabled =
 const demoResetInterval = String(
   identityBuildVariable('DEMO_RESET_INTERVAL') || '6h',
 ).trim();
-const demoUrl = String(identityBuildVariable('DEMO_URL'))
-  .trim()
-  .replace(/\/+$/, '');
 
 function RootApp() {
   const { t } = useTranslation();
@@ -119,11 +119,6 @@ function RootApp() {
         />
       ) : null}
       <App demoMode={demoMode} />
-      {!demoMode && demoUrl ? (
-        <a className="demo-launch" href={demoUrl}>
-          {t('demo.launch')}
-        </a>
-      ) : null}
     </NativeSessionGate>
   );
 }
@@ -146,4 +141,5 @@ function mountApplication() {
   );
 }
 
-mountApplication();
+// Render only once the active language is in memory: no flash of raw keys.
+void i18nReady.then(mountApplication);

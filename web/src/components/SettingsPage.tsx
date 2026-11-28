@@ -1,11 +1,5 @@
 import { useMemo } from 'react';
-import {
-  Link,
-  Navigate,
-  useLocation,
-  useNavigate,
-  useParams,
-} from 'react-router-dom';
+import { Link, Navigate, useLocation, useParams } from 'react-router-dom';
 import { DailyQuoteApi } from '../api/generated/apis/DailyQuoteApi';
 import { DashboardApi } from '../api/generated/apis/DashboardApi';
 import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
@@ -55,7 +49,7 @@ import { SettingsScopeNote } from './SettingsScopeNote';
 import { SignInMethodsPanel } from './SignInMethodsPanel';
 import { SpaceConfigurationPanel } from './SpaceConfigurationPanel';
 import { SpaceOffboardingPanel } from './SpaceOffboardingPanel';
-import { TransferPanel } from './TransferPanel';
+import { StorageSection } from './StorageSection';
 import { WirStatisticsSetting } from './WirStatisticsSetting';
 import './SettingsPage.css';
 
@@ -71,7 +65,6 @@ export interface SettingsPageProps {
 export function SettingsPage(props: SettingsPageProps) {
   const { t } = useTranslation();
   const location = useLocation();
-  const navigate = useNavigate();
   const { settingsCategory } = useParams<{ settingsCategory?: string }>();
 
   const configuration = useMemo(
@@ -135,10 +128,6 @@ export function SettingsPage(props: SettingsPageProps) {
   ) {
     return <Navigate replace to={MORE_SETTINGS_ROUTE} />;
   }
-
-  const openDataCategory = () => {
-    navigate(settingsCategoryPath('data'));
-  };
 
   let categoryContent = null;
   if (categoryId === 'updates') {
@@ -314,13 +303,11 @@ export function SettingsPage(props: SettingsPageProps) {
         id="settings-data"
         className="settings-category-content settings-data-block"
       >
-        <TransferPanel
-          key={`${props.account.id}:${props.spaceId}:${location.search}`}
+        <StorageSection
           apiBaseUrl={props.apiBaseUrl}
           accessToken={props.accessToken}
+          accountId={props.account.id}
           spaceId={props.spaceId}
-          requestedExportId={new URLSearchParams(location.search).get('export')}
-          requestedImportId={new URLSearchParams(location.search).get('import')}
         />
       </div>
     );
@@ -352,13 +339,11 @@ export function SettingsPage(props: SettingsPageProps) {
               spacesApi={spacesApi}
               spaceId={props.spaceId}
               demoMode={demoMode}
-              onOpenDataExport={openDataCategory}
             />
             <AccountSettingsPanel
               apiBaseUrl={props.apiBaseUrl}
               accessToken={props.accessToken}
               demoMode={demoMode}
-              onOpenDataExport={openDataCategory}
             />
           </div>
         </section>

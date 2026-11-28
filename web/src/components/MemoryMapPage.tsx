@@ -17,9 +17,13 @@ import {
 } from 'react-router-dom';
 import type { MemoryMapEntry } from '../api/generated/models/MemoryMapEntry';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
-import type { MemoryMapSession } from '../client/memoryMapSession';
+import {
+  type MemoryMapSession,
+  momentMapOriginKey,
+} from '../client/memoryMapSession';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { parseMapPlace } from '../client/photoPlaces';
+import { usePrimaryTabPrepared } from '../client/primaryTabPrepared';
 import {
   ClientProblemError,
   normalizeClientError,
@@ -41,6 +45,7 @@ import { AutoLoadMore } from './AutoLoadMore';
 import { EimirIcon } from './EimirIcon';
 import { MemoryMapMemories, MemoryMapPhotoStack } from './MemoryMapMemories';
 import { MemoryPreview } from './MemoryPreview';
+import { useAppLayout } from '../client/wirDesign';
 import { PageHeader } from './PageHeader';
 import type { MapLocation, MapViewport } from './PlaceMapCanvas';
 import { ProblemState } from './ProblemState';
@@ -73,6 +78,7 @@ export function MemoryMapPage({
   ) => Promise<ObjectUrlSource>;
 }) {
   const { t } = useTranslation();
+  const layout = useAppLayout();
   const [diaryLayout] = useDiaryLayout();
   const locale = resolvedLocale();
   const {
@@ -94,12 +100,7 @@ export function MemoryMapPage({
       : undefined;
   const [params, setParams] = useSearchParams();
   const placeParam = params.get('place');
-  const originKey = (location.state as { taskOriginKey?: unknown } | null)
-    ?.taskOriginKey;
-  const hasOrigin = Boolean(
-    (location.state as { mapFromMoment?: boolean } | null)?.mapFromMoment &&
-      resolveOrigin(originKey),
-  );
+  const originKey = momentMapOriginKey(location.state, resolveOrigin);
   const [revealedPlaceId, setRevealedPlaceId] = useState<string | null>(null);
   const fullscreenScope = JSON.stringify([apiBaseUrl, accountId, spaceId]);
   const [fullscreen, setFullscreen] = useState({
@@ -145,9 +146,9 @@ export function MemoryMapPage({
     (value: MapViewport) => {
       if (viewport.current.scope === fullscreenScope)
         viewport.current.value = value;
-      if (!hasOrigin && sessionViewport) sessionViewport.current = value;
+      if (!originKey && sessionViewport) sessionViewport.current = value;
     },
-    [fullscreenScope, hasOrigin, sessionViewport],
+    [fullscreenScope, originKey, sessionViewport],
   );
   // The Karte segment reopens the Place last selected here (#2078). The map
   // panel stays mounted and sees its own last location while hidden, so only
@@ -326,21 +327,31 @@ export function MemoryMapPage({
       ),
     [loadMemoryImage, apiBaseUrl, accountId, spaceId],
   );
-  const selected = locations.find(({ point }) => point.id === selectedId);
+  const selected = useMemo(
+    () => locations.find(({ point }) => point.id === selectedId),
+    [locations, selectedId],
+  );
   const selectedItems = useMemo(
     () => [...(selected?.memories.values() ?? [])],
     [selected],
   );
   const currentMemoryId =
-    selectedItems.find((entry) => entry.memoryId === activeMemoryId)
-      ?.memoryId ?? selectedItems[0]?.memoryId;
-  const points = useMemo(
+    activeMemoryId && selected?.memories.has(activeMemoryId)
+      ? activeMemoryId
+      : selectedItems[0]?.memoryId;
+  const visibleLocations = useMemo(
+    () => (selected ? [selected] : selectedId ? [] : locations),
+    [locations, selected, selectedId],
+  );
+  const visiblePoints = useMemo(
     () =>
-      locations.map(({ point, memories }) => ({
+      visibleLocations.map(({ point, memories }) => ({
         ...point,
         preview: (
           <MemoryMapPhotoStack
-            entries={[...memories.values()]}
+            entries={
+              point.id === selectedId ? selectedItems : [...memories.values()]
+            }
             activeMemoryId={
               point.id === selectedId ? currentMemoryId : undefined
             }
@@ -353,12 +364,14 @@ export function MemoryMapPage({
           count: point.count,
         }),
       })),
-    [locations, t, thumbnail, selectedId, currentMemoryId],
-  );
-  const visiblePoints = useMemo(
-    () =>
-      selectedId ? points.filter((point) => point.id === selectedId) : points,
-    [points, selectedId],
+    [
+      visibleLocations,
+      t,
+      thumbnail,
+      selectedId,
+      selectedItems,
+      currentMemoryId,
+    ],
   );
   useEffect(() => {
     if (
@@ -399,6 +412,18 @@ export function MemoryMapPage({
   const gated =
     query.error instanceof ClientProblemError &&
     query.error.code === 'PREMIUM_ENTITLEMENT_REQUIRED';
+  // A preparation before the first visit (#2063) is done once the map has
+  // drawn its opening view, or at once when there is no map to draw.
+  const prepared = usePrimaryTabPrepared();
+  const nothingToDraw =
+    Boolean(query.error) ||
+    (!query.isPending &&
+      locations.length === 0 &&
+      !query.hasNextPage &&
+      !focusPoint);
+  useEffect(() => {
+    if (nothingToDraw) prepared();
+  }, [nothingToDraw, prepared]);
   function openMemory(
     event: MouseEvent<HTMLAnchorElement>,
     entry: MemoryMapEntry,
@@ -463,9 +488,15 @@ export function MemoryMapPage({
       <PageHeader
         variant="root"
         className="content-overview-heading"
-        title={t('story.timelineTitle')}
+        title={t(
+          layout === 'rooms'
+            ? 'wirDesign.homeRooms.remember'
+            : layout === 'chapters'
+              ? 'wirDesign.rhythm.history'
+              : 'story.timelineTitle',
+        )}
         before={
-          hasOrigin ? (
+          originKey ? (
             <TaskBackButton
               onClick={() => requestReturn(originKey, '/story')}
             />
@@ -558,6 +589,7 @@ export function MemoryMapPage({
                       <MapCanvas
                         key={`${fullscreenScope}:inline`}
                         revealWhenComplete
+                        onComplete={prepared}
                         initialViewport={viewport.current.value}
                         onViewportChange={rememberViewport}
                         onUserMotionChange={setMapMoving}

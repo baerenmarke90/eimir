@@ -13,6 +13,7 @@ from change_scope import (
     SCOPES,
     SELF_VALIDATING_TOOLING_OWNERS,
     classify_paths,
+    risk_paths,
     tiered_outputs,
 )
 
@@ -138,6 +139,40 @@ class ChangeScopeTest(unittest.TestCase):
         self.assert_scope(
             ["backend/src/eimir/memories/service.py"],
             enabled={"backend", "backend_integration"},
+        )
+
+    def test_pro_distribution_change_enables_postgres_integration(self) -> None:
+        self.assert_scope(
+            ["backend/pro/src/eimir_pro/__init__.py"],
+            enabled={"backend", "backend_integration"},
+        )
+
+    def test_pro_distribution_packaging_enables_backend_supply_chain(self) -> None:
+        self.assert_scope(
+            ["backend/pro/pyproject.toml"],
+            enabled={
+                "backend",
+                "backend_integration",
+                "supply_chain",
+                "supply_chain_backend",
+            },
+        )
+
+    def test_admin_distribution_change_enables_postgres_integration(self) -> None:
+        self.assert_scope(
+            ["backend/admin/src/eimir_admin/__init__.py"],
+            enabled={"backend", "backend_integration"},
+        )
+
+    def test_admin_distribution_packaging_enables_backend_supply_chain(self) -> None:
+        self.assert_scope(
+            ["backend/admin/pyproject.toml"],
+            enabled={
+                "backend",
+                "backend_integration",
+                "supply_chain",
+                "supply_chain_backend",
+            },
         )
 
     def test_backend_runtime_entrypoint_also_enables_deployment_gates(self) -> None:
@@ -476,6 +511,13 @@ class PullRequestTierTest(unittest.TestCase):
         self.assertEqual(outputs["tier"], "full")
         self.assertEqual(self.heavy(outputs), {"backend_integration", "recovery"})
 
+    def test_operator_plugin_migration_is_a_risk_path_and_runs_full_automatically(self) -> None:
+        path = "backend/admin/src/eimir_admin/alembic/versions/0002_example.py"
+        self.assertEqual(risk_paths([path]), [path])
+        outputs = tiered_outputs([path], pull_request=True)
+        self.assertEqual(outputs["tier"], "full")
+        self.assertIn("backend_integration", self.heavy(outputs))
+
     def test_auth_and_compose_are_risk_paths(self) -> None:
         for path in (
             "backend/src/eimir/auth/session.py",
@@ -486,6 +528,16 @@ class PullRequestTierTest(unittest.TestCase):
         ):
             with self.subTest(path=path):
                 self.assertEqual(tiered_outputs([path], pull_request=True)["tier"], "full")
+
+    def test_core_export_tooling_runs_its_backend_gates_in_the_full_tier(self) -> None:
+        for path in ("tools/cutover/core-allowlist.toml", "tools/cutover/core_export.py"):
+            with self.subTest(path=path):
+                scopes = classify_paths([path])
+                self.assertEqual({scope for scope, on in scopes.items() if on}, {"backend_integration"})
+                self.assertEqual(risk_paths([path]), [path])
+                outputs = tiered_outputs([path], pull_request=True)
+                self.assertEqual(outputs["tier"], "full")
+                self.assertEqual(self.heavy(outputs), {"backend_integration"})
 
     def test_unknown_path_fails_closed_into_the_full_tier(self) -> None:
         outputs = tiered_outputs(["future-build-system/config.toml"], pull_request=True)
@@ -513,7 +565,7 @@ class PullRequestTierTest(unittest.TestCase):
         self.assertEqual(full["supply_chain_web_build"], "false")
 
     def test_label_gated_workflow_change_requires_the_label(self) -> None:
-        for path in (".github/workflows/web-browser-qa.yml", ".github/actions/attest-release-artifact/action.yml"):
+        for path in (".github/workflows/web-browser-qa.yml", ".github/workflows/ios-native.yml", ".github/actions/attest-release-artifact/action.yml"):
             with self.subTest(path=path):
                 self.assertEqual(tiered_outputs([path], pull_request=True)["label_required"], "true")
                 self.assertEqual(

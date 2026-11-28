@@ -1,0 +1,8 @@
+eimir. Android 0.2.0-test.101
+
+- On Wir, no dot stays on your portraits anymore when the two small lights have reached the heart.
+- The light behind your two portraits now reaches over the status bar to the edge of the screen and fades softly into the next section, so it no longer looks like a stripe.
+- In Light mode the light has its own, gentler strength, so the small text on it stays easy to read.
+
+The product changes come from main at 01be2337b4b28f9ae9dbd2113dc533aae2872210.
+Install over test.100 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 101.

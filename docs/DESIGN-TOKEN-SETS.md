@@ -22,7 +22,7 @@ and generates:
   explicit Dark (`data-theme="dark"`) and system Dark, plus a palette for its
   settings preview tile (`data-design-preview`);
 - `web/src/design/appDesigns.generated.ts`: the typed registry (tier and
-  layout per id).
+  layout per id) and selectable palette representatives.
 
 `npm run tokens:generate` writes both; `npm run tokens:check` (part of
 `npm test` and `npm run build`) fails when they are stale.
@@ -92,7 +92,9 @@ action) and primary links use the design's action colour
 `--color-action-primary` with its label colour `--color-on-action-primary`.
 A design sets them through the optional roles `actionPrimary` and
 `onActionPrimary`; otherwise they are the palette's strong action and
-`onAction`, which gives Verbunden the canonical blue. Shape, icon, label, size
+`onAction`, which gives Verbunden the canonical blue. A palette other than
+Verbunden follows its own colours and must not pin the canonical blue, so
+choosing a design colour recolours the add action too. Shape, icon, label, size
 and the single-primary-action rule stay as in the
 [Button contract](COMPONENT-CONTRACTS.md#31-button) (#1688/#1724).
 
@@ -107,16 +109,20 @@ canonical blue.
 
 Layout modes are a closed, code-owned list (`connected`, `classic`, `open`,
 `compact`, `rows`, and since 2026-11-17 by Product Owner decision `names`
-(Zu zweit: large names without portraits, the moment as a small row) and
-`note` (Handschrift: a compact header leading with the latest shared Heart
-Moment)). A layout may change arrangement, density, hero composition
+(Zu zweit: large names without portraits, the moment as a small row)).
+A layout may change arrangement, density, hero composition
 and image ratios. It must not change content, actions, routes, privacy
 presentation or the create-button contract. Colours, type families, radii,
 elevation and motion come from tokens, never from layout CSS.
 
-A layout that replaces navigation (for example the Zuhause, Unser Takt and
-Faden proposals) needs a separate Product Owner decision per layout before it
-joins the list.
+A navigation-replacing layout needs a separate Product Owner decision before it
+joins the list. The following modes were approved on 2026-11-23. Each uses the
+same destination routes, contextual create actions and secondary-page headers.
+
+| Layout | Navigation | Decision |
+| --- | --- | --- |
+| `rooms` | Room picker for Zuhause | [#1881](https://github.com/baerenmarke90/eimir/pull/1881) |
+| `chapters` | Chapter navigation for Unser Takt | [#1885](https://github.com/baerenmarke90/eimir/pull/1885) |
 
 The Momente Album/compact switch is an independent per-device presentation
 choice, not a design. It consumes the same semantic tokens and therefore
@@ -124,12 +130,17 @@ follows any design.
 
 ## Application and scope
 
-`WirDesignProvider` sets `data-app-design` on the root element once the
-selection is resolved, in the same frame as the Wir composition, and removes
-it on sign-out or Space switch. The generated blocks apply from the root, so
-every tab, portaled sheet and the browser theme colour (`theme-color`, via
-`syncDocumentThemeColor`) follow the design. Layout modes still affect only
-the screens that implement them (Wir).
+`WirDesignProvider` applies the selected layout and its presets from
+`data-app-design` and applies the effective colour palette from
+`data-app-palette`. A palette change reaches every tab, portaled sheet and
+the browser theme colour (`theme-color`) without reapplying layout or presets.
+Both attributes are scoped to the signed-in person's Space. Approved
+navigation modes also apply to the authenticated shell.
+
+The Design colours card follows the app design by default. The user can save
+a palette from another design independently. Designs that share a palette
+have one selectable representative, with the default design representing
+the original colours.
 
 Contextual colour worlds (`data-color-world="warm"`/`"natural"`, for example
 intimate moments and plan anticipation) stay as they are in designs on the
@@ -146,9 +157,14 @@ bottom-navigation rules; both are removed with the app-wide step.
 
 Pro gating is unchanged: saving a Pro design needs `theme.bespoke_packs`, a
 saved design stays effective after expiry, and returning to a Free design is
-always Free (see [Freemium Feature Matrix](FREEMIUM-FEATURE-MATRIX.md)). Ids
-are unchanged, so stored preferences need no migration. A backend test pins
+always Free (see [Freemium Feature Matrix](FREEMIUM-FEATURE-MATRIX.md)). The
+existing design IDs are unchanged. A backend test pins
 every file's `tier` to `FREE_WIR_DESIGNS`.
+
+The optional palette override uses the same owner-scoped appearance
+preference, If-Match token and Free/Pro boundary. Following the design is
+always Free. A stored override survives expiry and appears in the owner's
+personal export. Existing preferences start by following the app design.
 
 ## Adding a design
 

@@ -37,6 +37,8 @@ export function PageHeader({
   variant?: 'default' | 'root' | 'composer';
 }) {
   const secondary = useSecondaryPage() && variant === 'default';
+  const item = itemLabel !== undefined && itemLabel !== null;
+  const titleOnly = !item && !metadata && !description;
   const variantClassName =
     variant === 'root'
       ? 'page-heading-root'
@@ -45,7 +47,6 @@ export function PageHeader({
         : '';
 
   if (secondary) {
-    const item = itemLabel !== undefined && itemLabel !== null;
     const titleBlock = titleEditor ?? (
       <div className="page-heading-title-container">
         <h1 id={titleId} className="page-heading-secondary-title">
@@ -59,6 +60,7 @@ export function PageHeader({
       <>
         {before}
         <header
+          data-title-only={titleOnly || undefined}
           className={`page-heading page-heading-secondary ${item ? 'page-heading-item' : ''} ${titleAction && !item ? 'page-heading-has-title-action' : ''} ${className}`.trim()}
         >
           {item ? (
@@ -90,6 +92,7 @@ export function PageHeader({
     <>
       {variant !== 'composer' ? before : null}
       <header
+        data-title-only={(variant === 'composer' && titleOnly) || undefined}
         className={`page-heading ${titleAction ? 'page-heading-has-title-action' : ''} ${variantClassName} ${className}`.trim()}
       >
         {variant === 'composer' ? before : null}

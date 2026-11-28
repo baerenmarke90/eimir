@@ -269,3 +269,86 @@ def test_existing_place_correction_wins_against_a_waiting_enrichment_job(
         saved = session.get(Place, place_id)
         assert saved.payload.name == "Our selected venue"
         assert saved.payload.address == "Our corrected address" and saved.version == 2
+
+
+def _private_heart(client, couple, session, **extra):  # type: ignore[no-untyped-def]
+    photo = binding.ready_attachment(client, couple, session)
+    created = client.post(
+        f"{binding.base_path(couple['space'].id)}/heart-moments",
+        json={
+            "text": "",
+            "emotion": "LOVED",
+            "visibility": "PRIVATE",
+            "happenedOn": "2025-06-13",
+            "attachments": [{"attachmentId": photo, "position": 0}],
+            **extra,
+        },
+        headers=binding.auth(couple["token_a"]),
+    )
+    assert created.status_code == 201
+    return created.json()
+
+
+def test_private_heart_keeps_its_photo_location_to_itself(
+    client, couple, session, gps_photo, lookup
+):  # type: ignore[no-untyped-def]
+    heart = _private_heart(client, couple, session)
+    # The author's own protected location, never a shared Place.
+    assert heart["location"]["latitude"] == 52.516667
+    assert heart["location"]["longitude"] == 13.4
+    assert heart["location"]["name"] in {"Photo location", "Foto-Ort"}
+    assert session.execute(select(Place)).scalars().all() == []
+    assert places(client, couple, heart["id"], "heart-moments").status_code == 404
+
+    job = session.get(Job, UUID(heart["id"]))
+    assert job is not None and job.kind == enrichment.PRIVATE_JOB_KIND
+    assert set(job.payload) <= {
+        "heart_moment_id",
+        "owner_id",
+        "space_id",
+        "_correlation_id",
+        "preference_version",
+    }
+    enrichment.enrich_private_location(session, dict(job.payload))
+    read = client.get(
+        f"{binding.base_path(couple['space'].id)}/heart-moments/{heart['id']}",
+        headers=binding.auth(couple["token_a"]),
+    ).json()
+    assert read["location"]["name"] == "Riverside cafe"
+    assert read["location"]["address"] == "River Lane 12, Berlin"
+    assert (read["location"]["latitude"], read["location"]["longitude"]) == (52.516667, 13.4)
+    assert session.execute(select(Place)).scalars().all() == []
+    # A named location is no longer a placeholder: a repeated job looks nothing up.
+    enrichment.enrich_private_location(session, dict(job.payload))
+    assert len(lookup) == 1
+
+
+def test_private_heart_keeps_a_location_the_author_chose(
+    client, couple, session, gps_photo, lookup
+):  # type: ignore[no-untyped-def]
+    chosen = {"name": "Our bench", "address": None, "latitude": 1.5, "longitude": 2.5}
+    heart = _private_heart(client, couple, session, location=chosen)
+    assert heart["location"] == chosen
+    assert session.get(Job, UUID(heart["id"])) is None
+    assert lookup == []
+
+
+def test_private_location_edited_before_the_job_is_never_overwritten(
+    client, couple, session, gps_photo, lookup
+):  # type: ignore[no-untyped-def]
+    heart = _private_heart(client, couple, session)
+    job = session.get(Job, UUID(heart["id"]))
+    assert job is not None
+    edited = client.patch(
+        f"{binding.base_path(couple['space'].id)}/heart-moments/{heart['id']}",
+        json={"location": {"name": "Grandma's garden", "latitude": 52.516667, "longitude": 13.4}},
+        headers=binding.if_match(couple["token_a"], heart["version"]),
+    )
+    assert edited.status_code == 200
+    enrichment.enrich_private_location(session, dict(job.payload))
+    assert lookup == []
+    read = client.get(
+        f"{binding.base_path(couple['space'].id)}/heart-moments/{heart['id']}",
+        headers=binding.auth(couple["token_a"]),
+    ).json()
+    assert read["location"]["name"] == "Grandma's garden"

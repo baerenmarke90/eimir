@@ -26,6 +26,7 @@ import {
   signIn,
 } from '../support/storyTimelineFixture';
 import { editViaMenu } from '../support/itemMenu';
+import germanUi from '../../src/i18n/locales/de';
 
 const PHOTO = fs.readFileSync(
   path.resolve(
@@ -60,7 +61,7 @@ async function finishPlaceEditor(page: Page) {
     exact: true,
   });
   await picker
-    .getByRole('button', { name: experiences.finish, exact: true })
+    .getByRole('button', { name: germanUi.common.done, exact: true })
     .click();
   await expect(picker).toHaveCount(0);
 }
@@ -112,7 +113,7 @@ test('the saved Place opens the pinned map directly, restores the moment and ret
     }),
   ).toBeVisible();
   await page
-    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .getByRole('button', { name: germanUi.common.back, exact: true })
     .click();
   await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
   await expect(place).toBeVisible();
@@ -123,7 +124,7 @@ test('the saved Place opens the pinned map directly, restores the moment and ret
       exact: true,
     }),
   ).toBeVisible();
-  await editViaMenu(page, memoryProduct.edit);
+  await editViaMenu(page, germanUi.common.edit);
   const picker = await openPlaceEditor(page);
   await expect(
     picker
@@ -133,7 +134,7 @@ test('the saved Place opens the pinned map directly, restores the moment and ret
   await finishPlaceEditor(page);
   await page
     .locator('.composer-header')
-    .getByRole('link', { name: taskBoundary.back, exact: true })
+    .getByRole('link', { name: germanUi.common.back, exact: true })
     .click();
   await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
   expect(state.writes).toEqual([]);
@@ -169,11 +170,11 @@ test('a pending photo location becomes a readable address without another upload
     }),
   ).toBeVisible();
   await page
-    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .getByRole('button', { name: germanUi.common.back, exact: true })
     .click();
   await expect(page).toHaveURL(/\/story\/memories\/mem-canal$/);
   await expect(place).toBeFocused();
-  await editViaMenu(page, memoryProduct.edit);
+  await editViaMenu(page, germanUi.common.edit);
   const picker = await openPlaceEditor(page);
   await expect(
     picker
@@ -201,7 +202,7 @@ test('canonical Place correction returns to the originating saved moment', async
       exact: true,
     }),
   ).toBeVisible();
-  await editViaMenu(page, m5s3.common.edit);
+  await editViaMenu(page, germanUi.common.edit);
   await page
     .getByLabel(m5s3.place.name, { exact: true })
     .fill(localeFixture.photoPlaces.correctedName);
@@ -215,7 +216,7 @@ test('canonical Place correction returns to the originating saved moment', async
     }),
   ).toBeVisible();
   await page
-    .getByRole('button', { name: taskBoundary.back, exact: false })
+    .getByRole('button', { name: germanUi.common.back, exact: false })
     .click();
   await expect(page).toHaveURL(/\/story\/memories\/mem-canal\/edit$/);
   await expect(
@@ -568,7 +569,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         page.getByRole('button', { name: photoPlaceCopy.add }),
       ).toHaveCount(0);
       await expect(page.locator('.moment-place-overflow')).toHaveCount(0);
-      await editViaMenu(page, memoryProduct.edit);
+      await editViaMenu(page, germanUi.common.edit);
       await expect(page).toHaveURL(/\/story\/memories\/mem-canal\/edit$/);
       const dialog = await openPlaceActions(page);
       await expect(
@@ -636,7 +637,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         page.getByText(localeFixture.photoPlaces.resolvedName, { exact: true }),
       ).toHaveCount(0);
       expect(state.writes).toEqual(['save']);
-      await editViaMenu(page, memoryProduct.edit);
+      await editViaMenu(page, germanUi.common.edit);
       await expect(page).toHaveURL(/\/story\/memories\/mem-canal\/edit$/);
       await expect(
         page.getByText(localeFixture.photoPlaces.resolvedName, { exact: true }),

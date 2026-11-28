@@ -1,0 +1,1411 @@
+/* Sternbild: an old star chart of the couple's memories over a hill, with
+   a telescope and the two of you under one blanket, and a small star-chart
+   card for the lit star. The sky follows the device clock: it blends two
+   of the palettes below (`--memory-stars-from-*`, `--memory-stars-to-*`
+   and `--memory-stars-blend` are set inline by `ConstellationWorld.tsx`
+   from `starChart.ts`). In Dark the sky never gets lighter than a dark
+   dusk, and the chart, the hill and the card turn to deep night. Every
+   animation and transition, keyframes and timing roles:
+   src/motion/memory-worlds.css. */
+
+/* The handwriting face of the notes, the porthole and the card (bundled, OFL). */
+@font-face {
+  font-family: "Caveat";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/caveat-latin-700.woff2") format("woff2");
+}
+
+/* ---------- Roles ---------- */
+.memory-stars-world {
+  --memory-stars-hand: "Caveat", var(--font-display);
+  --memory-stars-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42 0 0 0 0 .34 0 0 0 0 .25 0 0 0 .11 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+
+  /* The sky's palettes (colours, then the background stars' brightness,
+     the horizon's fade, the milky way and the memory stars' visibility). */
+  --memory-stars-night-top: #060a1e;
+  --memory-stars-night-mid: #111944;
+  --memory-stars-night-low: #1d285c;
+  --memory-stars-night-horizon: #2a3870;
+  --memory-stars-night-glow: #44539a;
+  --memory-stars-night-dust: 1;
+  --memory-stars-night-fade: 0.3;
+  --memory-stars-night-milk: 0.75;
+  --memory-stars-night-star: 1;
+  --memory-stars-predawn-top: #121c48;
+  --memory-stars-predawn-mid: #26407a;
+  --memory-stars-predawn-low: #4a6ea3;
+  --memory-stars-predawn-horizon: #a9bcd8;
+  --memory-stars-predawn-glow: #e3cfdc;
+  --memory-stars-predawn-dust: 0.75;
+  --memory-stars-predawn-fade: 0.85;
+  --memory-stars-predawn-milk: 0.35;
+  --memory-stars-predawn-star: 0.9;
+  /* A soft day sky: the stars stay as a ghostly chart. */
+  --memory-stars-day-top: #36659f;
+  --memory-stars-day-mid: #6b97c7;
+  --memory-stars-day-low: #9dbfdf;
+  --memory-stars-day-horizon: #d2e2f0;
+  --memory-stars-day-glow: #f6efe0;
+  --memory-stars-day-dust: 0.32;
+  --memory-stars-day-fade: 1;
+  --memory-stars-day-milk: 0.1;
+  --memory-stars-day-star: 0.55;
+  --memory-stars-dusk-top: #1c2050;
+  --memory-stars-dusk-mid: #40377a;
+  --memory-stars-dusk-low: #6c4a80;
+  --memory-stars-dusk-horizon: #e39783;
+  --memory-stars-dusk-glow: #ffc49b;
+  --memory-stars-dusk-dust: 0.9;
+  --memory-stars-dusk-fade: 0.85;
+  --memory-stars-dusk-milk: 0.5;
+  --memory-stars-dusk-star: 1;
+  /* Until the clock has set the palettes: the night. */
+  --memory-stars-blend: 0;
+
+  /* The chart, its engraving, the milky way and the lines. */
+  --memory-stars-milk: #f4e8ff;
+  --memory-stars-dust-color: #fff8ea;
+  --memory-stars-engrave: color-mix(in srgb, #f3e9d2 82%, transparent);
+  --memory-stars-engrave-faint: color-mix(in srgb, #fcf0d6 13%, transparent);
+  --memory-stars-line-color: color-mix(in srgb, #fff2d4 50%, transparent);
+  --memory-stars-gold: #f5d283;
+  --memory-stars-thread: #ffe2a0;
+  --memory-stars-mat: #eee1c4;
+  --memory-stars-mat-line: #b4925a;
+  --memory-stars-night-shade: #140e24;
+  /* The memory stars, tinted by kind, and their flare. */
+  --memory-stars-core: #fffbea;
+  --memory-stars-glow: #fff1c9;
+  --memory-stars-photo-core: #f5f8ff;
+  --memory-stars-photo-glow: #b9cdff;
+  --memory-stars-heart-core: #ffe4ec;
+  --memory-stars-heart-glow: #ff9fc0;
+  --memory-stars-milestone-core: #fff2c4;
+  --memory-stars-milestone-glow: #ffd36e;
+  --memory-stars-white: #fffaf0;
+  /* The shooting star. */
+  --memory-stars-trail: #ffdca6;
+  --memory-stars-trail-head: #fffaf0;
+  --memory-stars-head-core: #fffef8;
+  --memory-stars-head-light: #fffdf6;
+  --memory-stars-ambient-streak: color-mix(in srgb, #fffaf0 90%, transparent);
+  /* The hill, the two of you, the blanket and the telescope. */
+  --memory-stars-hill: #281d3d;
+  --memory-stars-hill-rim: color-mix(in srgb, #ffc7a2 42%, transparent);
+  --memory-stars-figure: #1d152e;
+  --memory-stars-rim-light: color-mix(in srgb, #ffdcbc 78%, transparent);
+  --memory-stars-blanket: #8d3f50;
+  --memory-stars-blanket-check: color-mix(in srgb, #f4c58f 42%, transparent);
+  --memory-stars-beanie: #c8913f;
+  --memory-stars-brass-light: #f8df9f;
+  --memory-stars-brass: #c99b4b;
+  --memory-stars-brass-deep: #7a5822;
+  --memory-stars-brass-shine: color-mix(in srgb, #fff8e2 70%, transparent);
+  --memory-stars-lens-glass: color-mix(in srgb, #e8f0ff 85%, transparent);
+  --memory-stars-heart: #ff9fbd;
+  --memory-stars-frost-color: rgb(255 255 255 / 85%);
+  --memory-stars-snow-color: rgb(255 255 255 / 88%);
+  /* The moon. */
+  --memory-stars-moon: #fbf1cf;
+  --memory-stars-moon-ink: #9c7d48;
+  --memory-stars-moon-blush: color-mix(in srgb, #f19a8c 55%, transparent);
+  --memory-stars-moon-glow: color-mix(in srgb, #fff0c6 42%, transparent);
+  /* The pencil notes: cream, or a blue-black pencil in the light day sky. */
+  --memory-stars-cream: #f3e9d2;
+  --memory-stars-ink-gold: #f2c94c;
+  --memory-stars-pencil-cream: var(--memory-stars-cream);
+  --memory-stars-pencil-cream-halo: rgb(14 10 30 / 85%);
+  --memory-stars-pencil-ink: #22325f;
+  --memory-stars-pencil-ink-halo: rgb(246 240 226 / 85%);
+  /* The view through the telescope (a night sky in both themes). */
+  --memory-stars-view-sky: radial-gradient(
+    circle at 50% 38%,
+    #18224e 0%,
+    #0a0f27 62%,
+    #04060f 100%
+  );
+  --memory-stars-view-shade: #000;
+  --memory-stars-view-far-a: color-mix(in srgb, #dfe6ff 60%, transparent);
+  --memory-stars-view-far-b: color-mix(in srgb, #fff 45%, transparent);
+  --memory-stars-view-near-a: color-mix(in srgb, #fff 85%, transparent);
+  --memory-stars-view-near-b: color-mix(in srgb, #fff2d0 75%, transparent);
+  --memory-stars-view-haze-in: color-mix(in srgb, #e8ecff 34%, transparent);
+  --memory-stars-view-haze-out: color-mix(in srgb, #9fb0e8 18%, transparent);
+  --memory-stars-view-bloom-in: color-mix(in srgb, #fffbea 70%, transparent);
+  --memory-stars-view-bloom-out: color-mix(in srgb, #ffe39e 30%, transparent);
+  --memory-stars-view-glow: #ffe39e;
+  --memory-stars-view-reticle: color-mix(in srgb, #f3e9d2 16%, transparent);
+  --memory-stars-wish-surface: #141a33;
+  /* The star-chart card. */
+  --memory-stars-card-paper: #f5ebd4;
+  --memory-stars-card-ink: #2a2b57;
+  --memory-stars-card-line: color-mix(in srgb, #2a2b57 38%, transparent);
+  --memory-stars-card-glow: color-mix(in srgb, #ffcf7a 40%, transparent);
+  --memory-stars-card-foil: none;
+  --memory-stars-pin-star: color-mix(in srgb, #fff6d8 85%, transparent);
+
+  /* The sky of this hour: two palettes, blended. */
+  --memory-stars-sky-top: color-mix(
+    in srgb,
+    var(--memory-stars-from-top, var(--memory-stars-night-top)),
+    var(--memory-stars-to-top, var(--memory-stars-night-top))
+      calc(var(--memory-stars-blend) * 100%)
+  );
+  --memory-stars-sky-mid: color-mix(
+    in srgb,
+    var(--memory-stars-from-mid, var(--memory-stars-night-mid)),
+    var(--memory-stars-to-mid, var(--memory-stars-night-mid))
+      calc(var(--memory-stars-blend) * 100%)
+  );
+  --memory-stars-sky-low: color-mix(
+    in srgb,
+    var(--memory-stars-from-low, var(--memory-stars-night-low)),
+    var(--memory-stars-to-low, var(--memory-stars-night-low))
+      calc(var(--memory-stars-blend) * 100%)
+  );
+  --memory-stars-sky-horizon: color-mix(
+    in srgb,
+    var(--memory-stars-from-horizon, var(--memory-stars-night-horizon)),
+    var(--memory-stars-to-horizon, var(--memory-stars-night-horizon))
+      calc(var(--memory-stars-blend) * 100%)
+  );
+  --memory-stars-horizon-glow: color-mix(
+    in srgb,
+    color-mix(
+        in srgb,
+        var(--memory-stars-from-glow, var(--memory-stars-night-glow)),
+        var(--memory-stars-to-glow, var(--memory-stars-night-glow))
+          calc(var(--memory-stars-blend) * 100%)
+      )
+      70%,
+    transparent
+  );
+  --memory-stars-dust-alpha: calc(
+    var(--memory-stars-from-dust, 1) +
+    (var(--memory-stars-to-dust, 1) - var(--memory-stars-from-dust, 1)) *
+    var(--memory-stars-blend)
+  );
+  --memory-stars-horizon-fade: calc(
+    var(--memory-stars-from-fade, 0.3) +
+    (var(--memory-stars-to-fade, 0.3) - var(--memory-stars-from-fade, 0.3)) *
+    var(--memory-stars-blend)
+  );
+  --memory-stars-milk-alpha: calc(
+    var(--memory-stars-from-milk, 0.75) +
+    (var(--memory-stars-to-milk, 0.75) - var(--memory-stars-from-milk, 0.75)) *
+    var(--memory-stars-blend)
+  );
+  --memory-stars-star-alpha: calc(
+    var(--memory-stars-from-star, 1) +
+    (var(--memory-stars-to-star, 1) - var(--memory-stars-from-star, 1)) *
+    var(--memory-stars-blend)
+  );
+  --memory-stars-pencil: var(--memory-stars-pencil-cream);
+  --memory-stars-pencil-halo: var(--memory-stars-pencil-cream-halo);
+
+  display: grid;
+  gap: var(--space-3);
+  min-inline-size: 0;
+}
+.memory-stars-world[data-pencil="ink"] {
+  --memory-stars-pencil: var(--memory-stars-pencil-ink);
+  --memory-stars-pencil-halo: var(--memory-stars-pencil-ink-halo);
+}
+
+/* Deep night (Dark): the day, dawn and dusk palettes stay dark, and the
+   chart, the hill and the card turn to night. */
+:root[data-theme="dark"] .memory-stars-world {
+  --memory-stars-predawn-top: #0a1132;
+  --memory-stars-predawn-mid: #1b2959;
+  --memory-stars-predawn-low: #33477c;
+  --memory-stars-predawn-horizon: #566b9b;
+  --memory-stars-predawn-glow: #6f7fae;
+  --memory-stars-predawn-dust: 0.9;
+  --memory-stars-predawn-fade: 0.5;
+  --memory-stars-predawn-milk: 0.55;
+  --memory-stars-predawn-star: 1;
+  --memory-stars-day-top: #131940;
+  --memory-stars-day-mid: #272c63;
+  --memory-stars-day-low: #463c74;
+  --memory-stars-day-horizon: #6a5689;
+  --memory-stars-day-glow: #86699a;
+  --memory-stars-day-dust: 0.85;
+  --memory-stars-day-fade: 0.65;
+  --memory-stars-day-milk: 0.45;
+  --memory-stars-day-star: 1;
+  --memory-stars-dusk-top: #10133a;
+  --memory-stars-dusk-mid: #29255f;
+  --memory-stars-dusk-low: #483264;
+  --memory-stars-dusk-horizon: #875870;
+  --memory-stars-dusk-glow: #a06c78;
+  --memory-stars-dusk-dust: 0.95;
+  --memory-stars-dusk-fade: 0.6;
+  --memory-stars-dusk-milk: 0.55;
+  --memory-stars-dusk-star: 1;
+  --memory-stars-milk: #dfe6ff;
+  --memory-stars-engrave-faint: color-mix(in srgb, #d8dfff 9%, transparent);
+  --memory-stars-line-color: color-mix(in srgb, #dfe8ff 42%, transparent);
+  --memory-stars-hill: #05060f;
+  --memory-stars-hill-rim: color-mix(in srgb, #9fb4ff 28%, transparent);
+  --memory-stars-figure: #080a17;
+  --memory-stars-rim-light: color-mix(in srgb, #c9d5ff 58%, transparent);
+  --memory-stars-blanket: #4a2131;
+  --memory-stars-blanket-check: color-mix(in srgb, #d2a36a 30%, transparent);
+  --memory-stars-beanie: #84602d;
+  --memory-stars-brass-light: #d9bd7c;
+  --memory-stars-brass: #9c773a;
+  --memory-stars-brass-deep: #4f3814;
+  --memory-stars-moon: #f3ead0;
+  --memory-stars-moon-glow: color-mix(in srgb, #dfe6ff 30%, transparent);
+  --memory-stars-mat: #161a2e;
+  --memory-stars-mat-line: #8c7340;
+  --memory-stars-card-paper: #141a33;
+  --memory-stars-card-ink: #f2c94c;
+  --memory-stars-card-line: color-mix(in srgb, #ecd28e 36%, transparent);
+  --memory-stars-card-glow: color-mix(in srgb, #ecd28e 30%, transparent);
+  --memory-stars-card-foil: 0 0 6px color-mix(in srgb, #ecd28e 35%, transparent);
+  --memory-stars-night-shade: #000;
+  /* The dark sky never gets light enough for the blue-black pencil. */
+  --memory-stars-pencil-ink: var(--memory-stars-pencil-cream);
+  --memory-stars-pencil-ink-halo: var(--memory-stars-pencil-cream-halo);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .memory-stars-world {
+    --memory-stars-predawn-top: #0a1132;
+    --memory-stars-predawn-mid: #1b2959;
+    --memory-stars-predawn-low: #33477c;
+    --memory-stars-predawn-horizon: #566b9b;
+    --memory-stars-predawn-glow: #6f7fae;
+    --memory-stars-predawn-dust: 0.9;
+    --memory-stars-predawn-fade: 0.5;
+    --memory-stars-predawn-milk: 0.55;
+    --memory-stars-predawn-star: 1;
+    --memory-stars-day-top: #131940;
+    --memory-stars-day-mid: #272c63;
+    --memory-stars-day-low: #463c74;
+    --memory-stars-day-horizon: #6a5689;
+    --memory-stars-day-glow: #86699a;
+    --memory-stars-day-dust: 0.85;
+    --memory-stars-day-fade: 0.65;
+    --memory-stars-day-milk: 0.45;
+    --memory-stars-day-star: 1;
+    --memory-stars-dusk-top: #10133a;
+    --memory-stars-dusk-mid: #29255f;
+    --memory-stars-dusk-low: #483264;
+    --memory-stars-dusk-horizon: #875870;
+    --memory-stars-dusk-glow: #a06c78;
+    --memory-stars-dusk-dust: 0.95;
+    --memory-stars-dusk-fade: 0.6;
+    --memory-stars-dusk-milk: 0.55;
+    --memory-stars-dusk-star: 1;
+    --memory-stars-milk: #dfe6ff;
+    --memory-stars-engrave-faint: color-mix(in srgb, #d8dfff 9%, transparent);
+    --memory-stars-line-color: color-mix(in srgb, #dfe8ff 42%, transparent);
+    --memory-stars-hill: #05060f;
+    --memory-stars-hill-rim: color-mix(in srgb, #9fb4ff 28%, transparent);
+    --memory-stars-figure: #080a17;
+    --memory-stars-rim-light: color-mix(in srgb, #c9d5ff 58%, transparent);
+    --memory-stars-blanket: #4a2131;
+    --memory-stars-blanket-check: color-mix(in srgb, #d2a36a 30%, transparent);
+    --memory-stars-beanie: #84602d;
+    --memory-stars-brass-light: #d9bd7c;
+    --memory-stars-brass: #9c773a;
+    --memory-stars-brass-deep: #4f3814;
+    --memory-stars-moon: #f3ead0;
+    --memory-stars-moon-glow: color-mix(in srgb, #dfe6ff 30%, transparent);
+    --memory-stars-mat: #161a2e;
+    --memory-stars-mat-line: #8c7340;
+    --memory-stars-card-paper: #141a33;
+    --memory-stars-card-ink: #f2c94c;
+    --memory-stars-card-line: color-mix(in srgb, #ecd28e 36%, transparent);
+    --memory-stars-card-glow: color-mix(in srgb, #ecd28e 30%, transparent);
+    --memory-stars-card-foil: 0 0 6px
+      color-mix(in srgb, #ecd28e 35%, transparent);
+    --memory-stars-night-shade: #000;
+    --memory-stars-pencil-ink: var(--memory-stars-pencil-cream);
+    --memory-stars-pencil-ink-halo: var(--memory-stars-pencil-cream-halo);
+  }
+}
+
+/* ---------- The mounted star chart ---------- */
+.memory-stars-chart {
+  position: relative;
+  justify-self: center;
+  inline-size: 100%;
+  max-inline-size: 560px;
+  padding: 7px;
+  border-radius: 22px;
+  background: var(--memory-stars-grain), var(--memory-stars-mat);
+  box-shadow:
+    inset 0 0 0 1px
+    color-mix(in srgb, var(--memory-stars-mat-line) 55%, transparent),
+    inset 0 0 0 3px var(--memory-stars-mat),
+    inset 0 0 0 3.6px
+    color-mix(in srgb, var(--memory-stars-mat-line) 40%, transparent),
+    0 16px 32px
+    color-mix(in srgb, var(--memory-stars-night-shade) 26%, transparent),
+    0 2px 6px
+    color-mix(in srgb, var(--memory-stars-night-shade) 18%, transparent);
+}
+.memory-stars-corner {
+  position: absolute;
+  z-index: 1;
+  font-size: 7px;
+  line-height: 1;
+  color: var(--memory-stars-mat-line);
+  pointer-events: none;
+}
+.memory-stars-corner[data-at="tl"] {
+  inset: 1px auto auto 9px;
+}
+.memory-stars-corner[data-at="tr"] {
+  inset: 1px 9px auto auto;
+}
+.memory-stars-corner[data-at="bl"] {
+  inset: auto auto 0 9px;
+}
+.memory-stars-corner[data-at="br"] {
+  inset: auto 9px 0 auto;
+}
+
+/* Every gesture belongs to the sky (swipe, trace, aim); scroll past it. */
+.memory-stars-sky {
+  position: relative;
+  isolation: isolate;
+  aspect-ratio: 400 / 340;
+  overflow: hidden;
+  border-radius: 15px;
+  background:
+    radial-gradient(
+      ellipse 75% 34% at 50% 102%,
+      var(--memory-stars-horizon-glow),
+      transparent 72%
+    ),
+    linear-gradient(
+      180deg,
+      var(--memory-stars-sky-top) 0%,
+      var(--memory-stars-sky-mid) 50%,
+      var(--memory-stars-sky-low) 80%,
+      var(--memory-stars-sky-horizon) 100%
+    );
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--memory-stars-night-shade) 40%, transparent);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+/* A soft milky way across the chart; it turns with the sky. */
+.memory-stars-sky::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: -35% -25%;
+  rotate: calc(-27deg + var(--memory-stars-turn, 0) * 1deg);
+  background:
+    radial-gradient(
+      ellipse 34% 7% at 40% 49%,
+      color-mix(in srgb, var(--memory-stars-milk) 55%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 24% 5% at 63% 52%,
+      color-mix(in srgb, var(--memory-stars-milk) 42%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 12% 3% at 52% 47%,
+      color-mix(in srgb, var(--memory-stars-night-shade) 40%, transparent),
+      transparent 75%
+    ),
+    radial-gradient(
+      ellipse 58% 13% at 50% 50%,
+      color-mix(in srgb, var(--memory-stars-milk) 20%, transparent),
+      transparent 76%
+    );
+  opacity: var(--memory-stars-milk-alpha);
+  filter: blur(5px);
+  pointer-events: none;
+}
+/* Old print: grain and a darkened rim. */
+.memory-stars-sky::after {
+  content: "";
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--memory-stars-grain);
+  mix-blend-mode: soft-light;
+  opacity: 0.7;
+  box-shadow: inset 0 0 46px
+    color-mix(in srgb, var(--memory-stars-night-shade) 50%, transparent);
+  pointer-events: none;
+}
+.memory-stars-back,
+.memory-stars-front {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: hidden;
+  pointer-events: none;
+}
+.memory-stars-back {
+  z-index: 1;
+}
+.memory-stars-front {
+  z-index: 3;
+}
+
+.memory-stars-grid {
+  fill: none;
+  stroke: var(--memory-stars-engrave-faint);
+  stroke-width: 0.6;
+  stroke-dasharray: 1 3;
+}
+.memory-stars-frame {
+  fill: none;
+  stroke: var(--memory-stars-engrave-faint);
+  stroke-width: 0.7;
+}
+.memory-stars-frame path {
+  stroke: color-mix(in srgb, var(--memory-stars-engrave) 45%, transparent);
+  stroke-width: 0.6;
+}
+.memory-stars-seasons path {
+  stroke: var(--memory-stars-engrave);
+  stroke-width: 0.7;
+}
+.memory-stars-seasons text {
+  fill: var(--memory-stars-engrave);
+  font-family: var(--font-display);
+  font-size: 9.5px;
+  font-style: italic;
+  letter-spacing: 0.08em;
+  text-anchor: middle;
+}
+
+.memory-stars-dust-stars g {
+  opacity: calc(
+    var(--memory-stars-dust-alpha) *
+    (1 - var(--memory-stars-depth, 0) * var(--memory-stars-horizon-fade))
+  );
+}
+.memory-stars-dust-stars circle {
+  fill: var(--memory-stars-dust-color);
+}
+.memory-stars-dust-stars path {
+  stroke: var(--memory-stars-dust-color);
+  stroke-width: 0.35;
+  stroke-linecap: round;
+  opacity: 0.6;
+}
+
+.memory-stars-moon {
+  opacity: calc(0.6 + 0.4 * var(--memory-stars-star-alpha, 1));
+}
+.memory-stars-moon-halo-in {
+  stop-color: var(--memory-stars-moon-glow);
+}
+.memory-stars-moon-halo-out {
+  stop-color: var(--memory-stars-moon-glow);
+  stop-opacity: 0;
+}
+.memory-stars-moon-shade {
+  fill: color-mix(in srgb, var(--memory-stars-moon) 13%, transparent);
+}
+.memory-stars-moon-body {
+  fill: var(--memory-stars-moon);
+}
+.memory-stars-moon-crater {
+  fill: color-mix(in srgb, var(--memory-stars-moon-ink) 26%, transparent);
+}
+.memory-stars-moon-face {
+  fill: none;
+  stroke: color-mix(in srgb, var(--memory-stars-moon-ink) 80%, transparent);
+  stroke-width: 0.8;
+  stroke-linecap: round;
+}
+.memory-stars-moon-blush {
+  fill: var(--memory-stars-moon-blush);
+}
+
+/* In the day sky the line stays as a ghostly chart. No vector-effect here:
+   it breaks the pathLength dash the line draws itself on with. */
+.memory-stars-line {
+  fill: none;
+  stroke: var(--memory-stars-line-color);
+  stroke-width: 0.9;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  opacity: var(--memory-stars-star-alpha, 1);
+}
+.memory-stars-trace path {
+  fill: none;
+  stroke: var(--memory-stars-thread);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.memory-stars-trace-glow {
+  stroke-width: 6;
+  opacity: 0.22;
+}
+.memory-stars-trace-core {
+  stroke-width: 1.5;
+}
+
+/* ---------- Stars ---------- */
+.memory-stars-star {
+  --memory-stars-boost: 1;
+  position: absolute;
+  z-index: 2;
+  /* 10.5% of the sky width stays below the minimum star distance (44 of
+     400 units), so neighbouring hit areas never overlap. */
+  inline-size: min(44px, 10.5%);
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  /* In the day sky the memory stars stay as a ghostly chart. */
+  opacity: var(--memory-stars-star-alpha, 1);
+}
+.memory-stars-star:is(
+  [aria-pressed="true"],
+  [data-in-field="true"],
+  [data-traced="true"]
+) {
+  opacity: 1;
+}
+.memory-stars-star[data-kind="photo"] {
+  --memory-stars-core: var(--memory-stars-photo-core);
+  --memory-stars-glow: var(--memory-stars-photo-glow);
+}
+.memory-stars-star[data-kind="heart"] {
+  --memory-stars-core: var(--memory-stars-heart-core);
+  --memory-stars-glow: var(--memory-stars-heart-glow);
+}
+.memory-stars-star[data-kind="milestone"] {
+  --memory-stars-core: var(--memory-stars-milestone-core);
+  --memory-stars-glow: var(--memory-stars-milestone-glow);
+}
+.memory-stars-star[aria-pressed="true"] {
+  --memory-stars-boost: 1.45;
+  --memory-stars-glow: var(--memory-stars-gold);
+}
+.memory-stars-star[data-traced="true"] {
+  --memory-stars-boost: 1.6;
+  --memory-stars-glow: var(--memory-stars-thread);
+}
+.memory-stars-star[data-in-field="true"] {
+  --memory-stars-boost: 1.85;
+  --memory-stars-glow: var(--memory-stars-gold);
+}
+/* The star itself: brighter stars are larger (`--memory-stars-size`); a lit,
+   traced or sighted one grows by `--memory-stars-boost`. */
+.memory-stars-star::before {
+  content: "";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  inline-size: calc(4.6px * var(--memory-stars-size, 1));
+  block-size: calc(4.6px * var(--memory-stars-size, 1));
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: var(--memory-stars-core);
+  box-shadow:
+    0 0 calc(5px / var(--memory-stars-boost))
+    calc(1.5px / var(--memory-stars-boost))
+    color-mix(in srgb, var(--memory-stars-core) 85%, transparent),
+    0 0 14px 3px color-mix(in srgb, var(--memory-stars-glow) 50%, transparent);
+  transform: scale(var(--memory-stars-boost));
+}
+/* The little cross glint of a bright star. */
+.memory-stars-star::after {
+  content: "";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  inline-size: calc(
+    17px *
+    var(--memory-stars-size, 1) *
+    var(--memory-stars-boost)
+  );
+  block-size: calc(
+    17px *
+    var(--memory-stars-size, 1) *
+    var(--memory-stars-boost)
+  );
+  translate: -50% -50%;
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in srgb, var(--memory-stars-core) 90%, transparent) 50%,
+      transparent
+    )
+    center / 100% 1px no-repeat,
+    linear-gradient(
+      0deg,
+      transparent,
+      color-mix(in srgb, var(--memory-stars-core) 90%, transparent) 50%,
+      transparent
+    )
+    center / 1px 100% no-repeat;
+  opacity: 0.7;
+  pointer-events: none;
+}
+.memory-stars-star:focus-visible {
+  outline: 2px solid var(--memory-stars-gold);
+  outline-offset: -6px;
+}
+/* The lit star wears a small engraved ring, like a marked star on a chart. */
+.memory-stars-halo {
+  position: absolute;
+  inset: 21%;
+  border: 1px solid
+    color-mix(in srgb, var(--memory-stars-gold) 75%, transparent);
+  border-radius: 50%;
+  box-shadow: 0 0 10px
+    color-mix(in srgb, var(--memory-stars-gold) 40%, transparent);
+  opacity: 0;
+  scale: 0.6;
+  pointer-events: none;
+}
+.memory-stars-halo::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border: 1px dotted
+    color-mix(in srgb, var(--memory-stars-gold) 55%, transparent);
+  border-radius: 50%;
+}
+.memory-stars-star[aria-pressed="true"] .memory-stars-halo {
+  opacity: 1;
+  scale: 1;
+}
+.memory-stars-flare {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  inline-size: 84px;
+  block-size: 84px;
+  margin: -42px 0 0 -42px;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle,
+      color-mix(in srgb, var(--memory-stars-white) 95%, transparent) 0 7%,
+      color-mix(in srgb, var(--memory-stars-gold) 55%, transparent) 20%,
+      transparent 58%
+    ),
+    repeating-conic-gradient(
+      from 8deg,
+      color-mix(in srgb, var(--memory-stars-gold) 50%, transparent) 0 3deg,
+      transparent 3deg 45deg
+    );
+  -webkit-mask: radial-gradient(circle, #000 30%, transparent 70%);
+  mask: radial-gradient(circle, #000 30%, transparent 70%);
+  opacity: 0;
+  pointer-events: none;
+}
+/* A newborn star's burst when the line reaches it. */
+.memory-stars-birth {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  inline-size: 70px;
+  block-size: 70px;
+  margin: -35px 0 0 -35px;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle,
+      transparent 0 34%,
+      color-mix(in srgb, var(--memory-stars-gold) 70%, transparent) 36% 38%,
+      transparent 41%
+    ),
+    repeating-conic-gradient(
+      from 0deg,
+      color-mix(in srgb, var(--memory-stars-white) 80%, transparent) 0 2deg,
+      transparent 2deg 30deg
+    );
+  -webkit-mask: radial-gradient(circle, #000 25%, transparent 68%);
+  mask: radial-gradient(circle, #000 25%, transparent 68%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---------- The shooting star ---------- */
+.memory-stars-trail path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.memory-stars-trail-glow {
+  stroke-width: 8;
+  opacity: 0.16;
+}
+.memory-stars-trail-mid {
+  stroke-width: 3.4;
+  opacity: 0.45;
+}
+.memory-stars-trail-core {
+  stroke-width: 1.3;
+}
+.memory-stars-trail-tail {
+  stop-color: var(--memory-stars-trail);
+  stop-opacity: 0;
+}
+.memory-stars-trail-body {
+  stop-color: var(--memory-stars-trail);
+  stop-opacity: 0.6;
+}
+.memory-stars-trail-head {
+  stop-color: var(--memory-stars-trail-head);
+  stop-opacity: 1;
+}
+.memory-stars-head {
+  opacity: 0;
+}
+.memory-stars-head[data-on="true"] {
+  opacity: 1;
+}
+.memory-stars-head-in {
+  stop-color: var(--memory-stars-head-light);
+  stop-opacity: 1;
+}
+.memory-stars-head-mid {
+  stop-color: var(--memory-stars-trail);
+  stop-opacity: 0.55;
+}
+.memory-stars-head-out {
+  stop-color: var(--memory-stars-trail);
+  stop-opacity: 0;
+}
+.memory-stars-head-rays {
+  stroke: var(--memory-stars-white);
+  stroke-width: 0.55;
+  stroke-linecap: round;
+  opacity: 0.8;
+}
+.memory-stars-head-core {
+  fill: var(--memory-stars-head-core);
+}
+.memory-stars-dust {
+  fill: var(--memory-stars-trail-head);
+  opacity: 0;
+}
+/* A shooting star that crosses the sky on its own. */
+.memory-stars-ambient {
+  position: absolute;
+  z-index: 1;
+  inline-size: 78px;
+  block-size: 1.6px;
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--memory-stars-ambient-streak)
+  );
+  transform-origin: 0 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---------- Hill, telescope and the two of you ---------- */
+.memory-stars-hill {
+  fill: var(--memory-stars-hill);
+}
+.memory-stars-hill-rim {
+  fill: none;
+  stroke: var(--memory-stars-hill-rim);
+  stroke-width: 0.9;
+}
+.memory-stars-grass {
+  fill: none;
+  stroke: var(--memory-stars-hill);
+  stroke-width: 1.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.memory-stars-frost {
+  fill: none;
+  stroke: var(--memory-stars-frost-color);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-dasharray: 0.01 4.5;
+}
+/* The snow only falls with motion; it is not drawn otherwise. */
+.memory-stars-snow circle {
+  display: none;
+  fill: var(--memory-stars-snow-color);
+}
+.memory-stars-tripod {
+  fill: none;
+  stroke: var(--memory-stars-figure);
+  stroke-width: 1.3;
+  stroke-linecap: round;
+}
+.memory-stars-brass-a {
+  stop-color: var(--memory-stars-brass-light);
+}
+.memory-stars-brass-b {
+  stop-color: var(--memory-stars-brass);
+}
+.memory-stars-brass-c {
+  stop-color: var(--memory-stars-brass-deep);
+}
+.memory-stars-brass-dark {
+  fill: var(--memory-stars-brass-deep);
+}
+.memory-stars-brass-shine {
+  fill: none;
+  stroke: var(--memory-stars-brass-shine);
+  stroke-width: 0.6;
+  stroke-linecap: round;
+}
+.memory-stars-lens {
+  fill: var(--memory-stars-lens-glass);
+}
+.memory-stars-figure {
+  fill: var(--memory-stars-figure);
+}
+.memory-stars-rim-arc,
+.memory-stars-rim {
+  fill: none;
+  stroke: var(--memory-stars-rim-light);
+  stroke-width: 0.9;
+  stroke-linecap: round;
+}
+.memory-stars-beanie {
+  fill: var(--memory-stars-beanie);
+}
+.memory-stars-beanie-rib {
+  fill: none;
+  stroke: color-mix(in srgb, var(--memory-stars-figure) 45%, transparent);
+  stroke-width: 0.6;
+}
+.memory-stars-plaid-base {
+  fill: var(--memory-stars-blanket);
+}
+.memory-stars-plaid-check {
+  fill: none;
+  stroke: var(--memory-stars-blanket-check);
+  stroke-width: 0.8;
+}
+.memory-stars-hem {
+  fill: none;
+  stroke: var(--memory-stars-blanket-check);
+  stroke-width: 0.7;
+  stroke-linecap: round;
+}
+.memory-stars-fold {
+  fill: none;
+  stroke: color-mix(in srgb, var(--memory-stars-figure) 50%, transparent);
+  stroke-width: 0.7;
+  stroke-linecap: round;
+}
+.memory-stars-lean {
+  transform-box: fill-box;
+  transform-origin: 30% 100%;
+}
+.memory-stars-gazer {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+.memory-stars-couple[data-looking="true"] .memory-stars-gazer {
+  rotate: 9deg;
+  translate: 1.5px 0.5px;
+}
+.memory-stars-heart {
+  fill: var(--memory-stars-heart);
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+/* ---------- The pencil notes ---------- */
+.memory-stars-note,
+.memory-stars-newborn-note {
+  position: absolute;
+  z-index: 3;
+  margin: 0;
+  font-family: var(--memory-stars-hand);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--memory-stars-pencil);
+  text-shadow:
+    0 0 4px var(--memory-stars-pencil-halo),
+    0 1px 2px var(--memory-stars-pencil-halo);
+  pointer-events: none;
+}
+.memory-stars-note {
+  inset: 61% auto auto 4%;
+  rotate: -4deg;
+  line-height: 1.05;
+  white-space: pre-line;
+}
+.memory-stars-note[data-hidden="true"] {
+  opacity: 0;
+}
+.memory-stars-newborn-note {
+  translate: 14px -50%;
+  rotate: -3deg;
+  line-height: 1;
+  white-space: nowrap;
+}
+.memory-stars-newborn-note[data-side="left"] {
+  translate: calc(-100% - 14px) -50%;
+}
+
+/* ---------- The telescope and the view through it ---------- */
+.memory-stars-field {
+  opacity: 0;
+  pointer-events: none;
+}
+.memory-stars-field[data-on="true"] {
+  opacity: 1;
+}
+.memory-stars-field-cone {
+  fill: color-mix(in srgb, var(--memory-stars-cream) 7%, transparent);
+}
+.memory-stars-field-glow {
+  fill: color-mix(in srgb, var(--memory-stars-cream) 8%, transparent);
+}
+.memory-stars-field-ring {
+  fill: none;
+  stroke: color-mix(in srgb, var(--memory-stars-gold) 60%, transparent);
+  stroke-width: 0.8;
+  stroke-dasharray: 2 3;
+}
+.memory-stars-tube {
+  transform-box: view-box;
+  transform-origin: 240px 244px;
+  rotate: -36deg;
+}
+.memory-stars-scope-button,
+.memory-stars-scope-button:disabled,
+.memory-stars-scope-button:active {
+  position: absolute;
+  z-index: 4;
+  inset: 64.5% auto auto 49%;
+  inline-size: 16.5%;
+  block-size: 15%;
+  min-block-size: 44px;
+  min-inline-size: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 40% 40% 30% 30%;
+  background: none;
+  box-shadow: none;
+  scale: 1;
+  filter: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.memory-stars-scope-button:focus-visible {
+  outline: 2px solid var(--memory-stars-ink-gold);
+  outline-offset: 2px;
+}
+.memory-stars-view,
+.memory-stars-view:active {
+  position: absolute;
+  z-index: 4;
+  inset: 4% auto auto 46%;
+  display: block;
+  inline-size: min(54%, 220px);
+  aspect-ratio: 1;
+  translate: -50% 0;
+  padding: 0;
+  border: 5px solid transparent;
+  border-radius: 50%;
+  background:
+    var(--memory-stars-view-sky) padding-box,
+    conic-gradient(
+      from 20deg,
+      var(--memory-stars-brass-light),
+      var(--memory-stars-brass) 18%,
+      var(--memory-stars-brass-deep) 40%,
+      var(--memory-stars-brass) 60%,
+      var(--memory-stars-brass-light) 78%,
+      var(--memory-stars-brass-deep)
+    )
+    border-box;
+  box-shadow:
+    inset 0 0 0 1px
+    color-mix(in srgb, var(--memory-stars-view-shade) 50%, transparent),
+    inset 0 0 22px
+    color-mix(in srgb, var(--memory-stars-view-shade) 70%, transparent),
+    0 0 0 1px
+    color-mix(in srgb, var(--memory-stars-brass-deep) 70%, transparent),
+    0 10px 24px
+    color-mix(in srgb, var(--memory-stars-view-shade) 45%, transparent);
+  scale: 1;
+  filter: none;
+  overflow: hidden;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.memory-stars-view:focus-visible {
+  outline: 2px solid var(--memory-stars-ink-gold);
+  outline-offset: 3px;
+}
+/* Four little screws in the brass ring. */
+.memory-stars-view::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle,
+      var(--memory-stars-brass-light) 0 1.4px,
+      transparent 2px
+    )
+    50% 0 / 6px 6px no-repeat,
+    radial-gradient(
+      circle,
+      var(--memory-stars-brass-light) 0 1.4px,
+      transparent 2px
+    )
+    50% 100% / 6px 6px no-repeat,
+    radial-gradient(
+      circle,
+      var(--memory-stars-brass-light) 0 1.4px,
+      transparent 2px
+    )
+    0 50% / 6px 6px no-repeat,
+    radial-gradient(
+      circle,
+      var(--memory-stars-brass-light) 0 1.4px,
+      transparent 2px
+    )
+    100% 50% / 6px 6px no-repeat;
+  opacity: 0.5;
+  pointer-events: none;
+}
+/* The magnified sky: two star layers (parallax), haze, the star, a reticle. */
+.memory-stars-view-lens {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 50%;
+}
+.memory-stars-view-lens > span {
+  position: absolute;
+}
+.memory-stars-view-far,
+.memory-stars-view-near,
+.memory-stars-view-haze,
+.memory-stars-view-reticle {
+  inset: 0;
+  border-radius: 50%;
+}
+.memory-stars-view-far {
+  background:
+    radial-gradient(
+      circle,
+      var(--memory-stars-view-far-a) 0 0.6px,
+      transparent 1px
+    )
+    19px 3px / 23px 29px,
+    radial-gradient(
+      circle,
+      var(--memory-stars-view-far-b) 0 0.5px,
+      transparent 0.9px
+    )
+    5px 14px / 17px 19px;
+}
+.memory-stars-view-near {
+  background:
+    radial-gradient(
+      circle,
+      var(--memory-stars-view-near-a) 0 1px,
+      transparent 1.6px
+    )
+    7px 11px / 47px 41px,
+    radial-gradient(
+      circle,
+      var(--memory-stars-view-near-b) 0 1.3px,
+      transparent 2px
+    )
+    31px 27px / 71px 63px;
+}
+/* Stands in for the blur while the view is still out of focus. */
+.memory-stars-view-haze {
+  background: radial-gradient(
+    circle at 50% 32%,
+    var(--memory-stars-view-haze-in),
+    var(--memory-stars-view-haze-out) 55%,
+    transparent 80%
+  );
+  opacity: 0;
+}
+.memory-stars-view-bloom {
+  inset: 30% auto auto 50%;
+  inline-size: 90px;
+  block-size: 90px;
+  margin: -45px 0 0 -45px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    var(--memory-stars-view-bloom-in),
+    var(--memory-stars-view-bloom-out) 40%,
+    transparent 70%
+  );
+  opacity: 0;
+}
+.memory-stars-view-reticle {
+  background:
+    radial-gradient(
+      circle at 50% 30%,
+      transparent 0 21%,
+      var(--memory-stars-view-reticle) 21.5% 22%,
+      transparent 22.5%
+    ),
+    linear-gradient(
+      90deg,
+      transparent calc(50% - 0.5px),
+      var(--memory-stars-view-reticle) calc(50% - 0.5px) calc(50% + 0.5px),
+      transparent calc(50% + 0.5px)
+    )
+    0 0 / 100% 46% no-repeat;
+}
+.memory-stars-view-star {
+  --memory-stars-core: var(--memory-stars-milestone-core);
+  --memory-stars-glow: var(--memory-stars-view-glow);
+  position: absolute;
+  inset: 30% auto auto 50%;
+  inline-size: 18px;
+  block-size: 18px;
+  margin: -9px 0 0 -9px;
+  border-radius: 50%;
+  background: var(--memory-stars-core);
+  box-shadow:
+    0 0 10px 4px color-mix(in srgb, var(--memory-stars-core) 85%, transparent),
+    0 0 34px 12px color-mix(in srgb, var(--memory-stars-glow) 50%, transparent);
+}
+.memory-stars-view[data-kind="photo"] .memory-stars-view-star {
+  --memory-stars-glow: var(--memory-stars-photo-glow);
+}
+.memory-stars-view[data-kind="heart"] .memory-stars-view-star {
+  --memory-stars-core: var(--memory-stars-heart-core);
+  --memory-stars-glow: var(--memory-stars-heart-glow);
+}
+.memory-stars-view-star::after {
+  content: "";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  inline-size: 96px;
+  block-size: 96px;
+  margin: -48px 0 0 -48px;
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in srgb, var(--memory-stars-core) 85%, transparent) 50%,
+      transparent
+    )
+    center / 100% 1.5px no-repeat,
+    linear-gradient(
+      0deg,
+      transparent,
+      color-mix(in srgb, var(--memory-stars-core) 85%, transparent) 50%,
+      transparent
+    )
+    center / 1.5px 100% no-repeat;
+  rotate: 12deg;
+}
+.memory-stars-view-label {
+  position: absolute;
+  inset: 52% 13% auto;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  text-align: center;
+}
+.memory-stars-view-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-family: var(--memory-stars-hand);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.05;
+  color: var(--memory-stars-cream);
+}
+.memory-stars-view-date,
+.memory-stars-view-more {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+.memory-stars-view-date {
+  color: var(--memory-stars-ink-gold);
+}
+.memory-stars-view-more {
+  color: var(--memory-stars-cream);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ---------- The shooting star button (shows itself on focus) ---------- */
+.memory-stars-wish:not(:focus-visible) {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+.memory-stars-wish:focus-visible {
+  position: absolute;
+  z-index: 5;
+  inset-block-end: 18px;
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  min-block-size: 44px;
+  padding: 0 var(--space-4);
+  border: 1px solid
+    color-mix(in srgb, var(--memory-stars-gold) 70%, transparent);
+  border-radius: var(--radius-pill);
+  font: var(--font-supporting-copy);
+  font-weight: 700;
+  color: var(--memory-stars-ink-gold);
+  background: var(--memory-stars-wish-surface);
+  outline: 2px solid var(--memory-stars-gold);
+  outline-offset: 2px;
+  cursor: pointer;
+}
+
+/* ---------- The star-chart card ---------- */
+.memory-stars-card {
+  position: relative;
+  z-index: 2;
+  justify-self: center;
+  inline-size: min(88%, 330px);
+  margin-block-start: calc(-1 * var(--space-3) - 26px);
+  padding: 20px 16px 18px;
+  rotate: -1.2deg;
+  text-align: center;
+  color: var(--memory-stars-card-ink);
+  background:
+    radial-gradient(
+      circle,
+      color-mix(in srgb, var(--memory-stars-card-ink) 22%, transparent) 0 0.6px,
+      transparent 1px
+    )
+    4px 9px / 31px 27px,
+    var(--memory-stars-grain),
+    var(--memory-stars-card-paper);
+  border-radius: 4px;
+  box-shadow:
+    inset 0 0 0 1px var(--memory-stars-card-line),
+    inset 0 0 0 4px var(--memory-stars-card-paper),
+    inset 0 0 0 4.6px var(--memory-stars-card-line),
+    0 0 24px var(--memory-stars-card-glow),
+    0 14px 26px
+    color-mix(in srgb, var(--memory-stars-night-shade) 24%, transparent);
+  scroll-margin-top: 88px;
+}
+/* A brass star pin holds the card to the chart. */
+.memory-stars-card-pin {
+  position: absolute;
+  inset: -6px auto auto 50%;
+  inline-size: 13px;
+  block-size: 13px;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 35% 30%,
+    var(--memory-stars-brass-light),
+    var(--memory-stars-brass) 55%,
+    var(--memory-stars-brass-deep)
+  );
+  box-shadow: 0 2px 3px
+    color-mix(in srgb, var(--memory-stars-night-shade) 35%, transparent);
+}
+.memory-stars-card-pin::after {
+  content: "✦";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 8px;
+  line-height: 1;
+  color: var(--memory-stars-pin-star);
+}
+.memory-stars-card-body {
+  position: relative;
+  display: grid;
+  justify-items: center;
+}
+.memory-stars-card-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  inline-size: 100%;
+  margin: 0 0 var(--space-2);
+  padding-block-end: 5px;
+  border-block-end: 1px solid var(--memory-stars-card-line);
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-style: italic;
+  letter-spacing: 0.06em;
+  text-shadow: var(--memory-stars-card-foil);
+}
+.memory-stars-card-kicker {
+  margin: 0;
+  font-family: var(--memory-stars-hand);
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+.memory-stars-card-date {
+  margin: 0 0 var(--space-3);
+  font-family: var(--memory-stars-hand);
+  font-weight: 700;
+  font-size: 1.7rem;
+  line-height: 1.1;
+  text-shadow: var(--memory-stars-card-foil);
+}
+/* The lit star's memory as a keepsake, slightly tilted on the card. */
+.memory-stars-card-memory {
+  display: block;
+  inline-size: 92%;
+  rotate: 0.4deg;
+  color: inherit;
+  text-align: start;
+  text-decoration: none;
+  -webkit-touch-callout: none;
+}
+.memory-stars-card-memory :is(img, svg) {
+  -webkit-user-drag: none;
+}
+.memory-stars-card-memory:focus-visible {
+  outline: 2px solid var(--memory-stars-ink-gold);
+  outline-offset: 4px;
+}
+.memory-stars-card-memory
+  :is(.memory-world-heart-card, .memory-world-stamp-card, .memory-world-slip) {
+  min-block-size: 0;
+}
+
+/* The app presses every button globally (scale, brightness); objects on the
+   chart stay put instead. */
+button:is(
+  .memory-stars-star,
+  .memory-stars-view,
+  .memory-stars-scope-button,
+  .memory-stars-wish
+):is(:hover, :active, [data-control-pressed]):not(:disabled) {
+  scale: 1;
+  filter: none;
+}

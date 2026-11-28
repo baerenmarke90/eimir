@@ -184,7 +184,9 @@ message.
 `ShortTaskSheet` may accept an optional `footer` for a bounded choice with a
 long scrollable body. The shared footer stays outside body scrolling, protects
 the bottom safe area and remains separately scrollable for large text or error
-content. It does not introduce another modal, focus or dismissal lifecycle.
+content and joins the tab order exactly while it overflows, so the scrollable
+region stays keyboard-reachable. It does not introduce another modal, focus or
+dismissal lifecycle.
 App-icon selection uses this contract for its explicit Save and recovery state.
 
 ### 4.3 Date, Time, and Duration
@@ -252,6 +254,16 @@ For both variants:
   When a title cannot fit beside Back (320 px, 200 % text, one long word), it moves
   below Back within the same header.
 - Descriptions, metadata, tabs and filters follow below the row at full width.
+- A title-only page or task header leaves one `spacing.subpageContentGap` before
+  its first in-flow content (24 CSS px at the default text size). Measure from
+  the bottom of the full title row, including Back, wrapped lines and any action,
+  to the top of the first panel, field group, filter or state. The same token
+  applies on Compact, Medium and Expanded. An absent description occupies zero
+  space. Grid or flex row spacing counts toward this total. A focus target
+  occupies no layout row. A header with supporting copy or a named item's type
+  row follows its own composition above.
+  On Web, `PageHeader` applies the rule automatically. A page stack declares
+  its normal row spacing with `--page-stack-gap`.
 - The row belongs to the content column on Compact and Expanded; Back is never
   detached at the window edge. A header that is sticky keeps Back, title and action
   sticky together.
@@ -587,6 +599,7 @@ retains visible feeling radios and its separate visibility task.
 
 - Two people are represented equally; neither is visually dominant by default.
 - Initials or neutral placeholders are available when no photo exists.
+- The neutral placeholder is one of the eight shipped default avatars (`web/public/identity/default-avatars/v1/`), chosen deterministically from the Account id and shown only once the profile is known to have no picture (`profileAttachmentId` is `null`). While the profile loads, or when a picture fails to load, the initials stay, so a placeholder never flashes before a real photo. A placeholder is decorative artwork, not a photo of the person, and is labelled with the fallback text, not as a profile picture. Surfaces that do not use the placeholder yet keep the initials.
 - Status or role is supplemented with text when relevant.
 
 ## 11. Relationship components

@@ -63,6 +63,7 @@ typography('story-summary', 'storySummary', 'display');
 typography('story-total', 'storyTotal', 'display');
 typography('story-category', 'storyCategory');
 for (const [name, role] of [
+  ['subpage-content-gap', 'subpageContentGap'],
   ['media-mosaic-gap', 'mediaMosaicGap'],
   ['story-summary-inset', 'storySummaryInset'],
   ['story-category-gap', 'storyCategoryGap'],
@@ -209,7 +210,15 @@ declare('duration-map-camera', value('motion.duration.mapCamera'));
 declare('duration-map-stack', value('motion.duration.mapStack'));
 declare('duration-controls-return', value('motion.duration.controlsReturn'));
 declare('duration-sequence-beat', value('motion.duration.sequenceBeat'));
+// Motion Contract 4.1, Enter module: the one entrance of a page module.
+declare('duration-module-enter', value('motion.duration.moduleEnter'));
+declare('motion-module-rise', value('motion.module.rise'));
 declare('duration-send-flight', value('motion.duration.sendFlight'));
+declare('duration-card-arrival', value('motion.duration.cardArrival'));
+declare(
+  'duration-card-arrival-sweep',
+  value('motion.duration.cardArrivalSweep'),
+);
 declare('duration-gesture-moment', value('motion.duration.gestureMoment'));
 // Motion Contract 5.3: Enter stagger steps and their cap (#2073).
 declare('duration-stagger-item', value('motion.stagger.item'));
@@ -217,6 +226,8 @@ declare('duration-stagger-module', value('motion.stagger.module'));
 declare('motion-stagger-max-items', value('motion.stagger.maxItems'));
 declare('duration-gesture-sequence', value('motion.duration.gestureSequence'));
 declare('duration-connection-draw', value('motion.duration.connectionDraw'));
+declare('duration-handwriting', value('motion.duration.handwriting'));
+declare('duration-marker-sweep', value('motion.duration.markerSweep'));
 declare('duration-connection-beat', value('motion.duration.connectionBeat'));
 declare(
   'duration-connection-travel',
@@ -228,6 +239,9 @@ declare(
 );
 // Momente > Erinnerungen Fotostory: dwell per slide and slow photo zoom.
 declare('duration-story-slide', value('motion.duration.storySlide'));
+// The "Wisst ihr noch?" lead slide dwells longer so its photo can develop.
+declare('duration-story-lead-slide', value('motion.duration.storyLeadSlide'));
+declare('duration-story-develop', value('motion.duration.storyDevelop'));
 declare('duration-story-ken-burns', value('motion.duration.storyKenBurns'));
 // Loading domain: one turn of a pending-status spinner (pull to refresh).
 declare('duration-loading-cycle', value('motion.duration.loadingCycle'));
@@ -342,15 +356,21 @@ ${storyColorDeclarations('dark', '    ')}
     --duration-map-stack: ${value('motion.duration.instant')};
     --duration-controls-return: ${value('motion.duration.instant')};
     --duration-sequence-beat: ${value('motion.duration.instant')};
+    --duration-module-enter: ${value('motion.duration.instant')};
     --duration-send-flight: ${value('motion.duration.instant')};
+    --duration-card-arrival: ${value('motion.duration.instant')};
+    --duration-card-arrival-sweep: ${value('motion.duration.instant')};
     --duration-gesture-moment: ${value('motion.duration.instant')};
     --duration-stagger-item: ${value('motion.duration.instant')};
     --duration-stagger-module: ${value('motion.duration.instant')};
     --duration-gesture-sequence: ${value('motion.duration.instant')};
     --duration-connection-draw: ${value('motion.duration.instant')};
+    --duration-handwriting: ${value('motion.duration.instant')};
+    --duration-marker-sweep: ${value('motion.duration.instant')};
     --duration-connection-beat: ${value('motion.duration.instant')};
     --duration-connection-travel: ${value('motion.duration.instant')};
     --duration-connection-travel-far: ${value('motion.duration.instant')};
+    --duration-story-develop: ${value('motion.duration.instant')};
     --duration-story-ken-burns: ${value('motion.duration.instant')};
     --duration-loading-cycle: ${value('motion.duration.instant')};
   }

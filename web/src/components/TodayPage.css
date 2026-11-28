@@ -244,31 +244,31 @@
   margin-bottom: var(--space-section);
 }
 
+/* Title and "see all" link share one line; the link ends at the right edge of
+   the content column in every Wir module. Long text wraps inside its own box
+   (zoom-safe) instead of pushing the link onto a second line. */
 .today-section-header {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
+  flex-wrap: nowrap;
+  align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  row-gap: var(--space-1);
   margin-bottom: var(--space-3);
-  padding-left: var(--space-1);
 }
 
 .today-section-header > * {
   min-width: 0;
 }
 
-/* On phones the floating create button sits at the inline end above the
-   navigation. Section links end before its column so it never covers them
-   (#2063: it hid the planning link on first open). */
-@media (max-width: 839px) {
-  .today-page:has(.add-action[data-floating-create]) .today-section-header {
-    padding-inline-end: calc(
-      var(--touch-target-floating-create) +
-      var(--space-2)
-    );
-  }
+.today-section-header > :first-child {
+  flex: 1 1 auto;
+}
+
+.today-section-action {
+  flex: 0 1 auto;
+  max-inline-size: 60%;
+  margin-inline-start: auto;
+  text-align: end;
 }
 
 /*
@@ -699,7 +699,7 @@
  * one clock instead, so this second entrance does not run beside it (#2147).
  */
 .today-content[data-motion-stage="playing"]:not([data-motion-stage-scope])
-> :not(.page-heading, :nth-child(-n + 2)) {
+  > :not(.page-heading, :nth-child(-n + 2)) {
   --motion-stage-rise: 0.9rem;
   animation: eimir-motion-root-rise calc(var(--duration-sequence-beat) * 2)
     var(--easing-enter)
@@ -1066,6 +1066,11 @@
   overflow-wrap: anywhere;
 }
 
+/* In a section header it ends at the same right edge as the other links. */
+.today-section-action .today-retrospective-dismiss {
+  padding-inline: 0;
+}
+
 .today-retrospective-dismiss:hover {
   color: var(--color-brand-text);
   text-decoration: underline;
@@ -1266,10 +1271,6 @@
     margin-bottom: var(--space-8);
   }
 
-  .today-section-moment {
-    margin-bottom: var(--space-10);
-  }
-
   .today-content:has(.today-section-living):has(.today-section-monthly) {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1277,18 +1278,19 @@
     align-items: start;
   }
 
-  .today-content:has(.today-section-living):has(.today-section-monthly) > * {
+  /* The placements need no `:has()`: outside the grid they have no effect,
+     and a `:has()` before a combinator makes Chromium restyle whole subtrees
+     when an ancestor's `:has()` state is checked. */
+  .today-content > * {
     grid-column: 1 / -1;
     min-width: 0;
   }
 
-  .today-content:has(.today-section-living):has(.today-section-monthly)
-    > .today-section-living {
+  .today-content > .today-section-living {
     grid-column: 1 / 2;
   }
 
-  .today-content:has(.today-section-living):has(.today-section-monthly)
-    > .today-section-monthly {
+  .today-content > .today-section-monthly {
     grid-column: 2 / -1;
   }
 }
@@ -1348,11 +1350,12 @@
 }
 
 /* A module that only exists for live data eases in once when it replaces its
-   cached placeholder: Enter `rise` from the motion catalogue. */
+   cached placeholder, with Enter `module` like every module (Motion Contract
+   4.1). */
 .today-module-reveal {
-  --motion-enter-rise: var(--space-2);
-  animation: eimir-motion-enter-rise var(--duration-context) var(--easing-enter)
-    both;
+  --motion-enter-rise: var(--motion-module-rise);
+  animation: eimir-motion-enter-rise var(--duration-module-enter)
+    var(--easing-enter) both;
 }
 
 /*

@@ -1,14 +1,14 @@
-import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { ServerAdminApi } from '../api/generated/apis/ServerAdminApi';
 import type { ServerAdminAccountDetail } from '../api/generated/models/ServerAdminAccountDetail';
 import { normalizeClientError } from '../client/problemDetails';
-import { isRecentAuthRequired } from '../client/recentAuthentication';
 import { SERVER_ADMIN_ROUTE } from '../client/routes';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { ServerAdminAccountDeletionDialog } from './ServerAdminAccountDeletionDialog';
-import { ServerAdminRecentAuthModal } from './ServerAdminRecentAuthModal';
+import { shortSpaceId } from './ServerAdminSpaceFile';
+import { sectionHref } from './serverAdminAreas';
 
 const PAGE_SIZE = 25;
 
@@ -35,21 +35,13 @@ function authMethodLabel(method: string): string {
   }
 }
 
-type PendingPrivilegedAction =
-  | { kind: 'verify-email'; emailId: string; email: string }
-  | { kind: 'operator-recovery' };
-
 function AccountDetail({
   account,
   api,
-  apiBaseUrl,
-  accessToken,
   onChanged,
 }: {
   account: ServerAdminAccountDetail;
   api: ServerAdminApi;
-  apiBaseUrl: string;
-  accessToken: string;
   onChanged: () => void;
 }) {
   const { t } = useTranslation();
@@ -57,8 +49,6 @@ function AccountDetail({
   const [verificationText, setVerificationText] = useState('');
   const [recoveryUrl, setRecoveryUrl] = useState<string | null>(null);
   const [recoveryExpiry, setRecoveryExpiry] = useState<Date | null>(null);
-  const [pendingPrivilegedAction, setPendingPrivilegedAction] =
-    useState<PendingPrivilegedAction | null>(null);
   const [deletionDialogOpen, setDeletionDialogOpen] = useState(false);
 
   const invalidate = () => {
@@ -115,11 +105,6 @@ function AccountDetail({
       setVerificationText('');
       invalidate();
     },
-    onError: (error, variables) => {
-      if (isRecentAuthRequired(error)) {
-        setPendingPrivilegedAction({ kind: 'verify-email', ...variables });
-      }
-    },
   });
   const verificationRequestMutation = useMutation({
     mutationFn: async () => {
@@ -155,26 +140,15 @@ function AccountDetail({
       setRecoveryExpiry(proof.expiresAt);
       invalidate();
     },
-    onError: (error) => {
-      if (isRecentAuthRequired(error)) {
-        setPendingPrivilegedAction({ kind: 'operator-recovery' });
-      }
-    },
   });
 
   const actionError =
     suspensionMutation.error ??
     revokeSessionsMutation.error ??
-    (verificationMutation.error &&
-    !isRecentAuthRequired(verificationMutation.error)
-      ? verificationMutation.error
-      : null) ??
+    verificationMutation.error ??
     verificationRequestMutation.error ??
     recoveryEmailMutation.error ??
-    (operatorRecoveryMutation.error &&
-    !isRecentAuthRequired(operatorRecoveryMutation.error)
-      ? operatorRecoveryMutation.error
-      : null);
+    operatorRecoveryMutation.error;
   const pending =
     suspensionMutation.isPending ||
     revokeSessionsMutation.isPending ||
@@ -207,22 +181,6 @@ function AccountDetail({
       setRecoveryExpiry(null);
       operatorRecoveryMutation.mutate();
     }
-  }
-
-  function retryPrivilegedAction() {
-    const action = pendingPrivilegedAction;
-    setPendingPrivilegedAction(null);
-    if (!action) return;
-    if (action.kind === 'verify-email') {
-      verificationMutation.reset();
-      verificationMutation.mutate({
-        emailId: action.emailId,
-        email: action.email,
-      });
-      return;
-    }
-    operatorRecoveryMutation.reset();
-    operatorRecoveryMutation.mutate();
   }
 
   return (
@@ -286,6 +244,34 @@ function AccountDetail({
           <dd>{account.passkeyCount}</dd>
         </div>
       </dl>
+
+      <h4>{t('serverAdmin.accounts.detail.spacesTitle')}</h4>
+      {(account.spaces ?? []).length === 0 ? (
+        <p className="server-admin-muted">
+          {t('serverAdmin.accounts.detail.noSpaces')}
+        </p>
+      ) : (
+        <ul className="server-admin-account-spaces">
+          {(account.spaces ?? []).map((space) => (
+            <li key={space.spaceId}>
+              <Link to={sectionHref('spaces', { space: space.spaceId })}>
+                {t('serverAdmin.spaceFile.title', {
+                  id: shortSpaceId(space.spaceId),
+                })}
+              </Link>
+              <span className="server-admin-muted">
+                {t(
+                  space.membershipStatus === 'ACTIVE'
+                    ? 'serverAdmin.spaceFile.member.active'
+                    : space.membershipStatus === 'LEFT'
+                      ? 'serverAdmin.spaceFile.member.left'
+                      : 'serverAdmin.spaceFile.member.removed',
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
 
       <h4>{t('serverAdmin.accounts.detail.emailTitle')}</h4>
       <div className="server-admin-account-email-list">
@@ -463,8 +449,6 @@ function AccountDetail({
       {deletionDialogOpen ? (
         <ServerAdminAccountDeletionDialog
           api={api}
-          apiBaseUrl={apiBaseUrl}
-          accessToken={accessToken}
           account={account}
           onClose={() => setDeletionDialogOpen(false)}
           onSuccess={() => {
@@ -473,29 +457,22 @@ function AccountDetail({
           }}
         />
       ) : null}
-
-      {pendingPrivilegedAction ? (
-        <ServerAdminRecentAuthModal
-          apiBaseUrl={apiBaseUrl}
-          accessToken={accessToken}
-          onCancel={() => setPendingPrivilegedAction(null)}
-          onSuccess={retryPrivilegedAction}
-        />
-      ) : null}
     </div>
   );
 }
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function ServerAdminAccountsPanel({
   api,
-  apiBaseUrl,
-  accessToken,
   onOverviewChanged,
+  initialAccountId = null,
 }: {
   api: ServerAdminApi;
-  apiBaseUrl: string;
-  accessToken: string;
   onOverviewChanged: () => void;
+  /** An `?account=` link, for example from the search; ignored unless a UUID. */
+  initialAccountId?: string | null;
 }) {
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
@@ -505,7 +482,10 @@ export function ServerAdminAccountsPanel({
   >('all');
   const [offset, setOffset] = useState(0);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(
-    null,
+    () =>
+      initialAccountId && UUID_PATTERN.test(initialAccountId)
+        ? initialAccountId
+        : null,
   );
 
   const accountRequest = useMemo(
@@ -652,7 +632,7 @@ export function ServerAdminAccountsPanel({
                     </th>
                     <th scope="col">{t('serverAdmin.accounts.sessions')}</th>
                     <th scope="col">{t('serverAdmin.accounts.auth')}</th>
-                    <th scope="col">{t('serverAdmin.accounts.open')}</th>
+                    <th scope="col">{t('common.open')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -694,7 +674,7 @@ export function ServerAdminAccountsPanel({
                           className="text-button"
                           onClick={() => setSelectedAccountId(account.id)}
                         >
-                          {t('serverAdmin.accounts.open')}
+                          {t('common.open')}
                         </button>
                       </td>
                     </tr>
@@ -735,7 +715,7 @@ export function ServerAdminAccountsPanel({
                 className="text-button"
                 onClick={() => setSelectedAccountId(null)}
               >
-                {t('serverAdmin.accounts.detail.close')}
+                {t('common.close')}
               </button>
             </div>
             {detailQuery.isPending ? (
@@ -750,8 +730,6 @@ export function ServerAdminAccountsPanel({
               <AccountDetail
                 account={detailQuery.data}
                 api={api}
-                apiBaseUrl={apiBaseUrl}
-                accessToken={accessToken}
                 onChanged={() => {
                   void detailQuery.refetch();
                   onOverviewChanged();

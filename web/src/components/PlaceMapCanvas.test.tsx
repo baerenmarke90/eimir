@@ -456,6 +456,19 @@ it("reports only the viewer's own gestures and settles after they rest", () => {
   }
 });
 
+it('tells its page once, when the map is complete', async () => {
+  const onComplete = vi.fn();
+  render(<PlaceMapCanvas revealWhenComplete onComplete={onComplete} />);
+  expect(onComplete).not.toHaveBeenCalled();
+  act(() => {
+    for (const callback of state.once.idle ?? []) callback();
+  });
+  await act(async () => {
+    await Promise.resolve();
+  });
+  expect(onComplete).toHaveBeenCalledOnce();
+});
+
 it('shows the map in one piece once its view has drawn and photos loaded', () => {
   const { container } = render(<PlaceMapCanvas revealWhenComplete />);
   const canvas = container.querySelector('.place-map-canvas');
@@ -470,8 +483,56 @@ it('shows the map in one piece once its view has drawn and photos loaded', () =>
   });
 });
 
-it('leaves other maps as they are', () => {
-  const { container } = render(<PlaceMapCanvas />);
+it.each(['load', 'timeout'] as const)(
+  'waits for a slow marker photo without remeasuring each frame (%s)',
+  async (finish) => {
+    vi.useFakeTimers();
+    try {
+      const { container, getByRole } = render(
+        <PlaceMapCanvas revealWhenComplete />,
+      );
+      const canvas = container.querySelector('.place-map-canvas');
+      const viewport = getByRole('application');
+      vi.spyOn(viewport, 'getBoundingClientRect').mockReturnValue(
+        DOMRect.fromRect({ width: 390, height: 600 }),
+      );
+      const image = document.createElement('img');
+      viewport.append(image);
+      const measure = vi
+        .spyOn(image, 'getBoundingClientRect')
+        .mockReturnValue(
+          DOMRect.fromRect({ x: 20, y: 30, width: 40, height: 40 }),
+        );
+      const loaded = vi.spyOn(image, 'complete', 'get').mockReturnValue(false);
+      act(() => {
+        for (const callback of state.once.idle ?? []) callback();
+      });
+      await act(() => vi.advanceTimersByTimeAsync(500));
+      expect(canvas?.getAttribute('data-reveal')).toBe('waiting');
+      expect(measure).toHaveBeenCalledTimes(1);
+      await act(async () => {
+        if (finish === 'load') {
+          loaded.mockReturnValue(true);
+          image.dispatchEvent(new Event('load'));
+        }
+        await vi.advanceTimersByTimeAsync(finish === 'load' ? 40 : 701);
+      });
+      expect(canvas?.getAttribute('data-reveal')).toBe('complete');
+      expect(measure).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  },
+);
+
+it('opens other maps without inspecting marker photos', () => {
+  const { container, getByRole } = render(<PlaceMapCanvas />);
+  const viewport = getByRole('application');
+  const measure = vi.spyOn(viewport, 'getBoundingClientRect');
+  act(() => {
+    for (const callback of state.once.idle ?? []) callback();
+  });
+  expect(measure).not.toHaveBeenCalled();
   expect(
     container.querySelector('.place-map-canvas')?.hasAttribute('data-reveal'),
   ).toBe(false);
@@ -666,4 +727,193 @@ it('recreates the map for a new locale where the viewer left the camera', async 
   expect(state.jump).toHaveBeenLastCalledWith({ center: [7, 49], zoom: 14 });
   expect(state.fit).toHaveBeenCalledTimes(1);
   expect(state.fly).not.toHaveBeenCalled();
+});
+
+const partnerArea: MapArea = {
+  id: 'partner',
+  tone: 'partner',
+  latitude: 53.55,
+  longitude: 9.99,
+  radiusMeters: 5000,
+  selectLabel: 'Zoom to Alex',
+};
+const ownArea: MapArea = {
+  id: 'own',
+  tone: 'own',
+  latitude: 50.94,
+  longitude: 6.96,
+  radiusMeters: 0,
+  selectLabel: 'Zoom to you',
+};
+const areaElement = (id: string) => {
+  const calls = state.marker.mock.calls as [{ element: HTMLElement }][];
+  const matching = calls.filter(([options]) =>
+    options.element.classList.contains(`is-${id}`),
+  );
+  const element = matching.at(-1)?.[0].element;
+  if (!element) throw new Error(`Area ${id} must exist`);
+  return element;
+};
+
+it('makes only the avatar of a labelled area a button that selects the person', () => {
+  state.width = 390;
+  state.height = 740;
+  const select = vi.fn();
+  const pick = vi.fn();
+  const view = render(
+    <PlaceMapCanvas
+      areas={[partnerArea, { ...ownArea, selectLabel: undefined }]}
+      onAreaSelect={select}
+      onSelect={pick}
+    />,
+  );
+  const partner = areaElement('partner');
+  const button = partner.querySelector('button.place-map-area-marker');
+  if (!(button instanceof HTMLButtonElement))
+    throw new Error('The avatar must be a button');
+  expect(button.type).toBe('button');
+  expect(button.getAttribute('aria-label')).toBe('Zoom to Alex');
+  // The area drawing stays decorative and outside the button.
+  expect(
+    partner
+      .querySelector('.place-map-area-circle')
+      ?.getAttribute('aria-hidden'),
+  ).toBe('true');
+  expect(button.querySelector('.place-map-area-circle')).toBeNull();
+  // An area without a name keeps a decorative marker.
+  const own = areaElement('own');
+  expect(own.querySelector('button')).toBeNull();
+  expect(
+    own.querySelector('.place-map-area-marker')?.getAttribute('aria-hidden'),
+  ).toBe('true');
+  fireEvent.click(button);
+  expect(select).toHaveBeenCalledWith('partner');
+  // A person is not a Place pick.
+  expect(pick).not.toHaveBeenCalled();
+  // Without a selection handler nothing on the map becomes a button.
+  view.rerender(<PlaceMapCanvas areas={[partnerArea, ownArea]} />);
+  expect(areaElement('partner').querySelector('button')).toBeNull();
+  expect(areaElement('own').querySelector('button')).toBeNull();
+});
+
+it('flies to a focused area at a zoom that fits its radius, again on request', () => {
+  stubMotionPreference(false);
+  stubMotionRoles({ '--duration-map-camera': '1100ms' });
+  state.width = 390;
+  state.height = 740;
+  state.camera.mockReturnValue({ center: [9.99, 53.56], zoom: 10.5 });
+  const areas = [partnerArea, ownArea];
+  const view = render(<PlaceMapCanvas areas={areas} />);
+  const focus = {
+    latitude: 53.55,
+    longitude: 9.99,
+    radiusMeters: 5000,
+    request: 1,
+  };
+  view.rerender(<PlaceMapCanvas areas={areas} focus={focus} />);
+  expect(state.camera).toHaveBeenLastCalledWith(
+    expect.objectContaining({ points: expect.any(Array) }),
+    expect.objectContaining({
+      padding: { top: 88, right: 56, bottom: 56, left: 56 },
+      maxZoom: 14,
+    }),
+  );
+  expect(state.camera.mock.lastCall?.[0].points).toHaveLength(2);
+  expect(state.fly).toHaveBeenLastCalledWith({
+    center: [9.99, 53.56],
+    zoom: 10.5,
+    duration: 1100,
+    essential: true,
+  });
+  // The same focus again (a new render, new areas) does not move the camera.
+  view.rerender(<PlaceMapCanvas areas={[...areas]} focus={{ ...focus }} />);
+  expect(state.fly).toHaveBeenCalledTimes(1);
+  // A second tap after the viewer moved away flies there again.
+  view.rerender(
+    <PlaceMapCanvas areas={areas} focus={{ ...focus, request: 2 }} />,
+  );
+  expect(state.fly).toHaveBeenCalledTimes(2);
+  // The own position has no radius: the Place zoom.
+  view.rerender(
+    <PlaceMapCanvas
+      areas={areas}
+      focus={{ latitude: 50.94, longitude: 6.96, radiusMeters: 0, request: 3 }}
+    />,
+  );
+  expect(state.fly).toHaveBeenLastCalledWith({
+    center: [6.96, 50.94],
+    zoom: 14,
+    duration: 1100,
+    essential: true,
+  });
+});
+
+it('jumps to a focused area with reduced motion', () => {
+  stubMotionPreference(true);
+  state.width = 390;
+  state.height = 740;
+  state.camera.mockReturnValue({ center: [9.99, 53.56], zoom: 10.5 });
+  const view = render(<PlaceMapCanvas areas={[partnerArea]} />);
+  view.rerender(
+    <PlaceMapCanvas
+      areas={[partnerArea]}
+      focus={{ latitude: 53.55, longitude: 9.99, radiusMeters: 5000 }}
+    />,
+  );
+  expect(state.jump).toHaveBeenLastCalledWith({
+    center: [9.99, 53.56],
+    zoom: 10.5,
+  });
+  expect(state.fly).not.toHaveBeenCalled();
+});
+
+it('returns from a person to everyone with one "show us" journey', () => {
+  stubMotionPreference(false);
+  stubMotionRoles({ '--duration-map-camera': '1100ms' });
+  state.width = 390;
+  state.height = 740;
+  // Without the skip, clearing the focus would fly to this overview too.
+  state.camera.mockReturnValue({ center: [8, 52], zoom: 6 });
+  const focus = { latitude: 50.94, longitude: 6.96, radiusMeters: 0 };
+  const view = render(<PlaceMapCanvas areas={[ownArea]} />);
+  view.rerender(<PlaceMapCanvas areas={[ownArea]} focus={focus} />);
+  expect(state.fly).toHaveBeenCalledTimes(1);
+  // The partner arrives while the viewer looks at themselves: no reframe.
+  const fits = state.fit.mock.calls.length;
+  view.rerender(
+    <PlaceMapCanvas areas={[ownArea, partnerArea]} focus={focus} />,
+  );
+  expect(state.fit).toHaveBeenCalledTimes(fits);
+  view.rerender(
+    <PlaceMapCanvas areas={[ownArea, partnerArea]} showAreasRequest={1} />,
+  );
+  // "Show us" frames both, including the partner who arrived meanwhile.
+  expect(state.fit).toHaveBeenLastCalledWith(
+    expect.objectContaining({ points: expect.any(Array) }),
+    expect.objectContaining({ duration: 1100, essential: true }),
+  );
+  expect(state.fit.mock.lastCall?.[0].points).toHaveLength(4);
+  expect(state.fly).toHaveBeenCalledTimes(1);
+});
+
+it('clears a focused person back to everyone who is on the map now', () => {
+  stubMotionPreference(false);
+  stubMotionRoles({ '--duration-map-camera': '1100ms' });
+  state.width = 390;
+  state.height = 740;
+  state.camera.mockReturnValue({ center: [8, 52], zoom: 6 });
+  const focus = { latitude: 50.94, longitude: 6.96, radiusMeters: 0 };
+  const view = render(<PlaceMapCanvas areas={[ownArea]} />);
+  view.rerender(<PlaceMapCanvas areas={[ownArea]} focus={focus} />);
+  view.rerender(
+    <PlaceMapCanvas areas={[ownArea, partnerArea]} focus={focus} />,
+  );
+  view.rerender(<PlaceMapCanvas areas={[ownArea, partnerArea]} />);
+  expect(state.camera.mock.lastCall?.[0].points).toHaveLength(4);
+  expect(state.fly).toHaveBeenLastCalledWith({
+    center: [8, 52],
+    zoom: 6,
+    duration: 1100,
+    essential: true,
+  });
 });

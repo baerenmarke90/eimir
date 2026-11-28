@@ -6,13 +6,11 @@ import { RecentAuthenticationClient } from '../api/generated/models/RecentAuthen
 import type { RecentAuthenticationView } from '../api/generated/models/RecentAuthenticationView';
 import { Configuration } from './apiConfiguration';
 import { isCapacitorNative } from '../pwa';
-import { ClientProblemError, normalizeClientError } from './problemDetails';
+import { normalizeClientError } from './problemDetails';
 import { assertionToJson, requestOptionsFromJson } from './webauthnCodec';
 
 const OIDC_POPUP_POLL_MS = 200;
 const OIDC_POPUP_TIMEOUT_MS = 2 * 60 * 1000;
-
-export type RecentAuthenticationTarget = 'account-deletion' | 'server-admin';
 
 function api(apiBaseUrl: string, accessToken: string): AuthApi {
   return new AuthApi(
@@ -35,7 +33,6 @@ export async function loadRecentAuthenticationCapabilities(
   apiBaseUrl: string,
   accessToken: string,
   client?: RecentAuthenticationClient,
-  target: RecentAuthenticationTarget = 'account-deletion',
 ): Promise<CapabilitiesView> {
   const isNative = isCapacitorNative();
   const effectiveClient =
@@ -43,15 +40,9 @@ export async function loadRecentAuthenticationCapabilities(
 
   const authApi = api(apiBaseUrl, accessToken);
   const capabilities = await normalize(() =>
-    target === 'server-admin'
-      ? authApi.serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminGet(
-          {
-            client: effectiveClient,
-          },
-        )
-      : authApi.capabilitiesApiV1AuthRecentAuthenticationAccountDeletionGet({
-          client: effectiveClient,
-        }),
+    authApi.capabilitiesApiV1AuthRecentAuthenticationAccountDeletionGet({
+      client: effectiveClient,
+    }),
   );
 
   if (isNative) {
@@ -71,28 +62,20 @@ export async function authenticateRecentPassword(
   apiBaseUrl: string,
   accessToken: string,
   password: string,
-  target: RecentAuthenticationTarget = 'account-deletion',
 ): Promise<RecentAuthenticationView> {
-  return normalize(() => {
-    const authApi = api(apiBaseUrl, accessToken);
-    return target === 'server-admin'
-      ? authApi.serverAdminPasswordApiV1AuthRecentAuthenticationServerAdminPasswordPost(
-          {
-            passwordRequest: { password },
-          },
-        )
-      : authApi.passwordApiV1AuthRecentAuthenticationAccountDeletionPasswordPost(
-          {
-            passwordRequest: { password },
-          },
-        );
-  });
+  return normalize(() =>
+    api(
+      apiBaseUrl,
+      accessToken,
+    ).passwordApiV1AuthRecentAuthenticationAccountDeletionPasswordPost({
+      passwordRequest: { password },
+    }),
+  );
 }
 
 export async function authenticateRecentPasskey(
   apiBaseUrl: string,
   accessToken: string,
-  target: RecentAuthenticationTarget = 'account-deletion',
 ): Promise<RecentAuthenticationView> {
   if (isCapacitorNative()) {
     throw new Error(
@@ -106,9 +89,7 @@ export async function authenticateRecentPasskey(
   return normalize(async () => {
     const authApi = api(apiBaseUrl, accessToken);
     const options =
-      target === 'server-admin'
-        ? await authApi.serverAdminStartPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysStartPost()
-        : await authApi.startPasskeyApiV1AuthRecentAuthenticationAccountDeletionPasskeysStartPost();
+      await authApi.startPasskeyApiV1AuthRecentAuthenticationAccountDeletionPasskeysStartPost();
     const result = await navigator.credentials.get({
       publicKey: requestOptionsFromJson(options),
     });
@@ -116,13 +97,9 @@ export async function authenticateRecentPasskey(
       throw new Error('Passkey authentication was cancelled or unavailable.');
     }
     const passkeyFinishRequest = { credential: assertionToJson(result) };
-    return target === 'server-admin'
-      ? authApi.serverAdminFinishPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysFinishPost(
-          { passkeyFinishRequest },
-        )
-      : authApi.finishPasskeyApiV1AuthRecentAuthenticationAccountDeletionPasskeysFinishPost(
-          { passkeyFinishRequest },
-        );
+    return authApi.finishPasskeyApiV1AuthRecentAuthenticationAccountDeletionPasskeysFinishPost(
+      { passkeyFinishRequest },
+    );
   });
 }
 
@@ -259,26 +236,18 @@ export async function authenticateRecentOidc(
   apiBaseUrl: string,
   accessToken: string,
   connectionId: string,
-  target: RecentAuthenticationTarget = 'account-deletion',
 ): Promise<RecentAuthenticationView> {
   return normalize(async () => {
     const authApi = api(apiBaseUrl, accessToken);
 
     if (isCapacitorNative()) {
       const started =
-        target === 'server-admin'
-          ? await authApi.serverAdminStartOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdStartPost(
-              {
-                connectionId,
-                client: RecentAuthenticationClient.android,
-              },
-            )
-          : await authApi.startOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdStartPost(
-              {
-                connectionId,
-                client: RecentAuthenticationClient.android,
-              },
-            );
+        await authApi.startOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdStartPost(
+          {
+            connectionId,
+            client: RecentAuthenticationClient.android,
+          },
+        );
 
       const callbackPromise = waitForCapacitorOidcCallback(started.state);
       await Browser.open({ url: started.authorizationUrl });
@@ -289,26 +258,18 @@ export async function authenticateRecentOidc(
           connectionId,
           eimirApiV1RecentAuthenticationOidcCallbackRequest: callback,
         };
-        return target === 'server-admin'
-          ? await authApi.serverAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPost(
-              request,
-            )
-          : await authApi.completeOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdCallbackPost(
-              request,
-            );
+        return await authApi.completeOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdCallbackPost(
+          request,
+        );
       } finally {
         await Browser.close().catch(() => {});
       }
     }
 
     const started =
-      target === 'server-admin'
-        ? await authApi.serverAdminStartOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdStartPost(
-            { connectionId },
-          )
-        : await authApi.startOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdStartPost(
-            { connectionId },
-          );
+      await authApi.startOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdStartPost(
+        { connectionId },
+      );
     const popup = window.open(
       started.authorizationUrl,
       'eimir-recent-authentication',
@@ -322,66 +283,8 @@ export async function authenticateRecentOidc(
       connectionId,
       eimirApiV1RecentAuthenticationOidcCallbackRequest: callback,
     };
-    return target === 'server-admin'
-      ? authApi.serverAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPost(
-          request,
-        )
-      : authApi.completeOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdCallbackPost(
-          request,
-        );
+    return authApi.completeOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdCallbackPost(
+      request,
+    );
   });
-}
-
-export function loadServerAdminRecentAuthenticationCapabilities(
-  apiBaseUrl: string,
-  accessToken: string,
-  client?: RecentAuthenticationClient,
-): Promise<CapabilitiesView> {
-  return loadRecentAuthenticationCapabilities(
-    apiBaseUrl,
-    accessToken,
-    client,
-    'server-admin',
-  );
-}
-
-export function authenticateServerAdminRecentPassword(
-  apiBaseUrl: string,
-  accessToken: string,
-  password: string,
-): Promise<RecentAuthenticationView> {
-  return authenticateRecentPassword(
-    apiBaseUrl,
-    accessToken,
-    password,
-    'server-admin',
-  );
-}
-
-export function authenticateServerAdminRecentPasskey(
-  apiBaseUrl: string,
-  accessToken: string,
-): Promise<RecentAuthenticationView> {
-  return authenticateRecentPasskey(apiBaseUrl, accessToken, 'server-admin');
-}
-
-export function authenticateServerAdminRecentOidc(
-  apiBaseUrl: string,
-  accessToken: string,
-  connectionId: string,
-): Promise<RecentAuthenticationView> {
-  return authenticateRecentOidc(
-    apiBaseUrl,
-    accessToken,
-    connectionId,
-    'server-admin',
-  );
-}
-
-export function isRecentAuthRequired(error: unknown): boolean {
-  return (
-    error instanceof ClientProblemError &&
-    error.status === 403 &&
-    error.code === 'RECENT_AUTHENTICATION_REQUIRED'
-  );
 }

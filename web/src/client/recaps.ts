@@ -2,14 +2,7 @@ import type { NotificationItem } from '../api/generated/models/NotificationItem'
 import type { RecapPeriod } from '../api/generated/models/RecapPeriod';
 import type { RecapSourceView } from '../api/generated/models/RecapSourceView';
 import type { RecapView } from '../api/generated/models/RecapView';
-import { resolvedLocale } from '../i18n';
-import {
-  chapterDetailPath,
-  heartMomentDetailPath,
-  memoryDetailPath,
-  milestoneDetailPath,
-  planDetailPath,
-} from './routes';
+import { resolvedLocale, type TranslateText } from '../i18n';
 
 export function recapPeriodKey(value: RecapPeriod): string {
   return `${value.kind}:${value.year}:${value.month ?? 0}`;
@@ -53,7 +46,7 @@ export function recapNoticePeriod(
 
 export function recapNoticeTitle(
   item: Pick<NotificationItem, 'kind' | 'targetType' | 'target' | 'createdAt'>,
-  translate: (key: string, options?: Record<string, unknown>) => string,
+  translate: TranslateText,
   locale = resolvedLocale(),
 ): string {
   const grew = item.kind === 'RECAP_GREW';
@@ -82,7 +75,7 @@ export function recapDate(value: Date, locale: string): string {
 export function recapPeriodStatus(
   value: Pick<RecapView, 'savedAt' | 'isPartial' | 'throughOn'>,
   locale: string,
-  translate: (key: string, options?: Record<string, unknown>) => string,
+  translate: TranslateText,
 ): string {
   // A retained snapshot of a running period is the only "kept" state couples see.
   return value.savedAt && value.isPartial
@@ -92,20 +85,6 @@ export function recapPeriodStatus(
           date: recapDate(value.throughOn, locale),
         })
       : translate('recaps.complete');
-}
-export function recapSourcePath(source: RecapSourceView): string {
-  switch (source.kind) {
-    case 'MEMORY':
-      return memoryDetailPath(source.id);
-    case 'HEART_MOMENT':
-      return heartMomentDetailPath(source.id);
-    case 'MILESTONE':
-      return milestoneDetailPath(source.id);
-    case 'CHAPTER':
-      return chapterDetailPath(source.id);
-    case 'PLAN':
-      return planDetailPath(source.id);
-  }
 }
 export function recapHeadline(
   value: RecapView,
@@ -162,13 +141,6 @@ export type RecapScene =
       busiestMonth: number | null;
     }
   | {
-      type: 'rhythm';
-      key: string;
-      buckets: { index: number; goodDays: number }[];
-      leading: number | null;
-      total: number;
-    }
-  | {
       type: 'highlight';
       key: string;
       source: RecapSourceView;
@@ -199,25 +171,6 @@ export function recapFactLines(value: RecapView): RecapFactLine[] {
     : lines;
 }
 
-/** Fewer good days are no rhythm worth a scene of their own. */
-export const RECAP_RHYTHM_MIN_GOOD_DAYS = 3;
-
-/** Days both partners marked a good day, per week (month) or month (year). */
-export function recapRhythm(
-  value: RecapView,
-): Extract<RecapScene, { type: 'rhythm' }> | null {
-  const mood = value.mood;
-  if (!mood) return null;
-  const buckets = mood.buckets.map(({ index, goodDays }) => ({
-    index,
-    goodDays,
-  }));
-  const total = buckets.reduce((sum, bucket) => sum + bucket.goodDays, 0);
-  return total >= RECAP_RHYTHM_MIN_GOOD_DAYS
-    ? { type: 'rhythm', key: 'rhythm', buckets, leading: mood.leading, total }
-    : null;
-}
-
 /** One ordered scene list drives pages, progress and playback. */
 export function recapScenes(value: RecapView): RecapScene[] {
   const lines = recapFactLines(value);
@@ -233,7 +186,6 @@ export function recapScenes(value: RecapView): RecapScene[] {
           },
         ]
       : []),
-    ...(recapRhythm(value) ? [recapRhythm(value) as RecapScene] : []),
     ...value.sources.map((source) => ({
       type: 'highlight' as const,
       key: source.key,

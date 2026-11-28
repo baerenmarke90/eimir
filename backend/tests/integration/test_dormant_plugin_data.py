@@ -1,7 +1,9 @@
 """Startup warning for data of plugins that are not loaded (Decision 0017, decision 5).
 
-Not a Pro feature module: the Core-only CI job runs it with ``EIMIR_PLUGINS=""``.
-In the plugin-loaded configuration the Core-only cases simulate the absent plugin.
+Not a Pro feature module: the Core-only CI job runs it with ``EIMIR_PLUGINS=""``
+and without the Pro distribution. The data belongs to a fake plugin
+(``tests.support.fake_plugin``). In the plugin-loaded configuration the Core-only
+cases simulate the absent plugin.
 """
 
 from __future__ import annotations
@@ -13,12 +15,19 @@ from contextlib import contextmanager, nullcontext
 import pytest
 from sqlalchemy.orm import Session
 
-from eimir.garden.models import GardenReader
-from eimir.plugins import dormant, loader
-from eimir.pro_plugin import plugin as pro_plugin
-from eimir.quotes.models import DailyQuotePreference
+from eimir.entitlements.models import Capability
+from eimir.plugins import dormant
 from eimir.relationship import service as relationship_service
 from tests.conftest import make_account, make_space, requires_database
+from tests.support.fake_plugin import (
+    ACCOUNT_PREFERENCES,
+    COUPLE_ITEMS,
+    FakePlugin,
+    count_rows,
+    insert_row,
+    install_fake_plugin_tables,
+    loaded,
+)
 from tests.support.plugins import plugins_loaded, without_plugins
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -32,13 +41,15 @@ def core_only() -> Iterator[None]:
 
 @contextmanager
 def plugin_loaded() -> Iterator[None]:
-    """The Pro plugin loaded: for real in that configuration, simulated Core-only."""
-    current = loader.loaded_plugins()
-    loader._loaded = loader.LoadedPlugins((pro_plugin,))
-    try:
+    """A plugin that provides both capabilities of the fake tables is loaded."""
+    with loaded(FakePlugin(Capability.DAILY_QUOTE, Capability.GAMES_COUPLE)):
         yield
-    finally:
-        loader._loaded = current
+
+
+@pytest.fixture(autouse=True)
+def fake_plugin_tables(session: Session, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Two plugin tables: one per Account and one per Space (two capabilities)."""
+    install_fake_plugin_tables(session, monkeypatch, ACCOUNT_PREFERENCES, COUPLE_ITEMS)
 
 
 def _warnings(caplog: pytest.LogCaptureFixture) -> list[logging.LogRecord]:
@@ -54,14 +65,9 @@ def dormant_rows(session: Session):  # type: ignore[no-untyped-def]
     anna, ben = make_account(session, "Anna"), make_account(session, "Ben")
     space = make_space(session, anna)
     relationship_service.add_member(session, space.id, ben)
-    session.add_all(
-        [
-            DailyQuotePreference(account_id=anna.id),
-            DailyQuotePreference(account_id=ben.id),
-            GardenReader(space_id=space.id, account_id=anna.id),
-        ]
-    )
-    session.flush()
+    insert_row(session, ACCOUNT_PREFERENCES, account_id=anna.id)
+    insert_row(session, ACCOUNT_PREFERENCES, account_id=ben.id)
+    insert_row(session, COUPLE_ITEMS, space_id=space.id, sender_id=anna.id, receiver_id=ben.id)
     return anna, ben, space
 
 
@@ -73,19 +79,19 @@ def test_core_only_with_plugin_data_warns_once_with_names_and_counts_only(  # ty
     with core_only():
         found = dormant.warn_dormant_plugin_data(session.connection())
     assert found == {
-        "daily.quote": {"daily_quote_preferences": 2},
-        "games.couple": {"garden_readers": 1},
+        "daily.quote": {"fake_account_preferences": 2},
+        "games.couple": {"fake_couple_items": 1},
     }
     [record] = _warnings(caplog)
     message = record.getMessage()
-    assert "daily.quote: daily_quote_preferences (2)" in message
-    assert "games.couple: garden_readers (1)" in message
+    assert "daily.quote: fake_account_preferences (2)" in message
+    assert "games.couple: fake_couple_items (1)" in message
     assert "EIMIR_PLUGINS" in message and "untouched" in message
     assert record.dormant_plugin_data == found  # type: ignore[attr-defined]
     for identifier in (anna.id, ben.id, space.id):
         assert str(identifier) not in caplog.text
     # The check only reads.
-    assert session.query(DailyQuotePreference).count() == 2
+    assert count_rows(session, ACCOUNT_PREFERENCES) == 2
 
 
 def test_core_only_without_plugin_data_logs_no_warning(  # type: ignore[no-untyped-def]
@@ -117,8 +123,8 @@ def test_large_tables_are_reported_as_at_least_the_limit(  # type: ignore[no-unt
     with core_only():
         dormant.warn_dormant_plugin_data(session.connection())
     [record] = _warnings(caplog)
-    assert "daily_quote_preferences (at least 1)" in record.getMessage()
-    assert "garden_readers (1)" in record.getMessage()
+    assert "fake_account_preferences (at least 1)" in record.getMessage()
+    assert "fake_couple_items (1)" in record.getMessage()
 
 
 def test_a_missing_table_is_skipped_and_the_rest_still_counted(  # type: ignore[no-untyped-def]
@@ -138,10 +144,10 @@ def test_a_missing_table_is_skipped_and_the_rest_still_counted(  # type: ignore[
     caplog.set_level(logging.DEBUG, logger=dormant.__name__)
     found = dormant.warn_dormant_plugin_data(session.connection())
     assert "plugin_table_that_does_not_exist" not in str(found)
-    assert found["daily.quote"] == {"daily_quote_preferences": 2}
+    assert found["daily.quote"] == {"fake_account_preferences": 2}
     assert any("skipped a table" in record.getMessage() for record in caplog.records)
     # The caller's transaction is still usable after the failed statement.
-    assert session.query(DailyQuotePreference).count() == 2
+    assert count_rows(session, ACCOUNT_PREFERENCES) == 2
 
 
 def test_a_database_error_never_stops_the_start(  # type: ignore[no-untyped-def]

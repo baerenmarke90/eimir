@@ -25,11 +25,11 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-function setup(restoring = false) {
+function setup(restoring = false, accessLifetimeMs = 120_000) {
   const tokens = {
     accessToken: 'access-a',
     refreshToken: 'refresh-a',
-    accessExpiresAt: new Date(Date.now() + 120_000),
+    accessExpiresAt: new Date(Date.now() + accessLifetimeMs),
     refreshExpiresAt: new Date(Date.now() + 86_400_000),
   };
   const next = {
@@ -172,6 +172,25 @@ describe('real session refresh lifecycle', () => {
     expect(accepted).toHaveBeenCalledWith(next);
     expect(rejected).not.toHaveBeenCalled();
   });
+  it('schedules a far-off expiry within the timer limit instead of spinning', async () => {
+    // A page clock that lags the token by more than 24.8 days used to make the
+    // delay overflow; the browser then ran the timer at once, over and over.
+    const delays: unknown[] = [];
+    const schedule = globalThis.setTimeout;
+    vi.spyOn(globalThis, 'setTimeout').mockImplementation(((
+      ...args: Parameters<typeof setTimeout>
+    ) => {
+      delays.push(args[1]);
+      return schedule(...args);
+    }) as typeof setTimeout);
+    const { accepted } = setup(false, 30 * 86_400_000);
+    await act(() => vi.advanceTimersByTimeAsync(60_000));
+    expect(delays.length).toBeGreaterThan(0);
+    for (const delay of delays) expect(delay).toBeLessThanOrEqual(2 ** 31 - 1);
+    expect(vi.getTimerCount()).toBe(1);
+    expect(sessions.refreshSessionTokens).not.toHaveBeenCalled();
+    expect(accepted).not.toHaveBeenCalled();
+  });
   it('keeps scheduling the canonical rotation when React still renders the previous token', async () => {
     const { next, accepted } = setup();
     const canonical = {
@@ -256,5 +275,81 @@ describe('real session refresh lifecycle', () => {
     setup(true);
     await act(() => vi.advanceTimersByTimeAsync(180_000));
     expect(sessions.refreshSessionTokens).not.toHaveBeenCalled();
+  });
+});
+
+describe('refresh ahead while the app is in use', () => {
+  const HOUR = 3_600_000;
+
+  it('refreshes quietly once the app has settled when half a day or less is left', async () => {
+    const { accepted, next } = setup(false, 10 * HOUR);
+    expect(sessions.refreshSessionTokens).not.toHaveBeenCalled();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000);
+    });
+    expect(sessions.refreshSessionTokens).toHaveBeenCalledTimes(1);
+    expect(accepted).toHaveBeenCalledWith(next);
+  });
+
+  it('leaves a token with more than half a day left alone', async () => {
+    setup(false, 20 * HOUR);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000);
+      window.dispatchEvent(new Event('focus'));
+    });
+    expect(sessions.refreshSessionTokens).not.toHaveBeenCalled();
+  });
+
+  it('leaves a token with two hours or less left to the normal timer', async () => {
+    setup(false, HOUR);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+      window.dispatchEvent(new Event('focus'));
+    });
+    expect(sessions.refreshSessionTokens).not.toHaveBeenCalled();
+  });
+
+  it('does not use this path for the short tokens of an older server', async () => {
+    setup(false, 10 * 60_000);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+      window.dispatchEvent(new Event('focus'));
+    });
+    expect(sessions.refreshSessionTokens).not.toHaveBeenCalled();
+  });
+
+  it('refreshes ahead at most once in half an hour', async () => {
+    setup(false, 10 * HOUR);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000);
+    });
+    expect(sessions.refreshSessionTokens).toHaveBeenCalledTimes(1);
+    vi.mocked(sessions.loadStoredSession).mockReturnValue({
+      account: { id: 'a', displayName: 'Alex' },
+      tokens: {
+        accessToken: 'access-c',
+        refreshToken: 'refresh-c',
+        accessExpiresAt: new Date(Date.now() + 10 * HOUR),
+        refreshExpiresAt: new Date(Date.now() + 86_400_000),
+      },
+    });
+    await act(async () => {
+      window.dispatchEvent(new Event('focus'));
+      await vi.advanceTimersByTimeAsync(60_000);
+      window.dispatchEvent(new Event('focus'));
+    });
+    expect(sessions.refreshSessionTokens).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the valid token when the quiet refresh fails by transport', async () => {
+    const { rejected } = setup(false, 10 * HOUR);
+    vi.mocked(sessions.refreshSessionTokens).mockRejectedValue(
+      new Error('offline'),
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000);
+    });
+    expect(sessions.refreshSessionTokens).toHaveBeenCalledTimes(1);
+    expect(rejected).not.toHaveBeenCalled();
   });
 });

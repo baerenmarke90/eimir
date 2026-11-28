@@ -8,10 +8,52 @@ import { useSyncExternalStore } from 'react';
 let peekPath: string | null = null;
 const listeners = new Set<() => void>();
 
-export function setPrimaryTabPeek(path: string | null): void {
+/**
+ * Where the revealed tab is laid over the viewport: the main column's left
+ * edge and width and the page origin in document coordinates. The gesture
+ * measures it before it reveals the tab, while layout is still clean, so
+ * revealing never forces a synchronous layout of the whole tab.
+ */
+export interface PrimaryTabPeekGeometry {
+  left: number;
+  width: number;
+  origin: number;
+}
+
+let peekGeometry: PrimaryTabPeekGeometry | null = null;
+
+export function primaryTabPeekGeometry(): PrimaryTabPeekGeometry | null {
+  return peekGeometry;
+}
+
+export function setPrimaryTabPeek(
+  path: string | null,
+  geometry: PrimaryTabPeekGeometry | null = null,
+): void {
+  if (geometry || !path) peekGeometry = geometry;
   if (peekPath === path) return;
   peekPath = path;
   for (const listener of listeners) listener();
+}
+
+/**
+ * Whether `path` is the tab being revealed right now. Subscribes to this one
+ * answer, so a page re-renders when its own preview starts or ends, not for
+ * every neighbour that is peeked. A page whose preview would look the same
+ * as its parked view passes `enabled: false` and is not rendered again during
+ * the swipe at all.
+ */
+export function usePrimaryTabPeeked(path: string, enabled = true): boolean {
+  return useSyncExternalStore(
+    (listener) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    () => enabled && peekPath === path,
+    () => false,
+  );
 }
 
 export function usePrimaryTabPeek(): string | null {

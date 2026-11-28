@@ -20,21 +20,25 @@ import {
 } from '../client/routes';
 import { spaceEntitlementQueryKey } from '../client/spaceEntitlement';
 import { useBillingChannel } from '../client/storeBilling';
-import { resolvedLocale, useTranslation } from '../i18n';
+import { resolvedLocale, Trans, useTranslation } from '../i18n';
 import { haptic } from '../motion/haptics';
 import { EimirIcon, type EimirIconName } from './EimirIcon';
+import { GiftCodeRedeemEntry } from './GiftCodeRedeemSheet';
 import { ProFeatureCatalogue } from './ProFeatureCatalogue';
+import { ProScene, type ProSceneId } from './proShowcase/ProScene';
+import { ProShowcase } from './proShowcase/ProShowcase';
 import { TaskBackButton } from './TaskBackButton';
 import './ProPaywall.css';
 
 const CONTEXT_ICONS: Record<
   Exclude<ProPaywallContext, 'general'>,
-  readonly [EimirIconName, EimirIconName, EimirIconName]
+  readonly EimirIconName[]
 > = {
   dateIdeas: ['sparkle', 'filter', 'planen'],
   recaps: ['erinnerungen', 'notes', 'statistiken'],
   memoryMap: ['orte', 'momente', 'erinnerungen'],
   photoSources: ['photo-library', 'foto', 'video'],
+  storage: ['photo-library', 'video'],
   calendar: ['kalender', 'gemeinsam', 'check'],
   games: ['spiele', 'smile-plus', 'highlights'],
 };
@@ -45,12 +49,25 @@ const CONTEXT_HOME: Record<ProPaywallContext, string> = {
   recaps: STORY_RECAPS_ROUTE,
   memoryMap: MEMORY_MAP_ROUTE,
   photoSources: `${MORE_SETTINGS_ROUTE}/account`,
+  storage: `${MORE_SETTINGS_ROUTE}/data`,
   calendar: `${MORE_SETTINGS_ROUTE}/calendar`,
   games: '/games',
   general: '/more',
 };
 
 const BENEFITS = ['first', 'second', 'third'] as const;
+
+/** Context pages whose hero is the matching showcase scene (#2310). */
+const CONTEXT_SCENE: Partial<Record<ProPaywallContext, ProSceneId>> = {
+  recaps: 'recapFilms',
+  memoryMap: 'mapCloseness',
+  games: 'gamesGarden',
+};
+
+/** The yearly price per month, rounded up so it never understates. */
+function monthlyEquivalent(amount: number): number {
+  return Math.ceil((amount / 12) * 100) / 100;
+}
 
 /**
  * The one eimir. Pro paywall for every Pro entry point (#1892). It opens only
@@ -127,31 +144,56 @@ export function ProPaywallPage({
 
   const contextKey = `proPaywall.contexts.${context}`;
   const contextIcons = context === 'general' ? null : CONTEXT_ICONS[context];
+  const contextScene = CONTEXT_SCENE[context];
   const selected = offers.find((offer) => offer.id === plan) ?? offers[0];
+  const yearly = offers.find((offer) => offer.id === 'yearly');
 
   return (
     <div className="page pro-paywall" data-context={context}>
       <TaskBackButton onClick={returnToOrigin} />
-      <div className="pro-paywall-hero" aria-hidden="true">
-        <span className="pro-paywall-hero-circle is-first" />
-        <span className="pro-paywall-hero-circle is-second" />
-        <EimirIcon
-          name={contextIcons?.[0] ?? 'sparkle'}
-          className="pro-paywall-hero-icon"
-        />
-      </div>
+      {context === 'general' ? null : contextScene ? (
+        <ProScene id={contextScene} active className="pro-paywall-scene" />
+      ) : (
+        <div className="pro-paywall-hero" aria-hidden="true">
+          <span className="pro-paywall-hero-circle is-first" />
+          <span className="pro-paywall-hero-circle is-second" />
+          <EimirIcon
+            name={contextIcons?.[0] ?? 'sparkle'}
+            className="pro-paywall-hero-icon"
+          />
+        </div>
+      )}
       <header className="pro-paywall-heading">
         <p className="pro-paywall-eyebrow">{t('proPaywall.eyebrow')}</p>
         <h1>{t(`${contextKey}.title`)}</h1>
         <p>{t(`${contextKey}.description`)}</p>
       </header>
 
+      {context === 'general' ? (
+        <ProShowcase
+          anchor={
+            !active && yearly ? (
+              <Trans
+                i18nKey="proPaywall.showcase.anchor"
+                values={{
+                  price: price(
+                    monthlyEquivalent(yearly.amount),
+                    yearly.currency,
+                  ),
+                }}
+                components={{ strong: <strong /> }}
+              />
+            ) : undefined
+          }
+        />
+      ) : null}
+
       {contextIcons ? (
         <ul
           className="pro-paywall-benefits"
           aria-label={t('proPaywall.benefitsLabel')}
         >
-          {BENEFITS.map((benefit, index) => (
+          {BENEFITS.slice(0, contextIcons.length).map((benefit, index) => (
             <li key={benefit}>
               <EimirIcon name={contextIcons[index]} />
               <div>
@@ -168,7 +210,7 @@ export function ProPaywallPage({
           <h2>{t('proPaywall.active.title')}</h2>
           <p>{t('proPaywall.active.body')}</p>
           <button type="button" onClick={returnToOrigin}>
-            {t('proPaywall.active.continue')}
+            {t('common.continue')}
           </button>
           {channel.kind === 'available' && channel.manage ? (
             <button
@@ -227,8 +269,7 @@ export function ProPaywallPage({
                     <span className="pro-paywall-plan-hint">
                       {t('proPaywall.plans.yearly.perMonth', {
                         price: price(
-                          // Round up so the monthly equivalent never understates.
-                          Math.ceil((offer.amount / 12) * 100) / 100,
+                          monthlyEquivalent(offer.amount),
                           offer.currency,
                         ),
                       })}
@@ -319,6 +360,12 @@ export function ProPaywallPage({
           ) : null}
         </>
       )}
+      {/*
+        One position for both states, below the plans or the unavailable note
+        and below the active state, so a redeemed code that turns the page
+        active keeps its open sheet (#2328).
+      */}
+      <GiftCodeRedeemEntry />
 
       {context === 'general' ? <ProFeatureCatalogue /> : null}
       <p className="pro-paywall-free">{t('proPaywall.free')}</p>

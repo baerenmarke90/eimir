@@ -24,6 +24,16 @@ import {
     AppIconPreferenceViewToJSON,
 } from '../models/AppIconPreferenceView';
 import {
+    type MemoryWorldPreferencePatch,
+    MemoryWorldPreferencePatchFromJSON,
+    MemoryWorldPreferencePatchToJSON,
+} from '../models/MemoryWorldPreferencePatch';
+import {
+    type MemoryWorldPreferenceView,
+    MemoryWorldPreferenceViewFromJSON,
+    MemoryWorldPreferenceViewToJSON,
+} from '../models/MemoryWorldPreferenceView';
+import {
     type PersonColoursPreferencePatch,
     PersonColoursPreferencePatchFromJSON,
     PersonColoursPreferencePatchToJSON,
@@ -48,8 +58,22 @@ import {
     WirDesignPreferenceViewFromJSON,
     WirDesignPreferenceViewToJSON,
 } from '../models/WirDesignPreferenceView';
+import {
+    type WirReelStylePreferencePatch,
+    WirReelStylePreferencePatchFromJSON,
+    WirReelStylePreferencePatchToJSON,
+} from '../models/WirReelStylePreferencePatch';
+import {
+    type WirReelStylePreferenceView,
+    WirReelStylePreferenceViewFromJSON,
+    WirReelStylePreferenceViewToJSON,
+} from '../models/WirReelStylePreferenceView';
 
 export interface GetAppIconPreferenceRequest {
+    spaceId: string;
+}
+
+export interface GetMemoryWorldPreferenceRequest {
     spaceId: string;
 }
 
@@ -61,10 +85,20 @@ export interface GetWirDesignPreferenceRequest {
     spaceId: string;
 }
 
+export interface GetWirReelStylePreferenceRequest {
+    spaceId: string;
+}
+
 export interface UpdateAppIconPreferenceRequest {
     spaceId: string;
     ifMatch: string;
     appIconPreferencePatch: AppIconPreferencePatch;
+}
+
+export interface UpdateMemoryWorldPreferenceRequest {
+    spaceId: string;
+    ifMatch: string;
+    memoryWorldPreferencePatch: MemoryWorldPreferencePatch;
 }
 
 export interface UpdatePersonColoursPreferenceRequest {
@@ -77,6 +111,12 @@ export interface UpdateWirDesignPreferenceRequest {
     spaceId: string;
     ifMatch: string;
     wirDesignPreferencePatch: WirDesignPreferencePatch;
+}
+
+export interface UpdateWirReelStylePreferenceRequest {
+    spaceId: string;
+    ifMatch: string;
+    wirReelStylePreferencePatch: WirReelStylePreferencePatch;
 }
 
 /**
@@ -128,6 +168,53 @@ export class AppearanceApi extends runtime.BaseAPI {
      */
     async getAppIconPreference(requestParameters: GetAppIconPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppIconPreferenceView> {
         const response = await this.getAppIconPreferenceRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getMemoryWorldPreference without sending the request
+     */
+    async getMemoryWorldPreferenceRequestOpts(requestParameters: GetMemoryWorldPreferenceRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getMemoryWorldPreference().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/appearance/memory-world`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Read only the caller\'s own memory world, including after Pro expiry.
+     * Get Memory World Preference
+     */
+    async getMemoryWorldPreferenceRaw(requestParameters: GetMemoryWorldPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MemoryWorldPreferenceView>> {
+        const requestOptions = await this.getMemoryWorldPreferenceRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => MemoryWorldPreferenceViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Read only the caller\'s own memory world, including after Pro expiry.
+     * Get Memory World Preference
+     */
+    async getMemoryWorldPreference(requestParameters: GetMemoryWorldPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MemoryWorldPreferenceView> {
+        const response = await this.getMemoryWorldPreferenceRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -226,6 +313,53 @@ export class AppearanceApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for getWirReelStylePreference without sending the request
+     */
+    async getWirReelStylePreferenceRequestOpts(requestParameters: GetWirReelStylePreferenceRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getWirReelStylePreference().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/appearance/wir-reels`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Read only the caller\'s own Wir reel style, including after Pro expiry.
+     * Get Wir Reel Style Preference
+     */
+    async getWirReelStylePreferenceRaw(requestParameters: GetWirReelStylePreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WirReelStylePreferenceView>> {
+        const requestOptions = await this.getWirReelStylePreferenceRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => WirReelStylePreferenceViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Read only the caller\'s own Wir reel style, including after Pro expiry.
+     * Get Wir Reel Style Preference
+     */
+    async getWirReelStylePreference(requestParameters: GetWirReelStylePreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WirReelStylePreferenceView> {
+        const response = await this.getWirReelStylePreferenceRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for updateAppIconPreference without sending the request
      */
     async updateAppIconPreferenceRequestOpts(requestParameters: UpdateAppIconPreferenceRequest): Promise<runtime.RequestOpts> {
@@ -290,6 +424,74 @@ export class AppearanceApi extends runtime.BaseAPI {
      */
     async updateAppIconPreference(requestParameters: UpdateAppIconPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AppIconPreferenceView> {
         const response = await this.updateAppIconPreferenceRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for updateMemoryWorldPreference without sending the request
+     */
+    async updateMemoryWorldPreferenceRequestOpts(requestParameters: UpdateMemoryWorldPreferenceRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling updateMemoryWorldPreference().'
+            );
+        }
+
+        if (requestParameters['ifMatch'] == null) {
+            throw new runtime.RequiredError(
+                'ifMatch',
+                'Required parameter "ifMatch" was null or undefined when calling updateMemoryWorldPreference().'
+            );
+        }
+
+        if (requestParameters['memoryWorldPreferencePatch'] == null) {
+            throw new runtime.RequiredError(
+                'memoryWorldPreferencePatch',
+                'Required parameter "memoryWorldPreferencePatch" was null or undefined when calling updateMemoryWorldPreference().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['ifMatch'] != null) {
+            headerParameters['If-Match'] = String(requestParameters['ifMatch']);
+        }
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/appearance/memory-world`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+            body: MemoryWorldPreferencePatchToJSON(requestParameters['memoryWorldPreferencePatch']),
+        };
+    }
+
+    /**
+     * Save a known world. Story and Stapel are Free; every other world requires Pro.  Membership precedes the capability check. Reads never delete or revert a saved world when a grant expires, and returning to a Free world stays free. The world is a personal presentation and is not shared with the partner.
+     * Update Memory World Preference
+     */
+    async updateMemoryWorldPreferenceRaw(requestParameters: UpdateMemoryWorldPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MemoryWorldPreferenceView>> {
+        const requestOptions = await this.updateMemoryWorldPreferenceRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => MemoryWorldPreferenceViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Save a known world. Story and Stapel are Free; every other world requires Pro.  Membership precedes the capability check. Reads never delete or revert a saved world when a grant expires, and returning to a Free world stays free. The world is a personal presentation and is not shared with the partner.
+     * Update Memory World Preference
+     */
+    async updateMemoryWorldPreference(requestParameters: UpdateMemoryWorldPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MemoryWorldPreferenceView> {
+        const response = await this.updateMemoryWorldPreferenceRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -410,7 +612,7 @@ export class AppearanceApi extends runtime.BaseAPI {
     }
 
     /**
-     * Save a personal cosmetic. Connected and Warm are Free; other designs require Pro.
+     * Save personal design choices. Following the design and Free palettes never need Pro.
      * Update Wir Design Preference
      */
     async updateWirDesignPreferenceRaw(requestParameters: UpdateWirDesignPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WirDesignPreferenceView>> {
@@ -421,11 +623,79 @@ export class AppearanceApi extends runtime.BaseAPI {
     }
 
     /**
-     * Save a personal cosmetic. Connected and Warm are Free; other designs require Pro.
+     * Save personal design choices. Following the design and Free palettes never need Pro.
      * Update Wir Design Preference
      */
     async updateWirDesignPreference(requestParameters: UpdateWirDesignPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WirDesignPreferenceView> {
         const response = await this.updateWirDesignPreferenceRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for updateWirReelStylePreference without sending the request
+     */
+    async updateWirReelStylePreferenceRequestOpts(requestParameters: UpdateWirReelStylePreferenceRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling updateWirReelStylePreference().'
+            );
+        }
+
+        if (requestParameters['ifMatch'] == null) {
+            throw new runtime.RequiredError(
+                'ifMatch',
+                'Required parameter "ifMatch" was null or undefined when calling updateWirReelStylePreference().'
+            );
+        }
+
+        if (requestParameters['wirReelStylePreferencePatch'] == null) {
+            throw new runtime.RequiredError(
+                'wirReelStylePreferencePatch',
+                'Required parameter "wirReelStylePreferencePatch" was null or undefined when calling updateWirReelStylePreference().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['ifMatch'] != null) {
+            headerParameters['If-Match'] = String(requestParameters['ifMatch']);
+        }
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/appearance/wir-reels`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+            body: WirReelStylePreferencePatchToJSON(requestParameters['wirReelStylePreferencePatch']),
+        };
+    }
+
+    /**
+     * Save a known style. Circles are Free; tiles and chips require Pro.  Membership precedes the capability check. Reads never delete or revert a saved style when a grant expires, and returning to circles stays free. The style is a personal presentation and is not shared with the partner.
+     * Update Wir Reel Style Preference
+     */
+    async updateWirReelStylePreferenceRaw(requestParameters: UpdateWirReelStylePreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WirReelStylePreferenceView>> {
+        const requestOptions = await this.updateWirReelStylePreferenceRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => WirReelStylePreferenceViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Save a known style. Circles are Free; tiles and chips require Pro.  Membership precedes the capability check. Reads never delete or revert a saved style when a grant expires, and returning to circles stays free. The style is a personal presentation and is not shared with the partner.
+     * Update Wir Reel Style Preference
+     */
+    async updateWirReelStylePreference(requestParameters: UpdateWirReelStylePreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WirReelStylePreferenceView> {
+        const response = await this.updateWirReelStylePreferenceRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

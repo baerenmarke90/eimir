@@ -52,6 +52,10 @@ EIMIR_RELEASE_KEY_PASSWORD="key-password" \
   :app:assembleRelease :app:bundleRelease
 ```
 
+### Baseline Profile
+
+`app/src/main/baseline-prof.txt` lists the native code that runs at start (the Capacitor bridge and our plugins). The Android Gradle Plugin compiles it into `assets/dexopt/baseline.prof`, and `androidx.profileinstaller` (already a transitive dependency) installs it at first launch, including for sideloaded test APKs. It shortens the native part of a cold start right after an install or update. It is hand-written with wildcards because the release build does not rename classes; replace it with a recorded profile if the project gets a macrobenchmark module. It does not cover the Web product, which runs in the system WebView.
+
 ### Release Properties & Signing Configuration
 
 `app/build.gradle` evaluates:
@@ -70,7 +74,7 @@ The opt-in `sideload` build adds a bounded APK updater to the shared Settings UI
 The ordinary `release` source set contains neither the updater plugin nor
 `REQUEST_INSTALL_PACKAGES`. Use the dedicated build/verification helper instead
 of manually assembling a publishable test APK. It pins
-`https://demo.eimir.ur-cloud.de`, disables Demo mode and reset timers, and records
+`https://app.eimir.de`, disables Demo mode and reset timers, and records
 the clean source revision in the APK.
 
 See [Android test channel runbook](../docs/ANDROID-TEST-UPDATES.md) for signing

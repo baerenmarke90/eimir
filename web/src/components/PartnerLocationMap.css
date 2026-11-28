@@ -2,14 +2,7 @@
 
 .partner-map-page {
   display: grid;
-  gap: var(--space-4);
-}
-
-/* The page is a grid with its own row gap, so the heading's usual padding and
-   margin would stack on top of it and push the map far from the title. */
-.partner-map-page > .page-heading {
-  margin-block-end: 0;
-  padding-block-end: 0;
+  --page-stack-gap: var(--space-4);
 }
 
 .partner-map-surface {
@@ -78,6 +71,22 @@
   grid-template-columns: 2.75rem minmax(0, 1fr);
   align-items: center;
   gap: var(--space-3);
+}
+
+/* A person on the map: the row itself brings them into view (#2158). */
+.partner-map-person-button {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: 2.75rem minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: 0;
+  border-radius: var(--radius-medium);
+  background: transparent;
+  color: inherit;
+  font-weight: inherit;
+  text-align: start;
 }
 
 .partner-map-person .partner-avatar,

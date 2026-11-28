@@ -78,6 +78,7 @@ def create_app() -> FastAPI:
     settings = get_settings()
     # A named plugin that cannot be loaded stops the process here (Decision 0017).
     plugins = loaded_plugins()
+    plugins.validate(settings)
     push_providers.configure_push_providers(settings)
     _log_operating_mode(settings)
 

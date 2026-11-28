@@ -97,8 +97,10 @@ def test_catalog_keys_are_stable_and_unique() -> None:
     assert keys == [
         "relationship_presence",
         "partner_distance",
+        "new_for_you",
         "shared_experience",
         "daily_quote",
+        "games_waiting",
         "keepsake",
         "upcoming",
         "pinned_collection",
@@ -201,8 +203,10 @@ def test_missing_override_returns_effective_default_for_every_registered_module(
         "items": [
             {"moduleKey": "relationship_presence", "visible": True},
             {"moduleKey": "partner_distance", "visible": True},
+            {"moduleKey": "new_for_you", "visible": True},
             {"moduleKey": "shared_experience", "visible": True},
             {"moduleKey": "daily_quote", "visible": True},
+            {"moduleKey": "games_waiting", "visible": True},
             {"moduleKey": "keepsake", "visible": True},
             {"moduleKey": "upcoming", "visible": True, "itemLimit": 1},
             {"moduleKey": "pinned_collection", "visible": True},

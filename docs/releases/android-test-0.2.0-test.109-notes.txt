@@ -1,0 +1,7 @@
+eimir. Android 0.2.0-test.109
+
+- New for you and Your turn on the Wir page are now small circles below the photos, each showing a piece of its content, such as the time, a calendar leaf, the first list entry or the game picture.
+- The rows simply scroll through everything new; the separate see-all entry is gone, and two garden turns now read Seed and Bouquet.
+
+The product changes come from main at 4e3d676be2b0c3acc1fe14cc292185b8d3466e2a.
+Install over test.108 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 109.

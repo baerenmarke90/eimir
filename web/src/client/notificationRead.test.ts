@@ -3,8 +3,9 @@ import { onlineManager, QueryClient } from '@tanstack/react-query';
 import { afterEach, expect, it, vi } from 'vitest';
 import type { NotificationItem } from '../api/generated/models/NotificationItem';
 import {
-  notificationUnreadCountQueryKey,
   notificationsListQueryKey,
+  notificationUnreadCountQueryKey,
+  wirNoticesQueryKey,
 } from './notificationQueries';
 import { beginNotificationRead } from './notificationRead';
 import { ClientProblemError } from './problemDetails';
@@ -181,4 +182,19 @@ it('keeps an unrelated Space Query untouched during late failure and refresh', a
   await first?.refresh();
   expect(h.client.getQueryData(otherKey)).toEqual(otherList);
   expect(h.client.getQueryData(otherCount)).toEqual({ unreadCount: 7 });
+});
+
+it('refreshes the Wir notices too, so a read notice leaves Wir (#2345)', async () => {
+  const h = fixture();
+  h.client.setQueryData(wirNoticesQueryKey('space-a'), { items: [] });
+  const first = beginNotificationRead(h.client, 'space-a', 'first');
+  expect(first).not.toBeNull();
+  await first?.perform(async () => undefined);
+  await first?.refresh();
+  expect(
+    h.client
+      .getQueryCache()
+      .find({ queryKey: wirNoticesQueryKey('space-a'), exact: true })?.state
+      .isInvalidated,
+  ).toBe(true);
 });

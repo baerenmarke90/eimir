@@ -21,7 +21,7 @@ from android_firebase_configuration import validate_configuration
 from android_test_release_plan import CERTIFICATE, FIREBASE_PROJECT, LEGACY_CERTIFICATE, LEGACY_PACKAGE, PACKAGE
 
 ROOT = Path(__file__).resolve().parents[1]
-TEST_ORIGIN = "https://demo.eimir.ur-cloud.de"
+TEST_ORIGIN = "https://app.eimir.de"
 PACKAGE_NAME = PACKAGE
 MARKER = "eimir-test-update.json"
 BUILD_IDENTITY = "eimir-test-build.json"
@@ -34,7 +34,7 @@ def run(*args: str, cwd: Path = ROOT, env: dict[str, str] | None = None) -> str:
 
 
 def test_environment(inherited: dict[str, str]) -> dict[str, str]:
-    """The demo. hostname must not change real registration into demo entry."""
+    """Pin the real test API origin and keep Demo entry and its timers off explicitly."""
     env = inherited.copy()
     env.update(
         VITE_EIMIR_API_BASE_URL=TEST_ORIGIN,

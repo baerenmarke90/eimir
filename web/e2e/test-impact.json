@@ -48,6 +48,7 @@
     "android-push-onboarding.spec.ts": {
       "roots": [
         "web/src/client/devicePush.ts",
+        "web/src/client/gentlePrompts.ts",
         "web/src/components/DevicePushOnboarding.tsx",
         "web/src/components/IdentityEntry.tsx",
         "web/src/components/NotificationSettingsPanel.tsx",
@@ -70,6 +71,29 @@
         "web/src/components/SettingsPage.tsx",
         "web/src/client/appUpdates.ts",
         "web/src/client/useAppUpdateState.ts"
+      ]
+    },
+    "memory-world-selection.spec.ts": {
+      "roots": [
+        "web/src/components/MemoryWorldSettings.tsx",
+        "web/src/components/ProfileAppearancePanel.tsx",
+        "web/src/client/memoryWorldContext.tsx",
+        "web/src/client/memoryWorld.ts",
+        "web/src/components/memoryWorlds/WorldArt.tsx",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/MemoryWorldSwitch.tsx",
+        "web/src/components/memoryWorlds/WorldHead.tsx",
+        "web/src/components/DiscoverStory.tsx",
+        "web/src/components/memoryWorlds/MemoryWorldView.tsx",
+        "web/src/components/memoryWorlds/MomentCloudWorld.tsx",
+        "web/src/components/memoryWorlds/PhotoBoothWorld.tsx",
+        "web/src/components/memoryWorlds/FridgeDoorWorld.tsx",
+        "web/src/components/memoryWorlds/PhotoAlbumWorld.tsx",
+        "web/src/components/memoryWorlds/ScratchCardWorld.tsx",
+        "web/src/components/memoryWorlds/MochiWorld.tsx",
+        "web/src/components/memoryWorlds/ConstellationWorld.tsx",
+        "web/src/components/memoryWorlds/PostWorld.tsx",
+        "web/src/components/memoryWorlds/MemoryJarWorld.tsx"
       ]
     },
     "browser-push.spec.ts": {
@@ -201,7 +225,10 @@
     },
     "floating-bottom-nav-scroll.spec.ts": {
       "roots": [
+        "web/src/App.tsx",
         "web/src/components/AppShell.tsx",
+        "web/src/components/PrimaryTabPanels.tsx",
+        "web/src/components/useNavigationMotion.ts",
         "web/src/components/TodayPage.tsx",
         "web/src/components/StoryProductPage.tsx",
         "web/src/components/SharedPlanningOverviewPage.tsx",
@@ -503,6 +530,10 @@
         "web/src/components/GardenAmbience.tsx",
         "web/src/client/gardenAmbience.ts",
         "web/src/components/GardenGrowth.css",
+        "web/src/components/GardenHistory.tsx",
+        "web/src/components/GardenHistory.css",
+        "web/src/client/gardenHistory.ts",
+        "web/src/client/gardenFlightReveal.ts",
         "web/src/components/GamesProductArea.tsx"
       ]
     },
@@ -1011,19 +1042,20 @@
         "web/src/components/CollectionProductPage.tsx"
       ]
     },
-    "today-pro-insights.spec.ts": {
-      "roots": [
-        "web/src/components/TodayPage.tsx",
-        "web/src/components/SettingsPage.tsx",
-        "web/src/components/DailyInsightsPage.tsx",
-        "web/src/components/MoreOverviewPage.tsx"
-      ]
-    },
     "today-recent-trace.spec.ts": {
       "roots": [
         "web/src/components/TodayPage.tsx",
         "web/src/components/SettingsPage.tsx",
         "web/src/components/M4ProductPages.tsx"
+      ]
+    },
+    "wir-new-for-you.spec.ts": {
+      "roots": [
+        "web/src/components/TodayPage.tsx",
+        "web/src/components/WirNewForYouModule.tsx",
+        "web/src/components/WirWaitingGamesModule.tsx",
+        "web/src/components/WirReelStyleSettings.tsx",
+        "web/src/client/wirReelStyleContext.tsx"
       ]
     },
     "video-attachments.spec.ts": {
@@ -1053,7 +1085,12 @@
     },
     "wir-design-selection.spec.ts": {
       "roots": [
+        "web/src/App.tsx",
+        "web/src/components/AppShell.tsx",
         "web/src/components/WirDesignSettings.tsx",
+        "web/src/components/ProfileAppearancePanel.tsx",
+        "web/src/client/wirDesign.tsx",
+        "web/src/design/app-designs.css",
         "web/src/components/DashboardSettingsPanel.tsx",
         "web/src/components/TodayPage.tsx",
         "web/src/components/SharedPlanningOverviewPage.tsx",
@@ -1061,7 +1098,17 @@
         "web/src/components/NotificationSettingsPanel.tsx",
         "web/src/client/browserPush.ts",
         "web/src/components/ProfilePage.tsx",
-        "web/src/components/PrivateAreaProductPage.tsx"
+        "web/src/components/PrivateAreaProductPage.tsx",
+        "web/src/components/HomeRoomsLanding.tsx",
+        "web/src/components/HomeRoomsNavigation.tsx",
+        "web/src/components/HomeRooms.css",
+        "web/src/components/HomeRoomChapters.css",
+        "web/src/components/StoryProductPage.tsx",
+        "web/src/components/MemoryMapPage.tsx",
+        "web/src/components/PageHeader.tsx",
+        "web/src/components/StoryYearsPage.tsx",
+        "web/src/components/SharedRhythm.tsx",
+        "web/src/components/SharedRhythm.css"
       ]
     },
     "wish-detective.spec.ts": {
@@ -1106,6 +1153,10 @@
       "roots": [
         "web/src/components/AppShell.tsx",
         "web/src/components/PageHeader.tsx",
+        "web/src/components/WishComposer.tsx",
+        "web/src/components/WishSelectionPage.tsx",
+        "web/src/components/SharedNoteEditorPage.tsx",
+        "web/src/components/PlanningCreatePage.tsx",
         "web/src/components/SubpageNavigation.tsx",
         "web/src/components/TaskBackButton.tsx",
         "web/src/components/MemoryProductPage.tsx",
@@ -1353,6 +1404,9 @@
     "partner-distance-wir.spec.ts": {
       "roots": [
         "web/src/components/PartnerDistanceLine.tsx",
+        "web/src/components/WirHeroDistance.tsx",
+        "web/src/components/wirDistanceHop.ts",
+        "web/src/client/wirDistanceSeen.ts",
         "web/src/components/PartnerDistanceWirSetting.tsx",
         "web/src/components/SettingsPage.tsx",
         "web/src/client/dashboardModules.ts",
@@ -1432,6 +1486,167 @@
         "web/src/components/GardenScene.tsx",
         "web/src/components/GardenPresentation.tsx",
         "web/src/client/garden.ts"
+      ]
+    },
+    "storage-section.spec.ts": {
+      "roots": [
+        "web/src/components/ProPaywallPage.tsx",
+        "web/src/components/StorageSection.tsx",
+        "web/src/client/storageQuota.ts",
+        "web/src/components/SettingsPage.tsx"
+      ]
+    },
+    "storage-upload-refusal.spec.ts": {
+      "roots": [
+        "web/src/client/storageQuota.ts",
+        "web/src/client/memoryAttachmentDraft.ts",
+        "web/src/client/usePlanFileDrafts.ts",
+        "web/src/client/photoSources.ts",
+        "web/src/components/PhotoDraftGallery.tsx"
+      ]
+    },
+    "support-report.spec.ts": {
+      "roots": [
+        "web/src/client/supportReportLauncher.ts",
+        "web/src/components/SupportReportHost.tsx",
+        "web/src/components/SupportReportSheet.tsx",
+        "web/src/client/useSupportReportDraft.ts",
+        "web/src/client/supportReport.ts",
+        "web/src/components/ShortTaskSheet.tsx",
+        "web/src/components/ProblemState.tsx",
+        "web/src/components/MoreOverviewPage.tsx",
+        "web/src/components/SupportReplyNotice.tsx",
+        "web/src/components/M4ProductPages.tsx",
+        "web/src/client/failureReference.ts",
+        "web/src/client/supportReportsAvailability.ts"
+      ]
+    },
+    "server-admin-monitoring.spec.ts": {
+      "roots": [
+        "web/src/components/ServerAdminMonitoringPanel.tsx",
+        "web/src/components/Sparkline.tsx",
+        "web/src/components/ServerAdminPage.tsx",
+        "web/src/components/ServerAdminPage.css",
+        "web/src/components/ServerAdminAreaNavigation.tsx",
+        "web/src/components/serverAdminAreas.ts",
+        "web/src/components/ServerAdminSituation.tsx",
+        "web/src/components/serverAdminNeedsYou.ts",
+        "web/src/components/UiState.tsx",
+        "web/src/client/serverAdmin.ts",
+        "web/src/api/generated/apis/ServerAdminApi.ts",
+        "web/src/api/generated/models/ServerAdminMonitoring.ts",
+        "web/src/api/generated/models/ServerAdminOverview.ts",
+        "web/src/i18n/locales/serverAdmin.ts"
+      ]
+    },
+    "server-admin-people.spec.ts": {
+      "roots": [
+        "web/src/components/ServerAdminPeopleSearch.tsx",
+        "web/src/components/ServerAdminSpaceFile.tsx",
+        "web/src/components/ServerAdminSpaceFile.css",
+        "web/src/components/ServerAdminStorageQuotaSheet.tsx",
+        "web/src/components/ServerAdminPremiumGiftSheet.tsx",
+        "web/src/components/ServerAdminSheet.tsx",
+        "web/src/components/ServerAdminSheet.css",
+        "web/src/components/ServerAdminSpacesPanel.tsx",
+        "web/src/components/ServerAdminAccountsPanel.tsx",
+        "web/src/components/ServerAdminPage.tsx",
+        "web/src/components/ServerAdminPage.css",
+        "web/src/components/ServerAdminAreaNavigation.tsx",
+        "web/src/components/serverAdminAreas.ts",
+        "web/src/components/useModalLifecycle.ts",
+        "web/src/client/serverAdmin.ts",
+        "web/src/client/formatBytes.ts",
+        "web/src/api/generated/apis/ServerAdminApi.ts",
+        "web/src/api/generated/models/ServerAdminSpaceFile.ts",
+        "web/src/api/generated/models/ServerAdminSearchResult.ts",
+        "web/src/api/generated/models/ServerAdminSpaceStorage.ts",
+        "web/src/i18n/locales/serverAdmin.ts"
+      ]
+    },
+    "server-admin-pro.spec.ts": {
+      "roots": [
+        "web/src/components/ServerAdminProPanel.tsx",
+        "web/src/components/ServerAdminProPanel.css",
+        "web/src/components/ServerAdminGiftCodeBatchSheet.tsx",
+        "web/src/components/GiftCodeRedeemSheet.tsx",
+        "web/src/components/GiftCodeRedeemSheet.css",
+        "web/src/components/ProPaywallPage.tsx",
+        "web/src/components/ShortTaskSheet.tsx",
+        "web/src/components/ServerAdminSheet.tsx",
+        "web/src/components/ServerAdminSheet.css",
+        "web/src/components/ServerAdminPage.tsx",
+        "web/src/components/ServerAdminPage.css",
+        "web/src/components/ServerAdminAreaNavigation.tsx",
+        "web/src/components/serverAdminAreas.ts",
+        "web/src/components/AddAction.tsx",
+        "web/src/components/Snackbar.tsx",
+        "web/src/components/UiState.tsx",
+        "web/src/client/serverAdminPro.ts",
+        "web/src/client/giftCodes.ts",
+        "web/src/client/serverAdmin.ts",
+        "web/src/client/instanceStatus.ts",
+        "web/src/client/supportReportsAvailability.ts",
+        "web/src/client/snackbar.ts",
+        "web/src/api/generated/apis/ServerAdminProApi.ts",
+        "web/src/api/generated/apis/GiftCodesApi.ts",
+        "web/src/api/generated/models/ProOverviewView.ts",
+        "web/src/api/generated/models/GiftCodeBatchView.ts",
+        "web/src/api/generated/models/GiftCodeRedemptionView.ts",
+        "web/src/api/generated/models/ServerAdminOverview.ts",
+        "web/src/i18n/locales/serverAdmin.ts",
+        "web/src/i18n/locales/proPaywall.ts"
+      ]
+    },
+    "server-admin-situation.spec.ts": {
+      "roots": [
+        "web/src/components/ServerAdminPage.tsx",
+        "web/src/components/ServerAdminPage.css",
+        "web/src/components/ServerAdminAreaNavigation.tsx",
+        "web/src/components/ServerAdminSituation.tsx",
+        "web/src/components/serverAdminNeedsYou.ts",
+        "web/src/components/serverAdminAreas.ts",
+        "web/src/components/ServerAdminSpacesPanel.tsx",
+        "web/src/components/ServerAdminJobsPanel.tsx",
+        "web/src/components/UiState.tsx",
+        "web/src/client/serverAdmin.ts",
+        "web/src/api/generated/apis/ServerAdminApi.ts",
+        "web/src/api/generated/models/ServerAdminOverview.ts",
+        "web/src/i18n/locales/serverAdmin.ts"
+      ]
+    },
+    "server-admin-support-reports.spec.ts": {
+      "roots": [
+        "web/src/components/ServerAdminPage.tsx",
+        "web/src/components/ServerAdminAreaNavigation.tsx",
+        "web/src/components/serverAdminAreas.ts",
+        "web/src/components/ServerAdminSupportReportsPanel.tsx",
+        "web/src/components/ServerAdminSupportReportsPanel.css",
+        "web/src/components/ServerAdminSupportReportDetail.tsx",
+        "web/src/components/ServerAdminReplyTemplateChips.tsx",
+        "web/src/components/ServerAdminReplyTemplatesPanel.tsx",
+        "web/src/components/ServerAdminReplyTemplateSheet.tsx",
+        "web/src/components/AddAction.tsx",
+        "web/src/components/TaskBackButton.tsx",
+        "web/src/components/UiState.tsx",
+        "web/src/components/useModalLifecycle.ts",
+        "web/src/client/serverAdmin.ts",
+        "web/src/client/supportReportsAdmin.ts",
+        "web/src/client/supportReplyTemplates.ts",
+        "web/src/client/relativeElapsed.ts",
+        "web/src/client/recentAuthentication.ts",
+        "web/src/api/generated/apis/ServerAdminSupportReportsApi.ts",
+        "web/src/i18n/locales/serverAdmin.ts"
+      ]
+    },
+    "app-shortcuts.spec.ts": {
+      "roots": [
+        "web/src/client/appShortcuts.ts",
+        "web/src/client/useAppShortcuts.ts",
+        "web/src/App.tsx",
+        "web/src/client/useDocumentLeaveGuard.ts",
+        "web/src/components/MemoryCreatePage.tsx",
+        "web/src/components/PlanningCreatePage.tsx"
       ]
     }
   }

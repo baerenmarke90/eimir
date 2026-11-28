@@ -62,6 +62,10 @@ const generated = {
       pull: commit('pull'),
     },
   },
+  handwriting: {
+    // #2372: font units per millisecond of a message written by hand.
+    penSpeedUnitsPerMs: number('motion.handwriting.penSpeed'),
+  },
   spring: {
     stiffness: number('motion.spring.settle.stiffness'),
     damping: number('motion.spring.settle.damping'),

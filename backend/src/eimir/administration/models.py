@@ -16,6 +16,7 @@ from sqlalchemy import (
     SmallInteger,
     String,
     func,
+    true,
 )
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, mapped_column
@@ -29,6 +30,8 @@ class AdministrationSetting(StrEnum):
 
     REGISTRATION_ENABLED = "registration_enabled"
     MAINTENANCE_MODE = "maintenance_mode"
+    MONITORING_ALERTS_ENABLED = "monitoring_alerts_enabled"
+    MONITORING_PUSH_ENABLED = "monitoring_push_enabled"
 
 
 class AdministrationAction(StrEnum):
@@ -46,6 +49,17 @@ class AdministrationAction(StrEnum):
     ACCOUNT_DELETION_REQUESTED = "account_deletion_requested"
     ACCOUNT_DELETION_COMPLETED = "account_deletion_completed"
     ACCOUNT_DELETION_FAILED = "account_deletion_failed"
+    SUPPORT_REPORT_STATE_SET = "support_report.state_set"
+    SUPPORT_REPORT_REPLY_SENT = "support_report.reply_sent"
+    SUPPORT_REPORT_TICKET_CREATED = "support_report.ticket_created"
+    SUPPORT_REPORT_TICKET_CLEARED = "support_report.ticket_cleared"
+    SUPPORT_REPORT_ARCHIVED = "support_report.archived"
+    SUPPORT_REPORT_UNARCHIVED = "support_report.unarchived"
+    SUPPORT_REPORT_DELETED = "support_report.deleted"
+    SPACE_STORAGE_QUOTA_SET = "space_storage_quota_set"
+    SPACE_STORAGE_QUOTA_CLEARED = "space_storage_quota_cleared"
+    SPACE_FILE_VIEWED = "space_file_viewed"
+    FAILED_JOBS_SEEN = "failed_jobs_seen"
 
 
 class InstanceAdministrationSettings(TimestampMixin, VersionMixin, Base):
@@ -60,6 +74,17 @@ class InstanceAdministrationSettings(TimestampMixin, VersionMixin, Base):
     singleton_key: Mapped[int] = mapped_column(SmallInteger, primary_key=True, default=1)
     registration_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     maintenance_mode: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # Mail alerts to ServerAdmins (#2317); on unless an operator turns them off.
+    monitoring_alerts_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=true()
+    )
+    # The same alerts as app push to ServerAdmin accounts (#2314 part 2b).
+    monitoring_push_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=true()
+    )
+    # When an operator last marked the failed jobs as seen (#2342); the
+    # Situation page lists only jobs that failed afterwards.
+    failed_jobs_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     __table_args__ = (
         CheckConstraint(
@@ -87,7 +112,8 @@ class InstanceAdministrationEvent(IdMixin, Base):
 
     __table_args__ = (
         CheckConstraint(
-            "setting IN ('registration_enabled', 'maintenance_mode')",
+            "setting IN ('registration_enabled', 'maintenance_mode', "
+            "'monitoring_alerts_enabled', 'monitoring_push_enabled')",
             name="setting_valid",
         ),
         Index("ix_instance_administration_events_created_at", "created_at"),
@@ -136,7 +162,18 @@ class InstanceAdministrationActionEvent(IdMixin, Base):
             "'space_configuration_manager_reconciled', "
             "'account_deletion_requested', "
             "'account_deletion_completed', "
-            "'account_deletion_failed'"
+            "'account_deletion_failed', "
+            "'support_report.state_set', "
+            "'support_report.reply_sent', "
+            "'support_report.ticket_created', "
+            "'support_report.ticket_cleared', "
+            "'support_report.archived', "
+            "'support_report.unarchived', "
+            "'support_report.deleted', "
+            "'space_storage_quota_set', "
+            "'space_storage_quota_cleared', "
+            "'space_file_viewed', "
+            "'failed_jobs_seen'"
             ")",
             name="action_valid",
         ),

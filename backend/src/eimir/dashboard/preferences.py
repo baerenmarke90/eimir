@@ -45,7 +45,9 @@ class DashboardModuleKey(StrEnum):
 
     RELATIONSHIP_PRESENCE = "relationship_presence"
     PARTNER_DISTANCE = "partner_distance"
+    NEW_FOR_YOU = "new_for_you"
     SHARED_EXPERIENCE = "shared_experience"
+    GAMES_WAITING = "games_waiting"
     DAILY_QUOTE = "daily_quote"
     UPCOMING = "upcoming"
     PINNED_COLLECTION = "pinned_collection"
@@ -114,8 +116,14 @@ CATALOG: tuple[DashboardModuleDefinition, ...] = (
     # #1792: the partner distance signal; directly below the couple hero by
     # default, hideable and movable like every other Wir module.
     DashboardModuleDefinition(key=DashboardModuleKey.PARTNER_DISTANCE, default_visible=True),
+    # #2345 B: what is new for the reader as a tile reel, newest first, right
+    # below the hero; visible by default, rendered only while something is new.
+    DashboardModuleDefinition(key=DashboardModuleKey.NEW_FOR_YOU, default_visible=True),
     DashboardModuleDefinition(key=DashboardModuleKey.SHARED_EXPERIENCE, default_visible=True),
     DashboardModuleDefinition(key=DashboardModuleKey.DAILY_QUOTE, default_visible=True),
+    # #2158 C: games waiting on the reader; visible by default because the client
+    # renders it only while a game waits (and only with `games.couple`).
+    DashboardModuleDefinition(key=DashboardModuleKey.GAMES_WAITING, default_visible=True),
     DashboardModuleDefinition(key=DashboardModuleKey.KEEPSAKE, default_visible=True),
     DashboardModuleDefinition(
         key=DashboardModuleKey.UPCOMING,
@@ -246,6 +254,8 @@ def set_module_order(
         DashboardModuleKey.PARTNER_DISTANCE.value,
         DashboardModuleKey.PINNED_NOTE.value,
         DashboardModuleKey.SHARED_GARDEN.value,
+        DashboardModuleKey.GAMES_WAITING.value,
+        DashboardModuleKey.NEW_FOR_YOU.value,
     }
     missing = expected - set(module_keys)
     if (

@@ -50,11 +50,11 @@ class TestCreation:
         assert tokens.access_token not in str(device.__dict__)
         assert tokens.refresh_token not in str(device.__dict__)
 
-    def test_access_token_is_short_lived(self, session: Session) -> None:
+    def test_access_token_expires_within_its_lifetime(self, session: Session) -> None:
         account = make_account(session)
         _, tokens = sessions.start_session(session, account)
         session.flush()
-        assert tokens.access_expires_at - now() <= timedelta(minutes=15)
+        assert tokens.access_expires_at - now() <= ACCESS_TOKEN_LIFETIME
 
 
 class TestAuthentication:

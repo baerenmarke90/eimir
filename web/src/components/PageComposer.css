@@ -687,7 +687,7 @@ body:has(.page-composer)
  * page-composer resets that flatten the same containers.
  */
 .page-composer.page-composer
-.composer-authored-surface.composer-authored-surface {
+  .composer-authored-surface.composer-authored-surface {
   display: grid;
   gap: var(--space-3);
   min-inline-size: 0;
@@ -734,7 +734,7 @@ body:has(.page-composer)
 }
 /* HeartMoment keeps its feeling-colored ground; the writing surface lifts it. */
 .heart-emotion-page.page-composer.page-composer
-.composer-authored-surface.composer-authored-surface {
+  .composer-authored-surface.composer-authored-surface {
   background: color-mix(
     in srgb,
     var(--color-surface-raised) 45%,

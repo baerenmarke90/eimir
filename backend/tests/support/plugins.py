@@ -13,78 +13,77 @@ import re
 from collections.abc import Iterator
 from contextlib import contextmanager
 from functools import lru_cache
+from importlib import import_module
+from importlib.util import find_spec
+from types import ModuleType
+from typing import Any
 
 import pytest
 
 from eimir.plugins import loader
+from eimir.plugins.manifest import PLUGIN_TABLES
 
 requires_pro = pytest.mark.requires_pro
 """The test needs the Pro plugin loaded; skipped in the Core-only configuration."""
 
 PRO_TEST_MODULES = frozenset(
     {
-        "integration/test_async_video_races.py",
-        "integration/test_calendar_sync.py",
-        "integration/test_calendar_sync_google.py",
-        "integration/test_couple_games.py",
-        "integration/test_daily_checkins_pro_insights.py",
-        "integration/test_daily_quote_api.py",
-        "integration/test_date_ideas_api.py",
-        "integration/test_demo_feature_examples.py",
-        "integration/test_demo_wish_detective.py",
-        "integration/test_games_moment_candidates.py",
-        "integration/test_games_wish_candidates.py",
-        "integration/test_garden.py",
-        "integration/test_garden_growth.py",
-        "integration/test_garden_visitors.py",
-        "integration/test_heart_hunt.py",
-        "integration/test_memory_map.py",
-        "integration/test_once_messages.py",
-        "integration/test_partner_location.py",
-        "integration/test_partner_location_device.py",
-        "integration/test_partner_location_precision.py",
-        "integration/test_partner_quick_actions.py",
-        "integration/test_photo_sources.py",
-        "integration/test_picture_ping_pong.py",
-        # The recap modules compose recaps, which needs `relationship.passport`,
-        # a capability only a loaded plugin provides; what stays readable and
-        # writable without it is covered by `integration/test_core_only_recaps.py`.
-        "integration/test_recap_film.py",
-        "integration/test_recap_notices.py",
-        "integration/test_relationship_passport.py",
-        "integration/test_relationship_recaps.py",
         "integration/test_shared_experiences.py",
-        "integration/test_story_lifeline.py",
-        "integration/test_transfer_video_revalidation.py",
-        "integration/test_video_lifecycle.py",
-        "integration/test_weekly_review.py",
-        "integration/test_wish_selection_date_ideas.py",
         "unit/test_account_table_lifecycle.py",
-        "unit/test_caldav_adapter.py",
-        "unit/test_daily_quote_catalog.py",
-        "unit/test_daily_quote_resolver.py",
-        "unit/test_date_ideas_catalog.py",
-        "unit/test_date_ideas_catalog_script.py",
-        "unit/test_date_ideas_images.py",
-        "unit/test_garden_growth.py",
-        "unit/test_google_photo_configuration.py",
-        "unit/test_heart_hunt_warmth.py",
         "unit/test_m3_plan_openapi.py",
-        "unit/test_photo_browser_binding.py",
-        "unit/test_photo_source_security_gate.py",
-        "unit/test_presence_geo.py",
-        "unit/test_privacy_policy_statements.py",
-        # Recap composition is plugin code; the Core reads stay in
-        # `unit/test_recap_composition.py`.
-        "unit/test_recap_film.py",
-        "unit/test_recap_mood.py",
-        "unit/test_recap_notices.py",
-        "unit/test_video_processing.py",
-        "unit/test_weekly_patterns.py",
-        "unit/test_wish_detective_rules.py",
     }
 )
-"""Test modules of Pro features, relative to ``tests/``; not collected Core-only."""
+"""Core test modules that need the plugin loaded, relative to ``tests/``; not collected Core-only.
+
+The Pro feature tests themselves live in ``backend/pro/pro_tests``.
+"""
+
+CORE_ONLY_SKIP = "Core-only configuration: the Pro distribution (eimir-pro) is not installed."
+
+
+def pro_distribution_installed() -> bool:
+    """Whether ``eimir-pro`` is importable in this test process."""
+    return find_spec("eimir_pro") is not None
+
+
+def require_pro_distribution() -> None:
+    """Skip the calling test when the Pro distribution is not installed."""
+    if not pro_distribution_installed():
+        pytest.skip(CORE_ONLY_SKIP)
+
+
+def import_pro(module: str) -> ModuleType:
+    """Import a Pro module, or skip the calling test when Pro is not installed."""
+    require_pro_distribution()
+    return import_module(module)
+
+
+def pro_plugin_object() -> Any:
+    """The Pro plugin object, or skip the calling test when Pro is not installed."""
+    return import_pro("eimir_pro.plugin").plugin
+
+
+def admin_distribution_installed() -> bool:
+    """Whether ``eimir-admin`` (the operator plugin) is importable in this test process."""
+    return find_spec("eimir_admin") is not None
+
+
+def admin_plugin_object() -> Any:
+    """The operator plugin object, or skip the calling test when it is not installed."""
+    if not admin_distribution_installed():
+        pytest.skip("The operator plugin distribution (eimir-admin) is not installed.")
+    return import_module("eimir_admin.plugin").plugin
+
+
+CHAIN_PLUGIN_TABLES = frozenset(row.table for row in PLUGIN_TABLES if row.chain)
+"""Manifest tables created by a plugin's own migration chain, never by the Core chain.
+
+The older Pro tables are part of the Core chain; the operator plugin's table and
+the Pro gift code tables (ServerAdmin part 5) are not (Decision 0017, decision
+6); the manifest marks them with ``chain``. The shared test database does not
+keep them; each plugin's own tests create them from the models per module when
+that distribution is installed.
+"""
 
 
 def plugins_loaded() -> bool:
@@ -100,16 +99,55 @@ def operation_key(method: str, path: str) -> tuple[str, str]:
     return method.upper(), _PARAMETER.sub("{}", path)
 
 
-@lru_cache(maxsize=1)
-def pro_operations() -> frozenset[tuple[str, str]]:
-    """Every ``(method, path)`` the in-tree Pro plugin mounts under ``/api/v1``."""
+HIDDEN_PRO_OPERATIONS = frozenset(
+    {
+        ("GET", "/api/v1/calendar-sync/google/callback"),
+        ("GET", "/api/v1/photo-sources/google/callback"),
+        ("POST", "/api/v1/spaces/{spaceId}/photo-selections/{selectionId}/items/{itemId}"),
+    }
+)
+"""Pro routes hidden from the OpenAPI contract; a Pro test keeps this list exact."""
+
+
+ADMIN_OPERATIONS = frozenset(
+    {
+        ("GET", "/api/v1/server-admin/support-reports"),
+        ("GET", "/api/v1/server-admin/support-reports/{reportId}"),
+        ("PUT", "/api/v1/server-admin/support-reports/{reportId}/state"),
+        ("POST", "/api/v1/server-admin/support-reports/seen"),
+        ("PUT", "/api/v1/server-admin/support-reports/{reportId}/archive"),
+        ("DELETE", "/api/v1/server-admin/support-reports/{reportId}"),
+        ("POST", "/api/v1/server-admin/support-reports/{reportId}/reply"),
+        ("POST", "/api/v1/server-admin/support-reports/{reportId}/ticket"),
+        ("DELETE", "/api/v1/server-admin/support-reports/{reportId}/ticket"),
+        ("GET", "/api/v1/server-admin/support-reports/templates"),
+        ("POST", "/api/v1/server-admin/support-reports/templates"),
+        ("PUT", "/api/v1/server-admin/support-reports/templates/{templateId}"),
+        ("DELETE", "/api/v1/server-admin/support-reports/templates/{templateId}"),
+    }
+)
+"""Operations of the operator plugin (``eimir-admin``) in the complete contract.
+
+The complete contract is built with ``EIMIR_PLUGINS=pro,admin``. Core tests built
+with another plugin set neither mount them nor treat them as Pro operations;
+``backend/admin/admin_tests`` covers them. A test in that package keeps this list
+exact. Add the operator plugin's later routes here.
+"""
+
+
+def is_admin_operation(method: str, path: str) -> bool:
+    return operation_key(method, path) in {
+        operation_key(*operation) for operation in ADMIN_OPERATIONS
+    }
+
+
+def plugin_route_operations() -> frozenset[tuple[str, str]]:
+    """Every ``(method, path)`` the installed Pro plugin's routers mount."""
     from fastapi import FastAPI
     from fastapi.routing import iter_route_contexts
 
-    from eimir.pro_plugin import plugin
-
     app = FastAPI()
-    for router in plugin.routers():
+    for router in pro_plugin_object().routers():
         app.include_router(router, prefix="/api/v1")
     return frozenset(
         (method, route.path)
@@ -117,6 +155,50 @@ def pro_operations() -> frozenset[tuple[str, str]]:
         if route.path is not None and route.path.startswith("/api/v1")
         for method in route.methods or ()
     )
+
+
+def contract_pro_operations() -> frozenset[tuple[str, str]]:
+    """The operations of the complete contract that the Core router does not mount."""
+    import json
+    from pathlib import Path
+
+    from fastapi import FastAPI
+    from fastapi.routing import iter_route_contexts
+
+    from eimir.api.v1 import router as core_router
+
+    app = FastAPI()
+    app.include_router(core_router, prefix="/api/v1")
+    core = {
+        operation_key(method, route.path)
+        for route in iter_route_contexts(app.routes)
+        if route.path is not None
+        for method in route.methods or ()
+    }
+    contract = json.loads(
+        (Path(__file__).resolve().parents[2] / "openapi.json").read_text(encoding="utf-8")
+    )
+    return frozenset(
+        (method.upper(), path)
+        for path, operations in contract["paths"].items()
+        for method in operations
+        if method.lower() in {"get", "put", "post", "delete", "patch", "options", "head"}
+        and operation_key(method, path) not in core
+        and not is_admin_operation(method, path)
+    )
+
+
+@lru_cache(maxsize=1)
+def pro_operations() -> frozenset[tuple[str, str]]:
+    """Every ``(method, path)`` the Pro plugin mounts under ``/api/v1``.
+
+    Read from the plugin's routers when ``eimir-pro`` is installed. Without it,
+    the versioned contract (built with the plugin loaded) minus the Core routes,
+    plus the few Pro routes hidden from the schema, gives the same set.
+    """
+    if pro_distribution_installed():
+        return plugin_route_operations()
+    return contract_pro_operations() | HIDDEN_PRO_OPERATIONS
 
 
 def is_pro_operation(method: str, path: str) -> bool:
@@ -150,7 +232,7 @@ def with_pro_plugin() -> Iterator[None]:
     the step under test runs without it. Routes are not remounted: only the
     capabilities and hooks of the plugin become effective.
     """
-    from eimir.pro_plugin import plugin
+    plugin = pro_plugin_object()
 
     loaded = loader.loaded_plugins()
     loader._loaded = loader.LoadedPlugins((plugin,))

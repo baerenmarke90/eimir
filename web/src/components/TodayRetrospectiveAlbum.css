@@ -68,7 +68,7 @@
 
 /* Clothespin: decorative, not in the DOM and never over the user's photo. */
 .today-living-retrospective[data-diary-layout="album"]
-.today-retrospective-photo::before {
+  .today-retrospective-photo::before {
   content: "";
   position: absolute;
   z-index: 2;

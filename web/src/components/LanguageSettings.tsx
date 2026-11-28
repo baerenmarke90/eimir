@@ -11,7 +11,7 @@ import {
   clientProblemKind,
 } from '../client/problemDetails';
 import { useTranslation } from '../i18n';
-import { localeRegistry, supportedLocales } from '../i18n/locale';
+import { localeCatalog, supportedLocales } from '../i18n/locale';
 import './LanguageSettings.css';
 
 export function LanguageSettings({
@@ -87,7 +87,7 @@ export function LanguageSettings({
           <option value="auto">{t('languageSettings.automatic')}</option>
           {supportedLocales.map((locale) => (
             <option key={locale} value={locale} lang={locale}>
-              {localeRegistry[locale].name}
+              {localeCatalog[locale].name}
             </option>
           ))}
         </select>

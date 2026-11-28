@@ -1,6 +1,7 @@
 import {
   dashboardItemPath,
   engagementTargetPath,
+  notificationPath,
   opaqueNextCursor,
   searchResultPath,
 } from './m4Product';
@@ -120,5 +121,42 @@ describe('M5 S5 cursor handling', () => {
 
   it('stops pagination only when the server omits the next cursor', () => {
     expect(opaqueNextCursor({ nextCursor: null })).toBeUndefined();
+  });
+});
+
+describe('ADR 0020 removed Transfer Bundle targets', () => {
+  it('opens no screen for a leftover Transfer notification target', () => {
+    expect(engagementTargetPath('TRANSFER_EXPORT', 'export-id')).toBeNull();
+    expect(engagementTargetPath('TRANSFER_IMPORT', 'import-id')).toBeNull();
+  });
+});
+
+describe('ServerAdmin operator notices (#2314)', () => {
+  it('open the ServerAdmin page the server names', () => {
+    expect(
+      notificationPath({
+        kind: 'OPERATOR_ALERT',
+        targetType: null,
+        targetId: null,
+        operatorRoute: '/server-admin?section=reports&state=NEW',
+      }),
+    ).toBe('/server-admin?section=reports&state=NEW');
+  });
+
+  it('never follow a route outside ServerAdmin', () => {
+    for (const operatorRoute of [
+      'https://example.test/server-admin',
+      '//example.test/server-admin',
+      '/today',
+      '/server-administrator',
+    ])
+      expect(
+        notificationPath({
+          kind: 'OPERATOR_ALERT',
+          targetType: null,
+          targetId: null,
+          operatorRoute,
+        }),
+      ).toBeNull();
   });
 });

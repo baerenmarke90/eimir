@@ -1,0 +1,1979 @@
+/* Fotoautomat: the diary as a photo booth, in two styles. Klassisch is a
+   station cabin of the early sixties (neon crown, teal enamel, chrome trim,
+   velvet curtain, brass coin plate, development dial) against a tiled wall;
+   Modern is an enamel machine with a lit sign, a camera behind glass, a
+   print button and the slot the strip comes out of. Both are physical
+   objects: their materials are world-scoped roles defined on the root and
+   dimmed for Dark; one-off shades of a single object stay with it.
+   Keyframes, loops and timing roles: src/motion/memory-worlds.css. */
+
+/* The typewriter face of the cabin strips and the handwriting of the notes
+   (bundled with the app, OFL). */
+@font-face {
+  font-family: "Courier Prime";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/courier-prime-latin-700.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Caveat";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/caveat-latin-700.woff2") format("woff2");
+}
+
+.memory-booth-world,
+.memory-booth-viewer {
+  --memory-booth-hand: "Caveat", var(--font-display);
+  --memory-booth-type: "Courier Prime", "Courier New", monospace;
+  --memory-booth-light: #ffffff;
+  --memory-booth-dark: #000000;
+  --memory-booth-shade: #120d08;
+  --memory-booth-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42 0 0 0 0 .34 0 0 0 0 .25 0 0 0 .11 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  /* Handwritten headings on the page (line, tin). */
+  --memory-booth-page-ink: color-mix(in srgb, var(--color-text) 78%, #5b3f2c);
+  /* Modern: eimir-blue enamel, cream plates, chrome trim. */
+  --memory-booth-lacquer: #2f55b5;
+  --memory-booth-lacquer-deep: #1c357a;
+  --memory-booth-cream: #f6ecd6;
+  --memory-booth-cream-light: #fffaf0;
+  --memory-booth-chrome: #d9d6cf;
+  --memory-booth-glass-rim: #0a0a0c;
+  --memory-booth-led-on: #ff3b2f;
+  --memory-booth-led-off: #4a1512;
+  --memory-booth-lamp-on: #ffd34d;
+  --memory-booth-brass-shadow: #8a5a2a;
+  /* Modern strip paper and its notes. */
+  --memory-booth-paper: #fbfaf6;
+  --memory-booth-ink: #2e2722;
+  --memory-booth-picture: #1d1b22;
+  --memory-booth-note-heart: color-mix(in srgb, #f3b9d4 45%, #fff3e6);
+  --memory-booth-note-milestone: color-mix(in srgb, #8fd6a2 45%, #fff8ea);
+  --memory-booth-strip-filter: none;
+  /* Klassisch: teal enamel, cream signs, chrome, a tiled wall and a
+     checkered floor; the strips print in faded colour. */
+  --memory-booth-cabin-teal: #2e7a74;
+  --memory-booth-cabin-cream: #f1e8d2;
+  --memory-booth-cabin-chrome: #d6d2ca;
+  --memory-booth-cabin-wall: #e9e1cb;
+  --memory-booth-cabin-wall-line: #d4c9ad;
+  --memory-booth-cabin-floor-a: #2b2927;
+  --memory-booth-cabin-floor-b: #e7e0cf;
+  --memory-booth-cabin-paper: #f4eedf;
+  --memory-booth-cabin-ink: #1f1d1b;
+  --memory-booth-cabin-red: #a8321f;
+  --memory-booth-cabin-dial-face: #fcf8ec;
+  --memory-booth-cabin-dial-ink: #2a2522;
+  --memory-booth-cabin-hand: #b3261e;
+  --memory-booth-cabin-steel: #8d8a84;
+  --memory-booth-cabin-gold: #ffd76a;
+  --memory-booth-cabin-note: #d9d5cb;
+  --memory-booth-cabin-note-heart: #ecd2c8;
+  --memory-booth-cabin-note-milestone: #d3dcb9;
+  --memory-booth-cabin-note-from: #4d4944;
+  --memory-booth-cabin-stamp: color-mix(in srgb, #2b3a8a 85%, transparent);
+  --memory-booth-cabin-print-filter: sepia(0.32) contrast(1.06)
+    hue-rotate(-8deg) brightness(1.02);
+  --memory-booth-cabin-strip-filter: none;
+  /* The contact sheet in the viewer. */
+  --memory-booth-contact-paper: var(--memory-booth-paper);
+}
+
+/* Dark: the papers stay paper, but they sit in a dim room. */
+:root[data-theme="dark"] :is(.memory-booth-world, .memory-booth-viewer) {
+  --memory-booth-strip-filter: brightness(0.8) saturate(0.92);
+  --memory-booth-cabin-wall: #3a3631;
+  --memory-booth-cabin-wall-line: #4a443c;
+  --memory-booth-cabin-floor-b: #8a8476;
+  --memory-booth-cabin-strip-filter: brightness(0.82) saturate(0.92);
+  --memory-booth-contact-paper: #cfc9be;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) :is(.memory-booth-world, .memory-booth-viewer) {
+    --memory-booth-strip-filter: brightness(0.8) saturate(0.92);
+    --memory-booth-cabin-wall: #3a3631;
+    --memory-booth-cabin-wall-line: #4a443c;
+    --memory-booth-cabin-floor-b: #8a8476;
+    --memory-booth-cabin-strip-filter: brightness(0.82) saturate(0.92);
+    --memory-booth-contact-paper: #cfc9be;
+  }
+}
+
+.memory-booth-world {
+  display: grid;
+  gap: var(--space-3);
+  min-inline-size: 0;
+}
+.memory-booth-modern,
+.memory-booth-classic {
+  display: grid;
+  gap: 0;
+  min-inline-size: 0;
+}
+:is(.memory-booth-modern, .memory-booth-classic) > .memory-world-head {
+  margin-block-end: var(--space-4);
+}
+
+/* ---------- Style switch (Klassisch / Modern) ---------- */
+/* Right below the booth's heading, before the booth itself. */
+:is(.memory-booth-modern, .memory-booth-classic)
+  > .memory-world-head:has(+ .memory-booth-style) {
+  margin-block-end: var(--space-3);
+}
+.memory-booth-style {
+  justify-self: start;
+  margin-block-end: var(--space-4);
+  display: inline-flex;
+  padding: 2px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-text) 6%, transparent);
+}
+.memory-booth-style-option {
+  min-block-size: var(--touch-target-web);
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-pill);
+  font: var(--font-supporting-copy);
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+}
+.memory-booth-style-option[aria-pressed="true"] {
+  color: var(--color-text);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-raised);
+}
+.memory-booth-style-option:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* ---------- Modern ---------- */
+/* A station photo booth: lit sign, camera window, a print button and the
+   slot the strip drops out of. Earlier strips hang on a line with pegs. */
+.memory-booth {
+  position: relative;
+  z-index: 2;
+  justify-self: center;
+  inline-size: min(100%, 340px);
+  padding: 12px 12px 42px;
+  border-radius: 28px 28px 12px 12px;
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--memory-booth-dark) 20%, transparent),
+      transparent 7%,
+      transparent 93%,
+      color-mix(in srgb, var(--memory-booth-dark) 20%, transparent)
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--memory-booth-light) 16%, transparent),
+      transparent 24%
+    ),
+    var(--memory-booth-lacquer);
+  box-shadow:
+    inset 0 0 0 3px var(--memory-booth-chrome),
+    inset 0 0 0 5px
+    color-mix(in srgb, var(--memory-booth-dark) 18%, transparent),
+    inset 0 -12px 18px
+    color-mix(in srgb, var(--memory-booth-dark) 24%, transparent),
+    0 18px 30px color-mix(in srgb, var(--memory-booth-shade) 30%, transparent);
+}
+
+/* The lit sign with chasing bulbs above and below. */
+.memory-booth-sign {
+  position: relative;
+  padding: 16px 12px 15px;
+  border-radius: 16px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.3rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--memory-booth-lacquer);
+  text-shadow: 0 1px 0
+    color-mix(in srgb, var(--memory-booth-light) 60%, transparent);
+  background: radial-gradient(
+    ellipse at 50% 45%,
+    var(--memory-booth-cream-light),
+    var(--memory-booth-cream) 72%
+  );
+  box-shadow:
+    inset 0 0 0 2px
+    color-mix(in srgb, var(--memory-booth-lacquer) 35%, transparent),
+    inset 0 -3px 6px
+    color-mix(in srgb, var(--memory-booth-brass-shadow) 18%, transparent),
+    0 0 22px color-mix(in srgb, #ffe9a8 45%, transparent);
+}
+.memory-booth-sign::before,
+.memory-booth-sign::after {
+  content: "";
+  position: absolute;
+  inset-inline: 10px;
+  block-size: 8px;
+  background:
+    radial-gradient(circle, #fff7d2 0 2.6px, transparent 3.2px) 0 50% / 32px 8px
+    repeat-x,
+    radial-gradient(circle, #c9a26a 0 2.3px, transparent 2.9px) 0 50% / 16px 8px
+    repeat-x;
+  filter: drop-shadow(0 0 2px #ffd56a);
+}
+.memory-booth-sign::before {
+  inset-block-start: 3px;
+}
+.memory-booth-sign::after {
+  inset-block-end: 3px;
+}
+
+/* Camera behind glass on the left, display and shot lamps on the right. */
+.memory-booth-panel {
+  display: grid;
+  grid-template-columns: 1fr 88px;
+  gap: 10px;
+  margin-block-start: 12px;
+}
+.memory-booth-window {
+  position: relative;
+  block-size: 140px;
+  overflow: hidden;
+  border-radius: 16px;
+  background: radial-gradient(ellipse at 50% 48%, #2a2930, #0b0a0f 78%);
+  box-shadow:
+    inset 0 0 0 3px var(--memory-booth-chrome),
+    inset 0 0 0 5px var(--memory-booth-glass-rim),
+    inset 0 8px 16px var(--memory-booth-dark);
+}
+.memory-booth-window::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 26%,
+    color-mix(in srgb, var(--memory-booth-light) 14%, transparent) 34%,
+    transparent 42%,
+    transparent 60%,
+    color-mix(in srgb, var(--memory-booth-light) 7%, transparent) 64%,
+    transparent 70%
+  );
+}
+.memory-booth-camera {
+  position: absolute;
+  inset: 4px;
+  inline-size: calc(100% - 8px);
+  block-size: calc(100% - 8px);
+}
+.memory-booth-led {
+  fill: var(--memory-booth-led-off);
+}
+/* Self-timer light: lit during the countdown and the shots. */
+.memory-booth:is([data-stage="count"], [data-stage="shot"]) .memory-booth-led {
+  fill: var(--memory-booth-led-on);
+  filter: drop-shadow(0 0 3px var(--memory-booth-led-on));
+}
+.memory-booth-shutter,
+.memory-booth-flash-burst,
+.memory-booth-flash-flare {
+  transform-box: fill-box;
+  transform-origin: center;
+  scale: 0;
+}
+.memory-booth-flash-burst {
+  mix-blend-mode: screen;
+}
+.memory-booth-flash-fire,
+.memory-booth-flash-flare {
+  opacity: 0;
+}
+/* The light of the flash on the camera's side of the glass. */
+.memory-booth-window-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  mix-blend-mode: screen;
+  background: radial-gradient(
+    70px 52px at 44px 32px,
+    #fffdf2,
+    color-mix(in srgb, #ffe9b8 45%, transparent) 45%,
+    transparent
+  );
+}
+.memory-booth-status {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 10px;
+}
+/* A red LED display behind a dot grid. */
+.memory-booth-display {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 12px;
+  background:
+    radial-gradient(
+      circle,
+      color-mix(in srgb, #ff5a3d 12%, transparent) 0 0.8px,
+      transparent 1.2px
+    )
+    0 0 / 4px 4px,
+    #1b0d0c;
+  box-shadow:
+    inset 0 0 0 3px var(--memory-booth-chrome),
+    inset 0 0 0 5px var(--memory-booth-glass-rim),
+    inset 0 4px 10px var(--memory-booth-dark);
+  color: #ff6a4a;
+  text-shadow:
+    0 0 6px color-mix(in srgb, #ff5a3d 75%, transparent),
+    0 0 16px color-mix(in srgb, #ff3b1f 45%, transparent);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+.memory-booth-display[data-size="big"] {
+  font-size: 2.7rem;
+  letter-spacing: 0;
+  line-height: 1;
+}
+.memory-booth-display > span {
+  display: block;
+}
+.memory-booth-lamps {
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+}
+.memory-booth-lamp {
+  inline-size: 13px;
+  block-size: 13px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #6b5a3a, #2e2516);
+  box-shadow: inset 0 0 0 1.5px var(--memory-booth-chrome);
+}
+.memory-booth-lamp[data-on="true"] {
+  background: radial-gradient(
+    circle at 35% 30%,
+    #fffbe0,
+    var(--memory-booth-lamp-on) 60%,
+    #d89a1c
+  );
+  box-shadow:
+    inset 0 0 0 1.5px var(--memory-booth-chrome),
+    0 0 9px var(--memory-booth-lamp-on);
+}
+
+/* The print button: an enamel plate like the sign, raised on the panel. */
+.memory-booth-controls {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+  margin-block-start: 14px;
+}
+.memory-booth-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-block-size: 56px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 14px;
+  font: var(--font-supporting-copy);
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--memory-booth-lacquer-deep);
+  background: linear-gradient(
+    var(--memory-booth-cream-light),
+    var(--memory-booth-cream)
+  );
+  box-shadow:
+    inset 0 0 0 2px var(--memory-booth-chrome),
+    inset 0 -2px 4px
+    color-mix(in srgb, var(--memory-booth-brass-shadow) 18%, transparent),
+    0 4px 0
+    color-mix(
+      in srgb,
+      var(--memory-booth-lacquer-deep) 85%,
+      var(--memory-booth-dark)
+    ),
+    0 7px 10px color-mix(in srgb, var(--memory-booth-dark) 30%, transparent);
+  translate: 0 -2px;
+  cursor: pointer;
+}
+.memory-booth-button-icon {
+  inline-size: 22px;
+  block-size: 22px;
+  flex: none;
+}
+.memory-booth-button:active:not([aria-disabled="true"]),
+.memory-booth-button[aria-disabled="true"] {
+  translate: 0 2px;
+  box-shadow:
+    inset 0 0 0 2px var(--memory-booth-chrome),
+    inset 0 2px 4px
+    color-mix(in srgb, var(--memory-booth-brass-shadow) 22%, transparent),
+    0 0 0
+    color-mix(
+      in srgb,
+      var(--memory-booth-lacquer-deep) 85%,
+      var(--memory-booth-dark)
+    ),
+    0 2px 4px color-mix(in srgb, var(--memory-booth-dark) 30%, transparent);
+}
+.memory-booth-button[aria-disabled="true"] {
+  cursor: default;
+  scale: none;
+  filter: none;
+  color: color-mix(
+    in srgb,
+    var(--memory-booth-lacquer-deep) 55%,
+    var(--memory-booth-cream)
+  );
+  background: linear-gradient(
+    var(--memory-booth-cream),
+    color-mix(in srgb, var(--memory-booth-cream) 88%, #8a7a60)
+  );
+}
+.memory-booth-button:focus-visible {
+  outline: 3px solid var(--memory-booth-cream);
+  outline-offset: 3px;
+}
+.memory-booth-coin-slot {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  align-content: center;
+  inline-size: 44px;
+  block-size: 56px;
+  border-radius: 10px;
+  background: linear-gradient(#ebe8e1, #b8b4ac);
+  box-shadow:
+    inset 0 1px 0 var(--memory-booth-light),
+    0 2px 3px color-mix(in srgb, var(--memory-booth-dark) 30%, transparent);
+}
+.memory-booth-coin-slot::before {
+  content: "";
+  inline-size: 5px;
+  block-size: 28px;
+  border-radius: 2px;
+  background: #211d1a;
+  box-shadow: inset 0 1px 2px var(--memory-booth-dark);
+}
+
+/* The slot the strip comes out of; it glows while the strip is pushed out. */
+.memory-booth-slot {
+  position: absolute;
+  inset-block-end: 18px;
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  inline-size: 164px;
+  block-size: 15px;
+  border-radius: 7px;
+  background: #121116;
+  box-shadow:
+    0 0 0 3px var(--memory-booth-chrome),
+    0 0 0 4px color-mix(in srgb, var(--memory-booth-dark) 25%, transparent),
+    inset 0 3px 4px var(--memory-booth-dark);
+}
+.memory-booth[data-stage="print"] .memory-booth-slot {
+  background: radial-gradient(ellipse at 50% 100%, #6a4424, #121116 72%);
+}
+/* Starts at the middle of the slot: the strip appears out of its opening
+   and hangs down in front of the machine. */
+.memory-booth-out {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  justify-items: center;
+  margin-block-start: -25.5px;
+  /* Keeps the button and the slot in view above the printed strip. */
+  scroll-margin-top: 150px;
+  padding-block-end: var(--space-5);
+  overflow: hidden;
+  min-block-size: 26px;
+}
+/* The shadow inside the slot falls on the strip's top edge. */
+.memory-booth-out::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  inset-block-start: 0;
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  inline-size: 158px;
+  block-size: 12px;
+  pointer-events: none;
+  background: linear-gradient(
+    color-mix(in srgb, var(--memory-booth-dark) 60%, transparent),
+    transparent
+  );
+  opacity: 0;
+}
+.memory-booth-out:has(.memory-booth-fresh)::after {
+  opacity: 1;
+}
+.memory-booth-fresh {
+  padding-inline: 14px;
+}
+
+/* The strip is a button: pick it up for a closer look. */
+.memory-booth-strip {
+  display: grid;
+  gap: 6px;
+  inline-size: 132px;
+  margin: 0;
+  padding: 8px 8px 6px;
+  border: 0;
+  border-radius: 1px;
+  rotate: 1deg;
+  transform-origin: 50% 0;
+  font: inherit;
+  text-align: center;
+  color: var(--memory-booth-ink);
+  background: var(--memory-booth-grain), var(--memory-booth-paper);
+  filter: var(--memory-booth-strip-filter);
+  box-shadow:
+    0 1px 1px color-mix(in srgb, var(--memory-booth-shade) 18%, transparent),
+    0 10px 18px color-mix(in srgb, var(--memory-booth-shade) 26%, transparent);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.memory-booth-strip:focus-visible,
+.memory-booth-cabin-strip:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 4px;
+}
+.memory-booth-frame {
+  display: block;
+  aspect-ratio: 1;
+  overflow: hidden;
+  color: inherit;
+  text-decoration: none;
+  background: var(--memory-booth-picture);
+  -webkit-touch-callout: none;
+}
+:is(.memory-booth-frame, .memory-booth-cabin-frame) .memory-world-photo {
+  block-size: 100%;
+  aspect-ratio: auto;
+}
+:is(.memory-booth-frame, .memory-booth-cabin-frame) :is(img, svg) {
+  -webkit-user-drag: none;
+}
+
+/* A note fits its frame (client/fitText): the text shrinks and is shortened
+   in script instead of being cut off; "safe" keeps any overflow at the
+   bottom, where the fitting can measure it. */
+.memory-booth-note {
+  display: grid;
+  align-content: safe center;
+  justify-items: center;
+  gap: 4px;
+  block-size: 100%;
+  min-block-size: 0;
+  overflow: hidden;
+  padding: 8px;
+  text-align: center;
+  font-family: var(--memory-booth-hand);
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--memory-booth-ink);
+  background: color-mix(in srgb, var(--memory-booth-paper) 88%, #c9b99b);
+}
+.memory-booth-frame[data-kind="heart"] .memory-booth-note {
+  background: var(--memory-booth-note-heart);
+}
+.memory-booth-frame[data-kind="milestone"] .memory-booth-note {
+  background: var(--memory-booth-note-milestone);
+}
+.memory-booth-note :is(q, strong) {
+  display: block;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  font-size: 0.95rem;
+  quotes: none;
+}
+.memory-booth-note > :not(q, strong) {
+  flex-shrink: 0;
+}
+.memory-booth-note > span {
+  font-size: 0.8rem;
+  color: color-mix(in srgb, var(--memory-booth-ink) 62%, transparent);
+}
+.memory-booth-mark {
+  inline-size: 26px;
+  block-size: 26px;
+}
+.memory-booth-strip-label {
+  padding-block: 2px 0;
+  text-align: center;
+  font-family: var(--memory-booth-hand);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: color-mix(in srgb, var(--memory-booth-ink) 70%, transparent);
+}
+
+/* The clothes line with earlier strips. */
+.memory-booth-line {
+  display: grid;
+  gap: var(--space-2);
+  margin-block-start: var(--space-6);
+}
+.memory-booth-line h3,
+.memory-booth-cabin-tin h3 {
+  margin: 0;
+  font-family: var(--memory-booth-hand);
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: var(--memory-booth-page-ink);
+}
+.memory-booth-line-row {
+  position: relative;
+  display: flex;
+  gap: var(--space-4);
+  overflow-x: auto;
+  padding: 14px 6px var(--space-4);
+  scrollbar-width: none;
+  background:
+    linear-gradient(
+      color-mix(in srgb, #8a6d45 70%, transparent),
+      color-mix(in srgb, #8a6d45 70%, transparent)
+    )
+    0 12px / 100% 1.5px no-repeat;
+}
+.memory-booth-hung {
+  position: relative;
+  flex: none;
+  rotate: var(--tilt, 2deg);
+  transform-origin: 50% 0;
+}
+.memory-booth-peg {
+  position: absolute;
+  z-index: 2;
+  inset-block-start: -10px;
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  inline-size: 9px;
+  block-size: 24px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #c49a64, #e0bd8a 50%, #b88d58);
+  box-shadow: 0 2px 2px
+    color-mix(in srgb, var(--memory-booth-dark) 25%, transparent);
+}
+.memory-booth-strip[data-size="small"] {
+  inline-size: 70px;
+  gap: 4px;
+  padding: 5px 5px 4px;
+  rotate: 0deg;
+}
+.memory-booth-strip[data-size="small"] .memory-booth-note {
+  padding: 3px;
+}
+.memory-booth-strip[data-size="small"] .memory-booth-note :is(q, strong) {
+  font-size: 0.6rem;
+}
+.memory-booth-strip[data-size="small"] .memory-booth-note > span,
+.memory-booth-strip[data-size="small"] .memory-booth-mark {
+  display: none;
+}
+.memory-booth-strip[data-size="small"] .memory-booth-strip-label {
+  font-size: 0.7rem;
+}
+
+/* What to do with the fresh strip. */
+.memory-booth-fresh-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-block: calc(var(--space-2) * -1) var(--space-5);
+}
+.memory-booth-primary,
+.memory-booth-secondary {
+  min-block-size: 48px;
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-pill);
+  font: var(--font-supporting-copy);
+  font-weight: 700;
+  cursor: pointer;
+}
+.memory-booth-primary {
+  border: 0;
+  color: var(--color-on-action-primary);
+  background: var(--color-action-primary);
+}
+.memory-booth-secondary {
+  border: var(--border-surface-width) solid
+    color-mix(in srgb, var(--color-text) 25%, transparent);
+  color: var(--color-text);
+  background: transparent;
+}
+
+/* ---------- The picked-up strip (viewer) ---------- */
+.memory-booth-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+}
+.memory-booth-viewer-scrim {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--color-background) 82%, transparent);
+  backdrop-filter: blur(12px) saturate(0.9);
+}
+.memory-booth-sheet {
+  position: relative;
+  display: grid;
+  gap: var(--space-2);
+  inline-size: min(100%, 380px);
+  max-block-size: calc(100dvh - 2 * var(--space-4));
+  overflow-y: auto;
+  padding: var(--space-5) var(--space-4) var(--space-4);
+  border-radius: 20px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  box-shadow: 0 20px 50px
+    color-mix(in srgb, var(--memory-booth-dark) 35%, transparent);
+}
+.memory-booth-sheet-kicker {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+.memory-booth-sheet h3 {
+  margin: 0 0 var(--space-2);
+  font-family: var(--memory-booth-hand);
+  font-weight: 700;
+  font-size: 1.8rem;
+  line-height: 1;
+}
+/* The strip runs down the left; each picture has its memory beside it. */
+.memory-booth-contact {
+  display: grid;
+  margin: 0;
+  padding: 8px 0;
+  list-style: none;
+  background:
+    linear-gradient(
+      var(--memory-booth-contact-paper),
+      var(--memory-booth-contact-paper)
+    )
+    0 0 / 104px 100% no-repeat;
+  border-radius: 2px;
+}
+.memory-booth-contact-row {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  align-items: center;
+  gap: 16px 24px;
+  padding: 4px 8px;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 12px;
+}
+.memory-booth-contact-row .memory-booth-frame {
+  inline-size: 88px;
+  filter: var(--memory-booth-strip-filter);
+}
+.memory-booth-contact-row .memory-booth-note {
+  padding: 5px;
+  gap: 2px;
+}
+.memory-booth-contact-row .memory-booth-note :is(q, strong) {
+  font-size: 0.75rem;
+}
+.memory-booth-contact-row .memory-booth-note > span {
+  font-size: 0.65rem;
+}
+.memory-booth-contact-row .memory-booth-mark {
+  inline-size: 16px;
+  block-size: 16px;
+}
+.memory-booth-contact-text {
+  display: grid;
+  gap: 2px;
+  min-inline-size: 0;
+}
+.memory-booth-contact-text strong {
+  font-size: 1rem;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.memory-booth-contact-text time {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+.memory-booth-contact-open {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-link-text);
+}
+.memory-booth-sheet-actions {
+  display: grid;
+  gap: var(--space-2);
+  margin-block-start: var(--space-3);
+}
+/* The cabin's strips keep their faded colour and typewriter notes here. */
+.memory-booth-viewer[data-tone="retro"]
+  .memory-booth-frame
+  .memory-world-photo {
+  filter: sepia(0.32) saturate(0.88) contrast(1.06) hue-rotate(-8deg)
+    brightness(1.02);
+}
+.memory-booth-viewer[data-tone="retro"] .memory-booth-frame .memory-booth-note {
+  font-family: var(--memory-booth-type);
+  color: var(--memory-booth-cabin-ink);
+  background: var(--memory-booth-cabin-note);
+}
+.memory-booth-viewer[data-tone="retro"]
+  .memory-booth-frame[data-kind="heart"]
+  .memory-booth-note {
+  background: var(--memory-booth-cabin-note-heart);
+}
+.memory-booth-viewer[data-tone="retro"]
+  .memory-booth-frame[data-kind="milestone"]
+  .memory-booth-note {
+  background: var(--memory-booth-cabin-note-milestone);
+}
+.memory-booth-viewer[data-tone="retro"] .memory-booth-mark {
+  filter: sepia(0.4);
+}
+
+/* ---------- Klassisch ---------- */
+.memory-booth-cabin-scene {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  overflow: hidden;
+  padding: 22px 12px 64px;
+  border-radius: 20px;
+  background:
+    radial-gradient(
+      ellipse 75% 38% at 50% 0%,
+      color-mix(in srgb, #fff3c9 50%, transparent),
+      transparent 70%
+    ),
+    linear-gradient(var(--memory-booth-cabin-wall-line) 1px, transparent 1px) 0
+    0 / 100% 16px,
+    linear-gradient(
+      90deg,
+      var(--memory-booth-cabin-wall-line) 1px,
+      transparent 1px
+    )
+    0 0 / 32px 100%,
+    var(--memory-booth-cabin-wall);
+  box-shadow: inset 0 0 40px
+    color-mix(in srgb, var(--memory-booth-dark) 20%, transparent);
+}
+.memory-booth-cabin-floor {
+  position: absolute;
+  inset-inline: -60px;
+  inset-block-end: 0;
+  block-size: 92px;
+  transform: perspective(180px) rotateX(42deg);
+  transform-origin: 50% 100%;
+  background:
+    conic-gradient(
+      var(--memory-booth-cabin-floor-a) 25%,
+      var(--memory-booth-cabin-floor-b) 0 50%,
+      var(--memory-booth-cabin-floor-a) 0 75%,
+      var(--memory-booth-cabin-floor-b) 0
+    )
+    0 0 / 30px 30px;
+  box-shadow: inset 0 14px 18px
+    color-mix(in srgb, var(--memory-booth-dark) 35%, transparent);
+}
+.memory-booth-cabin {
+  position: relative;
+  z-index: 1;
+  inline-size: min(100%, 336px);
+  filter: drop-shadow(
+    0 14px 12px color-mix(in srgb, var(--memory-booth-dark) 38%, transparent)
+  );
+}
+
+/* Art deco crown with a neon sign. */
+.memory-booth-cabin-crown {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 2px;
+  block-size: 92px;
+  margin-inline: 8px;
+  padding-block-start: 14px;
+  clip-path: polygon(
+    0 100%,
+    0 44%,
+    7% 44%,
+    7% 22%,
+    16% 22%,
+    16% 0,
+    84% 0,
+    84% 22%,
+    93% 22%,
+    93% 44%,
+    100% 44%,
+    100% 100%
+  );
+  background:
+    linear-gradient(
+      var(--memory-booth-cabin-chrome),
+      var(--memory-booth-cabin-chrome)
+    )
+    0 100% / 100% 4px no-repeat,
+    radial-gradient(ellipse at 50% 60%, #2c3f3c, #111a19 78%);
+}
+.memory-booth-cabin-neon {
+  font-family: var(--memory-booth-hand);
+  font-weight: 700;
+  font-size: 2.6rem;
+  line-height: 0.85;
+  color: #ffe6f2;
+  text-shadow:
+    0 0 3px var(--memory-booth-light),
+    0 0 8px #ff70b2,
+    0 0 18px #ff3d95,
+    0 0 32px #ff2d8a;
+}
+.memory-booth-cabin-tagline {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.62rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #cafff3;
+  text-shadow: 0 0 6px #3ee6c4;
+}
+
+/* Teal enamel body with chrome edge and rivets. */
+.memory-booth-cabin-body {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 10px;
+  padding: 18px 10px 12px;
+  border-radius: 6px 6px 0 0;
+  background:
+    radial-gradient(
+      circle,
+      #f2efe8 0 1.4px,
+      var(--memory-booth-cabin-steel) 1.9px,
+      transparent 2.3px
+    )
+    9px 5px / 20px 8px repeat-x,
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--memory-booth-dark) 24%, transparent),
+      transparent 5%,
+      transparent 95%,
+      color-mix(in srgb, var(--memory-booth-dark) 24%, transparent)
+    ),
+    linear-gradient(
+      color-mix(in srgb, var(--memory-booth-light) 12%, transparent),
+      transparent 30%
+    ),
+    var(--memory-booth-cabin-teal);
+  box-shadow:
+    inset 0 0 0 3px var(--memory-booth-cabin-chrome),
+    inset 0 0 0 4px
+    color-mix(in srgb, var(--memory-booth-dark) 25%, transparent);
+}
+
+/* The entrance: status light, interior, rod and curtain share one cell. */
+.memory-booth-cabin-door {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  min-block-size: 300px;
+}
+.memory-booth-cabin-status {
+  justify-self: center;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  background: #1b1414;
+  box-shadow:
+    inset 0 0 0 2px var(--memory-booth-cabin-chrome),
+    0 2px 3px color-mix(in srgb, var(--memory-booth-dark) 35%, transparent);
+}
+.memory-booth-cabin-status[data-tone="free"] {
+  color: #a5ffbd;
+  text-shadow: 0 0 6px #3ddc6e;
+}
+.memory-booth-cabin-status[data-tone="busy"] {
+  color: #ff9c86;
+  text-shadow:
+    0 0 6px var(--memory-booth-led-on),
+    0 0 12px var(--memory-booth-led-on);
+}
+.memory-booth-cabin-status[data-tone="wait"] {
+  color: #ffdc8f;
+  text-shadow: 0 0 6px #ffb02e;
+}
+.memory-booth-cabin-inside,
+.memory-booth-cabin-rod,
+.memory-booth-cabin-curtain,
+.memory-booth-cabin-flash {
+  grid-row: 2;
+  grid-column: 1;
+}
+.memory-booth-cabin-inside {
+  position: relative;
+  overflow: hidden;
+  border-radius: 3px 3px 0 0;
+  background: radial-gradient(ellipse at 50% 30%, #3b3531, #121010 75%);
+  box-shadow:
+    inset 0 0 0 3px var(--memory-booth-cabin-chrome),
+    inset 0 12px 22px var(--memory-booth-dark);
+}
+/* The camera behind its mirror glass, and the round stool. */
+.memory-booth-cabin-mirror {
+  position: absolute;
+  inset-block-start: 20%;
+  inset-inline-start: 58%;
+  translate: -50% 0;
+  inline-size: 46%;
+  aspect-ratio: 1.15;
+  border-radius: 6px;
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      #0a0a0c 0 9%,
+      #2b3340 10% 16%,
+      transparent 17%
+    ),
+    linear-gradient(135deg, #5c636d, #1b1e23 60%, #3d444d);
+  box-shadow:
+    0 0 0 3px #8f897e,
+    0 0 0 4px var(--memory-booth-dark);
+}
+.memory-booth-cabin-mirror::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    120deg,
+    transparent 30%,
+    color-mix(in srgb, var(--memory-booth-light) 22%, transparent) 40%,
+    transparent 50%
+  );
+}
+.memory-booth-cabin-stool {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline-start: 58%;
+  translate: -50% 0;
+  inline-size: 40%;
+  block-size: 30%;
+  background:
+    linear-gradient(
+      90deg,
+      var(--memory-booth-cabin-steel),
+      #e6e2da,
+      var(--memory-booth-cabin-steel)
+    )
+    50% 16px / 12% 100% no-repeat;
+}
+.memory-booth-cabin-stool::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 0;
+  block-size: 18px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 35%, #c2503f, #6c1f19);
+  box-shadow:
+    0 3px 0 var(--memory-booth-cabin-chrome),
+    0 6px 8px var(--memory-booth-dark);
+}
+.memory-booth-cabin-rod {
+  z-index: 3;
+  align-self: start;
+  block-size: 6px;
+  margin-inline: -4px;
+  border-radius: 3px;
+  background: linear-gradient(var(--memory-booth-light), #a8a49c 60%, #e2ded6);
+  box-shadow: 0 2px 2px
+    color-mix(in srgb, var(--memory-booth-dark) 45%, transparent);
+}
+/* Velvet curtain with folds, rings and a golden fringe. Drawn back it
+   bunches at the left; closed it covers the whole entrance. */
+.memory-booth-cabin-curtain {
+  position: relative;
+  z-index: 2;
+  margin-block-start: 3px;
+  transform-origin: 0 0;
+  scale: 0.36 1;
+  background:
+    linear-gradient(
+      color-mix(in srgb, var(--memory-booth-light) 10%, transparent),
+      transparent 25%,
+      transparent 70%,
+      color-mix(in srgb, var(--memory-booth-dark) 35%, transparent)
+    ),
+    repeating-linear-gradient(
+      90deg,
+      #7d2219 0 3px,
+      #a9382b 3px 8px,
+      #c95a46 8px 10px,
+      #9a3125 10px 15px
+    );
+  box-shadow: 4px 0 8px
+    color-mix(in srgb, var(--memory-booth-dark) 40%, transparent);
+}
+.memory-booth-cabin-curtain[data-closed="true"] {
+  scale: 1 1;
+}
+.memory-booth-cabin-curtain::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: -4px;
+  block-size: 7px;
+  background:
+    radial-gradient(
+      circle,
+      transparent 0 1.6px,
+      #d9d5cc 1.8px 3px,
+      transparent 3.3px
+    )
+    0 0 / 15px 7px repeat-x;
+}
+.memory-booth-cabin-curtain::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  block-size: 9px;
+  background:
+    repeating-linear-gradient(90deg, #d9a83c 0 1.5px, transparent 1.5px 3px) 0
+    3px / 100% 6px no-repeat,
+    linear-gradient(#e7bf5a, #a87a22) 0 0 / 100% 3px no-repeat;
+}
+/* Each flash shines through the curtain and leaks out at its edges. */
+.memory-booth-cabin-flash {
+  z-index: 4;
+  pointer-events: none;
+  opacity: 0;
+  mix-blend-mode: screen;
+  background: radial-gradient(
+    ellipse at 55% 38%,
+    #fffdf2,
+    color-mix(in srgb, #ffeeb8 65%, transparent) 40%,
+    transparent 78%
+  );
+  box-shadow: 0 0 22px 6px color-mix(in srgb, #fff6d6 80%, transparent);
+}
+.memory-booth-cabin-spill {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  mix-blend-mode: screen;
+  background: radial-gradient(
+    ellipse 48% 42% at 36% 58%,
+    color-mix(in srgb, #fff6d6 55%, transparent),
+    transparent 72%
+  );
+}
+
+/* The machine column. */
+.memory-booth-cabin-machine {
+  display: grid;
+  align-content: start;
+  justify-items: stretch;
+  gap: 10px;
+}
+.memory-booth-cabin-showcase {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 18px 8px 8px;
+  border-radius: 6px;
+  background: linear-gradient(#2c2623, #171312);
+  box-shadow:
+    inset 0 0 0 3px var(--memory-booth-cabin-chrome),
+    inset 0 6px 12px var(--memory-booth-dark);
+}
+.memory-booth-cabin-showcase-label {
+  position: absolute;
+  inset-block-start: 4px;
+  inset-inline: 0;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.55rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: #e9dfc6;
+}
+.memory-booth-cabin-sample {
+  inline-size: 30px;
+  block-size: auto;
+  rotate: -3deg;
+  filter: sepia(0.25);
+  box-shadow: 0 2px 4px var(--memory-booth-dark);
+}
+.memory-booth-cabin-sample + .memory-booth-cabin-sample {
+  rotate: 4deg;
+}
+.memory-booth-cabin-price {
+  display: grid;
+  justify-items: center;
+  padding: 5px 4px;
+  border-radius: 8px;
+  font-family: var(--font-display);
+  line-height: 1.1;
+  color: var(--memory-booth-cabin-red);
+  background: var(--memory-booth-cabin-cream);
+  box-shadow:
+    inset 0 0 0 2px
+    color-mix(in srgb, var(--memory-booth-cabin-red) 30%, transparent),
+    0 2px 0 color-mix(in srgb, var(--memory-booth-dark) 25%, transparent);
+}
+.memory-booth-cabin-price strong {
+  font-size: 1.05rem;
+}
+.memory-booth-cabin-price span {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+.memory-booth-cabin-coinplate {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  padding: 9px 6px 7px;
+  border-radius: 10px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #4a3212;
+  background: linear-gradient(135deg, #f3d995, #b8893a 55%, #e8c375);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--memory-booth-light) 45%, transparent),
+    0 2px 3px color-mix(in srgb, var(--memory-booth-dark) 35%, transparent);
+}
+.memory-booth-cabin-coinplate[data-near="true"] {
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--memory-booth-light) 45%, transparent),
+    0 0 0 3px color-mix(in srgb, var(--memory-booth-light) 35%, transparent),
+    0 0 16px var(--memory-booth-cabin-gold);
+}
+.memory-booth-cabin-slot {
+  inline-size: 6px;
+  block-size: 30px;
+  border-radius: 3px;
+  background: #1a1208;
+  box-shadow:
+    inset 0 2px 3px var(--memory-booth-dark),
+    0 0 0 2px #8a6326;
+}
+/* Development dial: 0 to 4 minutes, the hand runs while you wait. */
+.memory-booth-cabin-dial {
+  position: relative;
+  justify-self: center;
+  margin-block-end: 14px;
+  padding: 4px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f6f4ee, var(--memory-booth-cabin-steel));
+  box-shadow: 0 2px 4px
+    color-mix(in srgb, var(--memory-booth-dark) 40%, transparent);
+}
+.memory-booth-cabin-dial-face {
+  position: relative;
+  display: block;
+  inline-size: 84px;
+  block-size: 84px;
+  border-radius: 50%;
+  background: radial-gradient(var(--memory-booth-cabin-dial-face), #e6dbc0);
+}
+.memory-booth-cabin-dial-face::before,
+.memory-booth-cabin-dial-face::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  -webkit-mask: radial-gradient(
+    circle,
+    transparent 0 32px,
+    #000 32.5px 38px,
+    transparent 38.5px
+  );
+  mask: radial-gradient(
+    circle,
+    transparent 0 32px,
+    #000 32.5px 38px,
+    transparent 38.5px
+  );
+}
+.memory-booth-cabin-dial-face::before {
+  background:
+    conic-gradient(
+      from -136deg,
+      transparent 0,
+      transparent 272deg,
+      var(--memory-booth-cabin-dial-face) 272deg
+    ),
+    repeating-conic-gradient(
+      from -136deg,
+      var(--memory-booth-cabin-dial-ink) 0 1.4deg,
+      transparent 1.4deg 16.875deg
+    );
+}
+.memory-booth-cabin-dial-face::after {
+  background: conic-gradient(
+    from 90deg,
+    transparent 0 1deg,
+    color-mix(in srgb, var(--memory-booth-cabin-hand) 70%, transparent) 1deg
+      46deg,
+    transparent 46deg
+  );
+  -webkit-mask: radial-gradient(
+    circle,
+    transparent 0 36px,
+    #000 36.5px 38px,
+    transparent 38.5px
+  );
+  mask: radial-gradient(
+    circle,
+    transparent 0 36px,
+    #000 36.5px 38px,
+    transparent 38.5px
+  );
+}
+.memory-booth-cabin-dial-num {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.6rem;
+  color: var(--memory-booth-cabin-dial-ink);
+  transform: translate(-50%, -50%) rotate(var(--a)) translateY(-24px)
+    rotate(calc(var(--a) * -1));
+}
+.memory-booth-cabin-dial-hand {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  z-index: 1;
+  inline-size: 3px;
+  block-size: 36px;
+  margin-inline-start: -1.5px;
+  margin-block-start: -32px;
+  border-radius: 2px;
+  background: var(--memory-booth-cabin-hand);
+  transform-origin: 50% 32px;
+  rotate: -135deg;
+}
+.memory-booth-cabin-dial-hand::after {
+  content: "";
+  position: absolute;
+  inset-block-start: 26px;
+  inset-inline-start: 50%;
+  inline-size: 11px;
+  block-size: 11px;
+  margin-inline-start: -5.5px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 35% 30%,
+    var(--memory-booth-light),
+    var(--memory-booth-cabin-steel)
+  );
+}
+.memory-booth-cabin-scene:is(
+    [data-stage="develop"],
+    [data-stage="drop"],
+    [data-stage="done"]
+  )
+  .memory-booth-cabin-dial-hand {
+  rotate: 135deg;
+}
+.memory-booth-cabin-dial-caption {
+  position: absolute;
+  inset-block-start: calc(100% + 8px);
+  inset-inline: -20px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.52rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--memory-booth-cabin-cream);
+}
+
+/* Chrome base with the chute the strip drops out of. */
+.memory-booth-cabin-base {
+  position: relative;
+  block-size: 36px;
+  border-radius: 0 0 6px 6px;
+  background: linear-gradient(
+    #f6f4ee,
+    #aaa69e 40%,
+    #e6e2db 62%,
+    var(--memory-booth-cabin-steel)
+  );
+  box-shadow:
+    inset 0 1px 0 var(--memory-booth-light),
+    0 2px 0 color-mix(in srgb, var(--memory-booth-dark) 22%, transparent);
+}
+.memory-booth-cabin-chute {
+  position: absolute;
+  inset-block-start: 3px;
+  inset-inline: 0;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.5rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #5d5a55;
+  text-shadow: 0 1px 0 var(--memory-booth-light);
+}
+.memory-booth-cabin-chute::after {
+  content: "";
+  position: absolute;
+  inset-block-start: 15px;
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  inline-size: 142px;
+  block-size: 12px;
+  border-radius: 3px 3px 6px 6px;
+  background: #121010;
+  box-shadow:
+    inset 0 3px 4px var(--memory-booth-dark),
+    0 0 0 2px #6f6b64;
+}
+
+/* The coin lies on the floor; drag it into the slot or tap it. */
+.memory-booth-cabin-coin {
+  position: absolute;
+  z-index: 5;
+  inset-block-end: 12px;
+  inset-inline-start: 26px;
+  display: grid;
+  place-items: center;
+  inline-size: 46px;
+  block-size: 46px;
+  min-block-size: 46px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.25rem;
+  color: #6d4c15;
+  text-shadow:
+    0 1px 0 color-mix(in srgb, var(--memory-booth-light) 45%, transparent),
+    0 -1px 0 color-mix(in srgb, var(--memory-booth-dark) 25%, transparent);
+  background: radial-gradient(
+    circle at 35% 30%,
+    #fff3c2,
+    #e3b24f 45%,
+    #a8761f 80%,
+    #7a5212
+  );
+  box-shadow:
+    inset 0 0 0 3px #c99a3d,
+    inset 0 0 0 5px #f2d488,
+    0 3px 4px color-mix(in srgb, var(--memory-booth-dark) 45%, transparent);
+  touch-action: none;
+  cursor: grab;
+}
+.memory-booth-cabin-coin:focus-visible {
+  outline: 3px solid var(--memory-booth-cabin-gold);
+  outline-offset: 3px;
+}
+.memory-booth-cabin-coin[data-state="dragging"] {
+  cursor: grabbing;
+  scale: 1.12;
+}
+.memory-booth-cabin-coin[data-state="inserting"] {
+  translate: var(--coin-x) var(--coin-y);
+}
+.memory-booth-cabin-coin[data-state="gone"] {
+  opacity: 0;
+}
+.memory-booth-cabin-coin[aria-disabled="true"] {
+  cursor: default;
+}
+.memory-booth-cabin-hint {
+  position: absolute;
+  z-index: 4;
+  inset-block-end: 22px;
+  inset-inline-start: 84px;
+  padding: 3px 10px 4px;
+  rotate: 2deg;
+  font-family: var(--memory-booth-hand);
+  font-weight: 700;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: #2d2620;
+  background: #f6efdc;
+  box-shadow: 0 2px 4px
+    color-mix(in srgb, var(--memory-booth-dark) 35%, transparent);
+  pointer-events: none;
+}
+.memory-booth-cabin-hint::before {
+  content: "← ";
+}
+
+/* Below the chute: the strip drops into view here. */
+.memory-booth-cabin-out {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  justify-items: center;
+  margin-block-start: -79px;
+  min-block-size: 79px;
+  padding-block-end: var(--space-4);
+  overflow: hidden;
+  pointer-events: none;
+  scroll-margin-top: 110px;
+}
+.memory-booth-cabin-out > * {
+  pointer-events: auto;
+}
+.memory-booth-cabin-out::after {
+  content: "";
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  inline-size: 138px;
+  block-size: 10px;
+  pointer-events: none;
+  background: linear-gradient(
+    color-mix(in srgb, var(--memory-booth-dark) 60%, transparent),
+    transparent
+  );
+  opacity: 0;
+}
+.memory-booth-cabin-out:has(.memory-booth-cabin-fresh)::after {
+  opacity: 1;
+}
+.memory-booth-cabin-fresh {
+  padding-inline: 14px;
+  transform-origin: 50% 0;
+  rotate: var(--swing, 0deg);
+  touch-action: pan-y;
+}
+
+/* The sixties strip: faded colour pictures with dark edges, typed date. */
+.memory-booth-cabin-strip {
+  position: relative;
+  display: grid;
+  gap: 5px;
+  inline-size: 116px;
+  margin: 0;
+  padding: 7px 7px 5px;
+  border: 0;
+  border-radius: 0;
+  font: inherit;
+  text-align: center;
+  color: var(--memory-booth-cabin-ink);
+  background: var(--memory-booth-grain), var(--memory-booth-cabin-paper);
+  filter: var(--memory-booth-cabin-strip-filter);
+  box-shadow:
+    0 1px 1px color-mix(in srgb, var(--memory-booth-dark) 20%, transparent),
+    0 10px 18px color-mix(in srgb, var(--memory-booth-dark) 30%, transparent);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.memory-booth-cabin-frame {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  background: #2a2826;
+}
+.memory-booth-cabin-frame .memory-world-photo {
+  /* Faded colour print of the sixties: warm, a little washed out. */
+  filter: grayscale(0) var(--memory-booth-cabin-print-filter);
+}
+.memory-booth-cabin-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--memory-booth-grain);
+  box-shadow: inset 0 0 18px
+    color-mix(in srgb, var(--memory-booth-dark) 55%, transparent);
+}
+.memory-booth-cabin-frame .memory-booth-note {
+  padding: 6px;
+  font-family: var(--memory-booth-type);
+  line-height: 1.15;
+  color: var(--memory-booth-cabin-ink);
+  background: var(--memory-booth-cabin-note);
+}
+.memory-booth-cabin-frame .memory-booth-note :is(q, strong) {
+  font-size: 0.74rem;
+}
+.memory-booth-cabin-frame .memory-booth-note > span {
+  font-size: 0.62rem;
+  color: var(--memory-booth-cabin-note-from);
+}
+.memory-booth-cabin-frame[data-kind="heart"] .memory-booth-note {
+  background: var(--memory-booth-cabin-note-heart);
+}
+.memory-booth-cabin-frame[data-kind="milestone"] .memory-booth-note {
+  background: var(--memory-booth-cabin-note-milestone);
+}
+.memory-booth-cabin-frame .memory-booth-mark {
+  inline-size: 20px;
+  block-size: 20px;
+  filter: sepia(0.4);
+}
+.memory-booth-cabin-stamp {
+  padding-block: 3px 0;
+  font-family: var(--memory-booth-type);
+  font-weight: 700;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  color: var(--memory-booth-cabin-stamp);
+  rotate: -2deg;
+}
+/* Wet gloss: a cool sheen and a few drops that dry off. */
+.memory-booth-cabin-wet {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--wet, 0);
+  mix-blend-mode: screen;
+  background:
+    radial-gradient(
+      circle at 22% 31%,
+      color-mix(in srgb, var(--memory-booth-light) 80%, transparent) 0 2px,
+      transparent 3px
+    ),
+    radial-gradient(
+      circle at 74% 58%,
+      color-mix(in srgb, var(--memory-booth-light) 80%, transparent) 0 1.6px,
+      transparent 2.6px
+    ),
+    radial-gradient(
+      circle at 40% 84%,
+      color-mix(in srgb, var(--memory-booth-light) 80%, transparent) 0 2.2px,
+      transparent 3.2px
+    ),
+    linear-gradient(
+      115deg,
+      transparent 25%,
+      color-mix(in srgb, var(--memory-booth-light) 55%, transparent) 38%,
+      transparent 50%,
+      transparent 62%,
+      color-mix(in srgb, var(--memory-booth-light) 25%, transparent) 70%,
+      transparent 78%
+    )
+    0 0 / 100% 200%,
+    color-mix(in srgb, #8fa6b8 22%, transparent);
+}
+.memory-booth-cabin-wet-hint {
+  margin: calc(var(--space-2) * -1) 0 var(--space-5);
+  text-align: center;
+  font-family: var(--memory-booth-hand);
+  font-weight: 700;
+  font-size: 1.3rem;
+  color: var(--memory-booth-page-ink);
+}
+
+/* Stacked and centred, clear of the app's floating action button. */
+.memory-booth-classic .memory-booth-fresh-actions {
+  flex-direction: column;
+  align-items: center;
+}
+.memory-booth-classic .memory-booth-fresh-actions > button {
+  min-inline-size: 200px;
+}
+
+/* The tin box with earlier strips, fanned out. */
+.memory-booth-cabin-tin {
+  display: grid;
+  gap: var(--space-2);
+  margin-block-start: var(--space-5);
+}
+.memory-booth-cabin-tin-row {
+  display: flex;
+  overflow-x: auto;
+  padding: 24px 34px 22px 18px;
+  border-radius: 18px;
+  scrollbar-width: none;
+  background:
+    radial-gradient(
+      ellipse at 30% 0%,
+      color-mix(in srgb, var(--memory-booth-light) 45%, transparent),
+      transparent 55%
+    ),
+    linear-gradient(#c3c7cc, #868b92);
+  box-shadow:
+    inset 0 0 0 4px #b2b7bd,
+    inset 0 0 0 6px #73787e,
+    inset 0 12px 20px
+    color-mix(in srgb, var(--memory-booth-dark) 35%, transparent);
+}
+.memory-booth-cabin-tin-item {
+  flex: none;
+  margin-inline-end: -16px;
+  rotate: var(--tilt, 0deg);
+}
+.memory-booth-cabin-strip[data-size="small"] {
+  inline-size: 64px;
+  gap: 3px;
+  padding: 4px 4px 3px;
+}
+.memory-booth-cabin-strip[data-size="small"] .memory-booth-note {
+  padding: 2px;
+}
+.memory-booth-cabin-strip[data-size="small"] .memory-booth-note :is(q, strong) {
+  font-size: 0.48rem;
+}
+.memory-booth-cabin-strip[data-size="small"] .memory-booth-note > span,
+.memory-booth-cabin-strip[data-size="small"] .memory-booth-mark {
+  display: none;
+}
+.memory-booth-cabin-strip[data-size="small"] .memory-booth-cabin-stamp {
+  font-size: 0.45rem;
+}
+
+/* ---------- Motion (timing roles in the motion layer) ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  /* Modern: lamps, plate button, slot. */
+  .memory-booth-lamp {
+    transition:
+      background var(--memory-booth-glow-duration)
+      var(--memory-world-easing-out),
+      box-shadow var(--memory-booth-glow-duration)
+      var(--memory-world-easing-out);
+  }
+  .memory-booth-button {
+    transition:
+      translate var(--memory-booth-press-duration)
+      var(--memory-world-easing-out),
+      box-shadow var(--memory-booth-press-duration)
+      var(--memory-world-easing-out),
+      opacity var(--memory-booth-glow-duration) var(--memory-world-easing-out);
+  }
+  .memory-booth-slot {
+    transition: background var(--memory-booth-slot-duration)
+      var(--memory-world-easing-out);
+  }
+  .memory-booth-out::after {
+    transition: opacity var(--memory-booth-shade-duration)
+      var(--memory-world-easing-out);
+  }
+  /* Each number lights up on the display. */
+  .memory-booth-display > span {
+    animation: eimir-motion-memory-booth-digit
+      var(--memory-booth-digit-duration) var(--memory-booth-curve-pop) both;
+  }
+  /* Per shot: the shutter closes and the flash fires. */
+  .memory-booth-shutter {
+    animation: eimir-motion-memory-booth-iris var(--memory-booth-iris-duration)
+      var(--memory-booth-curve-iris) both;
+  }
+  .memory-booth-flash-burst {
+    animation: eimir-motion-memory-booth-burst
+      var(--memory-booth-flash-duration) var(--memory-world-easing-out) both;
+  }
+  .memory-booth-flash-fire,
+  .memory-booth-window-glow {
+    animation: eimir-motion-memory-booth-fire var(--memory-booth-flash-duration)
+      var(--memory-world-easing-out) both;
+  }
+  .memory-booth-flash-flare {
+    animation: eimir-motion-memory-booth-flare
+      var(--memory-booth-flare-duration) var(--memory-world-easing-out) both;
+  }
+  /* The strip is pushed out of the slot in motor steps, drops free and
+     swings out; then each picture develops in turn. */
+  .memory-booth-fresh[data-animate="true"] .memory-booth-strip {
+    animation:
+      eimir-motion-memory-booth-print var(--memory-booth-print-duration)
+      var(--memory-booth-curve-steady) both,
+      eimir-motion-memory-booth-settle var(--memory-booth-settle-duration)
+      var(--memory-world-easing-out) var(--memory-booth-print-duration) both;
+  }
+  .memory-booth-fresh[data-animate="true"]
+    .memory-booth-frame
+    .memory-world-photo {
+    animation: eimir-motion-memory-booth-develop
+      var(--memory-booth-develop-duration) var(--memory-world-easing-out)
+      calc(
+        var(--memory-booth-develop-offset) +
+        var(--i, 0) *
+        var(--memory-booth-develop-stagger)
+      )
+      both;
+  }
+  .memory-booth-fresh[data-animate="true"] .memory-booth-note {
+    animation: eimir-motion-memory-booth-ink var(--memory-booth-ink-duration)
+      var(--memory-world-easing-out)
+      calc(
+        var(--memory-booth-develop-offset) +
+        var(--i, 0) *
+        var(--memory-booth-develop-stagger)
+      )
+      both;
+  }
+  .memory-booth-fresh-actions {
+    animation: eimir-motion-memory-booth-fade-in
+      var(--memory-booth-actions-duration) var(--easing-standard)
+      var(--memory-booth-actions-delay) both;
+  }
+  /* The viewer: the strip is picked up, its rows follow. */
+  .memory-booth-viewer-scrim {
+    animation: eimir-motion-memory-booth-fade-in
+      var(--memory-booth-scrim-duration) var(--easing-standard) both;
+  }
+  .memory-booth-sheet {
+    animation: eimir-motion-memory-booth-pickup
+      var(--memory-booth-pickup-duration) var(--memory-booth-curve-pop) both;
+  }
+  .memory-booth-contact li {
+    animation: eimir-motion-memory-booth-fade-in
+      var(--memory-booth-row-duration) var(--memory-world-easing-out)
+      calc(
+        var(--memory-booth-row-delay) +
+        var(--i, 0) *
+        var(--memory-booth-row-stagger)
+      )
+      both;
+  }
+
+  /* Klassisch: status light, curtain, coin plate and the dial. */
+  .memory-booth-cabin-status {
+    transition:
+      color var(--memory-booth-glow-duration) var(--memory-booth-curve-soft),
+      text-shadow var(--memory-booth-glow-duration)
+      var(--memory-booth-curve-soft);
+  }
+  .memory-booth-cabin-curtain {
+    transition: scale var(--memory-booth-curtain-duration)
+      var(--memory-booth-curve-curtain);
+  }
+  .memory-booth-cabin-coinplate {
+    transition: box-shadow var(--memory-booth-glow-duration)
+      var(--memory-world-easing-out);
+  }
+  .memory-booth-cabin-dial-hand {
+    transition: rotate var(--memory-booth-dial-duration)
+      var(--memory-booth-curve-spring);
+  }
+  /* The hand runs once through the development, then stays. */
+  .memory-booth-cabin-scene[data-stage="develop"]
+    .memory-booth-cabin-dial-hand {
+    transition: rotate var(--memory-booth-dial-run-duration)
+      var(--memory-booth-curve-steady);
+  }
+  .memory-booth-cabin-scene:is([data-stage="drop"], [data-stage="done"])
+    .memory-booth-cabin-dial-hand {
+    transition: none;
+  }
+  .memory-booth-cabin-flash,
+  .memory-booth-cabin-spill {
+    animation: eimir-motion-memory-booth-cabin-flash
+      var(--memory-booth-cabin-flash-duration) var(--memory-world-easing-out)
+      both;
+  }
+  /* The coin springs back when dropped, flies into the slot and drops in,
+     and comes back from the return when the strip is done. */
+  .memory-booth-cabin-coin {
+    transition:
+      translate var(--memory-booth-coin-duration)
+      var(--memory-booth-curve-spring),
+      scale var(--memory-booth-coin-lift-duration)
+      var(--memory-world-easing-out);
+  }
+  .memory-booth-cabin-coin[data-state="dragging"] {
+    transition: scale var(--memory-booth-coin-lift-duration)
+      var(--memory-world-easing-out);
+  }
+  .memory-booth-cabin-coin[data-state="inserting"] {
+    transition: translate var(--memory-booth-coin-fly-duration)
+      var(--memory-booth-curve-fly);
+    animation: eimir-motion-memory-booth-coin-in
+      var(--memory-booth-coin-in-duration) var(--memory-world-easing-in) both;
+  }
+  .memory-booth-cabin-coin[data-state="back"] {
+    animation: eimir-motion-memory-booth-coin-back
+      var(--memory-booth-coin-back-duration) var(--memory-world-easing-out) both;
+  }
+  /* The wet strip drops out of the chute and swings from the fingers. */
+  .memory-booth-cabin-fresh {
+    transition: rotate var(--memory-booth-swing-duration)
+      var(--memory-booth-curve-swing);
+  }
+  .memory-booth-cabin-fresh[data-waving="true"] {
+    transition: rotate var(--memory-booth-swing-follow-duration)
+      var(--memory-booth-curve-steady);
+  }
+  .memory-booth-cabin-fresh[data-animate="true"] .memory-booth-cabin-strip {
+    animation: eimir-motion-memory-booth-drop var(--memory-booth-drop-duration)
+      var(--memory-booth-curve-soft) both;
+  }
+  .memory-booth-cabin-fresh[data-animate="true"]
+    .memory-booth-cabin-frame
+    .memory-world-photo {
+    animation: eimir-motion-memory-booth-cabin-develop
+      var(--memory-booth-cabin-develop-duration)
+      var(--memory-world-easing-in-out)
+      calc(
+        var(--memory-booth-cabin-develop-offset) +
+        var(--i, 0) *
+        var(--memory-booth-cabin-develop-stagger)
+      )
+      both;
+  }
+  .memory-booth-cabin-fresh[data-animate="true"]
+    .memory-booth-cabin-frame
+    .memory-booth-note {
+    animation: eimir-motion-memory-booth-cabin-ink
+      var(--memory-booth-cabin-develop-duration)
+      var(--memory-world-easing-in-out)
+      calc(
+        var(--memory-booth-cabin-develop-offset) +
+        var(--i, 0) *
+        var(--memory-booth-cabin-develop-stagger)
+      )
+      both;
+  }
+  .memory-booth-cabin-wet {
+    transition: opacity var(--memory-booth-dry-duration)
+      var(--memory-booth-curve-steady);
+  }
+  .memory-booth-cabin-tin-item {
+    animation: eimir-motion-memory-booth-into-tin
+      var(--memory-booth-tin-duration) var(--memory-booth-curve-pop) both;
+  }
+}

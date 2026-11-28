@@ -16,39 +16,38 @@
   margin-inline: auto;
 }
 
-/* ---------- Expanded renew (Compact keeps pull-to-refresh only) ---------- */
-.momente-discover-renew {
-  display: none;
-}
-
-@media (min-width: 840px) {
-  .momente-discover-renew {
-    display: flex;
-    justify-content: flex-end;
-  }
-}
-
-.momente-discover-renew > button {
-  min-block-size: var(--touch-target-web);
-}
-
 /* ---------- theme bubbles ---------- */
-/* At most four themes share one row; enlarged text wraps instead of
- * pushing anything past the column. */
+/* With the rediscovery lead there are up to five circles. A label never
+ * breaks inside a word: it hyphenates where the language allows, and a
+ * circle that no longer fits moves to a second row. The row is not a
+ * horizontal scroller, so a swipe across it still changes the primary tab. */
+.momente-story-top {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+/* Centred on the theme circles above their labels. */
+.momente-story-top > .memory-world-switch {
+  margin-block-start: var(--space-3);
+}
+
 .momente-story-themes {
+  flex: 1 1 auto;
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: var(--space-2) var(--space-1);
   min-inline-size: 0;
   margin: 0;
   padding: var(--space-1) var(--space-1) var(--space-2);
   list-style: none;
 }
 
+/* No explicit minimum: a flex item's automatic minimum is its min-content
+ * width, so the longest label word (or hyphenated part) sets the floor. */
 .momente-story-themes > li {
   display: flex;
   flex: 1 1 0;
-  min-inline-size: 3.5rem;
   max-inline-size: 5.5rem;
 }
 
@@ -59,7 +58,7 @@
   justify-items: center;
   align-content: start;
   gap: var(--space-1);
-  min-inline-size: 0;
+  min-inline-size: 3.5rem;
   min-block-size: var(--touch-target-web);
   margin: 0;
   padding: 0;
@@ -163,7 +162,7 @@
   font-size: 0.6875rem;
   font-weight: 600;
   line-height: 1.25;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
   hyphens: auto;
 }
 
@@ -411,6 +410,54 @@
   line-height: var(--paper-line);
 }
 
+/* Rediscovery lead: the page's rediscovery card becomes the first
+ * slide. The slide carries the tinted rediscovery surface and the polaroid
+ * hangs directly on it, so there is no card inside the viewer. While the
+ * photo loads, its frame already shows the undeveloped film, so loading and
+ * developing read as one moment. */
+.momente-story-slide-lead {
+  --story-film-undeveloped: var(--color-media-scrim-strong);
+  align-content: center;
+  padding-inline: var(--space-4);
+  background: var(--rediscovery-card-surface, var(--color-surface-subtle));
+}
+
+.momente-story-slide-lead .momente-hero-highlight {
+  margin: 0;
+}
+
+/* Album: the rediscovery card around the polaroid is unwrapped; the List
+ * layout keeps its photo card with rounded corners. */
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-story
+  .momente-story-slide-lead
+  .momente-hero-highlight {
+  padding: var(--space-6) 0 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.story-page-unified
+  .momente-discover-page[data-diary-layout="album"]
+  .momente-story
+  .momente-story-slide-lead
+  .momente-hero-highlight::before {
+  display: none;
+}
+
+.momente-story-slide-lead .momente-hero-media {
+  background: var(--story-film-undeveloped);
+}
+
+.momente-story-slide-lead .momente-hero-media .story-media-skeleton {
+  background: var(--story-film-undeveloped);
+  animation: none;
+}
+
 /* ---------- progress ---------- */
 .momente-story-progress {
   position: absolute;
@@ -516,6 +563,23 @@
   text-decoration: none;
 }
 
+/* After a quiet moment the pause and open controls fade, as in the media
+ * viewer (MediaGallery.css), and leave the slide to itself; the progress
+ * stays. Faded controls take no tap, so a tap pages and brings them back.
+ * Keyboard focus keeps them visible. */
+.momente-story-playback,
+.momente-story-open {
+  /* Returning is the slow, arriving half of the pair. */
+  transition: opacity var(--duration-controls-return) var(--easing-enter);
+}
+
+.momente-story-viewer[data-controls="quiet"]:not(:has(:focus-visible))
+  :is(.momente-story-playback, .momente-story-open) {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-context) var(--easing-standard);
+}
+
 /* ---------- motion ---------- */
 .momente-story[data-autoplay="true"]
   .momente-story-segment[data-state="current"]
@@ -533,6 +597,29 @@
   animation: eimir-motion-momente-story-ken-burns
     var(--duration-story-ken-burns) var(--easing-playback) forwards
     var(--story-play-state);
+}
+
+/* The lead dwells longer, and its photo develops each time the lead becomes
+ * the visible slide. The develop is part of the slide's entrance, so it
+ * finishes even while the story is paused. */
+.momente-story[data-autoplay="true"]
+  .momente-story-viewer[data-story-theme="remember"]
+  .momente-story-segment[data-state="current"]
+  .momente-story-segment-fill {
+  animation-duration: var(--duration-story-lead-slide);
+}
+
+/* Scoped under the page like the Album's own polaroid fade, so the develop
+ * replaces that fade inside the story. */
+.story-page-unified
+  .momente-discover-page
+  .momente-story
+  .momente-story-stage
+  .momente-story-slide-lead[data-state="current"]
+  .momente-hero-media
+  .story-media-preview {
+  animation: eimir-motion-momente-story-develop var(--duration-story-develop)
+    var(--easing-standard) var(--duration-sequence-beat) backwards;
 }
 
 .momente-story[data-playing="false"] {
@@ -555,7 +642,14 @@
     > *,
   .momente-story
     .momente-story-segment[data-state="current"]
-    .momente-story-segment-fill {
+    .momente-story-segment-fill,
+  .story-page-unified
+    .momente-discover-page
+    .momente-story
+    .momente-story-stage
+    .momente-story-slide-lead[data-state="current"]
+    .momente-hero-media
+    .story-media-preview {
     animation: none;
   }
   .momente-story-bubble:active .momente-story-bubble-ring,

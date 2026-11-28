@@ -19,11 +19,7 @@ export default {
   consequenceShared:
     'Gemeinsame Historie wird nicht auf den anderen Partner übertragen oder durch deinen Austritt sofort gelöscht. Sie folgt der festgelegten Aufbewahrungsregel.',
   consequenceExport:
-    'Wenn du eine persönliche Kopie möchtest, erstelle und lade den Export vor dem Verlassen vollständig herunter.',
-  exportBefore: 'Vorher Daten exportieren',
-  continueAction: 'Weiter',
-  cancelAction: 'Abbrechen',
-  backAction: 'Zurück',
+    'Möchtest du eine Kopie deiner Inhalte, frage vorher danach – nach dem Verlassen ist das nicht mehr möglich. Wie, steht in den Datenschutzhinweisen.',
   finalTitle: 'Verlassen bestätigen',
   finalIntro:
     'Deine Mitgliedschaft endet, sobald der Server den Austritt bestätigt. Danach gibt es in Version 1 keine Wiederverbindung mit diesem alten Bereich.',

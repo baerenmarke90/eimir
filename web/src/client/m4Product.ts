@@ -178,20 +178,37 @@ export function engagementTargetPath(
       return recapDetailPath(targetId);
     case 'WISH_SELECTION':
       return '/plan/choose';
-    case 'TRANSFER_EXPORT':
-      return `/more/settings/data?export=${encodeURIComponent(targetId)}`;
-    case 'TRANSFER_IMPORT':
-      return `/more/settings/data?import=${encodeURIComponent(targetId)}`;
     default:
       return null;
   }
+}
+
+// An operator notice (#2314) names a ServerAdmin page, never another route.
+const SERVER_ADMIN_ROUTE = /^\/server-admin(?:[?#]|$)/;
+
+// The ServerAdmin page of an operator topic code a tapped device notice carries
+// (#2337). Mirrors the server's topic routes; any other code opens Monitoring.
+const OPERATOR_TOPIC_PATHS: Readonly<Record<string, string>> = {
+  FAILED_JOBS: '/server-admin?section=jobs',
+  SUPPORT_REPORTS: '/server-admin?section=reports&state=NEW',
+  SPACE_QUOTA_PRESSURE: '/server-admin?section=overview',
+};
+
+export function operatorTopicPath(topic?: string | null): string | null {
+  if (!topic || !/^[A-Z_]{1,32}$/.test(topic)) return null;
+  return OPERATOR_TOPIC_PATHS[topic] ?? '/server-admin?section=monitoring';
 }
 
 export function notificationPath(item: {
   kind: string;
   targetType: EngagementTarget | null;
   targetId: string | null;
+  operatorRoute?: string | null;
 }): string | null {
+  if (item.kind === 'OPERATOR_ALERT')
+    return item.operatorRoute && SERVER_ADMIN_ROUTE.test(item.operatorRoute)
+      ? item.operatorRoute
+      : null;
   if (
     (item.kind === 'WISH_DATE_PROPOSED' ||
       item.kind === 'WISH_DATE_COUNTERED') &&

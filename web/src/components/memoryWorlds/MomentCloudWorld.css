@@ -1,0 +1,810 @@
+/* Momentwolke: a glossy, fluid bubble cloud in a pearl (Light) or deep
+   blue-black (Dark) stage. All motion is written by one rAF loop as
+   transform/opacity; this stylesheet only provides static layers and
+   consumes the motion layer's timing roles for the glow crossfade, the
+   playful ring and the card's clip (src/motion/memory-worlds.css holds the
+   roles, the glow drift, the pill crossfade and the playful jiggle). Face
+   type is in units of the bubble or card media (`--cu`, see
+   src/client/containerUnits.ts). The stage, its glow and the bubbles are
+   world materials: world-scoped roles defined on the root and the card's
+   portal, with their own Dark values. */
+
+.memory-cloud-world,
+.memory-cloud-modal {
+  /* Light and shade on the bubbles' surfaces. */
+  --memory-cloud-highlight: #ffffff;
+  --memory-cloud-shadow-ink: #000000;
+  /* Stage (pearl) */
+  --memory-cloud-stage-top: #fcfbff;
+  --memory-cloud-stage-bottom: #eae8f4;
+  --memory-cloud-stage-ring: rgb(40 34 90 / 9%);
+  --memory-cloud-stage-inner: rgb(255 255 255 / 85%);
+  --memory-cloud-stage-depth: rgb(70 60 130 / 10%);
+  --memory-cloud-sheen-a: rgb(255 255 255 / 75%);
+  --memory-cloud-sheen-b: rgb(214 206 255 / 30%);
+  --memory-cloud-veil: #eeedf6;
+  /* Ambient glow behind the centre bubble */
+  --memory-cloud-glow-opacity: 0.5;
+  --memory-cloud-glow-photo-a: #a9b6ef;
+  --memory-cloud-glow-photo-b: #efb7d2;
+  --memory-cloud-glow-milestone-a: #59b07f;
+  --memory-cloud-glow-milestone-b: #c4de8f;
+  --memory-cloud-glow-words-a: #8e98ff;
+  --memory-cloud-glow-words-b: #d0b2ff;
+  /* Bubble faces */
+  --memory-cloud-heart-fallback: var(--color-story-heart-moment);
+  --memory-cloud-heart-ink: #ffffff;
+  --memory-cloud-heart-shade: #1a0f1a;
+  --memory-cloud-heart-shade-amount: 14%;
+  --memory-cloud-words-top: #ffffff;
+  --memory-cloud-words-bottom: #e4e1f5;
+  --memory-cloud-words-ink: #26223d;
+  --memory-cloud-mile-top: #fbfcf6;
+  --memory-cloud-mile-bottom: #dce8d3;
+  --memory-cloud-mile-ink: #1f3b2b;
+  --memory-cloud-mile-stamp: #2f7d4f;
+  --memory-cloud-photo-empty: #d8d5e6;
+  --memory-cloud-bubble-shadow:
+    0 12px 26px -14px rgb(34 26 84 / 50%), 0 3px 8px -3px rgb(34 26 84 / 22%);
+  --memory-cloud-gloss-hi: rgb(255 255 255 / 62%);
+  --memory-cloud-gloss-low: rgb(255 255 255 / 20%);
+  --memory-cloud-gloss-ring: rgb(255 255 255 / 45%);
+  --memory-cloud-gloss-floor: rgb(20 10 50 / 18%);
+  /* Centre pill */
+  --memory-cloud-pill-bg: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 94%) 0%,
+    rgb(246 244 253 / 90%) 100%
+  );
+  --memory-cloud-pill-ring: rgb(255 255 255 / 90%);
+  --memory-cloud-pill-shadow: 0 8px 22px -12px rgb(34 26 84 / 45%);
+  --memory-cloud-pill-ink: #1d1a2e;
+  --memory-cloud-pill-ink-soft: #4a4660;
+  --memory-cloud-play-ring: rgb(120 104 255 / 38%);
+  /* Card */
+  --memory-cloud-scrim: rgb(24 20 52 / 42%);
+  --memory-cloud-card-bg: #fdfcff;
+  --memory-cloud-card-ink: #1d1a2e;
+  --memory-cloud-card-ink-soft: #4f4a66;
+  --memory-cloud-card-shadow:
+    0 34px 70px -26px rgb(20 14 60 / 55%), 0 10px 24px -10px rgb(20 14 60 / 28%);
+  --memory-cloud-action-bg: #1d1a2e;
+  --memory-cloud-action-ink: #ffffff;
+  --memory-cloud-glass-bg: rgb(22 18 40 / 62%);
+  --memory-cloud-glass-ink: #ffffff;
+  --memory-cloud-glass-ring: rgb(255 255 255 / 22%);
+  --memory-cloud-grabber: rgb(255 255 255 / 80%);
+  --memory-cloud-grabber-ring: rgb(20 14 40 / 18%);
+}
+
+:root[data-theme="dark"] .memory-cloud-world,
+:root[data-theme="dark"] .memory-cloud-modal {
+  --memory-cloud-stage-top: #0f1430;
+  --memory-cloud-stage-bottom: #04060e;
+  --memory-cloud-stage-ring: rgb(160 170 255 / 12%);
+  --memory-cloud-stage-inner: rgb(255 255 255 / 6%);
+  --memory-cloud-stage-depth: rgb(0 0 0 / 45%);
+  --memory-cloud-sheen-a: rgb(150 160 255 / 12%);
+  --memory-cloud-sheen-b: rgb(255 140 210 / 6%);
+  --memory-cloud-veil: #070a17;
+  --memory-cloud-glow-opacity: 0.72;
+  --memory-cloud-glow-photo-a: #4a5cc4;
+  --memory-cloud-glow-photo-b: #a0518a;
+  --memory-cloud-glow-milestone-a: #2e8a5a;
+  --memory-cloud-glow-milestone-b: #7fa64a;
+  --memory-cloud-glow-words-a: #5560e0;
+  --memory-cloud-glow-words-b: #8a5ad8;
+  --memory-cloud-heart-fallback: #ff9cc4;
+  --memory-cloud-heart-ink: #1f1020;
+  --memory-cloud-heart-shade: #ffffff;
+  --memory-cloud-heart-shade-amount: 0%;
+  --memory-cloud-words-top: #333a66;
+  --memory-cloud-words-bottom: #1b1f3d;
+  --memory-cloud-words-ink: #f1eef8;
+  --memory-cloud-mile-top: #e4eadb;
+  --memory-cloud-mile-bottom: #c3cfb8;
+  --memory-cloud-mile-ink: #1c3526;
+  --memory-cloud-photo-empty: #20243f;
+  --memory-cloud-bubble-shadow:
+    0 14px 28px -14px rgb(0 0 0 / 80%), 0 0 0 1px rgb(255 255 255 / 5%);
+  --memory-cloud-gloss-hi: rgb(255 255 255 / 42%);
+  --memory-cloud-gloss-low: rgb(255 255 255 / 12%);
+  --memory-cloud-gloss-ring: rgb(255 255 255 / 22%);
+  --memory-cloud-gloss-floor: rgb(0 0 0 / 30%);
+  --memory-cloud-pill-bg: linear-gradient(
+    180deg,
+    rgb(30 36 66 / 94%) 0%,
+    rgb(16 20 40 / 92%) 100%
+  );
+  --memory-cloud-pill-ring: rgb(255 255 255 / 12%);
+  --memory-cloud-pill-shadow: 0 10px 24px -12px rgb(0 0 0 / 70%);
+  --memory-cloud-pill-ink: #f4f1ea;
+  --memory-cloud-pill-ink-soft: #cfcade;
+  --memory-cloud-play-ring: rgb(150 140 255 / 45%);
+  --memory-cloud-scrim: rgb(2 4 14 / 62%);
+  --memory-cloud-card-bg: #161b33;
+  --memory-cloud-card-ink: #f3eee6;
+  --memory-cloud-card-ink-soft: #c6c1d6;
+  --memory-cloud-card-shadow:
+    0 34px 70px -24px rgb(0 0 0 / 85%), 0 0 0 1px rgb(255 255 255 / 7%);
+  --memory-cloud-action-bg: #f3eee6;
+  --memory-cloud-action-ink: #161b33;
+  --memory-cloud-glass-bg: rgb(8 10 24 / 70%);
+  --memory-cloud-grabber: rgb(255 255 255 / 70%);
+  --memory-cloud-grabber-ring: rgb(0 0 0 / 30%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .memory-cloud-world,
+  :root:not([data-theme]) .memory-cloud-modal {
+    --memory-cloud-stage-top: #0f1430;
+    --memory-cloud-stage-bottom: #04060e;
+    --memory-cloud-stage-ring: rgb(160 170 255 / 12%);
+    --memory-cloud-stage-inner: rgb(255 255 255 / 6%);
+    --memory-cloud-stage-depth: rgb(0 0 0 / 45%);
+    --memory-cloud-sheen-a: rgb(150 160 255 / 12%);
+    --memory-cloud-sheen-b: rgb(255 140 210 / 6%);
+    --memory-cloud-veil: #070a17;
+    --memory-cloud-glow-opacity: 0.72;
+    --memory-cloud-glow-photo-a: #4a5cc4;
+    --memory-cloud-glow-photo-b: #a0518a;
+    --memory-cloud-glow-milestone-a: #2e8a5a;
+    --memory-cloud-glow-milestone-b: #7fa64a;
+    --memory-cloud-glow-words-a: #5560e0;
+    --memory-cloud-glow-words-b: #8a5ad8;
+    --memory-cloud-heart-fallback: #ff9cc4;
+    --memory-cloud-heart-ink: #1f1020;
+    --memory-cloud-heart-shade: #ffffff;
+    --memory-cloud-heart-shade-amount: 0%;
+    --memory-cloud-words-top: #333a66;
+    --memory-cloud-words-bottom: #1b1f3d;
+    --memory-cloud-words-ink: #f1eef8;
+    --memory-cloud-mile-top: #e4eadb;
+    --memory-cloud-mile-bottom: #c3cfb8;
+    --memory-cloud-mile-ink: #1c3526;
+    --memory-cloud-photo-empty: #20243f;
+    --memory-cloud-bubble-shadow:
+      0 14px 28px -14px rgb(0 0 0 / 80%), 0 0 0 1px rgb(255 255 255 / 5%);
+    --memory-cloud-gloss-hi: rgb(255 255 255 / 42%);
+    --memory-cloud-gloss-low: rgb(255 255 255 / 12%);
+    --memory-cloud-gloss-ring: rgb(255 255 255 / 22%);
+    --memory-cloud-gloss-floor: rgb(0 0 0 / 30%);
+    --memory-cloud-pill-bg: linear-gradient(
+      180deg,
+      rgb(30 36 66 / 94%) 0%,
+      rgb(16 20 40 / 92%) 100%
+    );
+    --memory-cloud-pill-ring: rgb(255 255 255 / 12%);
+    --memory-cloud-pill-shadow: 0 10px 24px -12px rgb(0 0 0 / 70%);
+    --memory-cloud-pill-ink: #f4f1ea;
+    --memory-cloud-pill-ink-soft: #cfcade;
+    --memory-cloud-play-ring: rgb(150 140 255 / 45%);
+    --memory-cloud-scrim: rgb(2 4 14 / 62%);
+    --memory-cloud-card-bg: #161b33;
+    --memory-cloud-card-ink: #f3eee6;
+    --memory-cloud-card-ink-soft: #c6c1d6;
+    --memory-cloud-card-shadow:
+      0 34px 70px -24px rgb(0 0 0 / 85%), 0 0 0 1px rgb(255 255 255 / 7%);
+    --memory-cloud-action-bg: #f3eee6;
+    --memory-cloud-action-ink: #161b33;
+    --memory-cloud-glass-bg: rgb(8 10 24 / 70%);
+    --memory-cloud-grabber: rgb(255 255 255 / 70%);
+    --memory-cloud-grabber-ring: rgb(0 0 0 / 30%);
+  }
+}
+
+/* ---------- World ---------- */
+.memory-cloud-world {
+  display: grid;
+  gap: var(--space-3);
+  min-inline-size: 0;
+}
+
+/* ---------- Stage ---------- */
+.memory-cloud-stage {
+  position: relative;
+  inline-size: 100%;
+  aspect-ratio: 4 / 5;
+  max-block-size: 560px;
+  border-radius: 34px;
+  overflow: hidden;
+  isolation: isolate;
+  contain: layout paint style;
+  background:
+    radial-gradient(
+      120% 80% at 50% 0%,
+      var(--memory-cloud-stage-top) 0%,
+      transparent 70%
+    ),
+    linear-gradient(
+      180deg,
+      var(--memory-cloud-stage-top) 0%,
+      var(--memory-cloud-stage-bottom) 100%
+    );
+  box-shadow:
+    inset 0 0 0 1px var(--memory-cloud-stage-ring),
+    inset 0 1px 0 var(--memory-cloud-stage-inner),
+    0 18px 40px -28px var(--memory-cloud-stage-depth);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: grab;
+  outline: none;
+}
+.memory-cloud-stage:active {
+  cursor: grabbing;
+}
+.memory-cloud-stage:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+/* Ambient glow: two static gradient layers that crossfade, inside a slowly
+   drifting wrapper (transform only) and a tilt wrapper written by JS. */
+.memory-cloud-glow-tilt,
+.memory-cloud-glow-drift {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.memory-cloud-glow-tilt {
+  z-index: 0;
+  will-change: transform;
+}
+.memory-cloud-glow {
+  --memory-cloud-glow-a: var(--memory-cloud-glow-photo-a);
+  --memory-cloud-glow-b: var(--memory-cloud-glow-photo-b);
+  position: absolute;
+  inset: -22%;
+  opacity: 0;
+  background:
+    radial-gradient(
+      closest-side at 36% 38%,
+      var(--memory-cloud-glow-a) 0%,
+      transparent 100%
+    ),
+    radial-gradient(
+      closest-side at 66% 66%,
+      var(--memory-cloud-glow-b) 0%,
+      transparent 100%
+    );
+  will-change: opacity;
+}
+.memory-cloud-glow[data-on="true"] {
+  opacity: var(--memory-cloud-glow-opacity);
+}
+.memory-cloud-glow[data-kind="heart"] {
+  --memory-cloud-glow-a: var(
+    --heart-emotion-accent,
+    var(--memory-cloud-heart-fallback)
+  );
+  --memory-cloud-glow-b: color-mix(
+    in oklab,
+    var(--heart-emotion-accent, var(--memory-cloud-heart-fallback)) 55%,
+    var(--memory-cloud-glow-words-b)
+  );
+}
+.memory-cloud-glow[data-kind="milestone"] {
+  --memory-cloud-glow-a: var(--memory-cloud-glow-milestone-a);
+  --memory-cloud-glow-b: var(--memory-cloud-glow-milestone-b);
+}
+.memory-cloud-glow[data-kind="words"] {
+  --memory-cloud-glow-a: var(--memory-cloud-glow-words-a);
+  --memory-cloud-glow-b: var(--memory-cloud-glow-words-b);
+}
+
+/* Static iridescent sheen and rim vignette above the glow. */
+.memory-cloud-sheen {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      70% 34% at 50% -4%,
+      var(--memory-cloud-sheen-a) 0%,
+      transparent 100%
+    ),
+    radial-gradient(
+      60% 40% at 100% 100%,
+      var(--memory-cloud-sheen-b) 0%,
+      transparent 100%
+    );
+}
+.memory-cloud-rim {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px var(--memory-cloud-stage-ring);
+}
+/* Playful mode: a static ring layer that only crossfades in. */
+.memory-cloud-rim::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 3px var(--memory-cloud-play-ring);
+  opacity: 0;
+}
+.memory-cloud-stage[data-wiggle="true"] .memory-cloud-rim::after {
+  opacity: 1;
+}
+
+/* ---------- Bubbles ---------- */
+.memory-cloud-cloud {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  will-change: transform;
+}
+.memory-cloud-bubble {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  inline-size: var(--memory-cloud-base, 160px);
+  block-size: var(--memory-cloud-base, 160px);
+  transform-origin: 50% 50%;
+  will-change: transform, opacity;
+  pointer-events: none;
+  opacity: 0;
+  /* No paint containment here: it clipped the round shadow to the square
+     bubble box and showed hard corners. The stage still clips. */
+  contain: layout style;
+}
+.memory-cloud-bubble-body {
+  /* The face's padding and text sizes resolve against this box (`--cu`),
+     so the face looks the same at every bubble size. */
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: var(--memory-cloud-bubble-shadow);
+}
+
+/* Faces: shared by the bubbles and the card media. Sizes use the pixel
+   unit of the face's parent (bubble body or card media). */
+.memory-cloud-face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: calc(4 * var(--cu, 1cqi));
+  padding: calc(15 * var(--cu, 1cqi)) calc(13 * var(--cu, 1cqi));
+  text-align: center;
+  overflow: hidden;
+}
+.memory-cloud-face-text {
+  display: grid;
+  justify-items: center;
+  gap: calc(3 * var(--cu, 1cqi));
+}
+
+/* Photos fill the whole circle (cover), whatever their format: the grid
+   centring of the face must not size the photo by its own aspect ratio. */
+.memory-cloud-face[data-face="photo"] {
+  display: block;
+  padding: 0;
+  background: var(--memory-cloud-photo-empty);
+}
+.memory-cloud-face[data-face="photo"] .memory-world-photo {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  aspect-ratio: auto;
+  overflow: hidden;
+  background: var(--memory-cloud-photo-empty);
+}
+.memory-cloud-face[data-face="photo"]
+  .memory-world-photo
+  :is(
+    img,
+    .story-media-preview,
+    .story-media-skeleton,
+    .story-media-placeholder
+  ) {
+  display: block;
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  max-inline-size: none;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 0;
+}
+
+.memory-cloud-face[data-face="heart"] {
+  --memory-cloud-heart-base: color-mix(
+    in srgb,
+    var(--heart-emotion-accent, var(--memory-cloud-heart-fallback))
+      calc(100% - var(--memory-cloud-heart-shade-amount)),
+    var(--memory-cloud-heart-shade)
+  );
+  color: var(--memory-cloud-heart-ink);
+  background:
+    radial-gradient(
+      circle at 30% 24%,
+      color-mix(
+          in srgb,
+          var(--memory-cloud-heart-base) 62%,
+          var(--memory-cloud-highlight)
+        )
+        0%,
+      transparent 52%
+    ),
+    radial-gradient(
+      circle at 70% 88%,
+      color-mix(
+          in srgb,
+          var(--memory-cloud-heart-base) 80%,
+          var(--memory-cloud-shadow-ink)
+        )
+        0%,
+      transparent 60%
+    ),
+    var(--memory-cloud-heart-base);
+}
+.memory-cloud-face-heart {
+  inline-size: calc(13 * var(--cu, 1cqi));
+  block-size: calc(12 * var(--cu, 1cqi));
+  fill: currentColor;
+  opacity: 0.92;
+}
+.memory-cloud-face[data-face="heart"] q {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: calc(8.6 * var(--cu, 1cqi));
+  line-height: 1.3;
+  quotes: auto;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.memory-cloud-face[data-face="milestone"] {
+  color: var(--memory-cloud-mile-ink);
+  background:
+    radial-gradient(
+      circle at 32% 22%,
+      var(--memory-cloud-highlight) 0%,
+      transparent 50%
+    ),
+    linear-gradient(
+      160deg,
+      var(--memory-cloud-mile-top) 0%,
+      var(--memory-cloud-mile-bottom) 100%
+    );
+}
+.memory-cloud-face .memory-cloud-face-stamp.momente-keepsake-stamp-mark {
+  --color-story-milestone: var(--memory-cloud-mile-stamp);
+  inline-size: calc(40 * var(--cu, 1cqi));
+  block-size: calc(40 * var(--cu, 1cqi));
+}
+.memory-cloud-face[data-face="milestone"] .memory-cloud-face-text {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: calc(8 * var(--cu, 1cqi));
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.memory-cloud-face[data-face="words"] {
+  color: var(--memory-cloud-words-ink);
+  background:
+    radial-gradient(
+      circle at 30% 22%,
+      var(--memory-cloud-words-top) 0%,
+      transparent 55%
+    ),
+    linear-gradient(
+      165deg,
+      var(--memory-cloud-words-top) 0%,
+      var(--memory-cloud-words-bottom) 100%
+    );
+}
+.memory-cloud-face[data-face="words"] .memory-cloud-face-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-family: var(--font-display);
+  font-size: calc(9 * var(--cu, 1cqi));
+  line-height: 1.28;
+}
+
+/* Large glyph that fades in when a face has grown into the card. */
+.memory-cloud-face-glyph {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  inline-size: calc(34 * var(--cu, 1cqi));
+  block-size: calc(34 * var(--cu, 1cqi));
+  translate: -50% -50%;
+  fill: currentColor;
+  opacity: 0;
+}
+.memory-cloud-face[data-face="words"] .memory-cloud-face-glyph {
+  fill: var(--memory-cloud-words-ink);
+}
+
+/* Static gloss over every face. */
+.memory-cloud-gloss {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      110% 80% at 30% 14%,
+      var(--memory-cloud-gloss-hi) 0%,
+      transparent 36%
+    ),
+    radial-gradient(
+      60% 40% at 66% 96%,
+      var(--memory-cloud-gloss-low) 0%,
+      transparent 100%
+    );
+  box-shadow:
+    inset 0 0 0 1px var(--memory-cloud-gloss-ring),
+    inset 0 -10px 22px -14px var(--memory-cloud-gloss-floor);
+}
+.memory-cloud-bubble[data-kind="photo"] .memory-cloud-gloss {
+  opacity: 0.6;
+}
+/* Rim wash: one static oval gradient over the cloud fades and desaturates
+   bubbles towards the edge (no per-bubble overlay, nothing repainted). */
+.memory-cloud-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: radial-gradient(
+    closest-side,
+    transparent 0%,
+    transparent 52%,
+    color-mix(in srgb, var(--memory-cloud-veil) 38%, transparent) 76%,
+    color-mix(in srgb, var(--memory-cloud-veil) 72%, transparent) 100%
+  );
+}
+
+/* ---------- Frosted pill with the centre memory ---------- */
+.memory-cloud-pill {
+  position: absolute;
+  z-index: 5;
+  inset-block-start: 12px;
+  inset-inline: 0;
+  margin-inline: auto;
+  inline-size: fit-content;
+  max-inline-size: calc(100% - 56px);
+  min-block-size: 44px;
+  padding: 6px 18px;
+  display: grid;
+  align-items: center;
+  border-radius: 999px;
+  /* Frosted look from an opaque gradient: no backdrop-filter, so nothing
+     is re-blurred while bubbles move underneath. */
+  background: var(--memory-cloud-pill-bg);
+  box-shadow:
+    inset 0 0 0 1px var(--memory-cloud-pill-ring),
+    var(--memory-cloud-pill-shadow);
+  pointer-events: none;
+}
+.memory-cloud-pill-inner {
+  display: grid;
+  justify-items: center;
+  min-inline-size: 0;
+  text-align: center;
+}
+.memory-cloud-pill-title {
+  max-inline-size: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.95rem;
+  line-height: 1.25;
+  color: var(--memory-cloud-pill-ink);
+}
+.memory-cloud-pill-date {
+  max-inline-size: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font: var(--font-supporting-copy);
+  font-size: 0.78rem;
+  line-height: 1.3;
+  color: var(--memory-cloud-pill-ink-soft);
+}
+
+/* ---------- Card (portal) ---------- */
+.memory-cloud-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+}
+.memory-cloud-scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--memory-cloud-scrim);
+  opacity: 0;
+  will-change: opacity;
+}
+.memory-cloud-card-shadow,
+.memory-cloud-card {
+  position: fixed;
+  inset-block-start: 0;
+  transform-origin: 0 0;
+  border-radius: 28px;
+}
+.memory-cloud-card-shadow {
+  box-shadow: var(--memory-cloud-card-shadow);
+  background: var(--memory-cloud-card-bg);
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+.memory-cloud-card {
+  overflow: hidden;
+  background: var(--memory-cloud-card-bg);
+  color: var(--memory-cloud-card-ink);
+  will-change: transform;
+  touch-action: none;
+}
+.memory-cloud-card-media {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+}
+.memory-cloud-card-media .memory-cloud-gloss {
+  border-radius: 0;
+}
+.memory-cloud-card .memory-cloud-face-text,
+.memory-cloud-card .memory-cloud-face-glyph,
+.memory-cloud-card-media .memory-cloud-gloss {
+  will-change: opacity;
+}
+.memory-cloud-grabber {
+  position: absolute;
+  z-index: 2;
+  inset-block-start: 9px;
+  inset-inline-start: 50%;
+  inline-size: 38px;
+  block-size: 5px;
+  translate: -50% 0;
+  border-radius: 999px;
+  background: var(--memory-cloud-grabber);
+  box-shadow: 0 0 0 1px var(--memory-cloud-grabber-ring);
+}
+.memory-cloud-close {
+  position: absolute;
+  z-index: 2;
+  inset-block-start: 12px;
+  inset-inline-end: 12px;
+  inline-size: 44px;
+  block-size: 44px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--memory-cloud-glass-bg);
+  color: var(--memory-cloud-glass-ink);
+  box-shadow: inset 0 0 0 1px var(--memory-cloud-glass-ring);
+  cursor: pointer;
+}
+.memory-cloud-close:active {
+  scale: 1;
+  filter: none;
+}
+.memory-cloud-close:focus-visible {
+  outline: 3px solid var(--memory-cloud-glass-ink);
+  outline-offset: -5px;
+}
+.memory-cloud-close svg {
+  inline-size: 18px;
+  block-size: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+.memory-cloud-card-body {
+  display: grid;
+  gap: 6px;
+  padding: 18px 20px 20px;
+}
+.memory-cloud-card-kicker {
+  font: var(--font-supporting-copy);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--memory-cloud-card-ink-soft);
+}
+.memory-cloud-card-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.3rem;
+  line-height: 1.25;
+  color: var(--memory-cloud-card-ink);
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.memory-cloud-card-title[data-kind="heart"] {
+  font-style: italic;
+  font-weight: 500;
+}
+.memory-cloud-card-title q {
+  quotes: auto;
+}
+.memory-cloud-card-meta {
+  margin: 0;
+  font: var(--font-supporting-copy);
+  font-size: 0.9rem;
+  color: var(--memory-cloud-card-ink-soft);
+}
+.memory-cloud-card-open {
+  margin-block-start: 10px;
+  min-block-size: 48px;
+  padding: 0 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 999px;
+  background: var(--memory-cloud-action-bg);
+  color: var(--memory-cloud-action-ink);
+  font: var(--font-supporting-copy);
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.memory-cloud-card-open:focus-visible {
+  outline: 3px solid var(--memory-cloud-action-bg);
+  outline-offset: 3px;
+}
+.memory-cloud-card-open svg {
+  inline-size: 18px;
+  block-size: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ---------- Motion (only when allowed; roles in the motion layer) ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .memory-cloud-glow {
+    transition: opacity var(--memory-cloud-glow-duration)
+      var(--memory-cloud-fade-easing);
+  }
+  .memory-cloud-rim::after {
+    transition: opacity var(--memory-cloud-ring-duration)
+      var(--memory-cloud-fade-easing);
+  }
+  /* The card's clip opens from the bubble's circle and closes back into it. */
+  .memory-cloud-card[data-clip="opening"] {
+    transition: clip-path var(--memory-cloud-clip-open-duration)
+      var(--memory-cloud-curve-out);
+  }
+  .memory-cloud-card[data-clip="closing"] {
+    transition: clip-path var(--memory-cloud-clip-close-duration)
+      var(--memory-cloud-curve-close);
+  }
+}

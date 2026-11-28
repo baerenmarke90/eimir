@@ -6,7 +6,6 @@ import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import experiences from '../../src/i18n/locales/experiences';
 import storyProducts from '../../src/i18n/locales/storyProducts';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import deFixtures from '../fixtures/locales/de';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { fulfillFreeEntitlements } from '../support/freeEntitlements';
@@ -556,7 +555,7 @@ for (const [width, colorScheme] of [
     expect(saved.happenedUntil).toBe('2027-01-03');
     await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY_ID}$`));
     await expect(
-      page.getByRole('button', { name: taskBoundary.back, exact: true }),
+      page.getByRole('button', { name: de.common.back, exact: true }),
     ).toHaveCount(1);
     await expect(page.getByText(/31.*2026.*3.*2027/).first()).toBeVisible();
     await page.screenshot({

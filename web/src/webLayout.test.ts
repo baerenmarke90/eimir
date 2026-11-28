@@ -185,7 +185,6 @@ describe('module boundary rhythm', () => {
         '.settings-sensitive-grid',
         'border-top',
       ],
-      ['./components/TransferPanel.css', '.transfer-columns', 'border-top'],
       [
         './components/PlanningReference.css',
         '.planen-operations',
@@ -218,9 +217,6 @@ describe('module boundary rhythm', () => {
     const compactOverrides = readSource('./product-reflow.css');
     expect(compactOverrides).not.toMatch(
       /settings-sensitive-grid\s*>\s*\.account-settings-panel[\s\S]*?border-top:/,
-    );
-    expect(compactOverrides).not.toMatch(
-      /transfer-columns\s*>\s*section\s*\+\s*section[\s\S]*?border-top:/,
     );
   });
 });

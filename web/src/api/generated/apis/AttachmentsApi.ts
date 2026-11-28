@@ -44,6 +44,11 @@ import {
     ReadDescriptorToJSON,
 } from '../models/ReadDescriptor';
 import {
+    type SpaceStorageUsage,
+    SpaceStorageUsageFromJSON,
+    SpaceStorageUsageToJSON,
+} from '../models/SpaceStorageUsage';
+import {
     type UploadDescriptor,
     UploadDescriptorFromJSON,
     UploadDescriptorToJSON,
@@ -100,6 +105,10 @@ export interface GetAttachmentContentRequest {
 }
 
 export interface GetAttachmentUploadPolicyRequest {
+    spaceId: string;
+}
+
+export interface GetSpaceStorageRequest {
     spaceId: string;
 }
 
@@ -579,6 +588,51 @@ export class AttachmentsApi extends runtime.BaseAPI {
      */
     async getAttachmentUploadPolicy(requestParameters: GetAttachmentUploadPolicyRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AttachmentUploadPolicy> {
         const response = await this.getAttachmentUploadPolicyRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getSpaceStorage without sending the request
+     */
+    async getSpaceStorageRequestOpts(requestParameters: GetSpaceStorageRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getSpaceStorage().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/storage`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Get Space Storage
+     */
+    async getSpaceStorageRaw(requestParameters: GetSpaceStorageRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SpaceStorageUsage>> {
+        const requestOptions = await this.getSpaceStorageRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => SpaceStorageUsageFromJSON(jsonValue));
+    }
+
+    /**
+     * Get Space Storage
+     */
+    async getSpaceStorage(requestParameters: GetSpaceStorageRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SpaceStorageUsage> {
+        const response = await this.getSpaceStorageRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

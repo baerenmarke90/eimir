@@ -419,6 +419,15 @@
   }
 }
 
+/* A rolling count inside a Moment (4.7, 4.11; #2370): a digit strip rolls
+   up from 0 to the value it rests on. Only the start is declared, so the
+   strip ends on its own resting `translate`. */
+@keyframes eimir-motion-value-roll {
+  from {
+    translate: 0 0;
+  }
+}
+
 /* Feedback (4.3) */
 
 /* A selected control settles with one small overshoot. */
@@ -603,5 +612,60 @@
   50% {
     rotate: 14deg;
     scale: 1.08;
+  }
+}
+
+/*
+ * Wir card arrival (#2345 B, Product Owner 2026-11-27, variant C), applied by
+ * src/components/WirCardArrival.css: the reel makes room by the item's width
+ * (its tile width, --wir-card-arrival-width; a width, never a transform, so
+ * the horizontal track is not nudged), the card emerges from a soft blur, and
+ * one light sweep crosses it.
+ */
+@keyframes eimir-motion-card-room {
+  from {
+    max-width: 0;
+    margin-inline-end: calc(-1 * var(--space-3));
+  }
+
+  to {
+    max-width: var(--wir-card-arrival-width);
+    margin-inline-end: 0;
+  }
+}
+
+@keyframes eimir-motion-card-emerge {
+  0% {
+    opacity: 0;
+    filter: blur(1rem) saturate(0.5);
+    transform: translateY(1.4rem) scale(0.8);
+  }
+
+  60% {
+    opacity: 1;
+    filter: blur(0) saturate(1.1);
+    transform: translateY(-0.2rem) scale(1.025);
+  }
+
+  100% {
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+}
+
+@keyframes eimir-motion-card-sweep {
+  0% {
+    opacity: 0;
+    background-position: 150% 0;
+  }
+
+  15% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    background-position: -50% 0;
   }
 }

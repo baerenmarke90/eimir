@@ -19,6 +19,7 @@ import type { ReferenceApis } from '../client/referenceFlow';
 import { TaskOriginProvider } from '../client/taskOrigin';
 import storyProducts from '../i18n/locales/storyProducts';
 import { HeartMomentProductPage } from './HeartMomentProductPage';
+import germanUi from '../i18n/locales/de';
 
 const KEY = authorSummaryQueryKeys.heartMoment('space-1', 'heart-1');
 const moment: HeartMomentDetail = {
@@ -84,7 +85,7 @@ function setup() {
   // Hold recovery at the Query boundary so a refetch cannot mask settlement.
   const invalidate = vi.spyOn(client, 'invalidateQueries').mockResolvedValue();
   const revoke = vi.spyOn(readCache, 'deleteProductReadCacheEntry');
-  function Application({
+  function application({
     accountId = 'account-1',
     spaceId = 'space-1',
   }: {
@@ -132,7 +133,7 @@ function setup() {
       </QueryClientProvider>
     );
   }
-  const view = render(<Application />);
+  const view = render(application({}));
   async function privateChoice() {
     const user = userEvent.setup();
     const menu = screen.queryByRole('button', {
@@ -142,7 +143,7 @@ function setup() {
       await user.click(menu);
       await user.click(
         await screen.findByRole('button', {
-          name: storyProducts.heartMomentProduct.edit,
+          name: germanUi.common.edit,
         }),
       );
     }
@@ -181,7 +182,7 @@ function setup() {
     start,
     settle,
     switchScope: (scope: { accountId?: string; spaceId?: string }) =>
-      view.rerender(<Application {...scope} />),
+      view.rerender(application(scope)),
   };
 }
 

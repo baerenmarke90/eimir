@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql.elements import ColumnElement
 
 from eimir.authorization import AuthorizationContext
+from eimir.authorization.server_admin import is_server_admin
 from eimir.core import clock
 from eimir.core.errors import ConflictError, ErrorCode, UnauthenticatedError
 from eimir.db.locks import lock_subject
@@ -53,6 +54,8 @@ ACCOUNT_UNAVAILABLE_CODE = "ACCOUNT_UNAVAILABLE"
 POLICY_BLOCKED_CODE = "PUSH_POLICY_BLOCKED"
 MAX_PUSH_ATTEMPTS = 5
 MAX_ACTIVE_ENDPOINTS = 10
+# Notice ids one tray removal carries (#2345); fits every provider's payload limit.
+WITHDRAW_BATCH = 20
 SESSION_BOUND_PROVIDERS = frozenset({"webpush", "apns"})
 QUIET_HOURS_RECHECK = timedelta(minutes=15)
 _TECHNICAL_CODE = re.compile(r"[A-Z0-9_-]{1,64}\Z")
@@ -161,6 +164,9 @@ def register_handlers() -> None:
         from eimir.engagement.gentle_delivery import prepare
 
         registry.register(JOB_KIND, handle_delivery, prepare=prepare)
+    from eimir.engagement import push_withdraw
+
+    push_withdraw.register_handler()
 
 
 def _lock_live_device_family(session: Session, *, account_id: UUID, family_id: UUID | None) -> bool:
@@ -219,7 +225,7 @@ def register_endpoint(
     endpoint = endpoint_value.strip()
     if not provider or not endpoint:
         raise ValueError("push endpoint and provider must not be blank")
-    if preview_version not in {1, 2}:
+    if preview_version not in {1, 2, 3, 4}:
         raise ValueError("Unsupported preview protocol version.")
 
     with session.no_autoflush:
@@ -369,6 +375,8 @@ def revoke_endpoint(session: Session, *, account_id: UUID, endpoint_id: UUID) ->
 def _target_available(session: Session, notification: Notification) -> bool:
     if notification.target_type is None:
         return True
+    if notification.space_id is None:
+        return False
     from eimir.engagement import service
 
     return service.notification_target_available(
@@ -647,7 +655,15 @@ def _handle_delivery(session: Session, payload: dict[str, Any]) -> None:
     if not enabled:
         _finish_unavailable(delivery, "PUSH_PREFERENCE_DISABLED")
         return
-    if any(
+    if notification.kind in notification_policy.OPERATOR_KINDS:
+        # An operator notice (#2314) belongs to no Space: instead of a
+        # membership, the recipient must still be a ServerAdmin right now.
+        if notification.space_id is not None or not is_server_admin(
+            session, accounts[notification.recipient_account_id]
+        ):
+            _finish_unavailable(delivery, ACCOUNT_UNAVAILABLE_CODE)
+            return
+    elif notification.space_id is None or any(
         not account_effects.has_active_membership(
             session,
             account_id=account_id,
@@ -659,11 +675,14 @@ def _handle_delivery(session: Session, payload: dict[str, Any]) -> None:
         return
 
     module = _NOTIFICATION_SPACE_MODULES.get(notification.kind)
-    if module is not None and not space_configuration.is_module_enabled(
-        session,
-        notification.space_id,
-        module,
-        lock_space=True,
+    if module is not None and (
+        notification.space_id is None
+        or not space_configuration.is_module_enabled(
+            session,
+            notification.space_id,
+            module,
+            lock_space=True,
+        )
     ):
         # Projection and provider delivery are separate asynchronous boundaries.
         # Re-check the authoritative module immediately before the external side
@@ -804,17 +823,19 @@ def _handle_delivery(session: Session, payload: dict[str, Any]) -> None:
             **presentation.reference,
             "locale": account_locale(accounts[notification.recipient_account_id]),
         }
+        remaining: int | None = None
         if expires_at is not None:
             remaining = int((clock.ensure_utc(expires_at) - checked_at).total_seconds())
             reference["ttl"] = str(max(0, min(300, remaining)))
         endpoint_value = secret.payload.value if secret is not None else endpoint.endpoint_value
         from eimir.engagement import fcm_push, push_preview, unified_push
 
-        neutral = notification.kind in push_preview.NEUTRAL_ONLY_KINDS
         if endpoint.provider_key == "fcm":
             preview_secret = session.scalar(
                 select(PushPreviewSecret).where(PushPreviewSecret.push_endpoint_id == endpoint.id)
             )
+            version = preview_secret.preview_version if preview_secret is not None else 1
+            neutral = push_preview.is_neutral(notification.kind, version)
             if (
                 preview_secret is not None
                 and (not neutral or preview_secret.neutral_reference)
@@ -840,6 +861,11 @@ def _handle_delivery(session: Session, payload: dict[str, Any]) -> None:
                         endpoint_value, preview_secret.payload.key, preview
                     ),
                 }
+                if remaining is not None:
+                    # The preview and the provider TTL share one validity: an
+                    # operator notice on v4 may wait up to an hour (#2337).
+                    limit = push_preview.validity(notification.kind, version)
+                    reference["ttl"] = str(max(0, min(int(limit.total_seconds()), remaining)))
             elif adaptive:
                 _finish_unavailable(delivery, "GENTLE_DESTINATION_UNAVAILABLE")
                 return

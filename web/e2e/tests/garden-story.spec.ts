@@ -6,6 +6,7 @@ import de from '../../src/i18n/locales/de';
 import games from '../../src/i18n/locales/games';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '../support/axe';
+import { fulfillGameNoticesRead } from '../support/gameNotices';
 import { fulfillNoOccasionSources } from '../support/occasionSources';
 import { CAPABILITIES } from '../support/storyTimelineFixture';
 
@@ -177,6 +178,7 @@ async function installMocks(
     },
   };
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillGameNoticesRead(route)) return;
     if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
@@ -201,6 +203,12 @@ async function installMocks(
     }
     if (method === 'GET' && pathname === GARDEN_PATH) {
       await route.fulfill({ json: garden });
+      return;
+    }
+    if (method === 'GET' && pathname === `${GARDEN_PATH}/history`) {
+      await route.fulfill({
+        json: { items: [], nextCursor: null, hasMore: false },
+      });
       return;
     }
     if (method === 'GET' && pathname in responses) {
@@ -377,7 +385,7 @@ for (const scenario of [
       await expect(dialog.getByTestId('garden-playback-pair')).toBeVisible();
       await expect(dialog.locator('figure')).toHaveCount(2);
       await expect(
-        dialog.getByRole('button', { name: story.playback.close }),
+        dialog.getByRole('button', { name: de.common.close }),
       ).toBeFocused();
       await expect(dialog.getByTestId('garden-playback-toggle')).toHaveCount(0);
     } else {
@@ -386,7 +394,7 @@ for (const scenario of [
       await expect(toggle).toHaveText(story.playback.pause);
       await page.waitForTimeout(4000);
       await toggle.click();
-      await expect(toggle).toHaveText(story.playback.resume);
+      await expect(toggle).toHaveText(de.common.continue);
       const paused = await dialog
         .getByTestId('garden-playback-caption')
         .textContent();
@@ -415,7 +423,7 @@ for (const scenario of [
       await expect(dialog.getByTestId('garden-playback-caption')).toContainText(
         story.playback.today,
       );
-      await dialog.getByRole('button', { name: story.playback.close }).click();
+      await dialog.getByRole('button', { name: de.common.close }).click();
     }
     await expect(dialog).toHaveCount(0);
     await expect(play).toBeFocused();

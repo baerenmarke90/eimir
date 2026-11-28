@@ -97,7 +97,7 @@ already discarded information.
 Generate fixtures with `tools/media/generate-video-quality-fixtures.py`; see
 `docs/DEPENDENCIES.md` for provenance. Run the existing dedicated Media Video
 workflow, or supply the restricted binary paths as `EIMIR_TEST_FFMPEG` and
-`EIMIR_TEST_FFPROBE` to `backend/tests/unit/test_video_processing.py`.
+`EIMIR_TEST_FFPROBE` to `backend/pro/pro_tests/unit/test_video_processing.py`.
 The [raw measurements](evidence/1710-video-quality/measurements.json) retain
 three processing samples per version. All media and images here are synthetic;
 no screenshot or recording from the Product Owner is committed.

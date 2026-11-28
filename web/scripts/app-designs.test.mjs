@@ -51,15 +51,33 @@ describe('app design token sets', () => {
       ':root:not([data-theme])',
     ])
       expect(css).toContain(
-        `${prefix}[data-app-design="warm"],\n${prefix}[data-app-design="warm"] [data-color-world] {`,
+        `${prefix}[data-app-palette="warm"],\n${prefix}[data-app-palette="warm"] [data-color-world] {`,
       );
   });
 
   it('lets a design on the default colour world inherit the root palette and contextual worlds', () => {
     const { css } = buildAppDesigns(tokens, designs);
     expect(css).toContain(':root[data-app-design="modern"] {');
-    expect(css).not.toContain('[data-theme="dark"][data-app-design="modern"]');
-    expect(css).not.toContain('[data-app-design="modern"] [data-color-world]');
+    expect(css).not.toContain('[data-app-palette="modern"]');
+    expect(css).not.toContain('[data-app-palette="connected"]');
+  });
+
+  it('keeps the palette rules independent of layout presets and groups shared colours', () => {
+    const { css, registry } = buildAppDesigns(tokens, designs);
+    const palette = css
+      .split(':root[data-app-palette="warm"],')[1]
+      .split('}')[0];
+    const presets = css
+      .split(':root[data-app-design="warm"] {')[1]
+      .split('}')[0];
+    expect(palette).toContain('--color-background: #FFF9F6;');
+    expect(palette).not.toContain('--font-heading-family');
+    expect(presets).toContain('--font-heading-family: var(--font-display);');
+    expect(presets).not.toContain('--color-background');
+    const choices = registry.match(/APP_PALETTE_IDS = \[([^\]]+)\]/)?.[1];
+    expect(choices).toContain('"connected"');
+    expect(choices).not.toContain('"classic"');
+    expect(choices).not.toContain('"modern"');
   });
 
   it('gives each design its action colour and keeps the canonical blue for Verbunden', () => {
@@ -72,13 +90,37 @@ describe('app design token sets', () => {
     expect(block('[data-design-preview="connected"]')).toContain(
       '--color-action-primary: #3055B8;',
     );
-    expect(block(':root[data-app-design="warm"],')).toContain(
+    expect(block(':root[data-app-palette="warm"],')).toContain(
       '--color-action-primary: #974A76;',
     );
-    expect(block(':root[data-app-design="shared_album"],')).toContain(
+    expect(block(':root[data-app-palette="shared_album"],')).toContain(
       '--color-action-primary: #143C34;',
     );
+    // A chosen colour palette recolours the add action; only Verbunden is blue.
+    expect(block(':root[data-app-palette="home_rooms"],')).toContain(
+      '--color-action-primary: #754435;',
+    );
+    expect(block(':root[data-app-palette="shared_rhythm"],')).toContain(
+      '--color-action-primary: #7D315D;',
+    );
+    // Emphasised controls (checked list marks, composer save) follow the palette too.
+    expect(block(':root[data-app-palette="shared_rhythm"],')).toContain(
+      '--color-action-emphasis: #7D315D;',
+    );
+    expect(block('[data-design-preview="connected"]')).not.toContain(
+      '--color-action-emphasis',
+    );
     expect(css).not.toContain('--person-');
+  });
+
+  it('never pins the canonical blue as the action colour of another palette', () => {
+    const canonical = new Set(['#3055B8', '#B7C8FF']);
+    for (const [id, design] of Object.entries(designs))
+      for (const scheme of ['light', 'dark'])
+        expect(
+          canonical.has(design.color[scheme]?.actionPrimary?.toUpperCase()),
+          `${id} ${scheme} actionPrimary`,
+        ).toBe(false);
   });
 
   it('lets an explicit action colour override the derived one and checks it', () => {
@@ -140,14 +182,14 @@ describe('app design token sets', () => {
       sample: design({ motion: 'calm' }),
     });
     expect(css).toMatch(
-      /@media \(prefers-reduced-motion: no-preference\) \{\n {2}:root\[data-app-design="sample"\],\n:root\[data-app-design="sample"\] \[data-color-world\] \{\n {4}--duration-feedback: 150ms;/,
+      /@media \(prefers-reduced-motion: no-preference\) \{\n {2}:root\[data-app-design="sample"\] \{\n {4}--duration-feedback: 150ms;/,
     );
   });
 
   it('lets optional fine roles replace the derived value once', () => {
     const { css } = buildAppDesigns(tokens, designs);
     const album = css.slice(
-      css.indexOf(':root[data-app-design="shared_album"],'),
+      css.indexOf(':root[data-app-palette="shared_album"],'),
     );
     const firstBlock = album.slice(0, album.indexOf('}'));
     expect(firstBlock.match(/--color-border-subtle:/g)).toHaveLength(1);
@@ -175,7 +217,7 @@ describe('app design token sets', () => {
 
   it('lets a design adjust single roles of a colour world', () => {
     const { css } = buildAppDesigns(tokens, designs);
-    const geborgen = css.slice(css.indexOf(':root[data-app-design="warm"],'));
+    const geborgen = css.slice(css.indexOf(':root[data-app-palette="warm"],'));
     expect(geborgen.slice(0, geborgen.indexOf('}'))).toContain(
       '--color-text-secondary: #6E5969;',
     );

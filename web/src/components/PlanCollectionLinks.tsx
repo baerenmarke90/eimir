@@ -272,7 +272,7 @@ export function PlanCollectionLinks({
             disabled={listPending}
             onClick={() => listSheet.current?.requestClose()}
           >
-            {t('experiences.finish')}
+            {t('common.done')}
           </button>
         }
       >

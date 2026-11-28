@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ServerAdminApi } from '../api/generated/apis/ServerAdminApi';
 import type { ServerAdminAccountDetail } from '../api/generated/models/ServerAdminAccountDetail';
 import { ClientProblemError } from '../client/problemDetails';
-import * as recentAuthentication from '../client/recentAuthentication';
 import serverAdmin from '../i18n/locales/serverAdmin';
 import { ServerAdminAccountDeletionDialog } from './ServerAdminAccountDeletionDialog';
+import germanUi from '../i18n/locales/de';
 
 const accountId = '00000000-0000-0000-0000-000000000101';
 const emailId = '00000000-0000-0000-0000-000000000102';
@@ -65,8 +65,6 @@ function renderDialog({
     <QueryClientProvider client={queryClient}>
       <ServerAdminAccountDeletionDialog
         api={api}
-        apiBaseUrl="https://api.example.test"
-        accessToken="admin-token"
         account={account}
         onClose={onClose}
         onSuccess={onSuccess}
@@ -78,32 +76,11 @@ function renderDialog({
 }
 
 describe('ServerAdminAccountDeletionDialog', () => {
-  beforeEach(() => {
-    vi.spyOn(
-      recentAuthentication,
-      'loadServerAdminRecentAuthenticationCapabilities',
-    ).mockResolvedValue({
-      expiresInSeconds: 300,
-      localPassword: true,
-      passkey: false,
-      oidcConnections: [],
-    });
-    vi.spyOn(
-      recentAuthentication,
-      'authenticateServerAdminRecentPassword',
-    ).mockResolvedValue({
-      purpose: 'SERVER_ADMIN_ACTION',
-      method: 'LOCAL_PASSWORD',
-      achievedAt: new Date('2026-09-19T18:00:00Z'),
-      expiresAt: new Date('2026-09-19T18:05:00Z'),
-    });
-  });
-
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it('renders step 1 (consequences) and advances to step 2 (auth) on acknowledge', async () => {
+  it('renders step 1 (consequences) and advances to the confirmation on acknowledge', async () => {
     renderDialog();
 
     expect(
@@ -132,17 +109,16 @@ describe('ServerAdminAccountDeletionDialog', () => {
     // Click acknowledge button
     fireEvent.click(
       screen.getByRole('button', {
-        name: serverAdmin.accounts.deletionDialog.proceedToAuth,
+        name: serverAdmin.accounts.deletionDialog.proceedToConfirm,
       }),
     );
 
-    // Should now be on step 2 (Recent Auth Modal)
-    await screen.findByRole('dialog', {
-      name: serverAdmin.stepUp.title,
-    });
+    // Goes straight to the typed confirmation; no step-up dialog.
+    await screen.findByText(serverAdmin.accounts.deletionDialog.stage3Title);
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
   });
 
-  it('progresses through step 1, step 2, and completes deletion on step 3 with email confirmation', async () => {
+  it('progresses from consequences to the typed confirmation and completes deletion', async () => {
     const deleteAccount = vi.fn().mockResolvedValue({
       accountId,
       deletionStatus: 'PENDING',
@@ -154,26 +130,13 @@ describe('ServerAdminAccountDeletionDialog', () => {
 
     renderDialog({ deleteAccount, onSuccess, onClose });
 
-    // Step 1 -> Step 2
     fireEvent.click(
       screen.getByRole('button', {
-        name: serverAdmin.accounts.deletionDialog.proceedToAuth,
+        name: serverAdmin.accounts.deletionDialog.proceedToConfirm,
       }),
     );
-    await screen.findByRole('dialog', {
-      name: serverAdmin.stepUp.title,
-    });
 
-    // Enter password in Step-up modal and submit
-    const passwordInput = await screen.findByLabelText(
-      serverAdmin.stepUp.passwordLabel,
-    );
-    fireEvent.change(passwordInput, { target: { value: 'correct-password' } });
-    fireEvent.click(
-      screen.getByRole('button', { name: serverAdmin.stepUp.passwordAction }),
-    );
-
-    // Should advance to Step 3 (Confirm)
+    // The typed confirmation follows directly
     await screen.findByText(serverAdmin.accounts.deletionDialog.stage3Title);
 
     const deleteBtn = screen.getByRole('button', {
@@ -209,7 +172,7 @@ describe('ServerAdminAccountDeletionDialog', () => {
 
     fireEvent.click(
       screen.getAllByRole('button', {
-        name: serverAdmin.accounts.deletionDialog.cancel,
+        name: germanUi.common.cancel,
       })[0],
     );
     expect(onClose).toHaveBeenCalled();
@@ -225,22 +188,10 @@ describe('ServerAdminAccountDeletionDialog', () => {
 
     renderDialog({ deleteAccount });
 
-    // Step 1 -> Step 2
     fireEvent.click(
       screen.getByRole('button', {
-        name: serverAdmin.accounts.deletionDialog.proceedToAuth,
+        name: serverAdmin.accounts.deletionDialog.proceedToConfirm,
       }),
-    );
-    await screen.findByRole('dialog', {
-      name: serverAdmin.stepUp.title,
-    });
-
-    const passwordInput = await screen.findByLabelText(
-      serverAdmin.stepUp.passwordLabel,
-    );
-    fireEvent.change(passwordInput, { target: { value: 'pw' } });
-    fireEvent.click(
-      screen.getByRole('button', { name: serverAdmin.stepUp.passwordAction }),
     );
 
     await screen.findByText(serverAdmin.accounts.deletionDialog.stage3Title);
@@ -278,21 +229,11 @@ describe('ServerAdminAccountDeletionDialog', () => {
 
     renderDialog({ deleteAccount });
 
-    // Advance to step 3
+    // Advance to the typed confirmation
     fireEvent.click(
       screen.getByRole('button', {
-        name: serverAdmin.accounts.deletionDialog.proceedToAuth,
+        name: serverAdmin.accounts.deletionDialog.proceedToConfirm,
       }),
-    );
-    await screen.findByRole('dialog', {
-      name: serverAdmin.stepUp.title,
-    });
-    const passwordInput = await screen.findByLabelText(
-      serverAdmin.stepUp.passwordLabel,
-    );
-    fireEvent.change(passwordInput, { target: { value: 'pw' } });
-    fireEvent.click(
-      screen.getByRole('button', { name: serverAdmin.stepUp.passwordAction }),
     );
 
     await screen.findByText(serverAdmin.accounts.deletionDialog.stage3Title);
@@ -324,21 +265,11 @@ describe('ServerAdminAccountDeletionDialog', () => {
 
     renderDialog({ deleteAccount });
 
-    // Advance to step 3
+    // Advance to the typed confirmation
     fireEvent.click(
       screen.getByRole('button', {
-        name: serverAdmin.accounts.deletionDialog.proceedToAuth,
+        name: serverAdmin.accounts.deletionDialog.proceedToConfirm,
       }),
-    );
-    await screen.findByRole('dialog', {
-      name: serverAdmin.stepUp.title,
-    });
-    const passwordInput2 = await screen.findByLabelText(
-      serverAdmin.stepUp.passwordLabel,
-    );
-    fireEvent.change(passwordInput2, { target: { value: 'pw' } });
-    fireEvent.click(
-      screen.getByRole('button', { name: serverAdmin.stepUp.passwordAction }),
     );
 
     await screen.findByText(serverAdmin.accounts.deletionDialog.stage3Title);

@@ -341,7 +341,7 @@ describe('TodayPage', () => {
     expect(html).not.toContain('today-section-vibe');
   });
 
-  it('shows the pre-check-in prompt and a partner lock only with Mutual Reveal', () => {
+  it('offers the empty own day and a partner lock only with Mutual Reveal', () => {
     const html = renderTodayPage(
       {
         space: {
@@ -364,7 +364,10 @@ describe('TodayPage', () => {
       },
     );
 
-    expect(html).toContain('Wie geht’s?');
+    // The daily invitation starts from a fresh read on screen, never from the
+    // first render (WirDailyCheckIn.test.tsx covers it).
+    expect(html).not.toContain('wir-stage-prompt');
+    expect(html).toContain('wir-stage-gesture-own');
     expect(html).toContain('data-state="hidden"');
     expect(html).toContain('Dein Tag: noch nichts geteilt. Teilen');
     expect(html).toContain(
@@ -1210,7 +1213,7 @@ describe('TodayPage', () => {
     expect(html).toContain('Cooking Night');
     // The PO refinement keeps one upcoming heading instead of a repeated label.
     expect(html).not.toContain('today-section-kicker');
-    expect(html).not.toContain(m5s5.dashboard.upcomingKicker);
+    expect(html).not.toContain('Euer Ausblick');
     // Nothing qualifies for the contextual slot, so the section is omitted
     // entirely rather than rendered as an empty placeholder.
     expect(html).not.toContain('today-section-living');
@@ -2492,7 +2495,9 @@ describe('formatRelationshipDuration', () => {
     const MODULE_SECTION_MARKER: Record<DashboardModuleKey, string> = {
       relationship_presence: 'today-hero',
       partner_distance: 'partner-distance-signal',
+      new_for_you: 'today-section-new-for-you',
       shared_experience: 'shared-experience-section',
+      games_waiting: 'today-section-waiting-games',
       daily_quote: 'daily-quote-card',
       upcoming: 'today-section-upcoming',
       pinned_collection: 'today-section-pinned-collection',
@@ -2518,7 +2523,13 @@ describe('formatRelationshipDuration', () => {
         key !== 'partner_distance' &&
         // Opt-in Premium module with its own read; covered by
         // `WirGardenModule.test.tsx` and `wir-garden.spec.ts`.
-        key !== 'shared_garden',
+        key !== 'shared_garden' &&
+        // Premium module with its own read that renders only while a game
+        // waits; covered by `WirWaitingGamesModule.test.tsx`.
+        key !== 'games_waiting' &&
+        // Its own notice read that renders only while something is new or
+        // planned today; covered by `WirNewForYouModule.test.tsx`.
+        key !== 'new_for_you',
     );
 
     it('renders a personal complete order in DOM order, including the presence hero', () => {

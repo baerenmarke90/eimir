@@ -132,6 +132,7 @@ export const DEFAULT_ROLES: Record<string, string> = {
   '--duration-gesture-sequence': '1800ms',
   '--duration-connection-travel': '3200ms',
   '--duration-connection-draw': '700ms',
+  '--duration-handwriting': '3600ms',
   '--duration-send-flight': '560ms',
   '--duration-gesture-moment': '900ms',
   '--duration-stagger-item': '60ms',

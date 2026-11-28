@@ -1,11 +1,15 @@
 import {
+  type QueryStatus,
   useInfiniteQuery,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Link,
+  type Location,
+  type NavigateFunction,
+  type SetURLSearchParams,
   useLocation,
   useNavigate,
   useSearchParams,
@@ -15,10 +19,7 @@ import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { RecapsApi } from '../api/generated/apis/RecapsApi';
 import { AttachmentReadRequestParentTypeEnum } from '../api/generated/models/AttachmentReadRequest';
 import type { AuthorSummary } from '../api/generated/models/AuthorSummary';
-import {
-  DiscoverSelectionFromJSON,
-  DiscoverSelectionToJSON,
-} from '../api/generated/models/DiscoverSelection';
+import { DiscoverSelectionToJSON } from '../api/generated/models/DiscoverSelection';
 import type { StoryItem } from '../api/generated/models/StoryItem';
 import {
   StoryKind,
@@ -38,6 +39,8 @@ import { galleryCover } from '../client/galleryCover';
 import type { ObjectUrlSource } from '../client/objectUrlResource';
 import { usePartnerNickname } from '../client/partnerNickname';
 import { photoShape } from '../client/photoShape';
+import { usePrimaryTabActive } from '../client/primaryTabActive';
+import { usePrimaryTabPeeked } from '../client/primaryTabPeek';
 import {
   type ClientProblemError,
   clientProblemKind,
@@ -54,13 +57,20 @@ import { newNoteOpen, useQuietHint } from '../client/quietHints';
 import type { ReferenceApis } from '../client/referenceFlow';
 import { useRootTabIntro } from '../client/rootTabIntro';
 import {
+  appRoutePath,
   heartMomentDetailPath,
   MEMORY_CREATE_ROUTE,
   MEMORY_MAP_ROUTE,
   memoryDetailPath,
   milestoneDetailPath,
+  STORY_CHAPTERS_ROUTE,
   STORY_OURS_ROUTE,
+  STORY_PHOTOS_ROUTE,
 } from '../client/routes';
+import {
+  STORY_DISCOVER_STALE_TIME,
+  storyDiscoverQuery,
+} from '../client/storyDiscoverQuery';
 import { loadAuthorizedStoryImageResource } from '../client/storyMediaLoader';
 import {
   aggregateStoryPages,
@@ -74,14 +84,16 @@ import {
 import type { StoryStartupReads } from '../client/storyStartup';
 import { useOpenTaskLink, useTaskOrigin } from '../client/taskOrigin';
 import { useDiaryLayout } from '../client/useDiaryLayout';
-import { useTaskListReturn } from '../client/useTaskListReturn';
+import { useTaskListReturnAt } from '../client/useTaskListReturn';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CoupleExperienceLinks } from './CoupleExperienceLinks';
 import { FirstStepAction } from './FirstStepAction';
 import { useKeepsakeSway } from './useKeepsakeSway';
 import './FirstContentSettle.css';
+import { useAppLayout } from '../client/wirDesign';
 import { DiaryChapterPeriods } from './DiaryChapterPeriods';
 import { DiscoverStory } from './DiscoverStory';
+import { EimirIcon } from './EimirIcon';
 import { MemoryPreview } from './MemoryPreview';
 import { MomentCreateMenu } from './MomentCreateMenu';
 import { PageHeader } from './PageHeader';
@@ -105,12 +117,16 @@ import './StoryHandmade.css';
 import './StoryHandmadeChapters.css';
 import './StoryHandmadeDiscover.css';
 import './PlanningReference.css';
-import { groupDiaryEntries } from '../client/diaryEntries';
+import { diaryRevealRevision, groupDiaryEntries } from '../client/diaryEntries';
 import { DiaryList } from './DiaryList';
 import './StoryTaskFilters.css';
 import './StoryYearsPage.css';
 import type { MemoryMapSession } from '../client/memoryMapSession';
+import { useMemoryWorldId } from '../client/memoryWorldContext';
 import { parseMapPlace } from '../client/photoPlaces';
+import { MemoryWorldView } from './memoryWorlds/MemoryWorldView';
+import { WorldEnter } from './memoryWorlds/WorldEnter';
+import { WorldSwitchProvider } from './memoryWorlds/WorldHead';
 import {
   formatStoryDate,
   resolveStoryKindLabel,
@@ -118,7 +134,6 @@ import {
   storyItemPresentation,
 } from './storyPresentation';
 import { UiState } from './UiState';
-import { usePullToRefresh } from './usePullToRefresh';
 import {
   useTimelineAutoPagination,
   useTimelineReveal,
@@ -141,18 +156,13 @@ function isStoryKind(value: string | null): value is StoryKindValue {
   );
 }
 
-export function StoryProductPage({
-  apis,
-  accountId,
-  spaceId,
-  loadMemoryImage,
-  profilesApi,
-  dashboardApi,
-  recapsApi,
-  startupReads,
-  mapSession,
-}: {
+interface StoryProductPageProps {
   apis: ReferenceApis;
+  /**
+   * A kept or previewed panel retains its data while the active route owns
+   * input. Defaults to the kept tab's own state (`usePrimaryTabActive`).
+   */
+  active?: boolean;
   accountId: string;
   spaceId: string;
   loadMemoryImage: (
@@ -166,7 +176,70 @@ export function StoryProductPage({
   startupReads?: Extract<StoryStartupReads, { kind: 'diary' }>;
   /** The map's session memory: the Karte segment reopens its Place. */
   mapSession?: MemoryMapSession;
+}
+
+/**
+ * Reads the route for the page. React runs every component that reads the
+ * router's location again on each navigation in the app, also inside a kept
+ * tab whose own location did not change. Only this small component pays
+ * that; the page itself renders when what it is handed changes.
+ */
+export function StoryProductPage(props: StoryProductPageProps) {
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const origin = useTaskOrigin();
+  const openTaskLink = useOpenTaskLink();
+  return (
+    <StoryProductView
+      {...props}
+      location={location}
+      searchParams={searchParams}
+      setSearchParams={setSearchParams}
+      navigate={navigate}
+      origin={origin}
+      openTaskLink={openTaskLink}
+    />
+  );
+}
+
+const StoryProductView = memo(function StoryProductView({
+  apis,
+  active: activeOverride,
+  accountId,
+  spaceId,
+  loadMemoryImage,
+  profilesApi,
+  dashboardApi,
+  recapsApi,
+  startupReads,
+  mapSession,
+  location,
+  searchParams,
+  setSearchParams,
+  navigate,
+  origin,
+  openTaskLink: openDiscoverItem,
+}: StoryProductPageProps & {
+  location: Location;
+  searchParams: URLSearchParams;
+  setSearchParams: SetURLSearchParams;
+  navigate: NavigateFunction;
+  origin: ReturnType<typeof useTaskOrigin>;
+  /**
+   * Discover's featured highlight and tapestry links have no per-item
+   * loaded-range/scroll metadata to preserve (Discover is a single bounded
+   * fetch, not a paginated scope), but opening an item must still capture
+   * the exact tab+filter URL active at that moment. Without this, the
+   * TaskOrigin fallback for an uncaptured origin resets to bare `/story`
+   * on Back, which would silently discard a Timeline filter still parked
+   * in the URL while the user was merely looking at Discover.
+   */
+  openTaskLink: ReturnType<typeof useOpenTaskLink>;
 }) {
+  const { captureOrigin } = origin;
+  const tabActive = usePrimaryTabActive();
+  const active = activeOverride ?? tabActive;
   const rootIntro = useRootTabIntro<HTMLDivElement>('story');
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -186,21 +259,9 @@ export function StoryProductPage({
     };
   }, [scope]);
   const { nicknameFor } = usePartnerNickname();
-  const location = useLocation();
-  const saved = Boolean((location.state as { saved?: boolean } | null)?.saved);
-  const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const { captureOrigin } = useTaskOrigin();
-  /**
-   * Discover's featured highlight and tapestry links have no per-item
-   * loaded-range/scroll metadata to preserve (Discover is a single bounded
-   * fetch, not a paginated scope), but opening an item must still capture
-   * the exact tab+filter URL active at that moment. Without this, the
-   * TaskOrigin fallback for an uncaptured origin resets to bare `/story`
-   * on Back, which would silently discard a Timeline filter still parked
-   * in the URL while the user was merely looking at Discover.
-   */
-  const openDiscoverItem = useOpenTaskLink();
+  const layout = useAppLayout();
+  const saved =
+    active && Boolean((location.state as { saved?: boolean } | null)?.saved);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const filterSheetRef = useRef<ShortTaskSheetHandle>(null);
   const filterTriggerRef = useRef<HTMLButtonElement>(null);
@@ -223,6 +284,15 @@ export function StoryProductPage({
     if (tab === 'timeline' || tab === 'discover') return tab;
     return hasActiveFilters ? 'timeline' : 'discover';
   }, [searchParams, hasActiveFilters]);
+  // A primary selection opens Discover. The parked Timeline keeps its URL,
+  // filters and mounted content for Back, even while a swipe previews Discover.
+  // A parked panel nobody sees keeps showing its own view: it must not mount
+  // Discover content (and read its recap) before it is revealed.
+  const peeked = usePrimaryTabPeeked(
+    appRoutePath('story'),
+    !active && activeView !== 'discover',
+  );
+  const displayedView = active || !peeked ? activeView : 'discover';
   // Discover does not inherit the retained Timeline scope.
   const effectiveFilters = filters;
   const cacheResourceId = useMemo(
@@ -248,6 +318,10 @@ export function StoryProductPage({
     [apis, spaceId],
   );
 
+  // A first swipe preview can load its content. Once populated, a retained
+  // panel displays that snapshot and resumes revalidation when opened.
+  const needsRead = (query: { state: { status: QueryStatus } }) =>
+    active || query.state.status === 'pending';
   const storyQuery = useInfiniteQuery({
     queryKey: ['story', spaceId, cacheResourceId],
     initialPageParam: null as string | null,
@@ -285,26 +359,18 @@ export function StoryProductPage({
         ? lastPage.value.nextCursor
         : undefined;
     },
-    enabled: true,
+    enabled: needsRead,
     retry: false,
   });
   const discoverQuery = useQuery({
-    queryKey: authorSummaryQueryKeys.discover(spaceId, accountId),
-    queryFn: async () => {
-      return loadProductWithReadCache({
-        accountId,
-        spaceId,
-        kind: 'story-discover',
-        resourceId: 'discover',
-        load: () =>
-          startupReads?.takeDiscover() ??
-          apis.story.getStoryDiscover({ spaceId }),
-        serialize: DiscoverSelectionToJSON,
-        deserialize: (payload) => DiscoverSelectionFromJSON(payload),
-      });
-    },
-    enabled: true,
-    staleTime: 30_000,
+    ...storyDiscoverQuery({
+      apis,
+      accountId,
+      spaceId,
+      take: startupReads?.takeDiscover,
+    }),
+    enabled: needsRead,
+    staleTime: STORY_DISCOVER_STALE_TIME,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
     refetchInterval:
@@ -322,7 +388,7 @@ export function StoryProductPage({
         throw await normalizeClientError(error);
       }
     },
-    enabled: Boolean(dashboardApi),
+    enabled: (query) => Boolean(dashboardApi) && needsRead(query),
     refetchOnWindowFocus: 'always',
     refetchInterval:
       activeView === 'discover' && !renewing ? 15 * 60_000 : false,
@@ -330,10 +396,10 @@ export function StoryProductPage({
   });
 
   const [paginationGeneration, setPaginationGeneration] = useState(0);
-  const pullRefresh = usePullToRefresh({
-    enabled: true,
-    blocked: renewing || storyQuery.isFetching || discoverQuery.isFetching,
-    onRefresh: async () => {
+  const [refreshing, setRefreshing] = useState(false);
+  async function refreshStory() {
+    setRefreshing(true);
+    try {
       const [result] = await Promise.all([
         storyQuery.refetch(),
         renewSelection(),
@@ -341,8 +407,10 @@ export function StoryProductPage({
       ]);
       if (!result.isError)
         setPaginationGeneration((generation) => generation + 1);
-    },
-  });
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   const combinedStory = useMemo(() => {
     if (!storyQuery.data) return null;
@@ -351,7 +419,7 @@ export function StoryProductPage({
   const allPagesFromNetwork =
     storyQuery.data?.pages.every((page) => page.source === 'network') ?? false;
   const offline =
-    activeView === 'timeline'
+    displayedView === 'timeline'
       ? storyQuery.data?.pages[0]?.source === 'cache'
       : discoverQuery.data?.source === 'cache';
 
@@ -433,11 +501,12 @@ export function StoryProductPage({
   const timelineMonthsRef = useRef<HTMLDivElement>(null);
   const paginationSentinelRef = useRef<HTMLDivElement>(null);
   const loadedPageCount = storyQuery.data?.pages.length ?? 1;
-  const restoringTimeline = useTaskListReturn({
+  const restoringTimeline = useTaskListReturnAt(location, origin, {
     ready:
-      activeView === 'timeline'
+      active &&
+      (activeView === 'timeline'
         ? Boolean(combinedStory)
-        : Boolean(discoverQuery.data),
+        : Boolean(discoverQuery.data)),
     busy:
       activeView === 'timeline'
         ? storyQuery.isFetching
@@ -465,6 +534,7 @@ export function StoryProductPage({
   const discoverError =
     discoverQuery.error ?? (discoverDenied ? renewProblem : null);
   const featuredItem = discoverQuery.data?.value.lead ?? null;
+  const memoryWorld = useMemoryWorldId() ?? 'story';
   const leadContext = discoverQuery.data?.value.leadContext ?? null;
   const locale = resolvedLocale();
   // Only show the anniversary label when the selection matches the viewer day.
@@ -511,11 +581,15 @@ export function StoryProductPage({
       filters.year,
     ],
   );
+  const timelineRevealRevision = useMemo(
+    () => diaryRevealRevision(timelineMonthGroups),
+    [timelineMonthGroups],
+  );
   useTimelineReveal({
     rootRef: timelineMonthsRef,
     enabled: activeView === 'timeline' && timelineEntryCount > 0,
     scopeKey: `${spaceId}:${cacheResourceId}`,
-    revision: timelineEntryCount,
+    revision: timelineRevealRevision,
   });
 
   const nextStoryCursor = storyQuery.hasNextPage
@@ -525,24 +599,24 @@ export function StoryProductPage({
     if (
       !storyQuery.hasNextPage ||
       storyQuery.isFetchingNextPage ||
-      pullRefresh.refreshing
+      refreshing
     ) {
       return false;
     }
     const result = await storyQuery.fetchNextPage({ cancelRefetch: false });
     return !result.isError;
   }, [
-    pullRefresh.refreshing,
+    refreshing,
     storyQuery.fetchNextPage,
     storyQuery.hasNextPage,
     storyQuery.isFetchingNextPage,
   ]);
   const progressivePagination = useTimelineAutoPagination({
     sentinelRef: paginationSentinelRef,
-    enabled: activeView === 'timeline',
+    enabled: active && activeView === 'timeline',
     blocked:
       (storyQuery.isFetching && !storyQuery.isFetchingNextPage) ||
-      pullRefresh.refreshing ||
+      refreshing ||
       restoringTimeline ||
       Boolean(offline),
     hasNextPage: Boolean(storyQuery.hasNextPage),
@@ -569,7 +643,7 @@ export function StoryProductPage({
   const featuredTone = featuredItem
     ? storyEntryTone(featuredItem, Boolean(featuredMedia))
     : undefined;
-  const featuredSwayRef = useKeepsakeSway<HTMLAnchorElement>(
+  const featuredSwayRef = useKeepsakeSway<HTMLDivElement>(
     diaryLayout === 'album' && featuredTone === 'playful',
   );
   const onThisDayKicker =
@@ -723,6 +797,105 @@ export function StoryProductPage({
     },
   ]);
 
+  // The rediscovery lead (`story.featuredKicker`) opens the Fotostory as its
+  // first slide; its polaroid develops on the slide instead of hanging above
+  // the story. The story's open link opens it, so the composition holds no
+  // link.
+  const storyLead =
+    featuredItem && featuredPresentation
+      ? {
+          key: storyItemKey(featuredItem),
+          path: featuredPath,
+          kindLabel: t('story.featuredHighlight'),
+          title: featuredHeadline,
+          face: featuredMedia ? (
+            <MemoryPreview
+              memoryId={
+                featuredItem.kind === 'MEMORY' ? featuredItem.memory.id : ''
+              }
+              attachmentId={featuredMedia.id}
+              hasThumbnail={featuredMedia.hasThumbnail}
+              isSensitive={featuredMedia.isSensitive}
+              loadImage={loadMemoryImage}
+              loadingMode="immediate"
+            />
+          ) : (
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M12 2l2.4 7.4h7.6l-6.1 4.5 2.3 7.1-6.2-4.5-6.2 4.5 2.3-7.1-6.1-4.5h7.6z" />
+            </svg>
+          ),
+          content: (
+            <div
+              className="momente-hero-highlight"
+              data-tone={featuredTone}
+              data-photo-shape={
+                featuredMedia ? photoShape(featuredMedia) : undefined
+              }
+              data-color-world={featuredMedia ? undefined : 'warm'}
+            >
+              <div
+                ref={featuredSwayRef}
+                className={`momente-hero-link ${featuredMedia ? 'has-media' : ''}`}
+              >
+                {featuredMedia ? (
+                  <div className="momente-hero-media">
+                    <MemoryPreview
+                      memoryId={
+                        featuredItem.kind === 'MEMORY'
+                          ? featuredItem.memory.id
+                          : ''
+                      }
+                      attachmentId={featuredMedia.id}
+                      hasThumbnail={featuredMedia.hasThumbnail}
+                      isSensitive={featuredMedia.isSensitive}
+                      loadImage={loadMemoryImage}
+                      loadingMode="immediate"
+                    />
+                  </div>
+                ) : null}
+                <div className="momente-hero-body">
+                  <span className="momente-hero-kicker">
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="14"
+                      height="14"
+                      fill="currentColor"
+                      aria-hidden="true"
+                      className="kicker-icon inline-icon"
+                    >
+                      <path d="M12 2l2.4 7.4h7.6l-6.1 4.5 2.3 7.1-6.2-4.5-6.2 4.5 2.3-7.1-6.1-4.5h7.6z" />
+                    </svg>
+                    <span>
+                      {onThisDayKicker
+                        ? t('story.onThisDay', {
+                            count: leadContext.yearsAgo,
+                          })
+                        : t('story.featuredKicker')}
+                    </span>
+                  </span>
+                  {featuredItem.kind === 'HEART_MOMENT' ? (
+                    <blockquote className="momente-hero-quote">
+                      "{featuredHeadline}"
+                    </blockquote>
+                  ) : (
+                    <h3 className="momente-hero-title">{featuredHeadline}</h3>
+                  )}
+                  <div className="momente-hero-meta">
+                    <RediscoverySecondaryLine
+                      variantLine={featuredWording?.variantLine ?? null}
+                      date={formatStoryDate(featuredItem.effectiveDate, locale)}
+                      dateTime={featuredItem.effectiveDate
+                        .toISOString()
+                        .slice(0, 10)}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ),
+        }
+      : null;
+
   return (
     <div className="page story-page story-page-unified" ref={rootIntro}>
       {saved ? (
@@ -737,26 +910,53 @@ export function StoryProductPage({
         </div>
       ) : null}
 
-      <PullToRefreshIndicator state={pullRefresh} />
+      <PullToRefreshIndicator
+        enabled={active}
+        blocked={renewing || storyQuery.isFetching || discoverQuery.isFetching}
+        onRefresh={refreshStory}
+      />
 
       <PageHeader
         variant="root"
         className="content-overview-heading"
-        title={t('story.timelineTitle')}
+        title={t(
+          layout === 'rooms'
+            ? 'wirDesign.homeRooms.remember'
+            : layout === 'chapters'
+              ? 'wirDesign.rhythm.history'
+              : 'story.timelineTitle',
+        )}
+        titleContext={
+          layout === 'rooms' ? (
+            <nav
+              className="home-archive-links"
+              aria-label={t('wirDesign.homeRooms.archiveNavigation')}
+            >
+              <Link to={STORY_PHOTOS_ROUTE}>
+                {t('wirDesign.homeRooms.photoArchive')}
+                <EimirIcon name="chevron-right" />
+              </Link>
+              <Link to={STORY_CHAPTERS_ROUTE}>
+                {t('wirDesign.homeRooms.chapters')}
+                <EimirIcon name="chevron-right" />
+              </Link>
+            </nav>
+          ) : undefined
+        }
         action={<MomentCreateMenu floating />}
       />
-      <StoryViewTabs activeView={activeView} onSelect={setView} />
+      <StoryViewTabs activeView={displayedView} onSelect={setView} />
 
       <div
         id="momente-panel-discover"
         role="tabpanel"
         aria-labelledby="momente-tab-discover"
-        hidden={activeView !== 'discover'}
+        hidden={displayedView !== 'discover'}
       >
-        {activeView === 'discover' && discoverQuery.isLoading ? (
+        {displayedView === 'discover' && discoverQuery.isLoading ? (
           <UiState kind="loading" title={t('story.loadingAria')} />
         ) : null}
-        {activeView === 'discover' && discoverError ? (
+        {displayedView === 'discover' && discoverError ? (
           <ProblemState
             error={discoverError}
             onRetry={() =>
@@ -766,14 +966,14 @@ export function StoryProductPage({
             }
           />
         ) : null}
-        {activeView === 'discover' &&
+        {displayedView === 'discover' &&
         discoverQuery.data &&
         !discoverDenied &&
         !featuredItem &&
         discoverItems.length === 0
           ? emptyState
           : null}
-        {activeView === 'discover' &&
+        {displayedView === 'discover' &&
         discoverQuery.data &&
         !discoverDenied &&
         (featuredItem || discoverItems.length > 0) ? (
@@ -789,120 +989,62 @@ export function StoryProductPage({
             aria-labelledby="momente-tab-discover"
             data-diary-layout={diaryLayout}
           >
-            {/* 1. Featured Editorial Highlight */}
-            {featuredItem && featuredPresentation ? (
-              <article
-                className="momente-hero-highlight"
-                data-tone={featuredTone}
-                data-photo-shape={
-                  featuredMedia ? photoShape(featuredMedia) : undefined
-                }
-                data-color-world={featuredMedia ? undefined : 'warm'}
-              >
-                <Link
-                  ref={featuredSwayRef}
-                  to={featuredPath}
-                  className={`momente-hero-link ${featuredMedia ? 'has-media' : ''}`}
-                  aria-label={`${t('story.featuredHighlight')}: ${featuredHeadline}`}
-                  onClick={(event) => openDiscoverItem(event, featuredPath)}
-                >
-                  {featuredMedia ? (
-                    <div className="momente-hero-media">
-                      <MemoryPreview
-                        memoryId={
-                          featuredItem.kind === 'MEMORY'
-                            ? featuredItem.memory.id
-                            : ''
-                        }
-                        attachmentId={featuredMedia.id}
-                        hasThumbnail={featuredMedia.hasThumbnail}
-                        isSensitive={featuredMedia.isSensitive}
-                        loadImage={loadMemoryImage}
-                        loadingMode="immediate"
-                      />
-                    </div>
-                  ) : null}
-                  <div className="momente-hero-body">
-                    <span className="momente-hero-kicker">
-                      <svg
-                        viewBox="0 0 24 24"
-                        width="14"
-                        height="14"
-                        fill="currentColor"
-                        aria-hidden="true"
-                        className="kicker-icon inline-icon"
-                      >
-                        <path d="M12 2l2.4 7.4h7.6l-6.1 4.5 2.3 7.1-6.2-4.5-6.2 4.5 2.3-7.1-6.1-4.5h7.6z" />
-                      </svg>
-                      <span>
-                        {onThisDayKicker
-                          ? t('story.onThisDay', {
-                              count: leadContext.yearsAgo,
-                            })
-                          : t('story.featuredKicker')}
-                      </span>
-                    </span>
-                    {featuredItem.kind === 'HEART_MOMENT' ? (
-                      <blockquote className="momente-hero-quote">
-                        "{featuredHeadline}"
-                      </blockquote>
-                    ) : (
-                      <h3 className="momente-hero-title">{featuredHeadline}</h3>
-                    )}
-                    <div className="momente-hero-meta">
-                      <RediscoverySecondaryLine
-                        variantLine={featuredWording?.variantLine ?? null}
-                        date={formatStoryDate(
-                          featuredItem.effectiveDate,
-                          locale,
-                        )}
-                        dateTime={featuredItem.effectiveDate
-                          .toISOString()
-                          .slice(0, 10)}
-                      />
-                    </div>
-                  </div>
-                </Link>
-              </article>
-            ) : null}
-
-            {newsHint.activeId ? (
-              <QuietHint
-                tone="new"
-                onDismiss={newsHint.dismiss}
-                action={{
-                  to: STORY_OURS_ROUTE,
-                  label: t('quietHints.news.waymarksAction'),
-                }}
-              >
-                {t('quietHints.news.waymarks')}
-              </QuietHint>
-            ) : null}
-
-            <CoupleExperienceLinks onOpen={openDiscoverItem} lead={recapLead} />
-
-            {/* 2. Curated Fotostory (direction C): theme bubbles above one
-              story viewer, deliberately unlike the Tagebuch cards. The
+            {/* 2. The person's memory world (#2283): Story (curated
+              Fotostory, the default) or another world. The loading card
+              stays until the world is painted and cross-fades into it. The
               Expanded renew action replaces the touch-only pull gesture. */}
-            <div className="momente-discover-renew">
-              <button
-                type="button"
-                className="secondary"
-                disabled={renewing}
-                aria-busy={renewing}
-                onClick={() => void renewSelection()}
+            <WorldSwitchProvider value={memoryWorld}>
+              <WorldEnter
+                cover={
+                  <UiState kind="loading" title={t('story.loadingAria')} />
+                }
               >
-                {renewing
-                  ? t('story.discoverRenewing')
-                  : t('story.discoverRenew')}
-              </button>
-            </div>
-            <DiscoverStory
-              items={curatedItems}
-              loadMemoryImage={loadMemoryImage}
-              onOpen={openDiscoverItem}
-              nicknameFor={nicknameFor}
-            />
+                {memoryWorld === 'story' ? (
+                  <DiscoverStory
+                    lead={storyLead}
+                    items={curatedItems}
+                    loadMemoryImage={loadMemoryImage}
+                    onOpen={openDiscoverItem}
+                    nicknameFor={nicknameFor}
+                  />
+                ) : (
+                  <MemoryWorldView
+                    world={memoryWorld}
+                    lead={featuredItem}
+                    leadHeadline={featuredHeadline}
+                    leadKicker={
+                      onThisDayKicker && leadContext
+                        ? t('story.onThisDay', { count: leadContext.yearsAgo })
+                        : t('story.featuredKicker')
+                    }
+                    items={curatedItems}
+                    moreItems={
+                      memoryWorld === 'cloud' ? timelineItems : undefined
+                    }
+                    loadMemoryImage={loadMemoryImage}
+                    onOpen={openDiscoverItem}
+                    nicknameFor={nicknameFor}
+                  />
+                )}
+                {newsHint.activeId ? (
+                  <QuietHint
+                    tone="new"
+                    onDismiss={newsHint.dismiss}
+                    action={{
+                      to: STORY_OURS_ROUTE,
+                      label: t('quietHints.news.waymarksAction'),
+                    }}
+                  >
+                    {t('quietHints.news.waymarks')}
+                  </QuietHint>
+                ) : null}
+
+                <CoupleExperienceLinks
+                  onOpen={openDiscoverItem}
+                  lead={recapLead}
+                />
+              </WorldEnter>
+            </WorldSwitchProvider>
             {renewed ? (
               <p className="sr-only" role="status">
                 {t('story.discoverRenewed')}
@@ -921,7 +1063,8 @@ export function StoryProductPage({
             ) : null}
           </section>
         ) : null}
-        {activeView === 'discover' &&
+        {displayedView === 'discover' &&
+        !discoverQuery.isLoading &&
         !featuredItem &&
         discoverItems.length === 0 ? (
           <CoupleExperienceLinks onOpen={openDiscoverItem} lead={recapLead} />
@@ -931,7 +1074,7 @@ export function StoryProductPage({
         id="momente-panel-timeline"
         role="tabpanel"
         aria-labelledby="momente-tab-timeline"
-        hidden={activeView !== 'timeline'}
+        hidden={displayedView !== 'timeline'}
       >
         {activeView === 'timeline' && storyQuery.isLoading ? (
           <UiState kind="loading" title={t('story.loadingAria')} />
@@ -1085,7 +1228,7 @@ export function StoryProductPage({
                   )
                 }
               >
-                {t('taskSheets.filterCancel')}
+                {t('common.cancel')}
               </button>
             </div>
           </ShortTaskSheet>
@@ -1280,10 +1423,7 @@ export function StoryProductPage({
                                 onClick={() =>
                                   void progressivePagination.retry()
                                 }
-                                disabled={
-                                  storyQuery.isFetching ||
-                                  pullRefresh.refreshing
-                                }
+                                disabled={storyQuery.isFetching || refreshing}
                               >
                                 {t('storyFilters.loadMore')}
                               </button>
@@ -1301,4 +1441,4 @@ export function StoryProductPage({
       </div>
     </div>
   );
-}
+});

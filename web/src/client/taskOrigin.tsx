@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
 } from 'react';
@@ -14,6 +15,18 @@ import { previousEntryIs } from './historyEntries';
 import { parseMapPlace } from './photoPlaces';
 import {
   ACTIVITY_ROUTE,
+  settingsCategoryPath,
+  STORY_OURS_ROUTE,
+  SETTINGS_CATEGORY_IDS,
+  MORE_SETTINGS_ROUTE,
+  MORE_PROFILE_ROUTE,
+  MORE_PEOPLE_ROUTE,
+  MORE_PASSPORT_ROUTE,
+  MORE_INSIGHTS_ROUTE,
+  GAMES_WISH_DETECTIVE_ROUTE,
+  GAMES_MOMENTS_ROUTE,
+  DEFAULT_APP_ROUTE,
+  appRoutePath,
   DATE_IDEAS_ROUTE,
   MEMORY_MAP_ROUTE,
   MORE_COLLECTIONS_ROUTE,
@@ -57,8 +70,15 @@ export interface TaskOriginMetadata {
     description?: string;
     dateIdeaId?: string;
   };
-  /** Editable prefill for converting a known Wish into a Plan. */
-  planningConvertDraft?: { title: string; description?: string };
+  /**
+   * Editable prefill for converting a known Wish into a Plan; `plannedOn` is a
+   * date-only suggestion such as the weekly brief's rhythm day (#2169).
+   */
+  planningConvertDraft?: {
+    title: string;
+    description?: string;
+    plannedOn?: string;
+  };
   /** Restores the date inspiration filters; catalog keys only, never content. */
   dateIdeasFilter?: DateIdeasFilterState;
   /** Bounded, account/Space-scoped map return context; never persisted or logged. */
@@ -86,7 +106,11 @@ interface OriginStore {
   active: boolean;
   scope: string;
   entries: Map<string, StoredOrigin>;
-  metadata: { path: string; value: TaskOriginMetadata } | null;
+  /**
+   * What the mounted pages of the current destination want restored, in the
+   * order they registered. A capture merges them, later ones last.
+   */
+  metadata: Set<{ value: TaskOriginMetadata }>;
 }
 
 export interface PrimaryDestination {
@@ -108,6 +132,11 @@ export function taskOriginPath(
   pathname: string,
   search: string,
 ): string | null {
+  if (
+    pathname === DEFAULT_APP_ROUTE &&
+    new URLSearchParams(search).get('view') === 'wir'
+  )
+    return `${DEFAULT_APP_ROUTE}?view=wir`;
   // The private overview contains only destinations. Private lists, records
   // and query data stay outside the task origin.
   if (pathname === MORE_PRIVATE_ROUTE || pathname === `${MORE_PRIVATE_ROUTE}/`)
@@ -128,8 +157,19 @@ export function taskOriginPath(
   // A shared note read page is a return target for its editor (#1969).
   const sharedNoteDetail = /^\/more\/notes\/(?!new$)[^/]+$/.test(pathname);
   const recapReader = /^\/story\/recaps\/[^/]+$/.test(pathname);
+  const referenceDetail =
+    /^\/story\/(milestones|happiness|time-travel)\/(?!new$)[^/]+$/.test(
+      pathname,
+    );
+  const peopleDetail = /^\/more\/people\/(?!new$)[^/]+$/.test(pathname);
+  const settings = SETTINGS_CATEGORY_IDS.some(
+    (id) => settingsCategoryPath(id) === pathname,
+  );
   const storyYear = /^\/story\/years\/\d{4}$/.test(pathname);
   if (
+    !referenceDetail &&
+    !peopleDetail &&
+    !settings &&
     !recapReader &&
     !sharedNoteDetail &&
     !storyYear &&
@@ -157,6 +197,15 @@ export function taskOriginPath(
       '/search',
       ACTIVITY_ROUTE,
       MORE_NOTIFICATIONS_ROUTE,
+      appRoutePath('games'),
+      GAMES_MOMENTS_ROUTE,
+      GAMES_WISH_DETECTIVE_ROUTE,
+      MORE_INSIGHTS_ROUTE,
+      MORE_PEOPLE_ROUTE,
+      MORE_PROFILE_ROUTE,
+      MORE_SETTINGS_ROUTE,
+      MORE_PASSPORT_ROUTE,
+      STORY_OURS_ROUTE,
     ].includes(pathname)
   )
     return null;
@@ -233,7 +282,7 @@ export function TaskOriginProvider({
     active: true,
     scope,
     entries: new Map(),
-    metadata: null,
+    metadata: new Set(),
   });
   // Invalidate synchronously, including callbacks retained by a late task result.
   if (storeRef.current.scope !== scope) {
@@ -243,11 +292,18 @@ export function TaskOriginProvider({
       active: true,
       scope,
       entries: new Map(),
-      metadata: null,
+      metadata: new Set(),
     };
   }
   const generation = storeRef.current;
-  const path = taskOriginPath(location.pathname, location.search);
+  // The contract below is one object for the whole session scope: it reads
+  // the current path and navigation when it is called. A contract that
+  // changed with every route would render every page that uses it, in every
+  // kept tab, on each navigation.
+  const pathRef = useRef<string | null>(null);
+  pathRef.current = taskOriginPath(location.pathname, location.search);
+  const navigateRef = useRef(navigate);
+  navigateRef.current = navigate;
 
   const resolveStored = useCallback(
     (key: unknown): StoredOrigin | null => {
@@ -268,11 +324,13 @@ export function TaskOriginProvider({
   const captureOrigin = useCallback(
     (metadata?: TaskOriginMetadata): string | null => {
       const store = storeRef.current;
+      const path = pathRef.current;
       if (!store.active || store !== generation || !path) return null;
-      const snapshot = {
-        ...(store.metadata?.path === path ? store.metadata.value : {}),
-        ...metadata,
-      };
+      const snapshot: TaskOriginMetadata = Object.assign(
+        {},
+        ...Array.from(store.metadata, (registered) => registered.value),
+        metadata,
+      );
       const key = `task-${crypto.randomUUID()}`;
       const currentState = window.history.state;
       const parentKey = currentState?.usr?.taskOriginKey;
@@ -322,7 +380,7 @@ export function TaskOriginProvider({
       );
       return key;
     },
-    [path, generation, resolveStored],
+    [generation, resolveStored],
   );
 
   const resolveOrigin = useCallback(
@@ -343,6 +401,7 @@ export function TaskOriginProvider({
   const requestReturn = useCallback(
     (key: unknown, fallback = '/story') => {
       if (!generation.active || storeRef.current !== generation) return;
+      const navigate = navigateRef.current;
       const origin = resolveStored(key);
       if (!origin) {
         // Without a captured origin, a parent directly below is still the
@@ -368,7 +427,7 @@ export function TaskOriginProvider({
         },
       });
     },
-    [navigate, resolveStored, generation],
+    [resolveStored, generation],
   );
 
   const primaryDestination = useCallback((root: string): PrimaryDestination => {
@@ -379,15 +438,14 @@ export function TaskOriginProvider({
 
   const registerOriginMetadata = useCallback(
     (metadata: TaskOriginMetadata) => {
-      if (!path || storeRef.current !== generation) return () => {};
-      const snapshot = { path, value: metadata };
-      storeRef.current.metadata = snapshot;
+      if (storeRef.current !== generation) return () => {};
+      const registered = { value: metadata };
+      generation.metadata.add(registered);
       return () => {
-        if (storeRef.current.metadata === snapshot)
-          storeRef.current.metadata = null;
+        generation.metadata.delete(registered);
       };
     },
-    [path, generation],
+    [generation],
   );
 
   useEffect(() => {
@@ -395,7 +453,7 @@ export function TaskOriginProvider({
     return () => {
       storeRef.current.active = false;
       storeRef.current.entries.clear();
-      storeRef.current.metadata = null;
+      storeRef.current.metadata.clear();
     };
   }, []);
 
@@ -425,6 +483,10 @@ export function TaskOriginProvider({
 /**
  * A kept, hidden primary tab must not publish return metadata or capture an
  * origin for the destination that is currently visible.
+ *
+ * The tab's pages keep one contract while the tab is parked and shown again:
+ * the scope itself withdraws their metadata when the tab is parked and
+ * publishes it again when the tab is shown, so no page renders for it.
  */
 export function PrimaryTabTaskOriginScope({
   active,
@@ -434,16 +496,48 @@ export function PrimaryTabTaskOriginScope({
   children: ReactNode;
 }) {
   const context = useContext(TaskOriginContext);
+  const activeRef = useRef(active);
+  const registrations = useRef(
+    new Set<{ value: TaskOriginMetadata; release: (() => void) | null }>(),
+  );
+  // Before the pages' own effects, which register while the tab is shown.
+  useLayoutEffect(() => {
+    activeRef.current = active;
+  }, [active]);
+  useEffect(() => {
+    if (!context || !active) return;
+    const held = registrations.current;
+    for (const registered of held)
+      registered.release ??= context.registerOriginMetadata(registered.value);
+    return () => {
+      for (const registered of held) {
+        registered.release?.();
+        registered.release = null;
+      }
+    };
+  }, [active, context]);
   const value = useMemo<TaskOriginContract | null>(
     () =>
-      context && !active
-        ? {
-            ...context,
-            captureOrigin: () => null,
-            registerOriginMetadata: () => () => {},
-          }
-        : context,
-    [active, context],
+      context && {
+        ...context,
+        captureOrigin: (metadata) =>
+          activeRef.current ? context.captureOrigin(metadata) : null,
+        registerOriginMetadata: (metadata) => {
+          const registered = {
+            value: metadata,
+            release: activeRef.current
+              ? context.registerOriginMetadata(metadata)
+              : null,
+          };
+          registrations.current.add(registered);
+          return () => {
+            registered.release?.();
+            registered.release = null;
+            registrations.current.delete(registered);
+          };
+        },
+      },
+    [context],
   );
   return (
     <TaskOriginContext.Provider value={value}>
@@ -474,26 +568,29 @@ export function useTaskOrigin(): TaskOriginContract {
 export function useOpenTaskLink() {
   const navigate = useNavigate();
   const { captureOrigin } = useTaskOrigin();
-  return (
-    event: MouseEvent<HTMLAnchorElement>,
-    to: string,
-    selectedKey?: string,
-    onFollow?: () => void,
-  ) => {
-    if (
-      event.button !== 0 ||
-      event.metaKey ||
-      event.ctrlKey ||
-      event.shiftKey ||
-      event.altKey
-    )
-      return;
-    const taskOriginKey = captureOrigin(
-      selectedKey ? { selectedKey } : undefined,
-    );
-    onFollow?.();
-    if (!taskOriginKey) return;
-    event.preventDefault();
-    void navigate(to, { state: { taskOriginKey } });
-  };
+  return useCallback(
+    (
+      event: MouseEvent<HTMLAnchorElement>,
+      to: string,
+      selectedKey?: string,
+      onFollow?: () => void,
+    ) => {
+      if (
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      )
+        return;
+      const taskOriginKey = captureOrigin(
+        selectedKey ? { selectedKey } : undefined,
+      );
+      onFollow?.();
+      if (!taskOriginKey) return;
+      event.preventDefault();
+      void navigate(to, { state: { taskOriginKey } });
+    },
+    [captureOrigin, navigate],
+  );
 }

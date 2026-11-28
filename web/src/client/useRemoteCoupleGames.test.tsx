@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import type { OurMomentsRemoteState } from '../api/generated/models/OurMomentsRemoteState';
 import type { WhoOfUsRemoteState } from '../api/generated/models/WhoOfUsRemoteState';
@@ -18,15 +18,14 @@ const ME = 'account-me';
 const PARTNER = 'account-partner';
 const UPDATED = new Date('2026-11-18T10:00:00Z');
 
-function wrapper() {
-  const client = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  });
-  return function Wrapper({ children }: { children: ReactNode }) {
-    return (
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
-    );
-  };
+function Wrapper({ children }: { children: ReactNode }) {
+  const [client] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      }),
+  );
+  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }
 
 function services(
@@ -110,7 +109,7 @@ describe('useRemoteWhoOfUsGame', () => {
       answerWhoOfUs,
     });
     const { result } = renderHook(() => useRemoteWhoOfUsGame(options(api)), {
-      wrapper: wrapper(),
+      wrapper: Wrapper,
     });
     await waitFor(() => expect(result.current.view.phase).toBe('myTurn'));
     await act(async () => {
@@ -142,7 +141,7 @@ describe('useRemoteWhoOfUsGame', () => {
         ),
     });
     const { result } = renderHook(() => useRemoteWhoOfUsGame(options(api)), {
-      wrapper: wrapper(),
+      wrapper: Wrapper,
     });
     await waitFor(() => expect(result.current.view.phase).toBe('myTurn'));
     let outcome: Awaited<ReturnType<typeof result.current.answer>> | undefined;
@@ -175,7 +174,7 @@ describe('useRemoteWishDetectiveGame', () => {
     });
     const { result } = renderHook(
       () => useRemoteWishDetectiveGame(options(api)),
-      { wrapper: wrapper() },
+      { wrapper: Wrapper },
     );
     await waitFor(() => expect(result.current.view.phase).toBe('notStarted'));
     await act(async () => {
@@ -221,7 +220,7 @@ describe('useRemoteWishDetectiveGame', () => {
     });
     const { result } = renderHook(
       () => useRemoteWishDetectiveGame(options(api)),
-      { wrapper: wrapper() },
+      { wrapper: Wrapper },
     );
     await waitFor(() => expect(result.current.view.phase).toBe('giveClues'));
     await act(async () => {
@@ -302,7 +301,7 @@ describe('useRemoteOurMomentsGame', () => {
       flipCard,
     });
     const { result } = renderHook(() => useRemoteOurMomentsGame(options(api)), {
-      wrapper: wrapper(),
+      wrapper: Wrapper,
     });
     await waitFor(() =>
       expect(result.current.view).toMatchObject({

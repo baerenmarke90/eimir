@@ -7,7 +7,6 @@ import experiences from '../../src/i18n/locales/experiences';
 import copy from '../../src/i18n/locales/m5s3';
 import photoCopy from '../../src/i18n/locales/photoReactions';
 import storyCopy from '../../src/i18n/locales/storyProducts';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import {
   expectInlineDraftActions,
   expectQuietComposerMedia,
@@ -38,7 +37,7 @@ const inlineGalleryCounter = (index: number, count: number) =>
 
 async function closePlanEditor(page: Page) {
   const close = page.locator('.composer-header .task-back-control');
-  await expect(close).toHaveAccessibleName(taskBoundary.close);
+  await expect(close).toHaveAccessibleName(de.common.close);
   await close.click();
 }
 const dimensions = {

@@ -33,6 +33,7 @@ import {
   planningIfMatch,
   type SharedPlanningApis,
 } from '../client/sharedPlanning';
+import { useRootTabIntro } from '../client/rootTabIntro';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
 import { useTranslation } from '../i18n';
@@ -128,6 +129,7 @@ export function CollectionsOverviewPage({
   initialCreate?: boolean;
 }) {
   const { t } = useTranslation();
+  const rootIntro = useRootTabIntro<HTMLDivElement>('shared');
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -318,8 +320,9 @@ export function CollectionsOverviewPage({
   }
 
   return (
-    <div className="page shared-content-page">
+    <div className="page shared-content-page shared-root-page" ref={rootIntro}>
       <PageHeader
+        variant="root"
         className="content-overview-heading"
         title={t('navigation.sharedHeading')}
         action={
@@ -524,7 +527,7 @@ export function CollectionsOverviewPage({
                   onChange={setCreateKind}
                 />
                 <label htmlFor="create-collection-title">
-                  {t('m5s3.common.title')}
+                  {t('common.title')}
                 </label>
                 <input
                   ref={nameInputRef}
@@ -535,8 +538,8 @@ export function CollectionsOverviewPage({
                 />
                 <button type="submit" disabled={createCollection.isPending}>
                   {createCollection.isPending
-                    ? t('m5s3.common.saving')
-                    : t('m5s3.common.save')}
+                    ? t('common.saving')
+                    : t('common.save')}
                 </button>
                 {createCollection.error ? (
                   <ProblemState error={createCollection.error} />

@@ -253,7 +253,7 @@ function ActiveOurMomentsSessionView({
               type="button"
               onClick={() => session.dispatch({ type: 'CONTINUE_AFTER_MATCH' })}
             >
-              {t('games.momentsGame.continue')}
+              {t('common.continue')}
             </button>
           </div>
         </section>

@@ -16,7 +16,11 @@ import { GAMES_COUPLE_CAPABILITY } from './GamesProductArea';
 const PARTNER_DISTANCE_MODULE: readonly DashboardModuleKey[] = [
   'partner_distance',
 ];
-const SHARED_GARDEN_MODULE: readonly DashboardModuleKey[] = ['shared_garden'];
+// Both Wir game modules are Premium (`games.couple`).
+const GAMES_MODULES: readonly DashboardModuleKey[] = [
+  'games_waiting',
+  'shared_garden',
+];
 const NONE: readonly DashboardModuleKey[] = [];
 
 /**
@@ -44,8 +48,8 @@ export function usePartnerDistanceModuleUnavailable({
 }
 
 /**
- * Settings › Wir (Product Owner 2026-11-17): the shared garden module is
- * Premium (`games.couple`). Without the capability its row stays listed with
+ * Settings › Wir (Product Owner 2026-11-17): the shared garden module, and
+ * the waiting games module (#2158 C), are Premium (`games.couple`). Without the capability its row stays listed with
  * the Pro marker but switched off and disabled; a saved choice is kept and
  * returns with Pro. Reuses the session's single entitlement read.
  */
@@ -79,7 +83,7 @@ export function useSharedGardenModuleLocked({
     load,
     capability: GAMES_COUPLE_CAPABILITY,
   });
-  return games.data === true && !games.isError ? NONE : SHARED_GARDEN_MODULE;
+  return games.data === true && !games.isError ? NONE : GAMES_MODULES;
 }
 
 /** Settings › Wir: the module panel, aware of Pro module availability. */

@@ -19,7 +19,8 @@ from eimir.relationship.models import SpaceConfiguration
 log = logging.getLogger(__name__)
 
 JOB_KIND = "daily_check_in_retention"
-SCAN_INTERVAL = timedelta(hours=6)
+# A value outlives its Space day by at most this interval (plus batching).
+SCAN_INTERVAL = timedelta(hours=1)
 BATCH_SIZE = 100
 _LOCK_KEY = 8_150_432
 
@@ -61,7 +62,11 @@ def purge_expired(
     current_time: datetime | None = None,
     limit: int = BATCH_SIZE,
 ) -> int:
-    """Delete at most ``limit`` rows older than the previous authoritative Space day.
+    """Delete at most ``limit`` rows of an earlier Space day.
+
+    Only the current authoritative Space day is kept: once a Space's day ends,
+    its Daily Check-in rows are purge-eligible (ADR 0007 amendment 2026-11-22, #2210).
+    The run interval bounds how long a value outlives its day.
 
     ``daily_context_timezone`` is validated at the configuration write boundary.
     PostgreSQL therefore evaluates each candidate in that persisted IANA zone;
@@ -69,11 +74,10 @@ def purge_expired(
     retention never waits on another owner of an otherwise eligible row.
     """
     instant = current_time or now()
-    local_day = cast(
+    cutoff = cast(
         func.timezone(SpaceConfiguration.daily_context_timezone, instant),
         Date,
     )
-    previous_local_day = local_day - 1
     expired = list(
         session.execute(
             select(DailyCheckIn)
@@ -83,7 +87,7 @@ def purge_expired(
             )
             .where(
                 SpaceConfiguration.daily_context_timezone.is_not(None),
-                DailyCheckIn.checked_on < previous_local_day,
+                DailyCheckIn.checked_on < cutoff,
             )
             .order_by(DailyCheckIn.checked_on, DailyCheckIn.id)
             .limit(limit)

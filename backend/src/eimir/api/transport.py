@@ -15,7 +15,6 @@ from eimir.core.errors import ErrorCode
 ORDINARY_REQUEST_MAX_BYTES = 8 * 1024 * 1024
 
 _ATTACHMENT_CONTENT_PATH = re.compile(r"/api/v1/spaces/[^/]+/attachments/[^/]+/content\Z")
-_TRANSFER_IMPORT_PATH = re.compile(r"/api/v1/spaces/[^/]+/transfer/imports\Z")
 
 
 class PackagedUploadCorsMiddleware:
@@ -48,12 +47,9 @@ class PackagedUploadCorsMiddleware:
 
 
 def _has_dedicated_stream_limit(scope: Scope) -> bool:
-    """Leave only the two binary upload routes to their own streaming limits."""
-    method = scope.get("method")
-    path = scope.get("path", "")
+    """Leave only the binary attachment upload route to its own streaming limit."""
     return bool(
-        (method == "PUT" and _ATTACHMENT_CONTENT_PATH.fullmatch(path))
-        or (method == "POST" and _TRANSFER_IMPORT_PATH.fullmatch(path))
+        scope.get("method") == "PUT" and _ATTACHMENT_CONTENT_PATH.fullmatch(scope.get("path", ""))
     )
 
 
@@ -64,8 +60,8 @@ class _RequestBodyTooLargeError(Exception):
 class RequestBodyLimitMiddleware:
     """Bound ordinary request bodies before FastAPI buffers or validates them.
 
-    Attachments and Transfer imports are intentionally exempt: their endpoints
-    stream and enforce their separate 25 MiB / 512 MiB limits after authorization.
+    Attachment content uploads are intentionally exempt: the endpoint streams and
+    enforces its separate 25 MiB limit after authorization.
     The limit applies even when Content-Length is missing or understated.
     """
 

@@ -55,13 +55,6 @@ import {
     RecapKindToJSON,
     RecapKindToJSONTyped,
 } from './RecapKind';
-import type { RecapMoodView } from './RecapMoodView';
-import {
-    RecapMoodViewFromJSON,
-    RecapMoodViewFromJSONTyped,
-    RecapMoodViewToJSON,
-    RecapMoodViewToJSONTyped,
-} from './RecapMoodView';
 
 /**
  * 
@@ -129,12 +122,6 @@ export interface RecapView {
      * @memberof RecapView
      */
     month?: number;
-    /**
-     * 
-     * @type {RecapMoodView}
-     * @memberof RecapView
-     */
-    mood?: RecapMoodView | null;
     /**
      * 
      * @type {RecapDraftView}
@@ -262,7 +249,6 @@ export function RecapViewFromJSONTyped(json: any, ignoreDiscriminator: boolean):
         'kind': RecapKindFromJSON(json['kind']),
         'locale': json['locale'],
         'month': json['month'] == null ? undefined : json['month'],
-        'mood': json['mood'] === undefined ? undefined : json['mood'] === null ? null : RecapMoodViewFromJSON(json['mood']),
         'ownDraft': RecapDraftViewFromJSON(json['ownDraft']),
         'reflections': ((json['reflections'] as Array<any>).map(RecapReflectionViewFromJSON)),
         'savedAt': (json['savedAt'] == null ? null : new Date(json['savedAt'])),
@@ -300,7 +286,6 @@ export function RecapViewToJSONTyped(value?: RecapView | null, ignoreDiscriminat
         'kind': RecapKindToJSON(value['kind']),
         'locale': value['locale'],
         'month': value['month'],
-        'mood': RecapMoodViewToJSON(value['mood']),
         'ownDraft': RecapDraftViewToJSON(value['ownDraft']),
         'reflections': ((value['reflections'] as Array<any>).map(RecapReflectionViewToJSON)),
         'savedAt': value['savedAt'] == null ? value['savedAt'] : value['savedAt'].toISOString(),

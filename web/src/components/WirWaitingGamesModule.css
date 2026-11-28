@@ -1,0 +1,219 @@
+/*
+ * #2158 C / #2345 B: one tile per game that waits on the reader, in a
+ * swipeable Wir reel. Each game has its own small picture; the tile's tint
+ * follows its tone. The illustration palette is local to these tiles (garden
+ * greens, the sun dot) and lives here at the token boundary as
+ * `--wir-game-*` roles with Light and Dark values (docs/DESIGN-TOKEN-POLICY.md).
+ */
+.wir-waiting-games {
+  --wir-game-face: 4rem;
+  --wir-game-tile-width: 4.5rem;
+  --wir-game-stem: #4f8a4a;
+  --wir-game-leaf: #7fb98f;
+  --wir-game-soil: #9a7b5f;
+  --wir-game-sun: #f0b429;
+  --wir-game-fog: #ffffffcc;
+  --wir-game-tint-garden: #e4f0e6;
+  --wir-game-tint-garden-end: #d3e6d7;
+}
+
+:root[data-theme="dark"] .wir-waiting-games {
+  --wir-game-stem: #8cc08a;
+  --wir-game-leaf: #5f9a6a;
+  --wir-game-soil: #b39373;
+  --wir-game-sun: #f6d77a;
+  --wir-game-fog: #ffffff40;
+  --wir-game-tint-garden: #263a31;
+  --wir-game-tint-garden-end: #1f3029;
+  /* Without a ring, the dark circles are lifted off the dark page. */
+  --wir-game-lift: #ffffff1f;
+}
+
+/* The reel is Wir's existing lists track (`.wir-lists-row`); tiles keep a
+   fixed width so the next game peeks in. */
+.wir-lists-row > .wir-game-tile-item {
+  --wir-card-arrival-width: var(--wir-game-tile-width);
+
+  flex: 0 0 auto;
+  display: flex;
+  scroll-snap-align: start;
+}
+
+.wir-game-tile {
+  box-sizing: border-box;
+  width: var(--wir-game-tile-width);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-medium);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+/* A round face like the new-for-you circles, with the game's own picture. */
+.wir-game-face {
+  box-sizing: border-box;
+  width: var(--wir-game-face);
+  height: var(--wir-game-face);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: linear-gradient(
+    160deg,
+    var(--color-surface-raised),
+    var(--color-surface)
+  );
+}
+
+.wir-game-tile-cool .wir-game-face {
+  background: linear-gradient(
+    160deg,
+    var(--color-surface-raised),
+    var(--color-person-blue-surface)
+  );
+}
+
+.wir-game-tile-warm .wir-game-face {
+  background: linear-gradient(
+    160deg,
+    var(--color-surface-raised),
+    var(--color-person-rose-surface)
+  );
+}
+
+.wir-game-tile-shared .wir-game-face {
+  background: linear-gradient(
+    160deg,
+    var(--color-person-rose-surface),
+    var(--color-person-blue-surface)
+  );
+}
+
+.wir-game-tile-garden .wir-game-face {
+  background: linear-gradient(
+    160deg,
+    var(--wir-game-tint-garden),
+    var(--wir-game-tint-garden-end)
+  );
+}
+
+:root[data-theme="dark"] .wir-game-face {
+  box-shadow: inset 0 0 0 var(--wir-game-face) var(--wir-game-lift);
+}
+
+.wir-game-tile:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .wir-game-face {
+    transition: transform var(--duration-feedback) var(--easing-standard);
+  }
+
+  .wir-game-tile:active .wir-game-face {
+    transform: scale(0.94);
+  }
+}
+
+.wir-game-art {
+  display: grid;
+  place-items: center;
+}
+
+.wir-game-art svg {
+  width: 2.9rem;
+  height: 1.8rem;
+  fill: none;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.wir-game-art-cool {
+  stroke: var(--identity-icon-cool);
+}
+
+.wir-game-art-accent {
+  stroke: var(--identity-icon-accent);
+}
+
+.wir-game-art-fill-cool {
+  fill: var(--identity-icon-cool);
+  opacity: 0.85;
+}
+
+.wir-game-art-fill-accent {
+  fill: var(--identity-icon-accent);
+  opacity: 0.8;
+}
+
+.wir-game-art-card-cool,
+.wir-game-art-card-accent {
+  fill: var(--color-surface-raised);
+  stroke-width: 2.5;
+}
+
+.wir-game-art-card-cool {
+  stroke: var(--identity-icon-cool);
+}
+
+.wir-game-art-card-accent {
+  stroke: var(--identity-icon-accent);
+}
+
+.wir-game-art-bloom-cool {
+  fill: var(--identity-icon-cool);
+}
+
+.wir-game-art-bloom-accent {
+  fill: var(--identity-icon-accent);
+}
+
+.wir-game-art-mark {
+  stroke: var(--color-text-inverse);
+  stroke-width: 2.6;
+}
+
+.wir-game-art-sun {
+  fill: var(--wir-game-sun);
+  stroke: none;
+}
+
+.wir-game-art-stem {
+  stroke: var(--wir-game-stem);
+}
+
+.wir-game-art-leaf {
+  fill: var(--wir-game-leaf);
+  stroke: var(--wir-game-stem);
+  stroke-width: 2;
+}
+
+.wir-game-art-soil {
+  stroke: var(--wir-game-soil);
+  stroke-width: 4;
+}
+
+.wir-game-art-fog {
+  fill: var(--wir-game-fog);
+  stroke: var(--identity-icon-cool);
+  stroke-width: 2;
+}
+
+.wir-game-label {
+  display: -webkit-box;
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-family: var(--font-ui);
+  font-size: 0.74rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}

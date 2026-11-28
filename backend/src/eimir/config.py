@@ -219,14 +219,15 @@ class PluginSettings(BaseSettings):
     Kept apart from ``Settings`` for the reason ``DatabaseSettings`` is: the
     migration process loads plugins too and must not depend on application
     configuration. ``EIMIR_PLUGINS`` is a comma-separated list of entry-point
-    names; an empty value runs Core only. The default is ``pro`` while the Pro
-    plugin ships inside this distribution, so existing installations keep
-    their behavior. The setting is new, so it has no legacy ``SBS_`` alias.
+    names; an empty value runs Core only, which is the default since the Pro
+    plugin is its own distribution (#2182). The image with the Pro plugin sets
+    ``EIMIR_PLUGINS=pro`` itself. The setting is new, so it has no legacy
+    ``SBS_`` alias.
     """
 
     model_config = SettingsConfigDict(env_prefix="EIMIR_", env_file=".env", extra="ignore")
 
-    plugins: str = Field(default="pro")
+    plugins: str = Field(default="")
 
 
 class Settings(IdentityCompatibleSettings):
@@ -295,6 +296,12 @@ class Settings(IdentityCompatibleSettings):
     s3_secret_access_key: SecretStr | None = None
     s3_session_token: SecretStr | None = None
 
+    # ServerAdmin monitoring (#2317). The push URL is the operator's Uptime Kuma
+    # push monitor; it carries a token and is never logged or returned by an API.
+    heartbeat_push_url: SecretStr | None = None
+    # Stable heartbeat identity; defaults to the host name of the process.
+    worker_name: str | None = None
+
     # Application-controlled encryption at rest (issue #797, docs/ENCRYPTION-AT-REST.md).
     # Not end-to-end encryption: this process holds the keys.
     #
@@ -353,6 +360,10 @@ class Settings(IdentityCompatibleSettings):
     # Test-only eligibility for the Google import (#1467). The production gate stays closed;
     # an Account is eligible only when one of its verified addresses is listed here.
     google_photos_test_account_emails: list[str] = Field(default_factory=list)
+
+    # In-app support reports (#2189). Off until the operator can read them;
+    # without a reader an acknowledgement would mislead.
+    support_reports_enabled: bool = False
 
     # Automatic Plan calendar sync (#1895). Credentials are encrypted at rest,
     # so the feature is only offered with EIMIR_ENCRYPTION_AT_REST=required.

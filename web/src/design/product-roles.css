@@ -13,6 +13,7 @@
   --font-story-category:
     400 0.9375rem / 1.4 "Instrument Sans", "Arial", sans-serif;
   --tracking-story-category: 0em;
+  --space-subpage-content-gap: 1.5rem;
   --space-media-mosaic-gap: 0.375rem;
   --space-story-summary-inset: 1.125rem;
   --space-story-category-gap: 0.625rem;
@@ -123,17 +124,25 @@
   --duration-map-stack: 600ms;
   --duration-controls-return: 480ms;
   --duration-sequence-beat: 200ms;
+  --duration-module-enter: 600ms;
+  --motion-module-rise: 8px;
   --duration-send-flight: 560ms;
+  --duration-card-arrival: 1100ms;
+  --duration-card-arrival-sweep: 900ms;
   --duration-gesture-moment: 900ms;
   --duration-stagger-item: 60ms;
   --duration-stagger-module: 220ms;
   --motion-stagger-max-items: 4;
   --duration-gesture-sequence: 1800ms;
   --duration-connection-draw: 700ms;
+  --duration-handwriting: 3600ms;
+  --duration-marker-sweep: 700ms;
   --duration-connection-beat: 450ms;
   --duration-connection-travel: 3200ms;
   --duration-connection-travel-far: 6000ms;
   --duration-story-slide: 5000ms;
+  --duration-story-lead-slide: 8000ms;
+  --duration-story-develop: 3200ms;
   --duration-story-ken-burns: 9000ms;
   --duration-loading-cycle: 800ms;
   --motion-ambient-repeat: 4;
@@ -215,15 +224,21 @@
     --duration-map-stack: 0ms;
     --duration-controls-return: 0ms;
     --duration-sequence-beat: 0ms;
+    --duration-module-enter: 0ms;
     --duration-send-flight: 0ms;
+    --duration-card-arrival: 0ms;
+    --duration-card-arrival-sweep: 0ms;
     --duration-gesture-moment: 0ms;
     --duration-stagger-item: 0ms;
     --duration-stagger-module: 0ms;
     --duration-gesture-sequence: 0ms;
     --duration-connection-draw: 0ms;
+    --duration-handwriting: 0ms;
+    --duration-marker-sweep: 0ms;
     --duration-connection-beat: 0ms;
     --duration-connection-travel: 0ms;
     --duration-connection-travel-far: 0ms;
+    --duration-story-develop: 0ms;
     --duration-story-ken-burns: 0ms;
     --duration-loading-cycle: 0ms;
   }

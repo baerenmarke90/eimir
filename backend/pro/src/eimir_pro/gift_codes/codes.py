@@ -1,0 +1,69 @@
+"""Gift code format, normalization and keyed lookup hash (ServerAdmin part 5).
+
+A code reads ``EIMIR-XXXX-XXXX``. The alphabet leaves out look-alike
+characters (0/O, 1/I/L) so a code can be read aloud or typed from a screenshot.
+Only a keyed hash of the canonical code is stored for lookup, so a database
+dump does not reveal redeemable codes.
+"""
+
+from __future__ import annotations
+
+import calendar
+import hashlib
+import hmac
+import re
+import secrets
+from datetime import datetime
+
+from eimir.config import get_settings
+from eimir.core import clock
+
+ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
+_PREFIX = "EIMIR"
+_BODY_LENGTH = 8
+_PURPOSE = b"eimir.gift_code.lookup.v1"
+
+GRANT_REFERENCE_PREFIX = "gift-code:"
+"""``external_reference`` prefix of a grant made by redeeming a code (``gift-code:<code id>``)."""
+GRANT_BATCH_METADATA_KEY = "giftCodeBatchId"
+"""Grant metadata key naming the batch of a redeemed code; the code itself is never stored."""
+GRANT_EXTENDED_METADATA_KEY = "giftCodeExtended"
+"""Grant metadata key: whether the redemption extended Pro the Space already had."""
+_SEPARATORS = re.compile(r"[\s\-\u2013\u2014]+")
+
+
+def generate_code() -> str:
+    """Return a fresh random code in canonical form."""
+    body = "".join(secrets.choice(ALPHABET) for _ in range(_BODY_LENGTH))
+    return f"{_PREFIX}-{body[:4]}-{body[4:]}"
+
+
+def normalize(raw: str) -> str | None:
+    """Return the canonical form of a typed code, or ``None`` when it is invalid."""
+    cleaned = _SEPARATORS.sub("", raw).upper()
+    if cleaned.startswith(_PREFIX):
+        cleaned = cleaned[len(_PREFIX) :]
+    if len(cleaned) != _BODY_LENGTH or any(char not in ALPHABET for char in cleaned):
+        return None
+    return f"{_PREFIX}-{cleaned[:4]}-{cleaned[4:]}"
+
+
+def lookup_hash(code: str) -> str:
+    """Keyed hex digest of a canonical code, used as the database lookup value."""
+    key = hmac.new(get_settings().cursor_signing_secret, _PURPOSE, hashlib.sha256).digest()
+    return hmac.new(key, code.encode("utf-8"), hashlib.sha256).hexdigest()
+
+
+def add_months(value: datetime, months: int) -> datetime:
+    """Add calendar months to an instant, clamping the day to the target month's length.
+
+    Months are added to the UTC timestamp (design section 5.1). Values read
+    from the database carry the connection's time zone; adding months to their
+    local wall time would shift the instant by an hour across a DST change.
+    """
+    value = clock.ensure_utc(value)
+    month_index = value.month - 1 + months
+    year = value.year + month_index // 12
+    month = month_index % 12 + 1
+    day = min(value.day, calendar.monthrange(year, month)[1])
+    return value.replace(year=year, month=month, day=day)

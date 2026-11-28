@@ -388,12 +388,14 @@ the switch for default-off operation. Existing encryption, image identity,
 first-install bootstrap and migration-before-runtime gates remain mandatory.
 
 `EIMIR_PLUGINS` names the server plugins that API, worker and migrate load
-([Decision 0017](decisions/0017-pro-plugin-seam.md)). Leave it unset: the default
-`pro` loads the Pro features that ship in the released image today. A named plugin
-that is missing or does not match the Core build stops the process instead of
-starting with fewer features. An empty value runs the Core only: the Pro routes do
-not exist, Pro capabilities are not granted, and the Core keeps deleting and
-expiring the data that Pro features left behind.
+([Decision 0017](decisions/0017-pro-plugin-seam.md)). Leave it unset: the released
+backend image contains the Pro plugin (its own distribution `eimir-pro` since #2182)
+and sets `EIMIR_PLUGINS=pro` itself. A named plugin that is missing or does not
+match the Core build stops the process instead of starting with fewer features. An
+empty value runs the Core only: the Pro routes do not exist, Pro capabilities are
+not granted, and the Core keeps deleting and expiring the data that Pro features
+left behind. Outside the image (for example a source checkout) the default is the
+Core only; set `EIMIR_PLUGINS=pro` after `uv sync --all-packages` to load the plugin.
 
 SMTP is optional. With:
 
@@ -403,6 +405,93 @@ EIMIR_MAIL_TRANSPORT=none
 
 password, Passkey/WebAuthn and OIDC remain available while mail-dependent Magic Link,
 password recovery and email verification report that mail delivery is unavailable.
+
+## In-app support reports
+
+`EIMIR_SUPPORT_REPORTS_ENABLED` (default `false`) switches the in-app path where a
+signed-in person reports a problem or sends feedback (#2189). Enable it only if you
+read the reports: an acknowledgement in the app would otherwise tell people that the
+team received something nobody reads. Compose forwards the variable to the services
+that share the runtime environment; it is plain operator configuration, never a
+couple setting.
+
+With the switch off, `POST /api/v1/support-reports` is refused with `404`, the public
+`GET /api/v1/instance` reports `supportReportsAvailable` as `false`, and the Web and
+Android clients hide every entry point. With it on, the endpoint accepts reports
+(at most 5 per hour and 20 per day per account) and the instance reports
+`supportReportsAvailable` as `true`. A reply that was already sent stays readable to
+its reporter when the switch is turned off.
+
+Reports land in your instance's own PostgreSQL database. The note and the reply never
+leave it, except in the person's own data copy on request; a tracker ticket the
+operator creates carries only technical data (see below). The note and the reply are
+protected at rest like other protected payloads
+([Encryption at rest](#encryption-at-rest)). A closed report is deleted 90 days after
+it was closed, any report at most 365 days after it was created, and a report is
+deleted with its Account. The Core ships no reader for these reports: the operator
+plugin `admin` adds the Reports section of the ServerAdmin area, so an instance
+without it has no screen or API to read the reports. The ServerAdmin overview shows the number
+of `NEW` reports and the `support_reports_unread` warning once the oldest one is more
+than 14 days old ([ServerAdmin](SERVER-ADMIN.md#operational-overview)); while the
+switch is off the count is 0.
+
+A person's own reports and the reply they received are part of the operator-provided
+personal data copy (Art. 15 and Art. 20 GDPR). The operator export tool of the Pro
+package writes them into `accounts.json` of a personal export for the requesting
+account; see its runbook (`backend/pro/src/eimir_pro/portability/RUNBOOK.md`).
+
+The published eimir. privacy notice does not cover support reports yet (free text,
+device context, the retention above and a local draft on the device), so eimir. Cloud
+keeps the switch off until it does. A self-hosted operator who enables it is
+responsible for their own privacy notice.
+
+### Operator plugin for support reports
+
+The bundled `compose.yaml` passes `EIMIR_PLUGINS` (default `pro`, the image
+default) to API, worker and migrate, and the optional `EIMIR_ADMIN_*` variables to
+API and worker, so setting them in `.env` is enough.
+
+The operator plugin `eimir-admin` adds the ServerAdmin **Reports** section: list,
+read, change state, send the one reply and create a tracker ticket
+([ServerAdmin, Support reports](SERVER-ADMIN.md#support-reports)). It is part of
+the backend image like `eimir-pro` but loads only when `admin` is named in
+`EIMIR_PLUGINS`, next to `pro`:
+
+```dotenv
+EIMIR_PLUGINS=pro,admin
+EIMIR_SUPPORT_REPORTS_ENABLED=true
+```
+
+API, worker and migrate must see the same `EIMIR_PLUGINS` value, so that migrate
+creates the plugin's `support_report_tickets` table before the API serves it. The
+section appears only while both the plugin is loaded and
+`EIMIR_SUPPORT_REPORTS_ENABLED` is on. Removing `admin` again hides the section;
+the ticket links stay in the database and leave with their reports.
+
+Tickets are optional. Without tracker variables the section works and offers no
+ticket button. To create GitHub issues, set all three on the API:
+
+```dotenv
+EIMIR_ADMIN_TRACKER=github
+EIMIR_ADMIN_GITHUB_REPOSITORY=owner/name
+EIMIR_ADMIN_GITHUB_TOKEN=<token>
+```
+
+- `EIMIR_ADMIN_TRACKER` accepts only `github`. When it is set, the repository (form
+  `owner/name`) and the token are required; a malformed or incomplete value stops
+  the process at startup and names the variable, never its value.
+- Use a token with the smallest scope that can create issues in that one repository:
+  a fine-grained personal access token or GitHub App installation limited to the
+  repository with **Issues: Read and write** and nothing else. Do not use a classic
+  token with the `repo` scope. Store it like other secrets, outside Git, and rotate
+  it if it leaks.
+- Empty values count as unset: `EIMIR_ADMIN_TRACKER=` disables tickets just like
+  leaving the variable out.
+- A ticket contains only the title and body the operator types plus technical
+  facts (report id, kind, app version, build, platform, failure reference, request
+  id). The person's note and the reply are never sent. The issue is created in
+  your repository under the token's account, so GitHub's terms and privacy apply to
+  what is posted there.
 
 ## Account deletion authority
 
@@ -581,12 +670,12 @@ the trusted TLS proxy hop is lost for `X-Forwarded-*` handling.
 
 The API itself rejects ordinary request bodies above 8 MiB with HTTP 413 before
 JSON parsing, including requests without a trustworthy `Content-Length`. Attachment
-uploads and Transfer imports retain their separate server-side streaming limits
-(25 MiB for supported images and 512 MiB compressed for Transfer imports). This
+uploads retain their separate server-side streaming limits (for example 25 MiB for
+supported images, up to 250 MiB for video). This
 application boundary is authoritative regardless of reverse-proxy configuration;
 the public TLS proxy should also enforce appropriate request-size limits to avoid
 buffering rejected traffic before forwarding it to the API. Do not set a proxy-wide
-8 MiB limit, which would break the bounded media and Transfer routes.
+8 MiB limit, which would break the bounded media upload route.
 
 ## Post-deploy verification
 

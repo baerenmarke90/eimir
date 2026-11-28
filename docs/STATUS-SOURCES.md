@@ -100,6 +100,21 @@ python3 tools/ci/status_drift.py --online
 The online check uses only `contents: read` and `issues: read`. It writes no
 GitHub data.
 
+The check reads the Issues of one tracker repository: `--repository owner/name`,
+else the repository variable `EIMIR_STATUS_TRACKER_REPOSITORY` (passed by the
+workflow), else `GITHUB_REPOSITORY`. An open task names its Issue as `#N` (an
+Issue of the tracker) or as `owner/name#N`. A qualified reference to the tracker
+itself is checked; a qualified reference to any other repository is printed as
+`Not checked` and never queried, because the workflow token cannot read another
+private repository. The repository split of
+[Decision 0019](decisions/0019-repository-split-and-cutover.md) uses this: until
+an open item is re-created in the new repository, its line names the archive,
+for example `baerenmarke90/eimir-archive#2183`, and the line is replaced by the
+new number once the Issue exists there
+([cut-over runbook](CUTOVER-RUNBOOK.md), step C20). Bare `#N` lines must name
+Issues of the tracker, so a snapshot exported into a new repository rewrites or
+qualifies them before its first pull request.
+
 ## Maintenance responsibility
 
 A change that alters milestone/gate/blocker state updates

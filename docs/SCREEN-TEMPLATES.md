@@ -54,6 +54,10 @@ the shared task Back components to retain page-specific exit guards and
 destinations. This applies to future secondary pages without maintaining a
 separate route opt-in list; primary roots have none.
 
+When the header contains only the page title and its controls, use the shared
+header-to-content spacing from the component contract. Include this distance
+in Compact and Expanded layout checks for new screens.
+
 On Compact, a Floating Action Button-like action is used only when it is unambiguous, frequent, and cannot be confused with Bottom Navigation.
 
 ## 3. Template: Today

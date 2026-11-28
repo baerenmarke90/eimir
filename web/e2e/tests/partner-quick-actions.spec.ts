@@ -1092,9 +1092,15 @@ for (const [width, theme] of [
         ),
       ).toBeGreaterThanOrEqual(14);
     }
-    await expect(surface.getByText(copy.intro)).toHaveCount(0);
-    await expect(surface.getByText(copy.thinkingHint)).toHaveCount(0);
-    await expect(surface.getByText(copy.checkInHint)).toHaveCount(0);
+    await expect(
+      surface.getByText('Kleine Gesten direkt an deinen Partner.'),
+    ).toHaveCount(0);
+    await expect(
+      surface.getByText(localizedFixtures.retiredCopy.kissHint),
+    ).toHaveCount(0);
+    await expect(
+      surface.getByText(localizedFixtures.retiredCopy.checkInHint),
+    ).toHaveCount(0);
     const entry = surface.getByRole('link', {
       name: new RegExp(onceCopy.title),
     });
@@ -1122,7 +1128,7 @@ for (const [width, theme] of [
   });
 }
 
-test('Wir shows no separate one-time link and no global create shortcut in the header', async ({
+test('Wir shows no separate one-time link and the header carries only the create entry', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -1144,14 +1150,15 @@ test('Wir shows no separate one-time link and no global create shortcut in the h
   await expect(triggerLocator(page)).toHaveCount(0);
   // Product Owner decision 2026-11-12: Wir carries no separate one-time
   // link; the composer stays reachable from the partner action sheet. The
-  // Expanded header no longer carries a global create shortcut.
+  // Expanded header carries the create entry as its only control (Product
+  // Owner decision 2026-11-27).
   await expect(
     page
       .locator('.today-content')
       .getByRole('link', { name: new RegExp(onceCopy.title) }),
   ).toHaveCount(0);
   await expect(page.locator('.shell-primary-action')).toHaveCount(0);
-  await expect(page.getByRole('banner').getByRole('button')).toHaveCount(0);
+  await expect(page.getByRole('banner').getByRole('button')).toHaveCount(1);
 });
 
 test('the one-time entry is independent of an unavailable extended-gesture entitlement read', async ({
@@ -1192,7 +1199,7 @@ for (const width of [390, 1280]) {
     await expect(gallery).toBeVisible();
     await expect(gallery.locator('img')).toBeVisible();
     await expect(
-      gallery.getByRole('button', { name: storyProducts.gallery.close }),
+      gallery.getByRole('button', { name: de.common.close }),
     ).toBeFocused();
     await expectNoHorizontalOverflow(page);
     await expectNoWcagViolations(page);
@@ -1327,6 +1334,18 @@ test('a foreground Wish invitation opens the private favorites directly', async 
   await expect(
     page.getByRole('heading', { name: wishSelection.chooseTitle }),
   ).toBeVisible();
+  // #2371: the first choice starts as a card deck; leaving every card out
+  // reaches the summary that offers sending without a favourite.
+  const skip = page.getByRole('button', {
+    name: wishSelection.deckSkip,
+    exact: true,
+  });
+  await expect(skip).toBeVisible();
+  for (let card = 0; card < 6; card += 1) {
+    if (!(await skip.isVisible()) || !(await skip.isEnabled())) break;
+    await skip.click();
+  }
+  await expect(skip).toHaveCount(0);
   await expect(
     page.getByRole('button', { name: wishSelection.shareNone }),
   ).toBeVisible();
@@ -1445,7 +1464,7 @@ for (const scenario of [
     );
 
     // The same notification never animates again on a later refresh.
-    await receipt.getByRole('button', { name: receiptCopy.close }).click();
+    await receipt.getByRole('button', { name: de.common.close }).click();
     await expect(receiptLocator(page)).toHaveCount(0);
     await refreshUnreadCount(page);
     await page.waitForTimeout(300);

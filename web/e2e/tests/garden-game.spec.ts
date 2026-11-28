@@ -5,7 +5,9 @@ import de from '../../src/i18n/locales/de';
 import games from '../../src/i18n/locales/games';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '../support/axe';
+import { fulfillGameNoticesRead } from '../support/gameNotices';
 import { fulfillNoOccasionSources } from '../support/occasionSources';
+import { expectTitleOnlyContentGap } from '../support/pageHeader';
 import { CAPABILITIES } from '../support/storyTimelineFixture';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
@@ -144,6 +146,7 @@ async function installMocks(
     };
   }
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillGameNoticesRead(route)) return;
     if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
@@ -232,6 +235,12 @@ async function installMocks(
           version: 2,
           attachments: [{ ...upload, position: 0, canEditSensitivity: true }],
         },
+      });
+      return;
+    }
+    if (method === 'GET' && pathname === `${GARDEN_PATH}/history`) {
+      await route.fulfill({
+        json: { items: [], nextCursor: null, hasMore: false },
       });
       return;
     }
@@ -498,6 +507,7 @@ for (const scenario of [
     const errors = await prepare(page, scenario);
     await openGarden(page);
     const stack = page.locator('.garden-scene-stack').first();
+    await expectTitleOnlyContentGap(page.locator('.garden-band'));
     const name = `2079-garden-scene-${scenario.width}-${scenario.theme}${scenario.reduce ? '-reduce' : ''}`;
 
     if (scenario.reduce) {
@@ -703,6 +713,12 @@ async function installGrowthMocks(page: Page) {
     const pathname = new URL(request.url()).pathname;
     const method = request.method();
     const suffix = pathname.slice(GARDEN_PATH.length);
+    if (method === 'GET' && suffix === '/history') {
+      await route.fulfill({
+        json: { items: [], nextCursor: null, hasMore: false },
+      });
+      return;
+    }
     if (method !== 'GET') network.writes.push(`${method} ${suffix}`);
     if (method === 'POST' && suffix === '/news/seen') {
       garden = { ...garden, news: [] };
@@ -987,7 +1003,7 @@ for (const scenario of [
       info,
       `garden-visitor-editor-${scenario.width}-${scenario.theme}.png`,
     );
-    await editor.getByRole('button', { name: growth.save }).click();
+    await editor.getByRole('button', { name: de.common.save }).click();
     await expect(page.locator('.garden-status')).toHaveText(
       fill(growth.visitors.namedStatus, {
         visitor: growth.visitors.own[kind],
@@ -1080,7 +1096,7 @@ for (const scenario of [
       .getByRole('button', { name: growth.rename, exact: true })
       .click();
     await book.getByLabel(growth.nameLabel).fill('Unser Eck');
-    await book.getByRole('button', { name: growth.save }).click();
+    await book.getByRole('button', { name: de.common.save }).click();
     await expect(
       page.getByRole('heading', { level: 1, name: 'Unser Eck' }),
     ).toBeVisible();

@@ -1,10 +1,7 @@
-/* Compact Wir layouts (#1907 C1): `names` (Zu zweit) sets the two names large
-   without portraits; `note` (Handschrift) keeps a compact header and leads with
-   the latest shared Heart Moment as a note. Both arrange only; colours, type
-   families, radii and elevation come from the design's tokens. */
+/* Zu zweit leads with large names and compact check-in rows.
+   Colours, type families, radii and elevation come from the design's tokens. */
 
-.today-page:is([data-wir-layout="names"], [data-wir-layout="note"])
-.today-content {
+.today-page[data-wir-layout="names"] .today-content {
   inline-size: min(100%, 39rem);
   margin-inline: auto;
 }
@@ -145,8 +142,7 @@
 }
 
 /* Calm sections: the moment as a small row, plain agenda rows. */
-.today-page:is([data-wir-layout="names"], [data-wir-layout="note"])
-.today-section-header {
+.today-page[data-wir-layout="names"] .today-section-header {
   padding-inline: 0;
   margin-block-end: var(--space-1);
 }
@@ -164,11 +160,7 @@
   min-block-size: 44px;
   font-size: 0.8rem;
 }
-.today-page[data-wir-layout="names"] .today-section-moment {
-  margin-block-end: var(--space-10);
-}
-.today-page:is([data-wir-layout="names"], [data-wir-layout="note"])
-  .today-moment-figure {
+.today-page[data-wir-layout="names"] .today-moment-figure {
   display: grid;
   grid-template-columns: clamp(3.3rem, 17vw, 4.6rem) minmax(0, 1fr);
   align-items: center;
@@ -178,30 +170,26 @@
   background: transparent;
   box-shadow: none;
 }
-.today-page:is([data-wir-layout="names"], [data-wir-layout="note"])
+.today-page[data-wir-layout="names"]
   .today-moment-media
   :is(.story-media-preview, .story-media-skeleton, .story-media-placeholder) {
   aspect-ratio: 1;
   border-radius: var(--radius-small);
 }
-.today-page:is([data-wir-layout="names"], [data-wir-layout="note"])
-  .today-moment-caption {
+.today-page[data-wir-layout="names"] .today-moment-caption {
   position: static;
   padding: 0;
   background: transparent;
 }
-.today-page:is([data-wir-layout="names"], [data-wir-layout="note"])
-  .today-moment-title {
+.today-page[data-wir-layout="names"] .today-moment-title {
   color: var(--color-text);
   font: 620 1rem / 1.25 var(--font-ui);
   overflow-wrap: anywhere;
 }
-.today-page:is([data-wir-layout="names"], [data-wir-layout="note"])
-  .today-moment-date {
+.today-page[data-wir-layout="names"] .today-moment-date {
   color: var(--color-text-secondary);
 }
-.today-page:is([data-wir-layout="names"], [data-wir-layout="note"])
-  .today-moment-text {
+.today-page[data-wir-layout="names"] .today-moment-text {
   border: 0;
   border-inline-start: 1px solid var(--color-border);
   border-radius: 0;
@@ -220,23 +208,19 @@
   color: var(--color-text-secondary);
   font: 500 0.9rem / 1.5 var(--font-ui);
 }
-.today-page:is([data-wir-layout="names"], [data-wir-layout="note"])
-  .today-agenda-list {
+.today-page[data-wir-layout="names"] .today-agenda-list {
   display: grid;
   gap: 0;
   overflow: visible;
 }
-.today-page:is([data-wir-layout="names"], [data-wir-layout="note"])
-  .today-agenda-list
-  > .today-agenda-row {
+.today-page[data-wir-layout="names"] .today-agenda-list > .today-agenda-row {
   max-inline-size: 100%;
   border: 0;
   border-radius: var(--radius-medium);
   padding-inline: 0;
   background: transparent;
 }
-.today-page:is([data-wir-layout="names"], [data-wir-layout="note"])
-  .today-agenda-icon {
+.today-page[data-wir-layout="names"] .today-agenda-icon {
   color: var(--color-brand-text);
   background: transparent;
 }
@@ -263,153 +247,14 @@
   font-weight: 440;
 }
 
-/* Note: a compact header with the story link beside the names. */
-.today-page[data-wir-layout="note"] .wir-compact-hero {
-  padding-block-start: clamp(0.6rem, 2.3vh, 1.5rem);
-  margin-block-end: 0;
-}
-.today-page[data-wir-layout="note"] .wir-compact-hero .couple-presence-main {
-  gap: clamp(1rem, 3vh, 1.6rem);
-}
-.today-page[data-wir-layout="note"] .wir-compact-hero .couple-presence-details {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  justify-items: start;
-  column-gap: 0.7rem;
-}
-.today-page[data-wir-layout="note"] .wir-compact-hero .couple-presence-title {
-  display: block;
-  padding: 0;
-  color: var(--color-text);
-  font: 650 clamp(1.35rem, 5.7vw, 1.85rem) / 1.15 var(--font-heading-family);
-  letter-spacing: -0.03em;
-}
-.today-page[data-wir-layout="note"] .wir-compact-story-link {
-  grid-column: 2;
-  grid-row: 1 / 3;
-  align-self: center;
-  font-size: 0.86rem;
-  text-decoration: none;
-}
-.today-page[data-wir-layout="note"]
-  .wir-compact-hero
-  .today-hero-duration-link {
-  font-size: 0.78rem;
-  text-align: start;
-  text-decoration: none;
-}
-.today-page[data-wir-layout="note"] .wir-compact-hero .partner-avatar-stack {
-  gap: 0.55rem;
-}
-.today-page[data-wir-layout="note"] .wir-compact-person {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  row-gap: 0.3rem;
-  column-gap: 0.5rem;
-  font-size: 0.86rem;
-}
-.today-page[data-wir-layout="note"] .wir-compact-hero .wir-checkin-badge {
-  color: var(--color-brand-text);
-}
-
-/* The note itself. */
-.wir-note-card {
-  display: grid;
-  justify-items: start;
-  gap: var(--space-4);
-  padding: clamp(1.2rem, 5vw, 1.9rem);
-  border-radius: var(--radius-small);
-  color: var(--color-brand-text);
-  background: var(--color-brand-surface);
-  text-align: start;
-  text-decoration: none;
-  transition: background-color var(--duration-feedback) var(--easing-standard);
-}
-.wir-note-card:hover {
-  background: color-mix(
-    in srgb,
-    var(--color-brand-surface) 94%,
-    var(--color-brand-text)
-  );
-}
-.wir-note-kind,
-.wir-note-open {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  font: 670 0.84rem / 1.3 var(--font-ui);
-}
-.wir-note-kind .eimir-icon {
-  inline-size: 1.25rem;
-  block-size: 1.25rem;
-}
-.wir-note-open .eimir-icon {
-  inline-size: 1rem;
-  block-size: 1rem;
-}
-.wir-note-date {
-  margin-inline-start: var(--space-1);
-  color: var(--color-text-secondary);
-  font-weight: 500;
-}
-.wir-note-text {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 5;
-  overflow: hidden;
-  max-inline-size: 24ch;
-  margin: 0;
-  color: var(--color-text);
-  font: 520 clamp(1.7rem, 7.15vw, 2.65rem) / 1.16 var(--font-display);
-  letter-spacing: -0.043em;
-  overflow-wrap: anywhere;
-  text-wrap: pretty;
-}
-.today-page[data-wir-layout="note"] .wir-note-moment .today-moment-figure {
-  min-block-size: auto;
-  padding: 0.7rem;
-  gap: 0.9rem;
-  border-radius: var(--radius-small);
-  background: var(--color-surface);
-}
-.today-page[data-wir-layout="note"] .wir-note-moment .today-moment-title {
-  font-family: var(--font-display);
-}
-.wir-note-add {
-  display: flex;
-  justify-content: start;
-  margin-block: 0.85rem clamp(1.7rem, 4.2vh, 2.4rem);
-}
-.today-page[data-wir-layout="note"] .today-section-moment {
-  margin-block-end: 1.55rem;
-}
-.today-page[data-wir-layout="note"] .today-section-title {
-  font-size: 1.24rem;
-  letter-spacing: -0.025em;
-}
-
-@media (max-width: 355px) {
-  .today-page[data-wir-layout="note"] .wir-compact-story-link {
-    grid-column: 1 / -1;
-    grid-row: auto;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .wir-note-card {
-    transition: none;
-  }
-}
 @media (forced-colors: active) {
-  .wir-compact-hero button.partner-avatar-slot,
-  .wir-note-card {
+  .wir-compact-hero button.partner-avatar-slot {
     border: 1px solid ButtonText;
   }
 }
 
 /* The small moment row keeps the reveal control on one line. */
-.today-page:is([data-wir-layout="names"], [data-wir-layout="note"])
+.today-page[data-wir-layout="names"]
   .today-moment-media
   .sensitive-media-control {
   min-inline-size: 44px;
@@ -418,7 +263,7 @@
   font-size: 0.66rem;
   white-space: nowrap;
 }
-.today-page:is([data-wir-layout="names"], [data-wir-layout="note"])
+.today-page[data-wir-layout="names"]
   .today-moment-media
   :is(
     .sensitive-media-control-copy > span,

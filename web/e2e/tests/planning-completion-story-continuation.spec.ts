@@ -7,7 +7,7 @@ import m5s3 from '../../src/i18n/locales/m5s3';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { fulfillUnconfiguredPhotoSources } from '../support/photoSources';
-import { itemMenuTrigger } from '../support/itemMenu';
+import { itemMenuRow, itemMenuTrigger } from '../support/itemMenu';
 import { fulfillEmptyPlanComments } from '../support/planComments';
 import { captureScreenshot } from '../support/storyTimelineFixture';
 
@@ -504,7 +504,7 @@ test('completed Plan continuation opens canonical Memory capture and cancellatio
     'Picnic in the park',
   );
   await page
-    .getByRole('button', { name: taskBoundary.close, exact: true })
+    .getByRole('button', { name: de.common.close, exact: true })
     .click();
   await page
     .getByRole('button', { name: taskBoundary.discardConfirm, exact: true })
@@ -533,13 +533,73 @@ test('completed Plan continuation opens canonical Memory capture and cancellatio
     ).toHaveCount(0);
 });
 
+const captureMenuScenarios = visualScenarios.filter((scenario) =>
+  ['390-light', '390-dark', '390-200-percent', '1440-expanded-light'].includes(
+    scenario.name,
+  ),
+);
+
+for (const scenario of captureMenuScenarios) {
+  test(`a completed Plan opened later keeps capture as a Moment in its menu: ${scenario.name}`, async ({
+    page,
+  }, testInfo) => {
+    await prepareScenario(page, scenario);
+    // Opened again later (#2158): no continuation, the menu keeps the way.
+    await page.goto(`/plan/plans/${PLAN_ID}`);
+    if (scenario.fontScale) {
+      await page.addStyleTag({
+        content: `html { font-size: ${scenario.fontScale * 100}% !important; }`,
+      });
+    }
+    await expect(page.locator('.planen-detail-status')).toHaveText(
+      m5s3.plan.completedTitle,
+    );
+    await expect(
+      page.getByRole('button', {
+        name: m5s3.planStory.memoryAction,
+        exact: true,
+      }),
+    ).toHaveCount(0);
+    await itemMenuTrigger(page).click();
+    for (const label of [
+      m5s3.planStory.menuMemory,
+      m5s3.planStory.menuHeartMoment,
+      m5s3.planStory.menuMilestone,
+    ])
+      await expect(itemMenuRow(page, label)).toBeVisible();
+    await assertNoHorizontalOverflow(page);
+    if (scenario.name === '390-light') await assertNoWcagViolations(page);
+    // Let the sheet settle before the capture.
+    await page.waitForTimeout(500);
+    await captureScreenshot(
+      page,
+      testInfo,
+      `plan-menu-capture-moment-${scenario.name}.png`,
+    );
+    if (scenario.name !== '390-light') return;
+
+    await itemMenuRow(page, m5s3.planStory.menuMemory).click();
+    await expect(page).toHaveURL(/\/story\/memories\/new$/);
+    await expect(page.getByLabel(de.memory.titleLabelOptional)).toHaveValue(
+      'Picnic in the park',
+    );
+    await page
+      .getByRole('button', { name: de.common.close, exact: true })
+      .click();
+    await page
+      .getByRole('button', { name: taskBoundary.discardConfirm, exact: true })
+      .click();
+    await expect(page).toHaveURL(new RegExp(`/plan/plans/${PLAN_ID}$`));
+  });
+}
+
 test('Later dismisses the continuation and restores focus to stable Plan navigation', async ({
   page,
 }) => {
   await prepareScenario(page, visualScenarios[0]);
 
   const backLink = page.getByRole('button', {
-    name: taskBoundary.back,
+    name: de.common.back,
     exact: true,
   });
   await page.getByRole('button', { name: m5s3.planStory.later }).click();
@@ -653,7 +713,7 @@ async function assertCompetingWritesLocked(page: Page): Promise<void> {
   // The completion date and planned date deliberately share the concise label
   // "Datum". Only the schedule editor must be absent during completion.
   await expect(page.locator('#plan-schedule-date')).toHaveCount(0);
-  const action = page.getByRole('button', { name: m5s3.common.saving });
+  const action = page.getByRole('button', { name: de.common.saving });
   await expect(action).toHaveAttribute('aria-disabled', 'true');
   await expect(action).toBeFocused();
 }
@@ -862,7 +922,7 @@ test('Plan completion failure remains actionable after leaving and returning to 
   ).toBeVisible();
   await page
     .getByRole('dialog')
-    .getByRole('button', { name: taskBoundary.close, exact: true })
+    .getByRole('button', { name: de.common.close, exact: true })
     .click();
   await page.getByRole('link', { name: de.more.eyebrow, exact: true }).click();
   await expect(page).toHaveURL(/\/more$/);
@@ -964,7 +1024,7 @@ test('keyboard activation sends one completion and keeps focus on the action whi
 
   await expect(pendingStatus(page)).toBeVisible();
   await expect(
-    page.getByRole('button', { name: m5s3.common.saving }),
+    page.getByRole('button', { name: de.common.saving }),
   ).toBeFocused();
   expect(state.completionCalls).toBe(1);
 

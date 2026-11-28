@@ -1,6 +1,8 @@
 """Authenticated personal app-icon selection; installed launchers are device-owned."""
 
 from fastapi import APIRouter, Response
+from pydantic import Field, model_validator
+from pydantic.json_schema import SkipJsonSchema
 
 from eimir.api.concurrency import IfMatchToken, etag_for_token
 from eimir.api.deps import Authorization, DbSession, ensure_capability
@@ -8,12 +10,18 @@ from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
 from eimir.appearance import service
 from eimir.appearance.models import (
+    DEFAULT_MEMORY_WORLD,
     DEFAULT_WIR_DESIGN,
+    DEFAULT_WIR_REEL_STYLE,
+    FREE_MEMORY_WORLDS,
     FREE_WIR_DESIGNS,
+    FREE_WIR_REEL_STYLES,
     AppIconId,
     AppIconPreference,
+    MemoryWorldId,
     PersonColoursId,
     WirDesignId,
+    WirReelStyleId,
 )
 from eimir.authorization import AuthorizationContext
 from eimir.entitlements.models import Capability
@@ -90,11 +98,24 @@ def update_app_icon_preference(
 
 class WirDesignPreferenceView(ApiModel):
     design_id: WirDesignId
+    palette_id: WirDesignId | SkipJsonSchema[None] = Field(
+        default=None, exclude_if=lambda palette: palette is None
+    )
     version: int
 
 
 class WirDesignPreferencePatch(ApiModel):
-    design_id: WirDesignId
+    """Set the app design, the palette, or both. A null palette follows the app design."""
+
+    design_id: WirDesignId | SkipJsonSchema[None] = None
+    palette_id: WirDesignId | None = None
+
+    @model_validator(mode="after")
+    def require_selection(self) -> "WirDesignPreferencePatch":
+        fields = self.model_fields_set
+        if not fields or ("design_id" in fields and self.design_id is None):
+            raise ValueError("An appearance patch must select a design or palette.")
+        return self
 
 
 def _design_view(
@@ -105,7 +126,8 @@ def _design_view(
     response.headers["ETag"] = etag_for_token(service.concurrency_token(preference, authorization))
     response.headers["Cache-Control"] = "private, no-store"
     return WirDesignPreferenceView(
-        design_id=WirDesignId(preference.wir_design) if preference else DEFAULT_WIR_DESIGN,
+        design_id=preference.effective_wir_design if preference else DEFAULT_WIR_DESIGN,
+        palette_id=preference.effective_palette if preference else None,
         version=preference.version if preference else 0,
     )
 
@@ -138,10 +160,14 @@ def update_wir_design_preference(
     body: WirDesignPreferencePatch,
     expected_token: IfMatchToken,
 ) -> WirDesignPreferenceView:
-    """Save a personal cosmetic. Connected and Warm are Free; other designs require Pro."""
-    if body.design_id not in FREE_WIR_DESIGNS:
+    """Save personal design choices. Following the design and Free palettes never need Pro."""
+    if any(
+        value is not None and value not in FREE_WIR_DESIGNS
+        for value in (body.design_id, body.palette_id)
+    ):
         ensure_capability(session, authorization.space_id, Capability.THEME_BESPOKE_PACKS.value)
-    saved = service.save_wir_design(session, authorization, body.design_id, expected_token)
+    changes = body.model_dump(exclude_unset=True)
+    saved = service.save_wir_design(session, authorization, expected_token, **changes)
     return _design_view(saved, authorization, response)
 
 
@@ -212,3 +238,133 @@ def update_person_colours_preference(
         ensure_capability(session, authorization.space_id, Capability.THEME_BESPOKE_PACKS.value)
     saved = service.save_person_colours(session, authorization, body.colours, expected_token)
     return _colours_view(saved, authorization, response)
+
+
+class MemoryWorldPreferenceView(ApiModel):
+    """The caller's own memory world for the rediscovered memories in Momente."""
+
+    world_id: MemoryWorldId
+    version: int
+
+
+class MemoryWorldPreferencePatch(ApiModel):
+    world_id: MemoryWorldId
+
+
+def _world_view(
+    preference: AppIconPreference | None,
+    authorization: AuthorizationContext,
+    response: Response,
+) -> MemoryWorldPreferenceView:
+    response.headers["ETag"] = etag_for_token(service.concurrency_token(preference, authorization))
+    response.headers["Cache-Control"] = "private, no-store"
+    return MemoryWorldPreferenceView(
+        world_id=preference.effective_memory_world if preference else DEFAULT_MEMORY_WORLD,
+        version=preference.version if preference else 0,
+    )
+
+
+@router.get(
+    "/spaces/{spaceId}/appearance/memory-world",
+    response_model=MemoryWorldPreferenceView,
+    operation_id="getMemoryWorldPreference",
+    responses={200: {"headers": ETAG_HEADERS}, **problem_responses(401, 404)},
+)
+def get_memory_world_preference(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+) -> MemoryWorldPreferenceView:
+    """Read only the caller's own memory world, including after Pro expiry."""
+    return _world_view(service.read_preference(session, authorization), authorization, response)
+
+
+@router.patch(
+    "/spaces/{spaceId}/appearance/memory-world",
+    response_model=MemoryWorldPreferenceView,
+    operation_id="updateMemoryWorldPreference",
+    responses={200: {"headers": ETAG_HEADERS}, **problem_responses(401, 403, 404, 409, 422)},
+)
+def update_memory_world_preference(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+    body: MemoryWorldPreferencePatch,
+    expected_token: IfMatchToken,
+) -> MemoryWorldPreferenceView:
+    """Save a known world. Story and Stapel are Free; every other world requires Pro.
+
+    Membership precedes the capability check. Reads never delete or revert a
+    saved world when a grant expires, and returning to a Free world stays free.
+    The world is a personal presentation and is not shared with the partner.
+    """
+    if body.world_id not in FREE_MEMORY_WORLDS:
+        ensure_capability(session, authorization.space_id, Capability.THEME_BESPOKE_PACKS.value)
+    saved = service.save_memory_world(session, authorization, body.world_id, expected_token)
+    return _world_view(saved, authorization, response)
+
+
+class WirReelStylePreferenceView(ApiModel):
+    """The caller's own presentation of the Wir reels (new-for-you notices and waiting games)."""
+
+    style_id: WirReelStyleId
+    version: int
+
+
+class WirReelStylePreferencePatch(ApiModel):
+    style_id: WirReelStyleId
+
+
+def _reel_style_view(
+    preference: AppIconPreference | None,
+    authorization: AuthorizationContext,
+    response: Response,
+) -> WirReelStylePreferenceView:
+    response.headers["ETag"] = etag_for_token(service.concurrency_token(preference, authorization))
+    response.headers["Cache-Control"] = "private, no-store"
+    return WirReelStylePreferenceView(
+        style_id=preference.effective_wir_reel_style if preference else DEFAULT_WIR_REEL_STYLE,
+        version=preference.version if preference else 0,
+    )
+
+
+@router.get(
+    "/spaces/{spaceId}/appearance/wir-reels",
+    response_model=WirReelStylePreferenceView,
+    operation_id="getWirReelStylePreference",
+    responses={200: {"headers": ETAG_HEADERS}, **problem_responses(401, 404)},
+)
+def get_wir_reel_style_preference(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+) -> WirReelStylePreferenceView:
+    """Read only the caller's own Wir reel style, including after Pro expiry."""
+    return _reel_style_view(
+        service.read_preference(session, authorization), authorization, response
+    )
+
+
+@router.patch(
+    "/spaces/{spaceId}/appearance/wir-reels",
+    response_model=WirReelStylePreferenceView,
+    operation_id="updateWirReelStylePreference",
+    responses={200: {"headers": ETAG_HEADERS}, **problem_responses(401, 403, 404, 409, 422)},
+)
+def update_wir_reel_style_preference(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+    body: WirReelStylePreferencePatch,
+    expected_token: IfMatchToken,
+) -> WirReelStylePreferenceView:
+    """Save a known style. Circles are Free; tiles and chips require Pro.
+
+    Membership precedes the capability check. Reads never delete or revert a
+    saved style when a grant expires, and returning to circles stays free.
+    The style is a personal presentation and is not shared with the partner.
+    """
+    if body.style_id not in FREE_WIR_REEL_STYLES:
+        ensure_capability(session, authorization.space_id, Capability.THEME_BESPOKE_PACKS.value)
+    saved = service.save_wir_reel_style(session, authorization, body.style_id, expected_token)
+    return _reel_style_view(saved, authorization, response)

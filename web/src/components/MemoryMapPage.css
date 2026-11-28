@@ -501,6 +501,18 @@
   background: var(--color-brand-strong);
   color: var(--color-on-accent);
 }
+/* Without a photo the number is the whole marker: it sits on the point itself
+   instead of at the corner of the empty photo box, which at country scale
+   shifted it tens of kilometres north-east (Belgium looked like the
+   Netherlands). */
+.memory-map-marker-photo:empty + .memory-map-marker-count {
+  /* Physical left/right: the translate is physical too, also in RTL. */
+  right: auto;
+  bottom: auto;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+}
 .memory-map-photo-stack {
   display: block;
   position: relative;

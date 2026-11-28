@@ -1,6 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
 import {
   type MouseEvent,
+  memo,
   type ReactNode,
   useEffect,
   useId,
@@ -8,21 +8,30 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import {
+  Link,
+  type Location,
+  type NavigateFunction,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
 import type { PeopleApi } from '../api/generated/apis/PeopleApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { WishDetail } from '../api/generated/models/WishDetail';
 import { planListTitle } from '../client/discreetPlans';
+import { useFirstContentSettle } from '../client/firstContentSettle';
 import { formatCalendarDate } from '../client/formatRecency';
 import { groupPlanningOverviewPlans } from '../client/planningOverview';
 import { planScheduleLabel } from '../client/planningPresentation';
+import { usePrimaryTabActive } from '../client/primaryTabActive';
+import { usePrimaryTabPeeked } from '../client/primaryTabPeek';
 import { normalizeClientError } from '../client/problemDetails';
 import { sortByProductLabel } from '../client/productLabelOrder';
-import { useFirstContentSettle } from '../client/firstContentSettle';
 import { useQuietHint } from '../client/quietHints';
 import { useRootTabIntro } from '../client/rootTabIntro';
 import {
+  appRoutePath,
   MEMORY_CREATE_ROUTE,
   PLAN_CREATE_ROUTE,
   planDetailPath,
@@ -35,6 +44,11 @@ import { useTaskOrigin } from '../client/taskOrigin';
 import { textExcerpt } from '../client/textExcerpt';
 import { useWarmInfiniteQuery } from '../client/useWarmInfiniteQuery';
 import { OVERVIEW_STALE_TIME } from '../client/useWarmOverviewQuery';
+import { useAppLayout } from '../client/wirDesign';
+import {
+  isHiddenDuringGame,
+  withoutHiddenWishes,
+} from '../client/wishConcealment';
 import {
   sortPlannedWishes,
   wishJourneyHint,
@@ -52,6 +66,7 @@ import { PlanCover } from './PlanCover';
 import { PlanningOccasions } from './PlanningOccasions';
 import { QuietHint } from './QuietHint';
 import './FirstContentSettle.css';
+import { CollapsibleSearch } from './CollapsibleSearch';
 import {
   type PlanningScope,
   PlanningStatusScope,
@@ -59,7 +74,7 @@ import {
 } from './PlanningStatusScope';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
-import { CollapsibleSearch } from './CollapsibleSearch';
+import { HiddenWishGroup } from './WishGameConcealment';
 import { WishOriginMark } from './WishJourney';
 import { WishSelectionEntry } from './WishSelectionEntry';
 import './SharedPlanningPages.css';
@@ -273,15 +288,9 @@ function PlanenPanel({
   );
 }
 
-export function SharedPlanningOverviewPage({
-  apis,
-  spaceId,
-  apiBaseUrl,
-  accessToken,
-  peopleApi,
-  profilesApi,
-  accountId,
-}: {
+interface SharedPlanningOverviewPageProps {
+  /** Defaults to the kept tab's own state (`usePrimaryTabActive`). */
+  active?: boolean;
   peopleApi?: PeopleApi;
   profilesApi?: ProfilesApi;
   apis: SharedPlanningApis;
@@ -289,13 +298,52 @@ export function SharedPlanningOverviewPage({
   accountId?: string;
   apiBaseUrl?: string;
   accessToken?: string;
-}) {
-  const rootIntro = useRootTabIntro<HTMLDivElement>('plan');
-  const { t } = useTranslation();
+}
+
+/**
+ * Reads the route for the page. React runs every component that reads the
+ * router's location again on each navigation in the app, also inside a kept
+ * tab whose own location did not change. Only this small component pays
+ * that; the page itself renders when what it is handed changes.
+ */
+export function SharedPlanningOverviewPage(
+  props: SharedPlanningOverviewPageProps,
+) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { captureOrigin, registerOriginMetadata, resolveOrigin } =
-    useTaskOrigin();
+  const origin = useTaskOrigin();
+  return (
+    <SharedPlanningOverviewView
+      {...props}
+      location={location}
+      navigate={navigate}
+      origin={origin}
+    />
+  );
+}
+
+const SharedPlanningOverviewView = memo(function SharedPlanningOverviewView({
+  active: activeOverride,
+  apis,
+  spaceId,
+  apiBaseUrl,
+  accessToken,
+  peopleApi,
+  profilesApi,
+  accountId,
+  location,
+  navigate,
+  origin: { captureOrigin, registerOriginMetadata, resolveOrigin },
+}: SharedPlanningOverviewPageProps & {
+  location: Location;
+  navigate: NavigateFunction;
+  origin: ReturnType<typeof useTaskOrigin>;
+}) {
+  const tabActive = usePrimaryTabActive();
+  const active = activeOverride ?? tabActive;
+  const rootIntro = useRootTabIntro<HTMLDivElement>('plan');
+  const { t } = useTranslation();
+  const layout = useAppLayout();
   const wishesTabId = useId();
   const plansTabId = useId();
   const wishesPanelId = useId();
@@ -308,11 +356,25 @@ export function SharedPlanningOverviewPage({
   const [wishStatus, setWishStatus] = useState<WishScope>(
     () => wishScopeForHash(location.hash) ?? 'OPEN',
   );
-  const [planStatus, setPlanStatus] = useState<PlanningScope>(() =>
+  const [selectedPlanStatus, setPlanStatus] = useState<PlanningScope>(() =>
     location.hash === '#experienced-plans' ? 'COMPLETED' : 'OPEN',
   );
-  const [planSearch, setPlanSearch] = useState('');
+  const [selectedPlanSearch, setPlanSearch] = useState('');
   const [wishSearch, setWishSearch] = useState('');
+  // A primary selection opens the unfiltered Plans segment. Keep the original
+  // choices for a cancelled swipe and for Back to the parked entry. A parked
+  // panel nobody sees keeps its own view and reads nothing it did not before.
+  const peeked = usePrimaryTabPeeked(
+    appRoutePath('plan'),
+    !active &&
+      (activeSegment !== 'plans' ||
+        selectedPlanStatus !== 'OPEN' ||
+        selectedPlanSearch !== ''),
+  );
+  const preview = !active && peeked;
+  const displayedSegment = preview ? 'plans' : activeSegment;
+  const planStatus = preview ? 'OPEN' : selectedPlanStatus;
+  const planSearch = preview ? '' : selectedPlanSearch;
   const [occasionActionHost, setOccasionActionHost] =
     useState<HTMLSpanElement | null>(null);
   const restoredOrigin = useRef<unknown>(null);
@@ -471,7 +533,9 @@ export function SharedPlanningOverviewPage({
     {
       queryKey: ['m5-s3', 'plans', spaceId, 'overview', planStatus],
       staleTime: OVERVIEW_STALE_TIME,
-      enabled: activeSegment === 'plans',
+      enabled: (query) =>
+        displayedSegment === 'plans' &&
+        (active || query.state.status === 'pending'),
       queryFn: ({ pageParam, signal }) =>
         apiCall(() =>
           apis.plans.listPlans(
@@ -492,15 +556,23 @@ export function SharedPlanningOverviewPage({
   );
 
   // #1790 F2: one quiet hint above the Plans list, derived from the wishes
-  // that left OPEN. Both lifecycle lists are small, so read them completely.
-  const journeyWishes = useQuery({
+  // that left OPEN. Both lifecycle lists are small, so read them completely,
+  // in parallel. Like the Plans list it restores its last shared snapshot,
+  // so the hint is there with the list and never pushes it down later.
+  const journeyQuery = useWarmInfiniteQuery<WishDetail[], null>({
     queryKey: ['m5-s3', 'wishes', spaceId, 'journey-hint'],
     staleTime: OVERVIEW_STALE_TIME,
-    enabled: activeSegment === 'plans' && planStatus === 'OPEN',
+    enabled: (query) =>
+      displayedSegment === 'plans' &&
+      planStatus === 'OPEN' &&
+      (active || query.state.status === 'pending'),
     retry: false,
+    initialPageParam: null as null,
+    // The two lifecycle lists form one page.
+    getNextPageParam: () => undefined,
     queryFn: async ({ signal }) => {
-      const items: WishDetail[] = [];
-      for (const status of ['PLANNED', 'COMPLETED'] as const) {
+      const read = async (status: 'PLANNED' | 'COMPLETED') => {
+        const items: WishDetail[] = [];
         let cursor: string | null = null;
         for (let page = 0; page < JOURNEY_MAX_PAGES; page += 1) {
           const result = await apiCall(() =>
@@ -513,13 +585,17 @@ export function SharedPlanningOverviewPage({
           if (!result.hasMore || !result.nextCursor) break;
           cursor = result.nextCursor;
         }
-      }
-      return items;
+        return items;
+      };
+      const [planned, completed] = await Promise.all([
+        read('PLANNED'),
+        read('COMPLETED'),
+      ]);
+      return [...planned, ...completed];
     },
   });
-  const journeyHint = journeyWishes.data
-    ? wishJourneyHint(journeyWishes.data)
-    : null;
+  const journeyWishes = journeyQuery.data?.pages[0];
+  const journeyHint = journeyWishes ? wishJourneyHint(journeyWishes) : null;
 
   // A search must inspect the whole authorized scope, not just visible pages.
   useEffect(() => {
@@ -544,17 +620,22 @@ export function SharedPlanningOverviewPage({
     planSearch.trim() && plans.hasNextPage && !plans.error,
   );
 
+  const scopedWishes = [
+    ...new Map(
+      (wishes.data?.pages.flatMap((page) => page.items) ?? [])
+        .filter((wish) => wish.status === wishStatus)
+        .map((wish) => [wish.id, wish]),
+    ).values(),
+  ];
+  // #2158 H: a partner's wish an open Wish detective game hides keeps a
+  // placeholder of its own below the alphabet; it has no title to sort by.
+  const hiddenWishes = wishSearch.trim()
+    ? []
+    : scopedWishes.filter(isHiddenDuringGame);
   const alphabeticalWishes = sortByProductLabel(
-    [
-      ...new Map(
-        (wishes.data?.pages.flatMap((page) => page.items) ?? [])
-          .filter((wish) => wish.status === wishStatus)
-          .filter((wish) =>
-            matchesSearch(wishSearch, wish.title, ...(wish.tags ?? [])),
-          )
-          .map((wish) => [wish.id, wish]),
-      ).values(),
-    ],
+    withoutHiddenWishes(scopedWishes).filter((wish) =>
+      matchesSearch(wishSearch, wish.title, ...(wish.tags ?? [])),
+    ),
     (wish) => wish.title,
     resolvedLocale(),
   );
@@ -620,7 +701,7 @@ export function SharedPlanningOverviewPage({
   // The wish-to-plan tip retires once any wish became a plan. It reads only
   // data the overview already loaded, so it adds no request of its own.
   const wishBecamePlan =
-    Boolean(journeyWishes.data?.length) ||
+    Boolean(journeyWishes?.length) ||
     Boolean(
       plans.data?.pages.some((page) =>
         page.items.some((plan) => Boolean(plan.sourceWishId)),
@@ -895,23 +976,29 @@ export function SharedPlanningOverviewPage({
       <PageHeader
         variant="root"
         className="content-overview-heading"
-        title={t('m5s3.overview.title')}
+        title={t(
+          layout === 'rooms'
+            ? 'wirDesign.homeRooms.plans'
+            : layout === 'chapters'
+              ? 'wirDesign.rhythm.ahead'
+              : 'm5s3.overview.title',
+        )}
         action={
-          activeSegment === 'dates' ? (
+          displayedSegment === 'dates' ? (
             <span ref={setOccasionActionHost} />
           ) : (
             <AddActionLink
               floating
               label={t(
-                activeSegment === 'plans'
+                displayedSegment === 'plans'
                   ? 'm5s3.overview.addPlan'
                   : 'm5s3.overview.addWish',
               )}
               {...planningLinkProps(
-                activeSegment === 'plans'
+                displayedSegment === 'plans'
                   ? PLAN_CREATE_ROUTE
                   : WISH_CREATE_ROUTE,
-                activeSegment,
+                displayedSegment,
                 'planning-create',
               )}
             />
@@ -919,7 +1006,7 @@ export function SharedPlanningOverviewPage({
         }
       />
       <PlanenSegmentedControl
-        active={activeSegment}
+        active={displayedSegment}
         onChange={changeSegment}
         wishesTabId={wishesTabId}
         plansTabId={plansTabId}
@@ -932,7 +1019,7 @@ export function SharedPlanningOverviewPage({
       <PlanenPanel
         id={plansPanelId}
         labelledBy={plansTabId}
-        hidden={activeSegment !== 'plans'}
+        hidden={displayedSegment !== 'plans'}
       >
         <PlanningSearch
           kind="plans"
@@ -1133,7 +1220,7 @@ export function SharedPlanningOverviewPage({
             </ul>
           </section>
         ) : null}
-        {activeSegment === 'plans' && plans.hasNextPage ? (
+        {active && activeSegment === 'plans' && plans.hasNextPage ? (
           <AutoLoadMore query={plans} className="tertiary compact-action">
             {plans.isFetchingNextPage
               ? t('m5s3.common.loadingMore')
@@ -1145,7 +1232,7 @@ export function SharedPlanningOverviewPage({
       <PlanenPanel
         id={wishesPanelId}
         labelledBy={wishesTabId}
-        hidden={activeSegment !== 'wishes'}
+        hidden={displayedSegment !== 'wishes'}
       >
         <PlanningSearch
           kind="wishes"
@@ -1194,7 +1281,8 @@ export function SharedPlanningOverviewPage({
         {!wishes.isLoading &&
         !assemblingWishes &&
         !wishes.error &&
-        wishItems.length === 0 ? (
+        wishItems.length === 0 &&
+        hiddenWishes.length === 0 ? (
           <div className="planen-empty-state">
             <h2>
               {t(
@@ -1266,7 +1354,9 @@ export function SharedPlanningOverviewPage({
             {t('quietHints.tips.planFromWish')}
           </QuietHint>
         ) : null}
-        {!assemblingWishes && wishItems.length && wishStatus === 'OPEN' ? (
+        {!assemblingWishes &&
+        (wishItems.length || hiddenWishes.length) &&
+        wishStatus === 'OPEN' ? (
           <div
             className={
               wishesSettle
@@ -1308,6 +1398,7 @@ export function SharedPlanningOverviewPage({
                 </ul>
               </section>
             ))}
+            <HiddenWishGroup wishes={hiddenWishes} />
           </div>
         ) : null}
         {activeSegment === 'wishes' && wishes.hasNextPage && wishes.error ? (
@@ -1325,7 +1416,7 @@ export function SharedPlanningOverviewPage({
       <PlanenPanel
         id={datesPanelId}
         labelledBy={datesTabId}
-        hidden={activeSegment !== 'dates'}
+        hidden={displayedSegment !== 'dates'}
       >
         {activeSegment === 'dates' && peopleApi ? (
           <PlanningOccasions
@@ -1342,4 +1433,4 @@ export function SharedPlanningOverviewPage({
       </PlanenPanel>
     </div>
   );
-}
+});

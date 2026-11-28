@@ -57,6 +57,14 @@ x-shared-runtime-environment: &shared-runtime-environment
   EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET: "${EIMIR_GOOGLE_PHOTOS_CLIENT_SECRET:-}"
   EIMIR_GOOGLE_PHOTOS_WEB_CLIENT_FILE: "${EIMIR_GOOGLE_PHOTOS_WEB_CLIENT_FILE:-}"
   EIMIR_GOOGLE_PHOTOS_TEST_ACCOUNT_EMAILS: '${EIMIR_GOOGLE_PHOTOS_TEST_ACCOUNT_EMAILS:-[]}'
+  EIMIR_SUPPORT_REPORTS_ENABLED: "${EIMIR_SUPPORT_REPORTS_ENABLED:-false}"
+  # Operator plugin for support reports (#2189, #2266): name `admin` next to `pro`
+  # (EIMIR_PLUGINS=pro,admin). The default matches the image. Tracker values are
+  # optional; empty counts as unset.
+  EIMIR_PLUGINS: "${EIMIR_PLUGINS:-pro}"
+  EIMIR_ADMIN_TRACKER: "${EIMIR_ADMIN_TRACKER:-}"
+  EIMIR_ADMIN_GITHUB_REPOSITORY: "${EIMIR_ADMIN_GITHUB_REPOSITORY:-}"
+  EIMIR_ADMIN_GITHUB_TOKEN: "${EIMIR_ADMIN_GITHUB_TOKEN:-}"
   EIMIR_CALENDAR_SYNC_ENABLED: "${EIMIR_CALENDAR_SYNC_ENABLED:-true}"
   EIMIR_CALENDAR_CALDAV_PRIVATE_HOSTS: '${EIMIR_CALENDAR_CALDAV_PRIVATE_HOSTS:-[]}'
   EIMIR_GOOGLE_CALENDAR_CLIENT_ID: "${EIMIR_GOOGLE_CALENDAR_CLIENT_ID:-}"
@@ -82,6 +90,13 @@ x-push-runtime-environment: &push-runtime-environment
   EIMIR_PUSH_FCM_PROJECT_ID: "${EIMIR_PUSH_FCM_PROJECT_ID:-}"
   EIMIR_PUSH_FCM_ANDROID_PACKAGE: "${EIMIR_PUSH_FCM_ANDROID_PACKAGE:-}"
   EIMIR_PUSH_FCM_CREDENTIALS_FILE: "${EIMIR_PUSH_FCM_CREDENTIALS_FILE:-}"
+
+# Worker liveness for ServerAdmin monitoring (#2317): the push URL of the
+# operator's own Uptime Kuma push monitor. Main worker only, so a live video
+# worker cannot hide a hung main worker. Empty disables the ping.
+x-monitoring-worker-environment: &monitoring-worker-environment
+  EIMIR_HEARTBEAT_PUSH_URL: "${EIMIR_HEARTBEAT_PUSH_URL:-}"
+  EIMIR_WORKER_NAME: "${EIMIR_WORKER_NAME:-}"
 
 x-self-hosted-runtime-environment: &self-hosted-runtime-environment
   <<: [*self-hosted-database-environment, *shared-runtime-environment]
@@ -301,6 +316,8 @@ services:
     command: ["alembic", "upgrade", "head"]
     environment:
       <<: *self-hosted-database-environment
+      # The plugin migration chains follow the same plugin list as API and worker.
+      EIMIR_PLUGINS: "${EIMIR_PLUGINS:-pro}"
     networks:
       - app
     depends_on:
@@ -358,7 +375,7 @@ services:
     restart: unless-stopped
     command: ["python", "-m", "eimir.jobs.runner"]
     environment:
-      <<: [*self-hosted-runtime-environment, *push-runtime-environment]
+      <<: [*self-hosted-runtime-environment, *push-runtime-environment, *monitoring-worker-environment]
     volumes:
       - media_data:/var/lib/eimir/media
     networks:
@@ -392,6 +409,7 @@ services:
     command: ["alembic", "upgrade", "head"]
     environment:
       EIMIR_DATABASE_URL: "${EIMIR_DATABASE_URL:-${SBS_DATABASE_URL:-}}"
+      EIMIR_PLUGINS: "${EIMIR_PLUGINS:-pro}"
     networks:
       - app
 
@@ -419,7 +437,7 @@ services:
     restart: unless-stopped
     command: ["python", "-m", "eimir.jobs.runner"]
     environment:
-      <<: [*cloud-runtime-environment, *push-runtime-environment]
+      <<: [*cloud-runtime-environment, *push-runtime-environment, *monitoring-worker-environment]
     volumes:
       - cloud_media_data:/var/lib/eimir/media
       - cloud_deletion_journal_data:/var/lib/eimir/deletion-journal

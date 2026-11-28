@@ -1,6 +1,6 @@
 .profile-page {
   display: grid;
-  gap: var(--space-6);
+  --page-stack-gap: var(--space-6);
   width: 100%;
   max-width: 60rem;
   margin: 0 auto;

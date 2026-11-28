@@ -4,6 +4,20 @@ import './MomentsLayoutSettings.css';
 
 const OPTIONS: readonly DiaryLayout[] = ['album', 'compact'];
 
+/** Decorative preview made of shapes; it shows no personal content. */
+function LayoutPreview({ layout }: { layout: DiaryLayout }) {
+  return (
+    <span
+      className={`moments-layout-preview moments-layout-preview-${layout}`}
+      aria-hidden="true"
+    >
+      <i />
+      <i />
+      <i />
+    </span>
+  );
+}
+
 /**
  * One switch for how Momente look: the scrapbook Album or the classic calm
  * list. It governs Memories, Diary, Chapters and the rediscovery card on Us,
@@ -33,6 +47,7 @@ export function MomentsLayoutSettings() {
               checked={layout === value}
               onChange={() => setLayout(value)}
             />
+            <LayoutPreview layout={value} />
             <span>
               <strong>{t(`momentsLayout.${value}.name`)}</strong>
               <small>{t(`momentsLayout.${value}.hint`)}</small>

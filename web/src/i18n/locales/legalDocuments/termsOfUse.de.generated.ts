@@ -4,22 +4,14 @@ import type { LegalDocument } from '../../../legal/legalDocument';
 export const termsOfUseDe: LegalDocument = {
   document: 'terms-of-use',
   locale: 'de-DE',
-  version: '2026-11-06.draft-2',
+  version: '2026-11-25.draft-4',
   status: 'draft',
   title: 'Nutzungsbedingungen für eimir.',
   placeholders: [
     'EFFECTIVE_DATE',
-    'PROVIDER_NAME',
-    'PROVIDER_ADDRESS',
-    'IMPRINT_URL',
-    'CONTACT_EMAIL',
-    'WEBSITE_URL',
-    'TERMS_URL',
     'SECURITY_CONTACT',
     'NOTICE_IN_APP_PATH',
     'NOTICE_EMAIL',
-    'PAYMENT_PROVIDER',
-    'WITHDRAWAL_URL',
   ],
   blocks: [
     {
@@ -78,7 +70,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Die Grundfunktionen sind kostenlos. eimir. Pro ist kostenpflichtig und gilt für euren gemeinsamen Space. Endet Pro, bleiben eure Inhalte erhalten.',
+              text: 'Die Grundfunktionen sind kostenlos. Ein Pro-Abo gilt für euren gemeinsamen Space. Wenn es endet, bleiben eure gespeicherten Erinnerungen lesbar. Für den Garten und die Standortfreigabe gelten die Regeln in § 12.',
             },
           ],
           children: [],
@@ -87,7 +79,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Du kannst deine Daten jederzeit exportieren und dein Konto jederzeit löschen.',
+              text: 'Du kannst jederzeit eine Kopie deiner Daten verlangen und dein Konto jederzeit löschen.',
             },
           ],
           children: [],
@@ -116,7 +108,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Diese Nutzungsbedingungen regeln die Nutzung von eimir. Cloud, dem von uns betriebenen Online-Dienst eimir., über die Web-App und die offiziellen Apps (zusammen „eimir.“). Sie gelten auch für den Kauf von eimir. Pro, einschließlich Pro-Lizenzen für selbst betriebene Installationen (§ 12).',
+              text: 'Diese Nutzungsbedingungen regeln die Nutzung von eimir. Cloud, dem von uns betriebenen Online-Dienst, über die Web-App und die offiziellen Apps. Sie gelten auch für die Nutzung der Pro-Funktionen. Für den Erwerb eines Pro-Abos über Google Play gilt § 12.',
             },
           ],
           children: [],
@@ -125,7 +117,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'eimir. kann auch auf einem eigenen Server betrieben werden („Self-Hosted“). Für eine solche Installation ist ihr Betreiber verantwortlich, nicht wir. Nutzt du eine Installation, die nicht von uns betrieben wird, gelten diese Bedingungen nur für die offiziellen Apps, die wir dafür bereitstellen (§ 14), und für eine bei uns gekaufte Pro-Lizenz. Ob für die Installation eigene Bedingungen gelten, legt ihr Betreiber fest.',
+              text: 'Verbindest du eine offizielle App mit einer selbst betriebenen Installation („Self-Hosted“), gelten diese Bedingungen für die App (§ 14). Für die Installation ist ihr jeweiliger Betreiber verantwortlich. Ob dort eigene Bedingungen gelten, legt er fest. Das Cloud-Abo schaltet Pro ausschließlich in eimir. Cloud frei.',
             },
           ],
           children: [],
@@ -163,27 +155,22 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Anbieter von eimir. Cloud und dein Vertragspartner ist ',
+              text: 'Dein Vertragspartner für die Nutzung von eimir. Cloud ist Philipp Reis, Einzelunternehmen „Reis wie Nudel“, Zur Schwimmhalle 3, 66636 Tholey, Deutschland. Die Anbieterangaben findest du auch im ',
             },
-            { kind: 'placeholder', name: 'PROVIDER_NAME' },
-            { kind: 'text', text: ', ' },
-            { kind: 'placeholder', name: 'PROVIDER_ADDRESS' },
             {
-              kind: 'text',
-              text: '. Die vollständigen Anbieterangaben findest du im Impressum unter ',
+              kind: 'link',
+              text: 'Impressum',
+              href: 'https://eimir.de/impressum/',
             },
-            { kind: 'placeholder', name: 'IMPRINT_URL' },
             { kind: 'text', text: '.' },
           ],
           children: [],
         },
         {
           content: [
-            { kind: 'text', text: 'Du erreichst uns unter ' },
-            { kind: 'placeholder', name: 'CONTACT_EMAIL' },
             {
               kind: 'text',
-              text: '. Diese Adresse ist zugleich unsere zentrale Kontaktstelle für Nutzerinnen und Nutzer sowie für Behörden nach Art. 11 und 12 der Verordnung (EU) 2022/2065 (Digital Services Act). Du kannst uns auf Deutsch oder Englisch schreiben.',
+              text: 'Du erreichst uns unter kontakt@reiswienudel.de. Diese Adresse ist zugleich unsere zentrale Kontaktstelle für Nutzerinnen und Nutzer sowie für Behörden nach Art. 11 und 12 der Verordnung (EU) 2022/2065 (Digital Services Act). Du kannst uns auf Deutsch oder Englisch schreiben.',
             },
           ],
           children: [],
@@ -212,10 +199,8 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Die Grundfunktionen von eimir. sind kostenlos. Weitere Funktionen bieten wir als kostenpflichtiges eimir. Pro an (§ 12). Welche Funktionen jeweils dazugehören, siehst du in der App und unter ',
+              text: 'Die Grundfunktionen sind kostenlos. Welche zusätzlichen Funktionen eimir. Pro umfasst, siehst du in der App. Ein Abo kannst du abschließen, sobald die Android-App dir ein Angebot von Google Play zeigt (§ 12).',
             },
-            { kind: 'placeholder', name: 'WEBSITE_URL' },
-            { kind: 'text', text: '.' },
           ],
           children: [],
         },
@@ -223,7 +208,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'eimir. hat keine öffentlichen Bereiche. Eure Inhalte sind nur innerhalb eures Space sichtbar und werden nicht veröffentlicht.',
+              text: 'eimir. hat keine öffentlichen Bereiche. Wenn du selbst einen externen Kalender verbindest und einen Plan dorthin überträgst, können Personen mit Zugriff auf diesen Kalender den Termin sehen (§ 15).',
             },
           ],
           children: [],
@@ -281,7 +266,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Verwende eine E-Mail-Adresse, die dir gehört und die du regelmäßig nutzt. Über sie meldest du dich an, und über sie informieren wir dich über wichtige Änderungen.',
+              text: 'Verwende eine E-Mail-Adresse, die dir gehört und die du regelmäßig nutzt. An diese Adresse schicken wir wichtige Informationen zu deinem Konto.',
             },
           ],
           children: [],
@@ -299,7 +284,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'So kommt der Vertrag zustande: Du gibst deine E-Mail-Adresse ein und erhältst von uns einen Link, mit dem du bestätigst, dass die Adresse dir gehört. Vor dem Absenden kannst du deine Eingabe jederzeit korrigieren. Der Nutzungsvertrag kommt zustande, wenn du diesen Nutzungsbedingungen zugestimmt hast und dein Konto angelegt wird. Das gilt auch, wenn du über eine Einladung deines Partners zu eimir. kommst. Vertragssprache ist Deutsch.',
+              text: 'Du kannst deine E-Mail-Adresse vor dem Absenden korrigieren und bestätigst sie über unseren Anmeldelink. Bieten wir die Registrierung mit Google an, kannst du stattdessen dein Google-Konto mit bestätigter E-Mail-Adresse wählen. Der Nutzungsvertrag kommt in beiden Fällen zustande, wenn du diesen Bedingungen zugestimmt hast und wir dein Konto anlegen. Das gilt auch bei einer Einladung deines Partners. Vertragssprache ist Deutsch.',
             },
           ],
           children: [],
@@ -308,9 +293,13 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Wir speichern, welcher Fassung dieser Nutzungsbedingungen du wann zugestimmt hast. Die aktuelle Fassung kannst du jederzeit in der App und unter ',
+              text: 'Wir speichern, welcher Fassung dieser Nutzungsbedingungen du wann zugestimmt hast. Die aktuelle Fassung kannst du jederzeit in der App und auf ',
             },
-            { kind: 'placeholder', name: 'TERMS_URL' },
+            {
+              kind: 'link',
+              text: 'unserer Website',
+              href: 'https://app.eimir.de/legal/terms',
+            },
             {
               kind: 'text',
               text: ' aufrufen, speichern und ausdrucken. Eine frühere Fassung, der du zugestimmt hast, schicken wir dir auf Anfrage.',
@@ -342,7 +331,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Inhalte, die du für euch beide speicherst („Für uns beide“), kann dein Partner sehen. Gemeinsame Erinnerungen und ähnliche gemeinsame Inhalte kann dein Partner auch bearbeiten. Außerdem kann dein Partner gemeinsame Inhalte im Rahmen des Datenexports herunterladen, auch solche, die du erstellt hast.',
+              text: 'Inhalte, die du für euch beide speicherst („Für uns beide“), kann dein Partner sehen. Gemeinsame Erinnerungen und ähnliche gemeinsame Inhalte kann dein Partner auch bearbeiten. Außerdem kann dein Partner gemeinsame Inhalte in seiner Datenkopie (§ 13 Abs. 1) erhalten, auch solche, die du erstellt hast.',
             },
           ],
           children: [],
@@ -373,7 +362,7 @@ export const termsOfUseDe: LegalDocument = {
             [
               {
                 kind: 'text',
-                text: 'Gemeinsame Inhalte bleiben für deinen Partner erhalten, auch solche, die du erstellt hast.',
+                text: 'Gemeinsame Erinnerungen bleiben für deinen Partner erhalten, auch solche, die du erstellt hast. Euer gemeinsamer Garten wird beim Verlassen gelöscht. Was ihr daraus schon als Erinnerung gespeichert habt, bleibt erhalten.',
               },
             ],
             [
@@ -400,7 +389,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Exportiere vorher, was du behalten möchtest (§ 13 Abs. 1). Nach dem Verlassen ist ein Export aus diesem Space nicht mehr möglich.',
+              text: 'Wenn du eine Kopie eurer Space-Inhalte behalten möchtest, fordere sie vor dem Verlassen an (§ 13 Abs. 1). Auch danach kannst du deine gesetzlichen Auskunfts- und Herausgaberechte bei uns geltend machen.',
             },
           ],
           children: [],
@@ -438,7 +427,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Teilst du Inhalte mit deinem Partner, darf dein Partner sie innerhalb von eimir. ansehen, im Rahmen der jeweiligen Funktion bearbeiten und im Rahmen des Datenexports herunterladen.',
+              text: 'Teilst du Inhalte mit deinem Partner, darf dein Partner sie innerhalb von eimir. ansehen, im Rahmen der jeweiligen Funktion bearbeiten und in seiner Datenkopie (§ 13 Abs. 1) erhalten.',
             },
           ],
           children: [],
@@ -465,7 +454,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Wir sichern eimir. regelmäßig. Trotzdem empfehlen wir dir, wichtige Inhalte zusätzlich über den Datenexport selbst zu sichern.',
+              text: 'Wir sichern eimir. regelmäßig. Trotzdem empfehlen wir dir, wichtige Inhalte zusätzlich selbst zu sichern, zum Beispiel mit einer Datenkopie auf Anfrage (§ 13 Abs. 1).',
             },
           ],
           children: [],
@@ -709,7 +698,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Wir entwickeln eimir. weiter. Wir dürfen Funktionen ändern, ergänzen oder ersetzen, wenn es dafür einen triftigen Grund gibt, etwa neue rechtliche Anforderungen, die Sicherheit, technische Entwicklungen oder eine Verbesserung des Angebots, und der Kern von eimir. erhalten bleibt.',
+              text: 'Wir dürfen Funktionen an neue gesetzliche Anforderungen, konkrete Sicherheitsrisiken oder geänderte technische Schnittstellen anpassen. Der Kern des Dienstes bleibt dabei erhalten. Durch eine solche Änderung entstehen dir keine zusätzlichen Kosten. Wir informieren dich klar und verständlich über die Änderung.',
             },
           ],
           children: [],
@@ -718,7 +707,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Beeinträchtigt eine Änderung deinen Zugang zu eimir. Pro oder dessen Nutzbarkeit mehr als nur unerheblich, informieren wir dich rechtzeitig vorher in Textform, zum Beispiel per E-Mail. Du kannst Pro dann innerhalb von 30 Tagen kostenlos beenden. Die Frist beginnt mit unserer Information oder, wenn die Änderung später erfolgt, mit der Änderung.',
+              text: 'Beeinträchtigt eine Änderung deinen Zugang oder die Nutzbarkeit mehr als nur unerheblich, informieren wir dich in angemessenem Abstand vorher per E-Mail über Art, Zeitpunkt und deine Rechte. Du kannst den betroffenen Vertrag innerhalb von 30 Tagen kostenlos beenden. Die Frist beginnt mit Zugang der Nachricht oder, falls später, mit der Änderung. Das Beendigungsrecht entfällt, wenn du den unveränderten Dienst ohne zusätzliche Kosten weiter nutzen kannst.',
             },
           ],
           children: [],
@@ -727,7 +716,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Stellen wir eimir. Cloud insgesamt ein, informieren wir dich mindestens drei Monate vorher, damit du deine Daten exportieren kannst. Für bereits bezahlte Pro-Zeiträume nach der Einstellung erstatten wir dir den Betrag anteilig.',
+              text: 'Stellen wir eimir. Cloud insgesamt ein, informieren wir dich mindestens drei Monate vorher, damit du eine Kopie deiner Daten verlangen kannst. Für bereits bezahlte Pro-Zeiträume nach der Einstellung hast du Anspruch auf anteilige Erstattung. Wie du die Erstattung für den Play-Kauf beantragst, steht in § 12.',
             },
           ],
           children: [],
@@ -747,7 +736,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Wir schicken dir E-Mails und Benachrichtigungen, die für eimir. nötig sind, zum Beispiel Anmeldelinks, Sicherheitshinweise, Informationen zu deinem Pro-Abo und zu Änderungen dieser Nutzungsbedingungen.',
+              text: 'Wir schicken dir E-Mails und Benachrichtigungen, die für eimir. nötig sind, zum Beispiel Anmeldelinks, Sicherheitshinweise und Informationen zu Änderungen dieser Nutzungsbedingungen. Kaufbelege für dein Pro-Abo erhältst du von Google Play (§ 12).',
             },
           ],
           children: [],
@@ -785,7 +774,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'eimir. Pro ergänzt die kostenlosen Funktionen um weitere Funktionen. Welche das sind, welche Preise und welche Laufzeiten gelten, siehst du vor dem Kauf in der App oder auf unserer Website. Die angezeigten Preise sind Endpreise.',
+              text: 'Sobald die Android-App dir einen Monatstarif oder Jahrestarif anbietet, kannst du eimir. Pro für euren Cloud-Space über Google Play abonnieren. Die im Kaufdialog angezeigten Endpreise, der Abrechnungszeitraum und etwaige Testangebote gelten für deinen Kauf.',
             },
           ],
           children: [],
@@ -794,7 +783,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Pro gilt für euren gemeinsamen Space: Kauft einer von euch Pro, könnt ihr beide die Pro-Funktionen in diesem Space nutzen. Vertragspartner und zur Zahlung verpflichtet ist nur, wer Pro kauft. Pro verschafft keinen Zugriff auf „Nur für mich“-Inhalte des Partners.',
+              text: 'Kauft einer von euch Pro, können beide die Funktionen im gemeinsamen Space nutzen. Nur die kaufende Person schuldet den Preis. Inhalte unter „Nur für mich“ bleiben persönlich.',
             },
           ],
           children: [],
@@ -803,7 +792,12 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Du wählst im Kaufprozess Laufzeit und Zahlungsweg. Vor dem Absenden siehst du eine Übersicht und kannst deine Eingaben korrigieren. Mit der Bestellschaltfläche am Ende des Kaufprozesses, zum Beispiel „Zahlungspflichtig abonnieren“, gibst du ein verbindliches Angebot ab. Der Vertrag kommt zustande, wenn wir den Kauf bestätigen. Die Bestätigung schicken wir dir per E-Mail.',
+              text: 'Deinen Nutzungsvertrag für eimir. Cloud schließt du mit uns (§ 2). Für den über Google Play abgerechneten Kauf in Deutschland schließt du einen gesonderten Vertrag mit Google Commerce Limited in Irland. In anderen Ländern gelten die im jeweiligen Play-Angebot genannten Verkäuferangaben und Bedingungen. ',
+            },
+            {
+              kind: 'link',
+              text: 'Google-Play-Bedingungen für Deutschland',
+              href: 'https://play.google.com/intl/ALL_de/about/play-terms/',
             },
           ],
           children: [],
@@ -812,31 +806,120 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Die Zahlung wickeln wir über einen Zahlungsdienstleister ab, derzeit ',
-            },
-            { kind: 'placeholder', name: 'PAYMENT_PROVIDER' },
-            {
-              kind: 'text',
-              text: '. Zahlungsdaten wie Kartennummern speichern wir nicht selbst. Kaufst du Pro in einem App-Store, zum Beispiel bei Google Play, gelten für Bezahlung, Verlängerung, Kündigung und Erstattung zusätzlich die Bedingungen des jeweiligen Stores.',
+              text: 'Vor der Bestätigung des Kaufs kannst du Tarif, Preis, Beginn der Zahlung und Zahlungsmethode in Google Play prüfen oder den Kauf abbrechen. Google Play schickt den Kaufbeleg an die E-Mail-Adresse deines Google-Kontos. Wir schalten Pro frei, sobald der Kauf bestätigt und von uns geprüft ist. Solange die Zahlung aussteht, bleibt die Freischaltung aus.',
             },
           ],
           children: [],
         },
         {
-          content: [{ kind: 'text', text: 'Laufzeit und Verlängerung:' }],
+          content: [
+            {
+              kind: 'text',
+              text: 'Ein angebotener Testzeitraum ist kostenlos. Dauer, erster Zahlungstermin und der anschließend fällige Preis stehen im Play-Angebot. Wenn du keine kostenpflichtige Fortsetzung möchtest, kündige vor Ende des Testzeitraums.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Nach der ersten Laufzeit läuft das Abo bis zur Kündigung weiter. Google rechnet im gewählten Monats- oder Jahresrhythmus ab. Bei künftigen Preisänderungen gelten die Mitteilungen und Zustimmungserfordernisse von Google Play sowie deine gesetzlichen Rechte.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            { kind: 'text', text: 'In ' },
+            {
+              kind: 'link',
+              text: 'deinen Google-Play-Abos',
+              href: 'https://play.google.com/store/account/subscriptions',
+            },
+            {
+              kind: 'text',
+              text: ' kannst du jederzeit kündigen. Wenn dir in der Android-App „Abo in Google Play verwalten“ angezeigt wird, führt dich die Schaltfläche dorthin. Bei einer Kündigung zum Periodenende kannst du Pro bis zum Ende des bezahlten Zeitraums nutzen. Bei einem Jahrestarif in Deutschland kannst du nach dem ersten Jahr bei Google auch die sofortige Kündigung mit anteiliger Erstattung der verbleibenden Tage wählen. Dein Recht zur Kündigung aus wichtigem Grund bleibt bestehen.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Bei einer fehlgeschlagenen Zahlung bleibt Pro während einer von Google Play eingeräumten Zahlungsfrist aktiv. Pausiert Google das Abo oder setzt es aus, endet der Pro-Zugang für diesen Zeitraum.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Nach dem Ende von Pro bleiben eure gespeicherten Erinnerungen und Medien lesbar. Überschreitet ihr das kostenlose Speicherlimit, bleiben bestehende Dateien erhalten. Neue Uploads sind wieder möglich, sobald Platz frei wird oder ihr wieder Pro nutzt. Euer Garten bleibt beim Aboende gespeichert und ist in der App wieder zugänglich, sobald euer Space erneut Pro hat. Aktive Standortfreigaben enden und die dazu gespeicherten Positionen werden gelöscht. Für kurzlebige Inhalte gelten weiterhin die ',
+            },
+            {
+              kind: 'link',
+              text: 'Speicherfristen aus Abschnitt 22',
+              href: '/legal/privacy',
+            },
+            {
+              kind: 'text',
+              text: '. Eine Datenkopie nach § 13 könnt ihr auch ohne Pro anfordern.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Verlässt du als kaufende Person den bisherigen Space, kannst du dein laufendes Abo in deinem neuen Space über „Kauf wiederherstellen“ zuordnen. Nutze dazu dasselbe eimir.-Konto und das Google-Konto, mit dem du das Abo gekauft hast.',
+            },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            { kind: 'strong', text: 'Widerruf.' },
+            {
+              kind: 'text',
+              text: " Als Verbraucherin oder Verbraucher in Deutschland kannst du den Kauf dieser digitalen Dienstleistung innerhalb von 14 Tagen ab Vertragsschluss ohne Angabe von Gründen gegenüber Google Commerce Limited widerrufen. Es genügt, deine eindeutige Erklärung vor Fristablauf abzusenden. Du erreichst Google Commerce Limited, c/o Customer Support, 70 Sir John Rogerson's Quay, Dublin 2, D02 R296, Irland, telefonisch unter 0800 6270506 oder über den in der ",
+            },
+            {
+              kind: 'link',
+              text: 'Google-Play-Hilfe zum Widerruf und zur Erstattung',
+              href: 'https://support.google.com/googleplay/answer/15576634?hl=de',
+            },
+            { kind: 'text', text: ' beschriebenen Onlineweg.' },
+          ],
+          children: [],
+        },
+        {
+          content: [
+            {
+              kind: 'text',
+              text: 'Für deinen Widerruf kannst du das folgende Muster verwenden. Ergänze deine Angaben an den mit „…“ gekennzeichneten Stellen.',
+            },
+          ],
           children: [
             [
-              { kind: 'strong', text: 'Monatlich:' },
               {
                 kind: 'text',
-                text: ' Das Abo läuft einen Monat und verlängert sich jeweils um einen weiteren Monat, wenn du nicht kündigst. Du kannst jederzeit zum Ende des laufenden Monats kündigen.',
+                text: "An Google Commerce Limited, c/o Customer Support, 70 Sir John Rogerson's Quay, Dublin 2, D02 R296, Irland.",
               },
             ],
             [
-              { kind: 'strong', text: 'Jährlich:' },
               {
                 kind: 'text',
-                text: ' Das Abo läuft zunächst ein Jahr. Du kannst jederzeit zum Ende dieses ersten Jahres kündigen. Kündigst du nicht, läuft es danach auf unbestimmte Zeit weiter und kann jederzeit mit einer Frist von einem Monat gekündigt werden. Im Voraus gezahlte Beträge für die Zeit nach dem Vertragsende erstatten wir dir dann anteilig.',
+                text: 'Hiermit widerrufe ich meinen am … abgeschlossenen Vertrag über das eimir.-Pro-Abo.',
+              },
+            ],
+            [
+              {
+                kind: 'text',
+                text: 'Name und Anschrift …, Datum …, bei Mitteilung auf Papier Unterschrift …',
               },
             ],
           ],
@@ -845,12 +928,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Du kannst Pro in der App und auf unserer Website über die Schaltfläche „Verträge hier kündigen“ oder per E-Mail an ',
-            },
-            { kind: 'placeholder', name: 'CONTACT_EMAIL' },
-            {
-              kind: 'text',
-              text: ' kündigen. Ein Abo aus einem App-Store kündigst du dort. Wir bestätigen dir jede Kündigung in Textform. Das Recht beider Seiten zur Kündigung aus wichtigem Grund bleibt unberührt.',
+              text: 'Nutzt du die elektronische Widerrufsfunktion, hast du Anspruch auf eine unverzügliche Eingangsbestätigung auf einem dauerhaften Datenträger, zum Beispiel per E-Mail. Bei wirksamem Widerruf erstattet Google Zahlungen innerhalb von 14 Tagen nach dessen Eingang grundsätzlich über dasselbe Zahlungsmittel und ohne zusätzliche Gebühren. Hast du ausdrücklich verlangt, dass die Dienstleistung vor Fristablauf beginnt, kann unter den gesetzlichen Voraussetzungen ein anteiliger Betrag für die bis zum Widerruf erbrachte Leistung anfallen.',
             },
           ],
           children: [],
@@ -859,75 +937,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Bieten wir einen kostenlosen Testzeitraum an, nennen wir dir vorher seine Dauer und seine Bedingungen, insbesondere ob und ab wann danach Kosten entstehen.',
-            },
-          ],
-          children: [],
-        },
-        {
-          content: [
-            {
-              kind: 'text',
-              text: 'Schlägt eine Zahlung fehl, bleibt Pro noch 14 Tage aktiv, damit du die Zahlung klären kannst. Danach können wir Pro beenden.',
-            },
-          ],
-          children: [],
-        },
-        {
-          content: [
-            {
-              kind: 'text',
-              text: 'Endet Pro, bleibt alles erhalten: Eure Inhalte, auch die mit Pro erstellten, bleiben lesbar und exportierbar. Neue Pro-Inhalte könnt ihr dann nicht mehr erstellen. Belegt ihr mehr Speicher, als in der kostenlosen Version enthalten ist, löschen wir nichts. Neue Uploads können dann pausieren, bis ihr Speicher freigebt oder Pro wieder nutzt.',
-            },
-          ],
-          children: [],
-        },
-        {
-          content: [
-            {
-              kind: 'text',
-              text: 'Endet euer Space (§ 5 Abs. 4), endet Pro für diesen Space. Ein laufendes Abo kann die Person, die es gekauft hat, mit „Kauf wiederherstellen“ auf einen neuen Space übertragen.',
-            },
-          ],
-          children: [],
-        },
-        {
-          content: [
-            {
-              kind: 'text',
-              text: 'Den Preis eines laufenden Abos ändern wir nur mit deiner Zustimmung. Stimmst du nicht zu, können wir das Abo zum Ende des laufenden Abrechnungszeitraums kündigen. Wir informieren dich vorher rechtzeitig.',
-            },
-          ],
-          children: [],
-        },
-        {
-          content: [
-            {
-              kind: 'text',
-              text: 'Für eine selbst betriebene Installation kannst du eine Pro-Lizenz kaufen. Sie schaltet die Pro-Funktionen für einen Space auf dieser Installation frei und wird dort ohne Verbindung zu unseren Servern geprüft. Die Lizenz gilt für die private, nicht gewerbliche Nutzung und berechtigt nicht dazu, eimir. für Dritte zu betreiben. Für den Betrieb der Installation sind wir nicht verantwortlich. Für Laufzeit und Kündigung gelten die Absätze 5 und 6 entsprechend.',
-            },
-          ],
-          children: [],
-        },
-        {
-          content: [
-            {
-              kind: 'text',
-              text: 'Als Verbraucherin oder Verbraucher hast du beim Kauf von Pro ein gesetzliches Widerrufsrecht. Einzelheiten findest du in der Widerrufsbelehrung unter ',
-            },
-            { kind: 'placeholder', name: 'WITHDRAWAL_URL' },
-            {
-              kind: 'text',
-              text: ', die wir dir auch im Kaufprozess zur Verfügung stellen.',
-            },
-          ],
-          children: [],
-        },
-        {
-          content: [
-            {
-              kind: 'text',
-              text: 'Für Mängel von eimir. Pro gelten die gesetzlichen Rechte bei digitalen Produkten, einschließlich unserer Pflicht, dir Aktualisierungen bereitzustellen.',
+              text: 'Für eimir. Pro gelten die gesetzlichen Mängelrechte für digitale Produkte, einschließlich des Anspruchs auf erforderliche Aktualisierungen.',
             },
           ],
           children: [],
@@ -936,9 +946,9 @@ export const termsOfUseDe: LegalDocument = {
     },
     {
       kind: 'heading',
-      id: 'paragraph-13-datenexport-kundigung-und-loschung',
+      id: 'paragraph-13-datenkopie-kundigung-und-loschung',
       content: [
-        { kind: 'text', text: '§ 13 Datenexport, Kündigung und Löschung' },
+        { kind: 'text', text: '§ 13 Datenkopie, Kündigung und Löschung' },
       ],
     },
     {
@@ -949,7 +959,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Du kannst deine Daten jederzeit kostenlos in einem maschinenlesbaren Format exportieren, unabhängig davon, ob ihr Pro nutzt.',
+              text: 'Du kannst jederzeit kostenlos eine Kopie deiner Daten in einem maschinenlesbaren Format von uns verlangen, unabhängig davon, ob ihr Pro nutzt.',
             },
           ],
           children: [],
@@ -958,7 +968,16 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Du kannst den Nutzungsvertrag jederzeit ohne Frist kündigen, indem du dein Konto in den Einstellungen der App löschst. Die Löschung kann nicht rückgängig gemacht werden. Dann gilt:',
+              text: 'Du kannst den Nutzungsvertrag jederzeit ohne Frist beenden, indem du dein Konto in den App-Einstellungen löschst. Ohne App kannst du die Löschung über ',
+            },
+            {
+              kind: 'link',
+              text: 'Konto löschen',
+              href: 'https://eimir.de/konto-loeschen/',
+            },
+            {
+              kind: 'text',
+              text: ' anfordern. Die Löschung kann nicht rückgängig gemacht werden. Mit der Löschung endet dein Zugang.',
             },
           ],
           children: [
@@ -971,13 +990,22 @@ export const termsOfUseDe: LegalDocument = {
             [
               {
                 kind: 'text',
-                text: 'Gemeinsame Inhalte bleiben für deinen Partner im Space erhalten. Du wirst dort nur noch als ehemaliges Mitglied angezeigt.',
+                text: 'Gemeinsame Erinnerungen bleiben für deinen Partner im Space erhalten. Du wirst dort nur noch als ehemaliges Mitglied angezeigt. Für den gemeinsamen Garten gilt § 5 Abs. 4.',
               },
             ],
             [
               {
                 kind: 'text',
-                text: 'Ein direkt bei uns abgeschlossenes Pro-Abo kündigen wir mit der Löschung zum Ende des laufenden Abrechnungszeitraums. Ein Abo aus einem App-Store kündigst du bitte dort.',
+                text: 'Hast du ein Google-Play-Abo abgeschlossen, kündige es gesondert in ',
+              },
+              {
+                kind: 'link',
+                text: 'deinen Play-Abos',
+                href: 'https://play.google.com/store/account/subscriptions',
+              },
+              {
+                kind: 'text',
+                text: '. Google kann auch nach der Löschung deines eimir.-Kontos weiter abrechnen.',
               },
             ],
             [
@@ -992,7 +1020,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Wir können den Nutzungsvertrag mit einer Frist von drei Monaten in Textform kündigen. Ein laufendes Pro-Abo endet dann frühestens mit Ablauf des bereits bezahlten Zeitraums.',
+              text: 'Wir können den Nutzungsvertrag mit einer Frist von drei Monaten in Textform kündigen. Bei einem laufenden Pro-Abo endet dein Zugang bei einer solchen ordentlichen Kündigung frühestens mit Ablauf des bereits bezahlten Zeitraums.',
             },
           ],
           children: [],
@@ -1010,7 +1038,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Vor einer Kündigung durch uns geben wir dir Gelegenheit, deine Daten zu exportieren, es sei denn, das ist rechtlich unzulässig oder wegen der Schwere eines Verstoßes nicht zumutbar.',
+              text: 'Vor einer Kündigung durch uns geben wir dir Gelegenheit, eine Kopie deiner Daten zu erhalten, es sei denn, das ist rechtlich unzulässig oder wegen der Schwere eines Verstoßes nicht zumutbar.',
             },
           ],
           children: [],
@@ -1050,7 +1078,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Wir stellen dir Updates bereit, auch Sicherheitsupdates. Bitte installiere sie zeitnah. Installierst du ein bereitgestelltes Update nicht, obwohl wir dich darüber und über die Folgen informiert haben, haften wir nicht für Mängel, die allein darauf beruhen.',
+              text: 'Wir stellen die erforderlichen Aktualisierungen einschließlich Sicherheitsupdates bereit und informieren dich darüber. Tritt ein Mangel allein deshalb auf, weil du ein bereitgestelltes Update nicht innerhalb einer angemessenen Frist installiert hast, entfällt unsere Haftung für diesen Mangel nur unter zwei Voraussetzungen. Wir müssen dich über die Verfügbarkeit des Updates und die Folgen einer unterlassenen Installation informiert haben. Außerdem darf eine fehlende oder fehlerhafte Installation nicht auf eine mangelhafte Anleitung von uns zurückzuführen sein.',
             },
           ],
           children: [],
@@ -1079,7 +1107,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Einige Funktionen binden auf deinen Wunsch Dienste Dritter ein, zum Beispiel einen eigenen Fotodienst wie Immich oder Google Fotos sowie Karten und Adresssuche auf Grundlage von OpenStreetMap. Für diese Dienste gelten deren eigene Bedingungen. Auf ihre Verfügbarkeit und ihren Umfang haben wir keinen Einfluss.',
+              text: 'Einige Funktionen beziehen auf deinen Wunsch Dienste Dritter ein, etwa deinen Immich-Server, einen CalDAV-Kalender oder, soweit angeboten, Google Kalender oder Google Fotos. Für diese Dienste gelten deren eigene Bedingungen. Für Karten und Adresssuche nutzen wir Dienste auf Grundlage von OpenStreetMap.',
             },
           ],
           children: [],
@@ -1088,7 +1116,7 @@ export const termsOfUseDe: LegalDocument = {
           content: [
             {
               kind: 'text',
-              text: 'Du kannst die Verbindung zu einem solchen Dienst jederzeit trennen. Bereits übernommene Inhalte bleiben in eimir. erhalten.',
+              text: 'Verbindungen kannst du in den Einstellungen trennen. Bereits importierte Fotos bleiben in eimir. erhalten. Bereits übertragene Termine bleiben im externen Kalender, bis du sie dort löschst.',
             },
           ],
           children: [],

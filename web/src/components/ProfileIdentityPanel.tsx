@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { type FormEvent, useMemo, useRef, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import type { AccountView } from '../api/generated/models/AccountView';
 import type { ProfileIdentityUpdate } from '../api/generated/models/ProfileIdentityUpdate';
 import { Configuration } from '../client/apiConfiguration';
@@ -14,11 +14,14 @@ import {
 } from '../client/memoryAttachmentDraft';
 import { loadPhotoCropSource, type PhotoCropSource } from '../client/photoCrop';
 import { normalizeClientError } from '../client/problemDetails';
-import { createReferenceApis } from '../client/referenceFlow';
+import {
+  createReferenceApis,
+  ReferenceFlowError,
+} from '../client/referenceFlow';
+import { defaultAvatarUrl } from '../client/defaultAvatar';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
 import { useTranslation } from '../i18n';
 import { AvatarPhoto } from './AvatarPhoto';
-import { ListEntryIconButton } from './ListEntryActions';
 import { NativeDateField } from './NativeDateField';
 import { PhotoCropTask } from './PhotoCropTask';
 import './PeopleProfiles.css';
@@ -44,15 +47,17 @@ export function ProfileIdentityPanel({
   account,
   spaceId,
   onDisplayNameChanged,
+  editRequest = 0,
 }: {
   apiBaseUrl: string;
   accessToken: string;
   account: AccountView;
   spaceId: string;
   onDisplayNameChanged: (displayName: string) => void;
+  /** Raised by the page's actions menu: opens the editor once per change. */
+  editRequest?: number;
 }) {
   const { t, i18n } = useTranslation();
-  const editIdentityButtonRef = useRef<HTMLButtonElement>(null);
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const changeAvatarButtonRef = useRef<HTMLButtonElement>(null);
@@ -110,7 +115,11 @@ export function ProfileIdentityPanel({
     retry: false,
   });
 
-  const { avatarUrl, loadFailed: avatarLoadFailed } = useProfileAvatarUrl(
+  const {
+    avatarUrl,
+    loadFailed: avatarLoadFailed,
+    hasNoPicture,
+  } = useProfileAvatarUrl(
     profilesApi,
     spaceId,
     account.id,
@@ -148,14 +157,18 @@ export function ProfileIdentityPanel({
     onSuccess: async (profile) => {
       await acceptUpdatedProfile(profile);
       setEditingIdentity(false);
-      requestAnimationFrame(() => editIdentityButtonRef.current?.focus());
     },
-    onError: (_error, changes) =>
-      (changes.displayName !== undefined
-        ? displayNameInputRef.current
-        : birthdayInputRef.current
-      )?.focus(),
   });
+
+  useEffect(() => {
+    if (!saveMutation.error) return;
+    // Pending inputs are disabled until React commits the failed save.
+    const input =
+      saveMutation.variables?.displayName !== undefined
+        ? displayNameInputRef.current
+        : birthdayInputRef.current;
+    input?.focus();
+  }, [saveMutation.error, saveMutation.variables]);
 
   const avatarMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -245,12 +258,16 @@ export function ProfileIdentityPanel({
   function closeEditor() {
     saveMutation.reset();
     setEditingIdentity(false);
-    requestAnimationFrame(
-      () =>
-        document.activeElement === document.body &&
-        editIdentityButtonRef.current?.focus(),
-    );
   }
+
+  // Editing starts from the page's actions menu; it opens once its data is in.
+  const handledEditRequest = useRef(0);
+  useEffect(() => {
+    if (editRequest === handledEditRequest.current || !profileQuery.data)
+      return;
+    handledEditRequest.current = editRequest;
+    openEditor();
+  });
 
   function submitIdentity(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -310,6 +327,7 @@ export function ProfileIdentityPanel({
             <AvatarPhoto
               name={visibleName}
               url={avatarUrl}
+              standInUrl={hasNoPicture ? defaultAvatarUrl(account.id) : null}
               identity={`${spaceId}:profile:${account.id}:${profile.profileAttachmentId}`}
               large
             />
@@ -429,8 +447,8 @@ export function ProfileIdentityPanel({
                 <div className="form-actions profile-identity-edit-actions">
                   <button type="submit" disabled={pending || !dirty}>
                     {saveMutation.isPending
-                      ? t('profileIdentity.savingProfile')
-                      : t('profileIdentity.saveProfile')}
+                      ? t('common.saving')
+                      : t('common.save')}
                   </button>
                   <button
                     type="button"
@@ -448,14 +466,6 @@ export function ProfileIdentityPanel({
                   <h2 className="profile-identity-display-name">
                     {visibleName}
                   </h2>
-                  <ListEntryIconButton
-                    ref={editIdentityButtonRef}
-                    icon="edit"
-                    label={t('profileIdentity.editProfile')}
-                    disabled={pending}
-                    aria-expanded={false}
-                    onClick={openEditor}
-                  />
                   <VisibilityBadge
                     visibility="SHARED"
                     size="small"
@@ -494,7 +504,14 @@ export function ProfileIdentityPanel({
         </div>
       ) : null}
       {avatarMutation.error ? (
-        <ProblemState error={avatarMutation.error} />
+        <ProblemState
+          error={avatarMutation.error}
+          detail={
+            avatarMutation.error instanceof ReferenceFlowError
+              ? avatarMutation.error.message
+              : undefined
+          }
+        />
       ) : null}
       {removeAvatarMutation.error ? (
         <ProblemState error={removeAvatarMutation.error} />

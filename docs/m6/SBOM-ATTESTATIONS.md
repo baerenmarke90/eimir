@@ -195,15 +195,21 @@ The build job fails unless all of the following hold:
 6. artifact/SBOM digests are recorded in `evidence-index.json`;
 7. `SHA256SUMS` verifies before upload.
 
+8. `supply-chain-state.json` records whether this repository has artifact
+   attestations and code scanning (section 11) and is part of `SHA256SUMS`.
+
 The attestation job downloads that exact evidence set, re-verifies
-`SHA256SUMS`, creates build-provenance and SPDX attestations for each subject, retains
+`SHA256SUMS`, confirms the recorded supply-chain state against a fresh probe of the
+repository, creates build-provenance and SPDX attestations for each subject, retains
 the local Sigstore bundles, captures current trusted roots, and then exercises local
-bundle verification before uploading the offline-verification material.
+bundle verification before uploading the offline-verification material. On a
+repository recorded without attestations it verifies the record instead (section 11).
 
 `tools/ci/test_release_evidence.py` is a fail-closed policy test for the workflow. It
 checks the immutable action pins, the expected four-subject artifact set, SPDX 2.3,
-permission separation, absence of Android signing secrets, checksum verification and
-no `pull_request_target` privilege path.
+permission separation, absence of Android signing secrets, checksum verification,
+no `pull_request_target` privilege path, and runs the verification steps in both
+supply-chain states with a stubbed `gh`.
 
 ## 8. Online verification
 
@@ -278,3 +284,107 @@ When #519 creates the actual launch release, it must preserve these invariants:
 
 This keeps #193 evidence composable with either immutable-source or build-once OCI
 publication without deciding #519's release-engineering policy in advance.
+
+## 11. Repositories without attestations or code scanning (Decision 0019, D5)
+
+GitHub artifact attestations and code scanning (CodeQL) are free on a public
+repository. On a private repository of a personal account neither is available:
+attestations need GitHub Enterprise Cloud and code scanning needs GitHub Code
+Security. The Product Owner accepted on November 25, 2026
+([cut-over runbook](../CUTOVER-RUNBOOK.md#8-decisions-needed-from-the-product-owner),
+decision D5) that the private `eimir-pro` repository runs without both at the cut-over,
+recorded in the evidence. The public `eimir-core` keeps both.
+
+### Detection
+
+`scripts/supply_chain_state.py` reads the repository metadata
+(`gh api repos/<owner>/<repo>`: visibility and owner type). It never infers the state
+from a failing step.
+
+| Repository | `EIMIR_SUPPLY_CHAIN_EXCEPTION` | Result |
+| --- | --- | --- |
+| public | unset | attestations and CodeQL **available**: unchanged behaviour |
+| organization (private or internal) | unset | **available** (the plan is assumed to include the products; a missing product fails the attestation step loudly) |
+| private, personal account | `decision-0019-d5` | attestations and CodeQL **unavailable**, recorded with the reason |
+| private, personal account | unset or any other value | **refused**: the build stops and names the variable |
+| public or organization | set | **refused**: the exception cannot waive an available capability |
+
+The variable is a plain Actions variable in `eimir-pro` (runbook C16). It records the
+Product Owner's acceptance; it is never set in `eimir-core`.
+
+### The record
+
+The build job writes `release-evidence/supply-chain-state.json` before any image is
+built and binds it into `SHA256SUMS`:
+
+```json
+{
+  "schemaVersion": 1,
+  "kind": "eimir-supply-chain-state",
+  "repository": "baerenmarke90/eimir-pro",
+  "visibility": "private",
+  "ownerType": "User",
+  "sourceRevision": "<40-hex source commit>",
+  "attestation": {"state": "unavailable", "reason": "GitHub artifact attestations need ..."},
+  "codeScanning": {"state": "unavailable", "reason": "GitHub code scanning (CodeQL) needs ..."},
+  "acceptedBy": "Decision 0019, cut-over runbook decision D5 (November 25, 2026)"
+}
+```
+
+On a repository with the capabilities both entries read `{"state": "available"}` and
+`acceptedBy` is absent. The record is part of every published evidence set and of the
+product Release assets.
+
+### Verification in both states
+
+- Every consumer (the attestation job of Release Evidence and the product publisher)
+  re-probes the repository and requires the transported record to be **exactly** the
+  fresh one: same repository, source revision, states and reasons. A stale, copied or
+  edited record fails, so a record from `eimir-pro` can never switch attestations off
+  in `eimir-core`.
+- **Available:** every attestation step runs; the verification step first requires a
+  non-empty provenance and SBOM bundle for every expected subject, then runs
+  `gh attestation verify` for each, as before. A missing bundle fails.
+- **Unavailable:** the attestation steps and the bundle upload do not run. The
+  verification step still runs, verifies the record, requires that **no** bundle
+  exists, writes a notice annotation and a job-summary line, and only then succeeds.
+  It never turns green without that check.
+- **CodeQL as a required workflow:** where code scanning is recorded unavailable,
+  `codeql.yml` is not dispatched by the nightly regression and is not required by the
+  Nightly Regression Report or by `scripts/test_deployment_channel.py` (test channel and
+  product-release full-regression gate); the job logs and summaries name the reason.
+  Every other required workflow keeps its guarantees: missing, pending, failed,
+  cancelled or skipped work is still refused.
+
+`tools/ci/test_supply_chain_state.py`, `tools/ci/test_release_evidence.py`,
+`tools/ci/test_release_publish_workflow.py`, `tools/ci/test_test_deployment_channel.py`
+and `tools/ci/test_nightly_regression.py` cover both states, including an unavailable
+state without the record and an available state with a missing attestation.
+
+### What the private repository proves, and what it does not
+
+Proved in `eimir-pro`, as in `eimir-core`:
+
+- the exact archives, their SHA-256 digests and SPDX 2.3 SBOMs, bound to one source
+  revision by `evidence-index.json` and `SHA256SUMS`;
+- the OCI labels and registry digests checked against those archives before promotion;
+- the full regression of the source revision, without CodeQL.
+
+Not proved in `eimir-pro`:
+
+- **no signed build provenance:** nothing outside GitHub's own run log binds an archive
+  to the workflow, runner and commit that built it; a consumer can check hashes only
+  against the evidence set it was given;
+- **no signed SBOM claim:** the SBOM is a file next to the archive, not a signed
+  statement about it;
+- **no static analysis** of the Pro code and the release pipeline by CodeQL.
+
+The Pro images are consumed only by the operator's own deployment for now, which is why
+D5 accepts this gap. It must be closed before any Pro image is delivered to a
+Self-Hosted operator.
+
+### Follow-up (not implemented here)
+
+- a free Python security linter for the Pro code in `eimir-pro` CI, for example Bandit;
+- key-based image signing (for example Sigstore cosign with a key held only in
+  `eimir-pro`), so the Pro images carry a verifiable signature before Self-Hosted.

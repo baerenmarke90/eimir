@@ -245,9 +245,7 @@ it('confirms the server version and restores Back focus when the continuation is
   await waitFor(() => expect(document.activeElement).toBe(heading));
   expect(screen.queryByText(m5s3.wish.completePending)).toBeNull();
   expect(h.queryClient.getQueryData<WishDetail>(h.key)?.version).toBe(2);
-  fireEvent.click(
-    screen.getByRole('button', { name: m5s3.wish.completionDone }),
-  );
+  fireEvent.click(screen.getByRole('button', { name: de.common.done }));
   expect(screen.getByText(m5s3.wish.completedBody)).toBeDefined();
   expect(document.activeElement).toBe(
     screen.getByRole('button', { name: m5s3.common.back }),
@@ -363,13 +361,13 @@ it.each(['update', 'delete'])(
       fireEvent.click(
         await screen.findByRole('button', { name: de.common.edit }),
       );
-      fireEvent.submit(
-        (screen.getByLabelText(m5s3.common.title) as HTMLInputElement)
-          .form as HTMLFormElement,
+      const title = await screen.findByLabelText<HTMLInputElement>(
+        de.common.title,
       );
+      fireEvent.submit(title.form as HTMLFormElement);
     } else {
       fireEvent.click(
-        await screen.findByRole('button', { name: m5s3.common.delete }),
+        await screen.findByRole('button', { name: de.common.delete }),
       );
       fireEvent.click(
         await screen.findByRole('button', { name: m5s3.common.confirmDelete }),

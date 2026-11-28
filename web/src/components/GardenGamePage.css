@@ -37,7 +37,7 @@
 
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-4);
+  --page-stack-gap: var(--space-4);
   width: min(100%, 40rem);
   margin-inline: auto;
 }
@@ -75,6 +75,8 @@
 }
 
 .garden-band {
+  /* A send scrolls the band into view (#2158 G); keep it off the edge. */
+  scroll-margin-top: calc(var(--space-4) + env(safe-area-inset-top, 0px));
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: end;

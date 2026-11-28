@@ -1,8 +1,5 @@
 const profileIdentity = {
   title: 'Dein Profil',
-  intro:
-    'Hier legst du fest, wie du für deinen Partner in eimir. sichtbar bist.',
-  previewLabel: 'Vorschau für deinen Partner',
   displayNameLabel: 'Anzeigename',
   editProfile: 'Profil bearbeiten',
   birthdayLabel: 'Geburtstag',
@@ -10,19 +7,12 @@ const profileIdentity = {
   birthdayHelp:
     'Dein Geburtstag ist für deinen aktiven Partner sichtbar und wird automatisch unter euren besonderen Tagen berücksichtigt. Leer lassen entfernt ihn.',
   birthdaySaveError: 'Der Geburtstag konnte nicht gespeichert werden.',
-  saveProfile: 'Speichern',
-  savingProfile: 'Wird gespeichert …',
   saved: 'Profil wurde gespeichert.',
-  avatarLabel: 'Profilbild',
-  avatarHelp:
-    'Wähle ein Bild aus. Ohne Profilbild verwendet eimir. automatisch deine Initialen.',
-  chooseAvatar: 'Profilbild auswählen',
   changeAvatar: 'Bild ändern',
   partnerVisibilityNote: 'Dies ist das Profil, das dein Partner sieht.',
   replacingAvatar: 'Profilbild wird aktualisiert …',
   removeAvatar: 'Profilbild entfernen',
   removingAvatar: 'Profilbild wird entfernt …',
-  uploadPreparing: 'Upload wird vorbereitet …',
   uploadUploading: 'Profilbild wird hochgeladen …',
   uploadValidating: 'Profilbild wird geprüft …',
   imageAlt: 'Profilbild von {{name}}',
@@ -33,10 +23,7 @@ const profileIdentity = {
   partnerIntro:
     'So ist dein Partner aktuell in eimir. sichtbar. Änderungen am eigenen Profil erscheinen hier automatisch.',
   settingsTitle: 'Einstellungen',
-  settingsIntro:
-    'Hier verwaltest du deine persönlichen App-Einstellungen, Verbindungen und Daten.',
   settingsPageIntro: 'Darstellung, gemeinsame Funktionen und dein Konto.',
-  settingsIdentity: 'Profilbild und Anzeigename',
   settingsGroupCouple: 'Wir beide',
   settingsGroupPersonal: 'Für mich',
   settingsGroupConnections: 'Verbindungen',
@@ -48,7 +35,7 @@ const profileIdentity = {
   settingsAppearanceSummary: 'Farbmodus, Sprache und Icon',
   settingsMediaSummary: 'Fotodienst für neue Momente',
   settingsCalendarSummary: 'Gemeinsame Pläne in euren Kalender übertragen',
-  settingsDataSummary: 'Exportieren und importieren',
+  settingsDataSummary: 'Belegter Platz',
   settingsAccountSummary: 'Passkeys, Pro und Konto',
   statusNotificationsNone: 'Alles aus',
   statusSharedCount: '{{enabled}} von {{total}} aktiv',
@@ -70,13 +57,11 @@ const profileIdentity = {
   spaceConfigurationReadOnlyIntro:
     'Du siehst hier den gemeinsamen Zustand. Änderungen sind für dein Konto nicht verfügbar.',
   spaceConfigurationLoading: 'Gemeinsame Funktionen werden geladen …',
-  spaceConfigurationSaving: 'Wird gespeichert …',
   spaceConfigurationSaved: '✓ Gespeichert',
   supportGesturesTitle: 'Ich denke an dich',
   supportGesturesIntro:
     'Erlaubt euch, dem Partner mit einem kurzen Signal zu zeigen, dass ihr gerade aneinander denkt.',
   supportGesturesToggle: 'Ich denke an dich aktivieren oder deaktivieren',
-  supportGesturesCurrentState: 'Ich denke an dich: {{state}}',
   sharedAchievementsTitle: 'Gemeinsame Erfolge',
   sharedAchievementsIntro:
     'Würdigt größere gemeinsame Abschlüsse kurz als Team – ohne Punkte, Streaks oder Rankings.',
@@ -99,13 +84,6 @@ const profileIdentity = {
   visibilityReadOnly: 'Sichtbarkeit: {{mode}}',
   spaceModulesKeepDataNote:
     'Beim Ausschalten bleiben bestehende Einträge erhalten. Sie erscheinen wieder, sobald ihr die Funktion einschaltet.',
-  dailyContextTimezoneLabel: 'Zeitzone für euren gemeinsamen Tag',
-  dailyContextTimezoneIntro:
-    'Gefühl und Akku gelten für euren gemeinsamen Tag. Er wechselt um Mitternacht in dieser Zeitzone.',
-  dailyContextTimezoneReadOnly:
-    'Euer gemeinsamer Tag wechselt in {{timezone}}.',
-  dailyContextTimezoneLocked:
-    'Die Zeitzone lässt sich ändern, sobald heute niemand mehr etwas eingetragen hat.',
   spaceModuleOn: 'Aktiv',
   spaceModuleOff: 'Aus',
   settingsNotifications: 'Benachrichtigungen',
@@ -126,17 +104,14 @@ const profileIdentity = {
   dashboardHiddenTitle: 'Ausgeblendet ({{count}})',
   dashboardMoreOptions: 'Weitere Einstellungen',
   dashboardOrderHandle: '{{name}} verschieben',
-  dashboardModuleConfigure: '{{name}} bearbeiten',
   dashboardOrderInstructions:
     'Am Griff ziehen oder ihn fokussieren und mit Pfeil hoch und runter verschieben.',
   dashboardOrderPosition: '{{name}}, Position {{position}} von {{total}}.',
   dashboardOrderFailed: 'Reihenfolge konnte nicht gespeichert werden.',
-  dashboardModuleSaving: 'Wird gespeichert …',
   dashboardModuleSaved: '✓ Gespeichert',
   dashboardUpcomingTitle: 'Was bei euch ansteht',
   dashboardUpcomingQuestion: 'Wie viele Einträge möchtest du sehen?',
   dashboardUpcomingLoading: 'Dashboard-Einstellung wird geladen …',
-  dashboardUpcomingSaving: 'Wird gespeichert …',
   dashboardUpcomingSaved: '✓ Gespeichert',
   importantDatesIntro:
     'Erinnere dich an eure besonderen Tage. Diese Hinweise bekommst nur du.',
@@ -145,42 +120,31 @@ const profileIdentity = {
   importantDatesAtLeastOne: 'Mindestens einen Zeitpunkt auswählen.',
   importantDatesOtherDay_one: '{{count}} Tag vorher',
   importantDatesOtherDay_other: '{{count}} Tage vorher',
-  anniversaryReminderTitle: 'Jahrestag-Erinnerung',
-  anniversaryReminderIntro:
-    'Hier kannst du einstellen, ob und wann du an euren nächsten Jahrestag erinnert werden möchtest.',
   anniversaryReminderToggle: 'Unser Jahrestag',
   anniversaryReminderToggleHelp:
     'Eine persönliche Erinnerung an euren gemeinsamen Tag.',
-  anniversaryReminderDaysHeading: 'Erinnerungszeitpunkte',
   anniversaryReminderDay0: 'Am Jahrestag',
   anniversaryReminderDay30: '30 Tage vorher',
   anniversaryReminderDay7: '7 Tage vorher',
   anniversaryReminderDay1: '1 Tag vorher',
   anniversaryReminderTimeLabel: 'Uhrzeit',
-  anniversaryReminderSave: 'Änderungen speichern',
-  anniversaryReminderSaving: 'Wird gespeichert …',
   anniversaryReminderSaved: 'Gespeichert',
   anniversaryReminderLoading: 'Einstellungen werden geladen …',
   partnerBirthdayReminderToggle: 'Geburtstag deines Partners',
   partnerBirthdayReminderToggleHelp:
     'Damit du rechtzeitig an diesen besonderen Tag denkst.',
-  partnerBirthdayReminderDaysHeading: 'Erinnerungszeitpunkte',
   partnerBirthdayReminderDay0: 'Am Geburtstag',
   partnerBirthdayReminderDay14: '14 Tage vorher',
   partnerBirthdayReminderDay7: '7 Tage vorher',
   partnerBirthdayReminderDay1: '1 Tag vorher',
   partnerBirthdayReminderTimeLabel: 'Uhrzeit',
   partnerBirthdayReminderLoading: 'Geburtstagserinnerung wird geladen …',
-  settingsPrivacy: 'Privater Bereich',
-  settingsData: 'Daten und Portabilität',
+  settingsData: 'Speicher',
   settingsDataIntro:
-    'Exportiere deine Daten oder importiere unterstützte Inhalte mit den bestehenden Prüfungen.',
+    'Wie viel Platz eure Fotos, Videos, Sprachnachrichten und PDFs belegen.',
   settingsAccount: 'App und Konto',
   settingsAccountIntro:
     'eimir. Pro und dein Konto. Eure gemeinsamen Inhalte bleiben geschützt.',
-  settingsBackToMore: 'Zurück zu Mehr',
-  settingsBackToIndex: 'Zurück zu Einstellungen',
-  settingsSensitiveEyebrow: 'Mit Bedacht',
   settingsSensitiveTitle: 'Sensible Aktionen',
   settingsSensitiveIntro:
     'Den gemeinsamen Bereich zu verlassen und dein Konto zu löschen sind getrennte Aktionen. Prüfe die jeweiligen Folgen, bevor du fortfährst.',

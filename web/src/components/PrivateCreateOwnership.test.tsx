@@ -8,7 +8,6 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import { useState } from 'react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
@@ -17,6 +16,7 @@ import privateArea from '../i18n/locales/privateArea';
 import { GiftIdeaCreatePage } from './GiftIdeasPage';
 import { PrivateCollectionCreatePage } from './PrivateCollectionsPage';
 import { PrivateNoteCreatePage } from './PrivateNotesPage';
+import germanUi from '../i18n/locales/de';
 
 const accountId = 'account-1';
 const spaceId = 'space-1';
@@ -27,7 +27,7 @@ const definitions = [
     Editor: PrivateNoteCreatePage,
     path: '/more/private/notes',
     key: privateAreaQueryKeys.notes(accountId, spaceId),
-    label: privateArea.notes.titleLabel,
+    label: germanUi.common.title,
   },
   {
     name: 'gift idea',
@@ -41,7 +41,7 @@ const definitions = [
     Editor: PrivateCollectionCreatePage,
     path: '/more/private/collections',
     key: privateAreaQueryKeys.collections(accountId, spaceId),
-    label: privateArea.collections.titleLabel,
+    label: germanUi.common.title,
   },
 ] as const;
 
@@ -80,11 +80,8 @@ for (const definition of definitions) {
         },
       });
       queryClient.setQueryData(definition.key, { items: [] });
-      let endSession!: () => void;
       const Editor = definition.Editor;
-      function Harness() {
-        const [active, setActive] = useState(true);
-        endSession = () => setActive(false);
+      function application(active: boolean) {
         return (
           <QueryClientProvider client={queryClient}>
             <MemoryRouter initialEntries={[`${definition.path}/new`]}>
@@ -113,12 +110,15 @@ for (const definition of definitions) {
           </QueryClientProvider>
         );
       }
-      render(<Harness />);
+      const view = render(application(true));
+      const endSession = () => view.rerender(application(false));
       async function submit() {
         fireEvent.change(screen.getByLabelText(definition.label), {
           target: { value: saved.title },
         });
-        fireEvent.click(screen.getByRole('button', { name: privateArea.save }));
+        fireEvent.click(
+          screen.getByRole('button', { name: germanUi.common.save }),
+        );
         await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
       }
       return { write, create, queryClient, endSession, submit };

@@ -1,12 +1,12 @@
-import AxeBuilder from '../support/axe';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import en from '../../src/i18n/locales/en.json' with { type: 'json' };
 import legal from '../../src/i18n/locales/legal';
 import { privacyPolicyDe } from '../../src/i18n/locales/legalDocuments/privacyPolicy.de.generated';
 import { termsOfUseDe } from '../../src/i18n/locales/legalDocuments/termsOfUse.de.generated';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import snackbarDe from '../../src/i18n/locales/snackbar';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import AxeBuilder from '../support/axe';
 import {
   installMocks,
   ACCOUNT_ID as SHELL_ACCOUNT_ID,
@@ -237,7 +237,7 @@ test.describe('Terms of use at Cloud signup', () => {
     await page.emulateMedia({ colorScheme: 'dark' });
     await expectNoWcagViolations(page);
 
-    await page.getByRole('button', { name: taskBoundary.back }).click();
+    await page.getByRole('button', { name: de.common.back }).click();
     await expect(page).toHaveURL(/\/$/);
     await expect(
       page.getByRole('group', { name: de.identity.entryModesAria }),
@@ -459,7 +459,7 @@ test.describe('Privacy policy on eimir. Cloud', () => {
     await page.emulateMedia({ colorScheme: 'dark' });
     await expectNoWcagViolations(page);
 
-    await page.getByRole('button', { name: taskBoundary.back }).click();
+    await page.getByRole('button', { name: de.common.back }).click();
     await expect(page).toHaveURL(/\/$/);
     await expect(
       page.getByRole('group', { name: de.identity.entryModesAria }),
@@ -516,7 +516,7 @@ test.describe('Privacy policy on eimir. Cloud', () => {
     await expect(title).toBeFocused();
     expect(await page.evaluate(() => window.scrollY)).toBe(0);
 
-    await page.getByRole('button', { name: taskBoundary.back }).click();
+    await page.getByRole('button', { name: de.common.back }).click();
     await expect(page).toHaveURL(/\/more$/);
     await expect(legalLinks).toBeVisible();
   });
@@ -544,7 +544,7 @@ test.describe('Privacy policy in the English UI', () => {
     await expect(page.getByText(en.legal.draftBadge)).toBeVisible();
     await expect(page).toHaveTitle(`${en.legal.privacySheetTitle} · eimir.`);
     await expect(
-      page.getByRole('button', { name: en.taskBoundary.back }),
+      page.getByRole('button', { name: en.common.back }),
     ).toBeVisible();
     await expectNoWcagViolations(page);
   });
@@ -663,6 +663,116 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
 
     // Accessibility check
     await expectNoWcagViolations(page);
+  });
+
+  test('a delivered mail link that cannot be used is reported on the sign-in screen (#2176)', async ({
+    page,
+  }, testInfo) => {
+    await routeCloudEntry(page);
+    await page.addInitScript(() => {
+      // Chromium exposes launchQueue itself, so a plain assignment is ignored.
+      Object.defineProperty(window, 'launchQueue', {
+        value: {
+          setConsumer(consumer: (params: { targetURL: string }) => void) {
+            Object.assign(window, { deliverLaunch: consumer });
+          },
+        },
+      });
+    });
+    await page.goto('/');
+    await expect(page.getByLabel(de.login.email)).toBeVisible();
+
+    // The link names another host than this deployment, as in the Android
+    // test.98 report where the build and the mail disagreed.
+    await page.evaluate(() =>
+      (
+        window as unknown as {
+          deliverLaunch: (params: { targetURL: string }) => void;
+        }
+      ).deliverLaunch({
+        targetURL: 'https://other-host.invalid/auth/signup#token=secret-proof',
+      }),
+    );
+
+    const snackbar = page.locator('.snackbar');
+    await expect(snackbar).toContainText(
+      snackbarDe.snackbar.identityLinkUnusable,
+    );
+    await expect(snackbar).not.toContainText('secret-proof');
+    await expect(snackbar).not.toContainText('other-host');
+    await expect(page.getByLabel(de.login.email)).toBeVisible();
+    for (const scheme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ colorScheme: scheme });
+      for (const width of [360, 390, 430]) {
+        await page.setViewportSize({ width, height: 844 });
+        await page.screenshot({
+          path: testInfo.outputPath(`link-unusable-${scheme}-${width}.png`),
+        });
+      }
+    }
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.screenshot({
+      path: testInfo.outputPath('link-unusable-expanded.png'),
+    });
+  });
+
+  test('a requested link can be sent again or restarted with another address (#2176)', async ({
+    page,
+  }, testInfo) => {
+    const requested: unknown[] = [];
+    await routeCloudEntry(page, (body) => requested.push(body));
+    await page.goto('/');
+    await page.getByLabel(de.login.email).fill('admin@example.org');
+    await page
+      .getByRole('button', { name: de.identity.magicLinkRequestSubmit })
+      .click();
+    await expect(page.getByText(de.identity.mailRequestedTitle)).toBeVisible();
+    const resend = page.getByRole('button', {
+      name: de.identity.requestNewLink,
+    });
+    const otherAddress = page.getByRole('button', {
+      name: de.identity.useOtherAddress,
+    });
+    await expect(resend).toBeVisible();
+    await expect(otherAddress).toBeVisible();
+
+    // Evidence: Compact widths, Light and Dark, large text, reduced motion.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    for (const scheme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ colorScheme: scheme, reducedMotion: 'reduce' });
+      for (const width of [360, 390, 430]) {
+        await page.setViewportSize({ width, height: 844 });
+        await expectNoHorizontalOverflow(page);
+        await page.screenshot({
+          path: testInfo.outputPath(`mail-requested-${scheme}-${width}.png`),
+        });
+      }
+    }
+    await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
+    await page.setViewportSize({ width: 360, height: 844 });
+    await expectNoHorizontalOverflow(page);
+    await page.screenshot({
+      path: testInfo.outputPath('mail-requested-large-text-360.png'),
+    });
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.screenshot({
+      path: testInfo.outputPath('mail-requested-expanded.png'),
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expectNoWcagViolations(page);
+
+    // Resend needs no retyping and moves focus back to the notice.
+    const before = requested.length;
+    await resend.click();
+    await expect.poll(() => requested.length).toBe(before + 1);
+    expect(requested.at(-1)).toMatchObject({ email: 'admin@example.org' });
+    await expect(page.getByRole('status')).toBeFocused();
+
+    // Another address opens the empty form with the field focused.
+    await otherAddress.click();
+    await expect(page.getByLabel(de.login.email)).toBeFocused();
+    await expect(page.getByLabel(de.login.email)).toHaveValue('');
+    await expect(page.getByText(de.identity.mailRequestedTitle)).toBeHidden();
   });
 
   test('consumes signup token, displays FirstSpaceGate, creates space and hands off to settings connection', async ({

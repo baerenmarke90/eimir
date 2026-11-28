@@ -1,13 +1,7 @@
 const profiles = {
   partnerSection: 'Über {{name}}',
-  eyebrow: 'Profil',
   title: 'Du und dein Partner',
   titleWithPartner: 'Du und {{name}}',
-  intro:
-    'Deine Identität, freigegebenen Vorlieben und das Profil deines Partners – klar getrennt von privaten Notizen.',
-  settingsRailAria: 'Konto und Beziehung',
-  accountTitle: 'Mein Konto',
-  accountName: 'Anzeigename',
   premium: {
     title: 'eimir. Pro',
     rowInactive: 'Funktionen und Preise entdecken',
@@ -27,12 +21,8 @@ const profiles = {
   anniversaryInDays_one: 'in 1 Tag',
   anniversaryInDays_other: 'in {{count}} Tagen',
   relationshipSavedSubtle: '✓ Gespeichert',
-  relationshipCurrent: 'Aktuell: {{duration}}',
-  relationshipDurationTitle: 'Eure Zeit',
   relationshipNotAvailable: 'Tragt ein, seit wann ihr zusammen seid.',
-  relationshipSave: 'Änderungen speichern',
-  relationshipSaving: 'Wird gespeichert …',
-  relationshipSaved: 'Änderungen wurden gespeichert.',
+  menu: 'Menü des Profils',
   selfTitle: 'Meine Vorlieben',
   selfIntro:
     'Diese Angaben gehören zu deinem Profil und können deinem Partner angezeigt werden.',
@@ -47,7 +37,6 @@ const profiles = {
     add: 'Spitznamen vergeben',
     edit: 'Spitznamen ändern',
     inputLabel: 'Spitzname für {{name}}',
-    save: 'Speichern',
     remove: 'Spitznamen entfernen',
     saved: 'Spitzname gespeichert.',
     removed: 'Wieder der Vorname angezeigt.',
@@ -56,14 +45,10 @@ const profiles = {
   noPartnerBody:
     'Sobald ein Partner mit diesem Bereich verbunden ist, erscheint hier sein freigegebenes Profil.',
   privateTitle: 'Notizen über {{name}} für mich',
-  privateIntro:
-    'Diese Notizen sind nur für dich sichtbar. Sie erscheinen niemals im Profil deines Partners.',
   preferenceCreateTitle: 'Vorliebe hinzufügen',
   preferenceEditTitle: 'Vorliebe bearbeiten',
-  addPreference: 'Vorliebe hinzufügen',
   addPreferenceShort: 'Vorliebe hinzufügen',
   addNoteShort: 'Notiz hinzufügen',
-  editName: 'Name bearbeiten',
   noteCreateTitle: 'Notiz für mich hinzufügen',
   noteEditTitle: 'Notiz für mich bearbeiten',
   categoryLabel: 'Kategorie',
@@ -76,7 +61,6 @@ const profiles = {
   noteValuePlaceholder: 'Nur für dich sichtbare Details',
   create: 'Hinzufügen',
   saveChanges: 'Änderungen speichern',
-  saving: 'Wird gespeichert …',
   created: 'Eintrag wurde hinzugefügt.',
   updated: 'Änderungen wurden gespeichert.',
   deleted: 'Eintrag wurde gelöscht.',
@@ -88,12 +72,6 @@ const profiles = {
   emptyPrivateTitle: 'Noch keine Notiz für mich gespeichert',
   emptyPrivateBody:
     'Notizen helfen dir, persönliche Geschenkideen oder Gedanken nur für dich festzuhalten.',
-  edit: 'Bearbeiten',
-  delete: 'Löschen',
-  deleteQuestion: 'Diesen Eintrag wirklich löschen?',
-  deleteBody: 'Der Eintrag wird dauerhaft entfernt.',
-  deleteConfirm: 'Eintrag löschen',
-  deleting: 'Wird gelöscht …',
   category: {
     FOOD: 'Essen & Lieblingsgerichte',
     DRINK: 'Getränke',

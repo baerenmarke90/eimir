@@ -184,7 +184,7 @@ describe('PlanProductPage editor request serialization', () => {
           placeId: null,
           title: 'Evening together',
           tags: [],
-          anticipationEnabled: false,
+          anticipation: 'AUTOMATIC',
           schedule:
             status === 'PLANNED'
               ? { plannedStart: '2026-11-21T21:00:00.000Z' }
@@ -211,7 +211,7 @@ describe('PlanProductPage editor request serialization', () => {
       },
     );
     fireEvent.click(
-      screen.getByRole('button', { name: i18n.t('experiences.finish') }),
+      screen.getByRole('button', { name: i18n.t('common.done') }),
     );
     await saveEdit();
 
@@ -222,7 +222,7 @@ describe('PlanProductPage editor request serialization', () => {
         placeId: null,
         title: 'Evening together',
         tags: [],
-        anticipationEnabled: false,
+        anticipation: 'AUTOMATIC',
       },
     ]);
   });
@@ -281,9 +281,7 @@ it('keeps the initiating version during background reads and rebases only on del
   fireEvent.change(screen.getByLabelText(i18n.t('m5s3.plan.plannedDate')), {
     target: { value: '2026-12-12' },
   });
-  fireEvent.click(
-    screen.getByRole('button', { name: i18n.t('experiences.finish') }),
-  );
+  fireEvent.click(screen.getByRole('button', { name: i18n.t('common.done') }));
   const latest = { ...h.plan, title: 'Partner correction', version: 4 };
   h.setServer(latest);
   act(() =>
@@ -314,9 +312,7 @@ it('keeps the initiating version during background reads and rebases only on del
     (screen.getByLabelText(i18n.t('m5s3.plan.plannedDate')) as HTMLInputElement)
       .value,
   ).toBe('2026-12-12');
-  fireEvent.click(
-    screen.getByRole('button', { name: i18n.t('experiences.finish') }),
-  );
+  fireEvent.click(screen.getByRole('button', { name: i18n.t('common.done') }));
   expect(
     (
       screen.getByLabelText(
@@ -346,9 +342,9 @@ it('offers Edit then Delete in the menu only and deletes after confirmation', as
   const rows = (await screen.findAllByRole('button'))
     .filter((button) => button.classList.contains('item-menu-option'))
     .map((button) => button.textContent);
-  expect(rows).toEqual([i18n.t('common.edit'), i18n.t('m5s3.common.delete')]);
+  expect(rows).toEqual([i18n.t('common.edit'), i18n.t('common.delete')]);
 
-  fireEvent.click(screen.getByText(i18n.t('m5s3.common.delete')));
+  fireEvent.click(screen.getByText(i18n.t('common.delete')));
   const confirmation = await screen.findByRole('alertdialog');
   expect(confirmation.textContent).toContain(
     i18n.t('m5s3.plan.deleteConsequence'),
@@ -371,7 +367,7 @@ it('keeps Delete out of the editor', async () => {
     name: i18n.t('m5s3.common.saveChanges'),
   });
   expect(
-    screen.queryByRole('button', { name: i18n.t('m5s3.common.delete') }),
+    screen.queryByRole('button', { name: i18n.t('common.delete') }),
   ).toBeNull();
   expect(
     screen.queryByRole('button', { name: i18n.t('m5s3.plan.menu') }),

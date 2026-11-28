@@ -32,6 +32,24 @@ describe('Capacitor safe-area & statusbar insets (#1044)', () => {
     expect(headerRules).toContain('var(--shell-header-safe-top, 0px)');
   });
 
+  it('keeps the ServerAdmin top bar and its back control below the native status bar', () => {
+    const adminCss = readWebFile('src/components/ServerAdminPage.css');
+    const shell =
+      adminCss.match(/\.server-admin-shell\s*\{([^}]+)\}/)?.[1] ?? '';
+    const topbar =
+      adminCss.match(/\.server-admin-topbar\s*\{([^}]+)\}/)?.[1] ?? '';
+
+    expect(shell.replace(/\s+/g, ' ')).toContain(
+      '--server-admin-safe-top: var( --safe-area-inset-top, env(safe-area-inset-top, 0px) );',
+    );
+    expect(topbar).toContain(
+      'padding-block-start: calc(var(--space-3) + var(--server-admin-safe-top));',
+    );
+    expect(adminCss).toContain(
+      '#root:has(> .demo-instance-banner) .server-admin-shell {\n  --server-admin-safe-top: 0px;',
+    );
+  });
+
   it('keeps the sticky composer header below the native status bar', () => {
     const composerCss = readWebFile('src/components/PageComposer.css');
     const headerMatch = composerCss.match(

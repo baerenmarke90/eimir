@@ -2,7 +2,7 @@
 
 The pipeline (staging, byte bound, publication, gallery limit, failure state) is
 Core and shared by voice notes (Free) and video. The video processor itself is
-Pro plugin code (``eimir.video_processing``, Decision 0017): the plugin registers
+Pro plugin code (``eimir_pro.video_processing``, Decision 0017): the plugin registers
 the video validation job with it, Core registers the audio one.
 """
 
@@ -189,7 +189,11 @@ def validate(
             original = directory / "input.mov"
             deadline = time.monotonic() + 600
             with store.open(key) as raw, original.open("wb") as target:
-                bounded = BoundedSource(raw, AUDIO_MAX_SIZE if audio else VIDEO_MAX_SIZE)
+                # Never more than declared, also after a direct provider
+                # upload: the declared size is what the storage quota reserved.
+                bounded = BoundedSource(
+                    raw, min(AUDIO_MAX_SIZE if audio else VIDEO_MAX_SIZE, identity[1])
+                )
                 while chunk := bounded.read(CHUNK_SIZE):
                     if time.monotonic() >= deadline:
                         raise VideoRejectedError("VIDEO_PROCESSING_TIMEOUT")

@@ -1,4 +1,25 @@
 /* Secondary-page header row (COMPONENT-CONTRACTS 5.4, #1907 C4). */
+/* Named-item readers place a type toolbar before the item's own heading. */
+:where(.page, .quiet-composer):not(.page-composer-detail):has(
+  > .page-heading[data-title-only]
+) {
+  row-gap: var(--page-stack-gap, 0px);
+
+  & > .page-heading[data-title-only] {
+    margin-block-end: calc(
+      var(--space-subpage-content-gap) -
+      var(--page-stack-gap, 0px)
+    );
+    padding-block-end: 0;
+  }
+
+  &
+    > .page-heading[data-title-only]
+    :is(.page-heading-title-row, .page-heading-title-container, h1) {
+    margin-block-end: 0;
+  }
+}
+
 .page-back-host {
   display: flex;
   flex: none;
@@ -121,7 +142,7 @@
 /* Overview headers shrink their title column to its content; the title row
    needs the full width so the title can sit beside Back. */
 .page-heading.page-heading-secondary
-> div:first-child:not(.page-heading-item-row) {
+  > div:first-child:not(.page-heading-item-row) {
   flex: 1 1 auto;
   min-inline-size: 0;
 }

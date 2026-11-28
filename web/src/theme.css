@@ -26,6 +26,11 @@
   --color-brand-glow: #f9eaf4;
   --color-on-accent: #ffffff;
   --color-text-inverse: #ffffff;
+  /* Switch controls: a state indicator needs 3:1 against its surface (WCAG
+     1.4.11), which the dark button fill token does not give on dark cards. */
+  --color-switch-track-on: var(--color-brand-strong);
+  --color-switch-thumb-on: var(--color-on-accent);
+  --color-switch-outline: var(--color-border);
   --color-text-inverse-muted: rgb(255 255 255 / 90%);
   /*
    * Legibility scrim for copy that sits on top of user photography.
@@ -84,6 +89,9 @@
   --color-brand-strong: #354778;
   --color-brand-text: #b7c8ff;
   --color-brand-surface: #46394f;
+  --color-switch-track-on: var(--color-brand-text);
+  --color-switch-thumb-on: var(--color-background);
+  --color-switch-outline: var(--color-text-secondary);
   --color-surface-panel: #252b43;
   --color-surface-panel-tint: #303f62;
   --color-page-tint-brand: #46394f;
@@ -147,6 +155,9 @@
     --color-brand-strong: #354778;
     --color-brand-text: #b7c8ff;
     --color-brand-surface: #46394f;
+    --color-switch-track-on: var(--color-brand-text);
+    --color-switch-thumb-on: var(--color-background);
+    --color-switch-outline: var(--color-text-secondary);
     --color-surface-panel: #252b43;
     --color-surface-panel-tint: #303f62;
     --color-page-tint-brand: #46394f;

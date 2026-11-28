@@ -7,12 +7,9 @@ import { AccountDeletionStatus } from '../api/generated/models/AccountDeletionSt
 import * as recentAuthentication from '../client/recentAuthentication';
 import accountSettings from '../i18n/locales/accountSettings';
 import { AccountSettingsPanel } from './AccountSettingsPanel';
+import germanUi from '../i18n/locales/de';
 
-function renderPanel(
-  demoMode = false,
-  onDeletionAccepted = vi.fn(),
-  onOpenDataExport?: () => void,
-) {
+function renderPanel(demoMode = false, onDeletionAccepted = vi.fn()) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
@@ -23,7 +20,6 @@ function renderPanel(
         accessToken="session-token"
         demoMode={demoMode}
         onDeletionAccepted={onDeletionAccepted}
-        onOpenDataExport={onOpenDataExport}
       />
     </QueryClientProvider>,
   );
@@ -39,7 +35,7 @@ function openConsequences() {
 
 async function completePasswordStepUp() {
   fireEvent.click(
-    screen.getByRole('button', { name: accountSettings.continueAction }),
+    screen.getByRole('button', { name: germanUi.common.continue }),
   );
   await screen.findByLabelText(accountSettings.reauthPasswordLabel);
   fireEvent.change(screen.getByLabelText(accountSettings.reauthPasswordLabel), {
@@ -99,7 +95,7 @@ describe('AccountSettingsPanel', () => {
 
     openConsequences();
     fireEvent.click(
-      screen.getByRole('button', { name: accountSettings.continueAction }),
+      screen.getByRole('button', { name: germanUi.common.continue }),
     );
     await screen.findByLabelText(accountSettings.reauthPasswordLabel);
     expect(deleteSpy).not.toHaveBeenCalled();
@@ -152,7 +148,7 @@ describe('AccountSettingsPanel', () => {
 
     openConsequences();
     fireEvent.click(
-      screen.getByRole('button', { name: accountSettings.continueAction }),
+      screen.getByRole('button', { name: germanUi.common.continue }),
     );
     await screen.findByText(accountSettings.reauthUnavailableTitle);
 
@@ -160,17 +156,21 @@ describe('AccountSettingsPanel', () => {
     expect(deleteSpy).not.toHaveBeenCalled();
   });
 
-  it('offers export as a host-routed detour before deletion', () => {
-    const onOpenDataExport = vi.fn();
-    renderPanel(false, vi.fn(), onOpenDataExport);
+  it('points to a copy on request instead of an export detour', () => {
+    renderPanel();
 
     openConsequences();
-    fireEvent.click(
-      screen.getByRole('button', { name: accountSettings.exportBefore }),
-    );
 
-    expect(onOpenDataExport).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.getByText(accountSettings.consequencesIntro)).toBeDefined();
+    expect(
+      Object.keys(accountSettings).filter((key) => /^export/i.test(key)),
+    ).toEqual([]);
+    expect(
+      screen
+        .getAllByRole('button')
+        .map((button) => button.textContent)
+        .filter((text) => /export/i.test(text ?? '')),
+    ).toEqual([]);
   });
 
   it('keeps the final step open when the irreversible request fails', async () => {

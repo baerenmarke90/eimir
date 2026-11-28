@@ -139,6 +139,21 @@
       "reviewedAt": "2026-11-15",
       "review": "The affected Flash Screen Video decoder (flashsv_decode_block() in libavcodec/flashsv.c) is not compiled. The restricted build starts with --disable-everything and its explicit decoder list (h264, hevc, opus, vorbis, aac, mp3float and PCM) does not include it; configuring the pinned upstream commit with the restricted component flags reports CONFIG_FLASHSV_DECODER and CONFIG_FLASHSV2_DECODER 0. No FLV demuxer is enabled either (CONFIG_FLV_DEMUXER 0)."
     },
+    "CVE-2026-125180": {
+      "evidenceSha256": "3c7db2b186b39c7d1177cb848fa18add50954bc1a69b62237e5daa919e303b4b",
+      "reviewedAt": "2026-11-23",
+      "review": "Applicable: libavcodec/exif.c is built and reached through the enabled MOV demuxer (mov_parse_exif_item() in libavformat/mov.c) and through coded EXIF side data in libavcodec/decode.c, so a crafted container can carry an EXIF block with many IFD entries pointing at overlapping payloads. The JPEG, PNG, TIFF and WebP decoders and demuxers named by the advisory are not enabled. The impact is memory exhaustion inside the ffmpeg child process. Every ffmpeg/ffprobe child runs through run_restricted() in attachments/media_process.py with RLIMIT_AS of 768 MiB, RLIMIT_CPU and a wall-clock timeout of 600 seconds, and uploads are limited to VIDEO_MAX_SIZE (250 MiB) in limits.py. The address-space limit makes the allocation fail inside the child, which exits non-zero and is reported as VIDEO_UNREADABLE, so the application process is not affected. This is a reviewed bounded-resource defense, not an upstream closure claim."
+    },
+    "CVE-2026-125183": {
+      "evidenceSha256": "d819bb915defba32eb0b518197eeafc0cc15b60057d48945752b37e211379879",
+      "reviewedAt": "2026-11-23",
+      "review": "Applicable: libavcodec/hevc/ps.c is built, and the HEVC decoder and parser are enabled, so a crafted PPS with pps_3d_extension_flag reaches pps_3d_extension() and its depth lookup table loops (up to 64 layers of 2^(bit depth + 8) skipped bits per PPS NAL unit, multiplied by repeated PPS NAL units). The impact is CPU consumption inside the ffmpeg child process. Every ffmpeg/ffprobe child runs through run_restricted() in attachments/media_process.py with RLIMIT_AS of 768 MiB, RLIMIT_CPU and a wall-clock timeout of 600 seconds, and uploads are limited to VIDEO_MAX_SIZE (250 MiB) in limits.py. A runaway parse ends in RLIMIT_CPU or the wall-clock timeout, which kills the whole process group and reports VIDEO_PROCESSING_TIMEOUT. This is a reviewed bounded-resource defense, not an upstream closure claim."
+    },
+    "CVE-2026-125185": {
+      "evidenceSha256": "e9ecee2515e56a74ad9075d8b658687e69c49a2fc98ca1079a8abe75a9dee6df",
+      "reviewedAt": "2026-11-23",
+      "review": "Applicable: libavcodec/aom_film_grain.c is built and ff_aom_parse_film_grain_sets() is reached through libavcodec/itut35.c from the HEVC SEI parser (libavcodec/h2645_sei.c), and libavcodec/hevc/hevcdec.c applies the parsed film grain with ff_aom_apply_film_grain(). The VVC decoder named by the advisory is not enabled; the HEVC path is. The impact is a division-by-zero crash of the ffmpeg child process. Every ffmpeg/ffprobe child runs through run_restricted() in attachments/media_process.py with RLIMIT_AS of 768 MiB, RLIMIT_CPU and a wall-clock timeout of 600 seconds, and uploads are limited to VIDEO_MAX_SIZE (250 MiB) in limits.py. A crash ends only the child, which exits non-zero and is reported as VIDEO_UNREADABLE, so the application process is not affected. This is a reviewed bounded-process defense, not an upstream closure claim."
+    },
     "CVE-2026-125202": {
       "evidenceSha256": "cf780706aa700903cf653976cf4f1e9d66279bb487005976e0d586284daf10db",
       "reviewedAt": "2026-11-14",
@@ -408,6 +423,41 @@
       "evidenceSha256": "c942619b3d9db68fc570351da37cf622d4fe27fac9ef3302bff45b0a603fccb7",
       "reviewedAt": "2026-11-16",
       "review": "The restricted build enables the H.264 metadata filter and compiles libavcodec/cbs_sei.c. clear-sei-message-slot.patch backports upstream FFmpeg commit 2c515eea07df719379e7f73deeeb7ccb8768433f to the pinned source. It clears each SEI message slot as it is handed out, including reused slots, so all restricted builds contain the upstream memory-safety fix. Debian sid continues to report this advisory open."
+    },
+    "CVE-2026-135724": {
+      "evidenceSha256": "2ae631f93d135e85fd23c3fc44ad2561e74cc0b943ae2bcd3eac1ed1e1500234",
+      "reviewedAt": "2026-11-24",
+      "review": "Applicable: the advisory (NVD and the Debian tracker agree) describes avformat_stream_group_create() in libavformat/options.c, which is built, setting the group type before allocating the tile-grid parameters, so an allocation failure while parsing a HEIF/AVIF tile grid makes ff_free_stream_group() dereference a NULL tile_grid. The pinned commit has this code, and mov_parse_tiles() in libavformat/mov.c calls it for every HEIF 'grid' item of the enabled MOV demuxer (its extension list includes avif, heic and heif), so a crafted container can reach it. The failure needs a small allocation to fail, which the 768 MiB RLIMIT_AS can cause in the child. The impact is a NULL-pointer crash of the ffmpeg/ffprobe child process; there is no memory corruption. Every child runs through run_restricted() in attachments/media_process.py with RLIMIT_AS of 768 MiB, RLIMIT_CPU, a wall-clock timeout of 600 seconds, stdin from /dev/null and no credentials, and uploads are limited to VIDEO_MAX_SIZE (250 MiB) in limits.py. A crash ends only the child, which exits non-zero and is reported as VIDEO_UNREADABLE, so the application process is not affected. No upstream fix is in the pinned commit and Debian lists the issue as open, so this is a reviewed bounded-process defense, not an upstream closure claim."
+    },
+    "CVE-2026-135739": {
+      "evidenceSha256": "c80027a949d697aceaf9cd14f7df60e4e6ee7dff357e434ed2af5813cd8cb5ef",
+      "reviewedAt": "2026-11-24",
+      "review": "The affected code (process_command() and the ref_* variable handling in libavfilter/vf_scale.c) is compiled because the scale filter is enabled, but it is not reachable. It runs only when a width or height command is delivered to a running scale filter, and the advisory names sendcmd and zmq/azmq as the delivery paths. The restricted build starts with --disable-everything and its explicit filter list (scale, format, null, anull, aresample, aformat, transpose, hflip, vflip, zscale, tonemap, fps, sidedata, setparams) excludes sendcmd, asendcmd, zmq and azmq; libavfilter/f_sendcmd.c and libavfilter/f_zmq.c are not in built-sources.txt. The ffmpeg interactive command key is also closed: every ffmpeg invocation passes -nostdin and run_restricted() sets stdin to /dev/null. Filter graphs are fixed by the application and never taken from media content, and the input file cannot send filter commands. The scale2ref variant is not enabled."
+    },
+    "CVE-2026-135742": {
+      "evidenceSha256": "506aa727d12d3387dc035a4bd1e3bfa0133f18820eb438b1ab65edc41074cf6c",
+      "reviewedAt": "2026-11-24",
+      "review": "The affected zmq and azmq filters (recv_msg() in libavfilter/f_zmq.c) are not compiled. Their configure dependency is libzmq, which the restricted build does not enable (--disable-everything, --disable-autodetect, --disable-network, no --enable-libzmq), the filter list excludes zmq and azmq, and libavfilter/f_zmq.c is not in built-sources.txt. The network listener the advisory describes cannot exist in the shipped binary, which also has every network protocol disabled."
+    },
+    "CVE-2026-135712": {
+      "evidenceSha256": "7933b1878a7781f7afe5afd30803986f4ad3525a14ad0dd0d5116fa4b3b0f710",
+      "reviewedAt": "2026-11-24",
+      "review": "The affected split_planes size check in write_packet() of libavformat/img2enc.c is compiled because the image2 muxer is enabled, and the pinned commit still has the unchecked int multiplication. It is not reachable. In the pinned source img->split_planes is set only when the stream codec is rawvideo AND the output URL ends in '.y' AND the pixel format is planar with at least three components. The restricted build has no rawvideo encoder (encoders are libopenh264, aac, mjpeg, wrapped_avframe and pcm_s16le). The only image2 output is the poster frame in eimir_pro/video_processing/videos.py, which is re-encoded to MJPEG by the scale filter chain and is written to the application-chosen path poster.jpg inside a caller-owned directory; the output name is never derived from the media content. split_planes is not a user option; it is derived only from the conditions above, so input media cannot enable it, and the audio and video commands never select image2 otherwise. Input is limited to the mov demuxer for video and a fixed demuxer list for voice notes, and no rawvideo demuxer is built. Debian lists the advisory as open in all releases and upstream fixed it only in 9.1, so this is a reviewed not-reachable record, not an upstream closure claim."
+    },
+    "CVE-2026-135715": {
+      "evidenceSha256": "8f7e19ddf355825f30960dc7b9bac90d643de0813331ab4d2250e0b63ca1afbd",
+      "reviewedAt": "2026-11-24",
+      "review": "The unchecked av_pix_fmt_desc_get() results (mov_write_pixi_tag(), the AVIF branch of the ftyp writer and the AVIF stream check in libavformat/movenc.c) are compiled because the MP4 muxer shares movenc.c, but they run only in MODE_AVIF. In the pinned source mov->mode becomes MODE_AVIF only through IS_MODE(avif, AVIF), which requires CONFIG_AVIF_MUXER and an output format named avif. The restricted build enables only the mp4, image2, null and wav muxers (--disable-everything), so the avif muxer is not registered, CONFIG_AVIF_MUXER is 0 and the AVIF code is dead at compile time. Every ffmpeg invocation names its output format explicitly (-f mp4, -f wav, -f null, -f image2) with application-chosen file names, so media content cannot select AVIF; image2 would delegate to the avif muxer only for AV1 streams, and the build has no AV1 encoder or decoder. The stream-copy to MP4 in the video path never enters the affected code. Debian lists the advisory as open in all releases; this is a reviewed not-compiled-in-effect record, not an upstream closure claim."
+    },
+    "CVE-2026-135722": {
+      "evidenceSha256": "8350a282e331977a3a5f81b853025b5752aff3b90d35da2d216a4c8407f3764a",
+      "reviewedAt": "2026-11-24",
+      "review": "The affected peak_init_writer() and the peak branch of wav_write_packet() in libavformat/wavenc.c are compiled because the wav muxer is enabled, but they are not reachable. In the pinned source peak_init_writer() runs only when the wav muxer option write_peak is non-zero, and that option defaults to 0 (off). It is a muxer option that exists only on the ffmpeg command line, and no command built by the application passes it: the only wav output in attachments/audios.py is a fixed '-c:a pcm_s16le -ac 1 -ar 48000 -f wav' command whose arguments are assembled by the application, never from media content. The zero-channel precondition is also closed independently: the probe step rejects every voice note whose stream does not have 1 or 2 channels before the conversion runs, and -ac 1 forces mono. The advisory therefore cannot be triggered by crafted input media. Debian lists the advisory as open in all releases and upstream fixed it only in 9.1, so this is a reviewed not-reachable record, not an upstream closure claim."
+    },
+    "CVE-2026-137076": {
+      "evidenceSha256": "affbbbe611d9bbb07881c1216bc1969650f8178f367e07f12ce95d50975d64f2",
+      "reviewedAt": "2026-11-27",
+      "review": "The affected avcodec_flush_buffers() in libavcodec/avcodec.c and the frame pool in libavcodec/decode.c are compiled, but the described exposure needs one decoder context reused across users. Every application job starts its own ffmpeg or ffprobe child process (media_process.py and videos.py, one input per process, stdin closed, -nostdin), so a decoder context and its buffer pool live for exactly one user's file and are discarded at process exit; nothing recycles buffers between users. Output is a stream copy for video and a bounded single-stream transcode for audio, never written from unwritten frame regions of another job. The advisory therefore cannot expose another user's picture content in this deployment. Debian lists it as open in all releases with no fixed version, so this is a reviewed not-reachable record, not an upstream closure claim."
     }
   },
   "dependencies": {

@@ -42,9 +42,6 @@ from eimir.plugins.manifest import PLUGIN_TABLES, LifecycleEvent, PluginTable
 if TYPE_CHECKING:
     from sqlalchemy import CursorResult
 
-    from eimir.authorization import AuthorizationContext
-    from eimir.transfer.models import TransferScope
-
 
 def absent_tables() -> tuple[PluginTable, ...]:
     """Manifest tables whose owning capability no loaded plugin provides."""
@@ -60,9 +57,6 @@ def _columns(row: PluginTable) -> list[str]:
     names.extend(row.expires_columns)
     if row.attachment is not None:
         names.append(row.attachment.column)
-    if row.export is not None:
-        names.extend(field.column for field in row.export.fields if field.column)
-        names.append("payload")
     return list(dict.fromkeys(names))
 
 
@@ -218,50 +212,3 @@ def security_retention(session: Session) -> None:
     for plugin in loaded_plugins().plugins:
         plugin.prune_expired(session)
     prune_expired(session)
-
-
-def export_account_document(
-    session: Session, authorization: AuthorizationContext, scope: TransferScope
-) -> dict[str, Any]:
-    """The plugin keys of the export's account document; the manifest's for absent plugins."""
-    from eimir.transfer.models import TransferScope
-
-    document: dict[str, Any] = {}
-    for plugin in loaded_plugins().plugins:
-        document.update(plugin.export_account_document(session, authorization, scope))
-    if scope is TransferScope.PERSONAL:
-        document.update(_manifest_export(session, authorization.account_id))
-    return document
-
-
-def _manifest_export(session: Session, account_id: UUID) -> dict[str, Any]:
-    """The personal-export keys of the absent plugins' tables, from the manifest."""
-    from eimir.transfer.payload_boundary import reveal_row
-
-    document: dict[str, Any] = {}
-    for row in absent_tables():
-        rule = row.export
-        if rule is None or not row.account_columns:
-            continue
-        target = _table(row)
-        entries: list[dict[str, Any]] = []
-        for stored in session.execute(
-            select(target).where(target.c[row.account_columns[0]] == account_id)
-        ).mappings():
-            revealed = reveal_row(row.table, dict(stored))
-            payload = revealed.get("payload") or {}
-            if str(payload.get(rule.payload_owner_field)) != str(account_id):
-                continue
-            entries.append(
-                {
-                    field.name: revealed[field.column]
-                    if field.column is not None
-                    else payload.get(field.payload_field or field.name)
-                    for field in rule.fields
-                }
-            )
-        if not rule.single:
-            document[rule.key] = entries
-        elif entries:
-            document[rule.key] = next(iter(entries[0].values()))
-    return document

@@ -1,0 +1,123 @@
+/*
+ * "Eure Geschichte" (#2158 G): a calm diary of the garden, not a log table.
+ * Days read as small headings; each moment is one sentence beside its flower,
+ * strung on a soft thread. Colours are the partners' own accents.
+ */
+.garden-history {
+  gap: var(--space-4);
+}
+
+.garden-history-intro,
+.garden-history-note {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.garden-history-problem {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+}
+
+.garden-history-days {
+  /* A readable measure on Expanded widths; Compact fills the card. */
+  max-inline-size: 42rem;
+  display: grid;
+  gap: var(--space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.garden-history-day {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.garden-history-date {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.garden-history-entries {
+  position: relative;
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The thread through the marks of one day. */
+.garden-history-entries::before {
+  content: "";
+  position: absolute;
+  inset-block: var(--space-3);
+  inset-inline-start: calc(2.25rem / 2 - 1px);
+  border-inline-start: 2px dotted var(--color-border-subtle);
+}
+
+.garden-history-entry {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.garden-history-mark {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 2.25rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-raised);
+}
+
+.garden-history-mark .garden-seed-icon + .garden-seed-icon {
+  margin-inline-start: -0.6rem;
+}
+
+/* Something both did: the two accents next to each other. */
+.garden-history-dot {
+  display: block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: var(--radius-pill);
+  background: var(--person-own-accent);
+  box-shadow: 0.45rem 0 0 var(--person-partner-accent);
+  translate: -0.225rem 0;
+}
+
+.garden-history-text {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+  padding-block: var(--space-1);
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+.garden-history-detail {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+.garden-history-words {
+  width: fit-content;
+  padding: var(--space-1) var(--space-3);
+  border-radius: 1rem 1rem 1rem 0.25rem;
+  background: var(--color-surface);
+  box-shadow: inset 3px 0 0 var(--person-accent);
+  font-family: var(--font-display);
+}
+
+.garden-history-more {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+}

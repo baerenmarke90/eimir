@@ -102,7 +102,7 @@ export function DefaultShoppingListCard({
         label={t('m5s3.collection.defaultShopping.action')}
         icon="listen"
         pending={create.isPending}
-        pendingLabel={t('m5s3.common.saving')}
+        pendingLabel={t('common.saving')}
         onClick={() => {
           if (inFlightRef.current) return;
           inFlightRef.current = true;

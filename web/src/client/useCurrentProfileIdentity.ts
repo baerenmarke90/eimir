@@ -4,6 +4,7 @@ import { ProfilesApi } from './mediaApis';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { Configuration } from './apiConfiguration';
 import { authorSummaryQueryKeys } from './authorSummaryConsumers';
+import { displayAvatarUrl } from './defaultAvatar';
 import { useProfileAvatarUrl } from './useProfileAvatarUrl';
 
 export function useCurrentProfileIdentity({
@@ -40,16 +41,28 @@ export function useCurrentProfileIdentity({
   });
   const profile = profileQuery.data;
   const displayName = profile?.displayName ?? account.displayName;
-  const { avatarUrl, loadFailed: avatarLoadFailed } = useProfileAvatarUrl(
+  const {
+    avatarUrl,
+    loadFailed: avatarLoadFailed,
+    hasNoPicture,
+  } = useProfileAvatarUrl(
     profilesApi,
     spaceId,
     account.id,
     profile?.profileAttachmentId,
   );
+  // What a screen shows: the real picture, or the neutral stand-in once the
+  // profile is known to have none. `avatarUrl` stays the real picture only.
+  const shownAvatarUrl = displayAvatarUrl(account.id, {
+    avatarUrl,
+    hasNoPicture,
+  });
 
   return {
     avatarLoadFailed,
     avatarUrl,
+    avatarIsStandIn: avatarUrl === null && shownAvatarUrl !== null,
+    displayAvatarUrl: shownAvatarUrl,
     displayName,
     profileQuery,
     profilesApi,

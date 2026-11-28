@@ -7,14 +7,13 @@ import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '../support/axe';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import navigationCopy from '../../src/i18n/locales/navigation';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import wishJourney from '../../src/i18n/locales/wishJourney';
-import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { captureScreenshot } from '../support/storyTimelineFixture';
 import { editViaMenu } from '../support/itemMenu';
 import { expectLabeledAddAction } from '../support/addAction';
 import { closePlanSchedule, showPlanSchedule } from '../support/memoryDiary';
-import experiences from '../../src/i18n/locales/experiences';
 import importantDates from '../../src/i18n/locales/importantDates';
 import memoryMap from '../../src/i18n/locales/memoryMap';
 
@@ -478,7 +477,7 @@ test('clicking the focal Plan navigates from the Planning overview to the read-f
     page.getByRole('heading', { name: PLAN_TITLE, level: 2, exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole('button', { name: taskBoundary.back }),
+    page.getByRole('button', { name: de.common.back }),
   ).toBeVisible();
 });
 
@@ -535,7 +534,7 @@ test('end time is progressive, blocks an invalid range, and submits the same-day
   await endTime.fill('13:30');
   await expect(page.getByText(m5s3.plan.endMustFollowStart)).toBeVisible();
   await scheduleTask
-    .getByRole('button', { name: experiences.finish, exact: true })
+    .getByRole('button', { name: de.common.done, exact: true })
     .click();
   expect(scheduleBody).toBeNull();
 
@@ -761,7 +760,7 @@ for (const [width, colorScheme] of [
       exact: true,
     });
     await expect(trigger).toHaveCount(0);
-    await editViaMenu(page, m5s3.common.edit);
+    await editViaMenu(page, de.common.edit);
     await trigger.click();
     const sheet = page.getByRole('dialog', { name: m5s3.plan.linkWish });
     await sheet.getByRole('radio', { name: WISH_TITLE }).check();
@@ -868,7 +867,12 @@ test('Expanded: Wir, Planen, Momente and the text pages are centered', async ({
     await expectCentered(selector);
   }
 
-  await expect(page.getByRole('banner').getByRole('button')).toHaveCount(0);
+  // The bar carries exactly one control: the create entry at its end.
+  const barButtons = page.getByRole('banner').getByRole('button');
+  await expect(barButtons).toHaveCount(1);
+  await expect(barButtons).toHaveAccessibleName(
+    navigationCopy.quickCreateTitle,
+  );
   await expectNoHorizontalOverflow(page);
 });
 

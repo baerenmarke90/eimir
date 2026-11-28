@@ -2,7 +2,7 @@
 
 These Core routes read stored editions and keep the members' own reflections
 editable and withdrawable on every server. Composing new editions is Premium:
-those routes are plugin code in ``eimir.api.v1.recap_composition`` and reuse the
+those routes are plugin code in ``eimir_pro.api.recap_composition`` and reuse the
 shared schemas and the ``no_store`` dependency from here.
 """
 
@@ -147,21 +147,6 @@ class RecapFactsView(ApiModel):
     busiest_month: int | None
 
 
-class RecapMoodBucketView(ApiModel):
-    """Mutual check-in days of one week (month edition) or one month (year edition)."""
-
-    index: int
-    mutual_days: int
-    good_days: int
-
-
-class RecapMoodView(ApiModel):
-    """Frozen rhythm of days on which both partners marked a good Vibe."""
-
-    buckets: list[RecapMoodBucketView]
-    leading: int | None
-
-
 class RecapView(RecapPeriod):
     id: UUID
     variant: int
@@ -178,7 +163,6 @@ class RecapView(RecapPeriod):
     introduction: str | None
     sources: list[RecapSourceView]
     facts: RecapFactsView | None = None
-    mood: RecapMoodView | None = None
     film: RecapFilmView | None = None
     reflections: list[RecapReflectionView]
     own_draft: RecapDraftView | None

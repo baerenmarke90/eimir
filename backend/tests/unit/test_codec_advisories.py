@@ -71,6 +71,19 @@ def test_findings_outside_the_build_are_filtered_but_unresolved_built_ones_are_k
     assert set(findings(feed)) == {"NOT-BUILT", "BUILT", "UNPLACED"}
 
 
+@pytest.mark.parametrize("package", ["ffmpeg", "openh264", "zimg"])
+def test_unresolved_advisory_without_description_stays_fail_closed(package: str) -> None:
+    """Debian files new TEMP entries before their text; that must not crash the gate."""
+    feed = {package: {"TEMP-NEW": {"releases": {"sid": {"status": "open"}}}}}
+    assert set(findings(feed, package)) == {"TEMP-NEW"}
+    # Nothing places it outside the build, so it requires a recorded review.
+    assert set(relevant_findings(feed, BUILT, package, identifiers=set())) == {"TEMP-NEW"}
+    described = {
+        package: {"TEMP-NEW": {"description": "", "releases": {"sid": {"status": "open"}}}}
+    }
+    assert findings(feed, package) == findings(described, package)
+
+
 def test_dependency_file_parser_keeps_in_tree_sources_and_drops_system_headers(
     tmp_path: Path,
 ) -> None:

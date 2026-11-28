@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { RecapViewFromJSON } from '../api/generated/models/RecapView';
 import type { FilmScene } from '../client/recapFilm';
 import type { ReferenceApis } from '../client/referenceFlow';
-import { RecapFilmScene } from './RecapFilmScene';
+import { filmScenePreloads, RecapFilmScene } from './RecapFilmScene';
 
 afterEach(cleanup);
 
@@ -68,7 +68,6 @@ function show(scene: FilmScene) {
       playing={false}
       reducedMotion
       onSettled={onSettled}
-      sourceLink={() => <a href="/source">Original</a>}
       mediaApis={{} as ReferenceApis}
       spaceId="space"
       account={{ id: 'me' }}
@@ -177,7 +176,6 @@ describe('RecapFilmScene variety forms', () => {
         playing={false}
         reducedMotion
         onSettled={vi.fn()}
-        sourceLink={() => null}
         mediaApis={{} as ReferenceApis}
         spaceId="space"
         account={{ id: 'me' }}
@@ -205,7 +203,6 @@ describe('RecapFilmScene variety forms', () => {
         playing={false}
         reducedMotion
         onSettled={vi.fn()}
-        sourceLink={() => null}
         mediaApis={{} as ReferenceApis}
         spaceId="space"
         account={{ id: 'me' }}
@@ -232,7 +229,6 @@ describe('RecapFilmScene variety forms', () => {
         playing={false}
         reducedMotion
         onSettled={vi.fn()}
-        sourceLink={() => null}
         mediaApis={{} as ReferenceApis}
         spaceId="space"
         account={{ id: 'me' }}
@@ -262,7 +258,6 @@ describe('RecapFilmScene variety forms', () => {
         playing={false}
         reducedMotion
         onSettled={vi.fn()}
-        sourceLink={() => null}
         mediaApis={{} as ReferenceApis}
         spaceId="space"
         account={{ id: 'me' }}
@@ -316,7 +311,6 @@ describe('RecapFilmScene variety forms', () => {
         playing={false}
         reducedMotion
         onSettled={vi.fn()}
-        sourceLink={() => null}
         mediaApis={{} as ReferenceApis}
         spaceId="space"
         account={{ id: 'me' }}
@@ -335,5 +329,66 @@ describe('RecapFilmScene variety forms', () => {
     expect(
       container.querySelector('.recap-film-media')?.getAttribute('data-scene'),
     ).toBe('collage');
+  });
+});
+
+describe('filmScenePreloads', () => {
+  it('names the variant each picture reads and warms a clip with its poster', () => {
+    const photo = {
+      ...timing,
+      key: 'photo',
+      type: 'photo',
+      source,
+      media: { attachmentId: 'still', parentId: 'happy', kind: 'IMAGE' },
+      words: null,
+      answers: [],
+    } as FilmScene;
+    expect(filmScenePreloads(photo, value)).toEqual([
+      {
+        parentType: 'MEMORY',
+        parentId: 'happy',
+        attachmentId: 'still',
+        variant: 'original',
+      },
+    ]);
+    const clip = {
+      ...photo,
+      media: {
+        attachmentId: 'clip',
+        parentId: 'happy',
+        kind: 'VIDEO',
+        clipStartSeconds: 3,
+      },
+    } as FilmScene;
+    expect(
+      filmScenePreloads(clip, value).map((item) => [
+        item.variant,
+        item.clipStartSeconds,
+      ]),
+    ).toEqual([
+      ['thumbnail', undefined],
+      ['clip', 3],
+    ]);
+  });
+
+  it('preloads nothing for text-led scenes or pictures without a grant parent', () => {
+    expect(
+      filmScenePreloads(
+        { ...timing, key: 'words', type: 'words', source, words: 'Hi' },
+        value,
+      ),
+    ).toEqual([]);
+    expect(
+      filmScenePreloads(
+        {
+          ...timing,
+          key: 'closing',
+          type: 'closing',
+          days: 3,
+          media: [{ attachmentId: 'orphan', parentId: 'gone', kind: 'IMAGE' }],
+        },
+        value,
+      ),
+    ).toEqual([]);
   });
 });

@@ -1,3 +1,4 @@
+import { Browser } from '@capacitor/browser';
 import {
   type FormEvent,
   useCallback,
@@ -6,10 +7,11 @@ import {
   useState,
 } from 'react';
 import type { AuthCapabilities } from '../api/generated/models/AuthCapabilities';
-import type { OidcConnectionView } from '../api/generated/models/OidcConnectionView';
 import type { InstanceAccessStatusAccountCreationEnum } from '../api/generated/models/InstanceAccessStatus';
+import type { OidcConnectionView } from '../api/generated/models/OidcConnectionView';
+import { isDemoModeConfigured } from '../client/demoMode';
 import type { SensitiveEntryToken } from '../client/entryToken';
-import { useInlineFieldError } from '../client/useInlineFieldError';
+import { identityBuildVariable } from '../client/identityEnvironment';
 import {
   ActiveAccountMismatchError,
   completePasswordRecovery,
@@ -44,10 +46,11 @@ import {
   clientProblemKind,
 } from '../client/problemDetails';
 import type { StoredSession } from '../client/sessionPersistence';
+import { useInlineFieldError } from '../client/useInlineFieldError';
 import { useTaskActivation } from '../client/useTaskActivation';
-import { isCapacitorNative } from '../pwa';
 import { useTranslation } from '../i18n';
 import { cloudLegalDocumentsApply } from '../legal/legalDocuments';
+import { isCapacitorNative } from '../pwa';
 import { Brand } from './Brand';
 import { LegalFooterLinks } from './LegalDocumentLink';
 import { ProblemState } from './ProblemState';
@@ -110,6 +113,9 @@ function isTokenExpiredOrInvalidError(error: unknown): boolean {
   return true;
 }
 
+// Optional separate Demo deployment; the link is absent when none is configured.
+const demoUrl = identityBuildVariable('DEMO_URL').trim().replace(/\/+$/, '');
+
 export function IdentityEntry({
   apiBaseUrl,
   entryToken,
@@ -155,6 +161,11 @@ export function IdentityEntry({
   const [recoveryRequested, setRecoveryRequested] = useState(false);
   const [magicLinkRequested, setMagicLinkRequested] = useState(false);
   const [signupRequested, setSignupRequested] = useState(false);
+  // The address typed on this device for the last mail request; kept in memory
+  // only so a resend needs no retyping.
+  const requestedEmail = useRef('');
+  const [mailRequestCount, setMailRequestCount] = useState(0);
+  const [focusRequest, setFocusRequest] = useState(0);
   const [verificationDismissed, setVerificationDismissed] = useState(false);
   const [verificationSucceeded, setVerificationSucceeded] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -330,18 +341,25 @@ export function IdentityEntry({
     runAction,
   ]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: focusRequest re-runs the focus after a restart inside the same mode
   useEffect(() => {
     if (shouldFocusInput.current && mode) {
       shouldFocusInput.current = false;
       emailInputRef.current?.focus();
     }
-  }, [mode]);
+  }, [mode, focusRequest]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: mailRequestCount moves focus back to the notice after a resend
   useEffect(() => {
-    if (signupRequested) {
+    if (signupRequested || magicLinkRequested || recoveryRequested) {
       neutralMailStatusRef.current?.focus();
     }
-  }, [signupRequested]);
+  }, [
+    signupRequested,
+    magicLinkRequested,
+    recoveryRequested,
+    mailRequestCount,
+  ]);
 
   useEffect(() => {
     if (problemCode(activeError) === TERMS_ACCEPTANCE_REQUIRED) {
@@ -350,7 +368,19 @@ export function IdentityEntry({
   }, [activeError]);
 
   function switchMode(nextMode: EntryMode) {
-    if (nextMode === mode) return;
+    if (nextMode === mode) {
+      // Tapping the active tab restarts a mode that shows the mailbox notice
+      // instead of leaving the person on a dead end.
+      const showsNotice =
+        (mode === 'magicLinkRequest' && magicLinkRequested) ||
+        (mode === 'signupRequest' && signupRequested) ||
+        (mode === 'recoveryRequest' && recoveryRequested);
+      if (showsNotice) restartMailRequest();
+      return;
+    }
+    setRecoveryRequested(false);
+    setMagicLinkRequested(false);
+    setSignupRequested(false);
     if (
       !localPasswordEnabled &&
       nextMode !== 'magicLinkRequest' &&
@@ -426,15 +456,22 @@ export function IdentityEntry({
     );
   }
 
-  function submitRecoveryRequest(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const email = String(data.get('email'));
+  function sendRecoveryRequest(email: string) {
+    requestedEmail.current = email;
     void runAction(
       'recoveryRequest',
       () => requestPasswordRecovery(apiBaseUrl, email),
-      () => setRecoveryRequested(true),
+      () => {
+        setRecoveryRequested(true);
+        setMailRequestCount((count) => count + 1);
+      },
     );
+  }
+
+  function submitRecoveryRequest(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    sendRecoveryRequest(String(data.get('email')));
   }
 
   function submitRecovery(event: FormEvent<HTMLFormElement>) {
@@ -454,10 +491,8 @@ export function IdentityEntry({
     );
   }
 
-  function submitMagicLinkRequest(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const email = String(data.get('email'));
+  function sendMagicLinkRequest(email: string) {
+    requestedEmail.current = email;
     void runAction(
       'magicLinkRequest',
       () =>
@@ -471,19 +506,47 @@ export function IdentityEntry({
               )
             : requestSignup(apiBaseUrl, email)
           : requestMagicLink(apiBaseUrl, email),
-      () => setMagicLinkRequested(true),
+      () => {
+        setMagicLinkRequested(true);
+        setMailRequestCount((count) => count + 1);
+      },
+    );
+  }
+
+  function submitMagicLinkRequest(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    sendMagicLinkRequest(String(data.get('email')));
+  }
+
+  function sendSignupRequest(email: string) {
+    requestedEmail.current = email;
+    void runAction(
+      'signupRequest',
+      () => requestSignup(apiBaseUrl, email, null, acceptedTermsVersion),
+      () => {
+        setSignupRequested(true);
+        setMailRequestCount((count) => count + 1);
+      },
     );
   }
 
   function submitSignupRequest(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    const email = String(data.get('email'));
-    void runAction(
-      'signupRequest',
-      () => requestSignup(apiBaseUrl, email, null, acceptedTermsVersion),
-      () => setSignupRequested(true),
-    );
+    sendSignupRequest(String(data.get('email')));
+  }
+
+  /** Back to the empty form, with the keyboard opened because the person chose to type. */
+  function restartMailRequest() {
+    setActiveError(null);
+    setFailedAction(null);
+    setRecoveryRequested(false);
+    setMagicLinkRequested(false);
+    setSignupRequested(false);
+    requestedEmail.current = '';
+    shouldFocusInput.current = true;
+    setFocusRequest((count) => count + 1);
   }
 
   function continueWithProvider(connectionId: string, signup: boolean) {
@@ -633,551 +696,612 @@ export function IdentityEntry({
       </section>
 
       <div className="login-panel">
-        <section className="login-card" aria-label={t('identity.entryAria')}>
-          {activeError instanceof ActiveAccountMismatchError ? (
-            <>
-              <UiState
-                kind="error"
-                title={t('identity.activeAccountTitle')}
-                body={t('identity.activeAccountBody')}
-              />
-              <button type="button" onClick={discardEntryToken}>
-                {t('identity.returnToActiveAccount')}
-              </button>
-            </>
-          ) : entryToken?.kind === 'oidc' ? (
-            activeError ? (
-              <>
-                {problemCode(activeError) === TERMS_VERSION_OUTDATED ||
-                problemCode(activeError) === TERMS_ACCEPTANCE_REQUIRED ? (
-                  outdatedTerms
-                ) : (
-                  <UiState
-                    kind="error"
-                    title={t(oidcFailureKeys(problemCode(activeError)).title)}
-                    body={t(oidcFailureKeys(problemCode(activeError)).body)}
-                  />
-                )}
-                <BackToSignIn onClick={discardEntryToken} />
-              </>
-            ) : (
-              <UiState kind="loading" title={t('identity.oidcOpening')} />
-            )
-          ) : entryToken?.kind === 'magicLink' ? (
-            activeError ? (
+        {/* Until the instance status arrives the available sign-in methods are
+            unknown; showing a guess would flip the card once they are. */}
+        {registrationAvailability === 'checking' && !entryToken ? null : (
+          <section className="login-card" aria-label={t('identity.entryAria')}>
+            {activeError instanceof ActiveAccountMismatchError ? (
               <>
                 <UiState
                   kind="error"
-                  title={t('identity.magicLinkFailedTitle')}
-                  body={t('identity.magicLinkFailedBody')}
+                  title={t('identity.activeAccountTitle')}
+                  body={t('identity.activeAccountBody')}
                 />
-                <BackToSignIn onClick={discardEntryToken} />
-              </>
-            ) : (
-              <UiState kind="loading" title={t('identity.magicLinkOpening')} />
-            )
-          ) : showsVerification ? (
-            verificationSucceeded ? (
-              <>
-                <div
-                  className="inline-message inline-message-success"
-                  role="status"
-                >
-                  <strong>{t('identity.verificationCompleteTitle')}</strong>
-                  <span>{t('identity.verificationCompleteBody')}</span>
-                </div>
                 <button type="button" onClick={discardEntryToken}>
-                  {t('identity.backToSignIn')}
+                  {t('identity.returnToActiveAccount')}
                 </button>
               </>
-            ) : activeError ? (
-              <>
-                <UiState
-                  kind="error"
-                  title={t('identity.verificationFailedTitle')}
-                  body={t('identity.verificationFailedBody')}
-                />
-                <BackToSignIn onClick={discardEntryToken} />
-              </>
-            ) : (
-              <UiState
-                kind="loading"
-                title={t('identity.verificationOpening')}
-              />
-            )
-          ) : recoveryToken ? (
-            <>
-              <div>
-                <p className="eyebrow">{t('identity.recoveryEyebrow')}</p>
-                <h2 id="identity-entry-heading">
-                  {t('identity.recoveryTitle')}
-                </h2>
-                <p className="muted">{t('identity.recoveryBody')}</p>
-              </div>
-              <form onSubmit={submitRecovery} className="form-grid login-form">
-                <PasswordFields />
-                <button
-                  type="submit"
-                  disabled={pendingAction === 'recovery'}
-                  aria-busy={pendingAction === 'recovery'}
-                >
-                  {pendingAction === 'recovery'
-                    ? t('identity.recoverySaving')
-                    : t('identity.recoverySave')}
-                </button>
-              </form>
-            </>
-          ) : entryToken?.kind === 'signup' ? (
-            awaitingTermsAcceptance &&
-            (!activeError ||
-              problemCode(activeError) === TERMS_ACCEPTANCE_REQUIRED) ? (
-              termsOutdated ? (
-                outdatedTerms
-              ) : (
+            ) : entryToken?.kind === 'oidc' ? (
+              activeError ? (
                 <>
-                  <div>
-                    <p className="eyebrow">{t('legal.pendingEyebrow')}</p>
-                    <h2 id="identity-entry-heading">
-                      {t('legal.pendingTitle')}
-                    </h2>
-                    <p className="muted">{t('legal.pendingBody')}</p>
-                  </div>
-                  <form
-                    onSubmit={submitSignupAcceptance}
-                    className="form-grid login-form"
-                  >
-                    <TermsAcceptanceField />
-                    <button
-                      type="submit"
-                      disabled={pendingAction === 'signupConsume'}
-                      aria-busy={pendingAction === 'signupConsume'}
-                    >
-                      {pendingAction === 'signupConsume'
-                        ? t('legal.creatingAccount')
-                        : t('legal.createAccount')}
-                    </button>
-                  </form>
-                  <BackToSignIn onClick={discardEntryToken} />
-                </>
-              )
-            ) : activeError ? (
-              <>
-                {problemCode(activeError) === TERMS_VERSION_OUTDATED ? (
-                  outdatedTerms
-                ) : isTokenExpiredOrInvalidError(activeError) ? (
-                  <UiState
-                    kind="error"
-                    title={t('identity.signupFailedTitle')}
-                    body={t('identity.signupFailedBody')}
-                  />
-                ) : (
-                  <ProblemState error={activeError} />
-                )}
-                <BackToSignIn onClick={discardEntryToken} />
-              </>
-            ) : (
-              <UiState kind="loading" title={t('identity.signupOpening')} />
-            )
-          ) : (
-            <>
-              {selfServiceSignupAvailable && !invitationToken ? (
-                // biome-ignore lint/a11y/useSemanticElements: ARIA button group pattern for entry mode switcher
-                <div
-                  className="entry-mode-toggle"
-                  role="group"
-                  aria-label={t('identity.entryModesAria')}
-                >
-                  <button
-                    type="button"
-                    className={`entry-mode-btn ${
-                      mode !== 'signupRequest' ? 'active' : ''
-                    }`}
-                    aria-pressed={mode !== 'signupRequest'}
-                    onClick={() =>
-                      switchMode(
-                        localPasswordEnabled ? 'signIn' : 'magicLinkRequest',
-                      )
-                    }
-                  >
-                    {t('login.heading')}
-                  </button>
-                  <button
-                    type="button"
-                    className={`entry-mode-btn ${
-                      mode === 'signupRequest' ? 'active' : ''
-                    }`}
-                    aria-pressed={mode === 'signupRequest'}
-                    onClick={() => switchMode('signupRequest')}
-                  >
-                    {t('identity.startTogether')}
-                  </button>
-                </div>
-              ) : null}
-
-              {mode === 'signupRequest' ? (
-                <>
-                  <div className="entry-heading entry-heading-quiet">
-                    <p className="eyebrow">
-                      {t('identity.startTogetherEyebrow')}
-                    </p>
-                    <h2 id="identity-entry-heading">
-                      {t('identity.startTogetherTitle')}
-                    </h2>
-                    <p className="muted">{t('identity.startTogetherBody')}</p>
-                  </div>
-                  {signupRequested ? (
-                    <NeutralMailResult statusRef={neutralMailStatusRef} />
-                  ) : termsOutdated ? (
+                  {problemCode(activeError) === TERMS_VERSION_OUTDATED ||
+                  problemCode(activeError) === TERMS_ACCEPTANCE_REQUIRED ? (
                     outdatedTerms
                   ) : (
-                    <form
-                      onSubmit={submitSignupRequest}
-                      className="form-grid login-form"
-                    >
-                      {asksForTerms ? (
-                        <TermsAcceptanceField
-                          checked={termsAccepted}
-                          onChange={setTermsAccepted}
-                        />
-                      ) : null}
-                      {oidcSignupAvailable
-                        ? providerTermsHint(asksForTerms)
-                        : null}
-                      {providerChoices({
-                        signup: true,
-                        needsTerms: asksForTerms,
-                        dividerKey: 'identity.dividerEmailLink',
-                        passkey: false,
-                        show: oidcSignupAvailable,
-                      })}
-                      <EmailField inputRef={emailInputRef} />
-                      <button
-                        type="submit"
-                        disabled={pendingAction === 'signupRequest'}
-                        aria-busy={pendingAction === 'signupRequest'}
-                      >
-                        {pendingAction === 'signupRequest'
-                          ? t('identity.startTogetherPending')
-                          : t('identity.startTogetherSubmit')}
-                      </button>
-                      {oidcSignupAvailable && passkeysAvailable() ? (
-                        <p className="login-hint">
-                          {t('identity.passkeyLaterHint')}
-                        </p>
-                      ) : null}
-                    </form>
+                    <UiState
+                      kind="error"
+                      title={t(oidcFailureKeys(problemCode(activeError)).title)}
+                      body={t(oidcFailureKeys(problemCode(activeError)).body)}
+                    />
                   )}
-                  <button
-                    type="button"
-                    className="secondary"
-                    onClick={() => {
-                      setSignupRequested(false);
-                      switchMode(
-                        localPasswordEnabled ? 'signIn' : 'magicLinkRequest',
-                      );
-                    }}
+                  <BackToSignIn onClick={discardEntryToken} />
+                </>
+              ) : (
+                <UiState kind="loading" title={t('identity.oidcOpening')} />
+              )
+            ) : entryToken?.kind === 'magicLink' ? (
+              activeError ? (
+                <>
+                  <UiState
+                    kind="error"
+                    title={t('identity.magicLinkFailedTitle')}
+                    body={t('identity.magicLinkFailedBody')}
+                  />
+                  <BackToSignIn onClick={discardEntryToken} />
+                </>
+              ) : (
+                <UiState
+                  kind="loading"
+                  title={t('identity.magicLinkOpening')}
+                />
+              )
+            ) : showsVerification ? (
+              verificationSucceeded ? (
+                <>
+                  <div
+                    className="inline-message inline-message-success"
+                    role="status"
                   >
-                    {t('identity.alreadyRegistered')}
+                    <strong>{t('identity.verificationCompleteTitle')}</strong>
+                    <span>{t('identity.verificationCompleteBody')}</span>
+                  </div>
+                  <button type="button" onClick={discardEntryToken}>
+                    {t('identity.backToSignIn')}
                   </button>
                 </>
-              ) : mode === 'register' &&
-                invitationToken &&
-                registrationAvailability === 'available' ? (
+              ) : activeError ? (
                 <>
-                  <div className="login-intro">
-                    <p className="eyebrow eyebrow-inverse">
-                      {t('identity.invitationEyebrow')}
-                    </p>
-                    <h2
-                      id="identity-entry-heading"
-                      className="invite-hero-title"
-                    >
-                      {t('identity.invitationTitle')}
-                    </h2>
-                    <p className="muted invite-hero-body">
-                      {t('identity.invitationBody')}
-                    </p>
-                  </div>
-                  <form
-                    onSubmit={submitRegistration}
-                    className="form-grid login-form"
+                  <UiState
+                    kind="error"
+                    title={t('identity.verificationFailedTitle')}
+                    body={t('identity.verificationFailedBody')}
+                  />
+                  <BackToSignIn onClick={discardEntryToken} />
+                </>
+              ) : (
+                <UiState
+                  kind="loading"
+                  title={t('identity.verificationOpening')}
+                />
+              )
+            ) : recoveryToken ? (
+              <>
+                <div>
+                  <p className="eyebrow">{t('identity.recoveryEyebrow')}</p>
+                  <h2 id="identity-entry-heading">
+                    {t('identity.recoveryTitle')}
+                  </h2>
+                  <p className="muted">{t('identity.recoveryBody')}</p>
+                </div>
+                <form
+                  onSubmit={submitRecovery}
+                  className="form-grid login-form"
+                >
+                  <PasswordFields />
+                  <button
+                    type="submit"
+                    disabled={pendingAction === 'recovery'}
+                    aria-busy={pendingAction === 'recovery'}
                   >
-                    <div className="field-group">
-                      <label htmlFor="display-name">
-                        {t('identity.displayName')}
-                      </label>
-                      <input
-                        id="display-name"
-                        name="displayName"
-                        autoComplete="name"
-                        required
-                      />
+                    {pendingAction === 'recovery'
+                      ? t('identity.recoverySaving')
+                      : t('identity.recoverySave')}
+                  </button>
+                </form>
+              </>
+            ) : entryToken?.kind === 'signup' ? (
+              awaitingTermsAcceptance &&
+              (!activeError ||
+                problemCode(activeError) === TERMS_ACCEPTANCE_REQUIRED) ? (
+                termsOutdated ? (
+                  outdatedTerms
+                ) : (
+                  <>
+                    <div>
+                      <p className="eyebrow">{t('legal.pendingEyebrow')}</p>
+                      <h2 id="identity-entry-heading">
+                        {t('legal.pendingTitle')}
+                      </h2>
+                      <p className="muted">{t('legal.pendingBody')}</p>
                     </div>
-                    <EmailField />
-                    <PasswordFields />
-                    <button
-                      type="submit"
-                      disabled={pendingAction === 'register'}
-                      aria-busy={pendingAction === 'register'}
+                    <form
+                      onSubmit={submitSignupAcceptance}
+                      className="form-grid login-form"
                     >
-                      {pendingAction === 'register'
-                        ? t('identity.registerPending')
-                        : t('identity.registerSubmit')}
+                      <TermsAcceptanceField />
+                      <button
+                        type="submit"
+                        disabled={pendingAction === 'signupConsume'}
+                        aria-busy={pendingAction === 'signupConsume'}
+                      >
+                        {pendingAction === 'signupConsume'
+                          ? t('legal.creatingAccount')
+                          : t('legal.createAccount')}
+                      </button>
+                    </form>
+                    <BackToSignIn onClick={discardEntryToken} />
+                  </>
+                )
+              ) : activeError ? (
+                <>
+                  {problemCode(activeError) === TERMS_VERSION_OUTDATED ? (
+                    outdatedTerms
+                  ) : isTokenExpiredOrInvalidError(activeError) ? (
+                    <UiState
+                      kind="error"
+                      title={t('identity.signupFailedTitle')}
+                      body={t('identity.signupFailedBody')}
+                    />
+                  ) : (
+                    <ProblemState error={activeError} />
+                  )}
+                  <BackToSignIn onClick={discardEntryToken} />
+                </>
+              ) : (
+                <UiState kind="loading" title={t('identity.signupOpening')} />
+              )
+            ) : (
+              <>
+                {selfServiceSignupAvailable && !invitationToken ? (
+                  // biome-ignore lint/a11y/useSemanticElements: ARIA button group pattern for entry mode switcher
+                  <div
+                    className="entry-mode-toggle"
+                    role="group"
+                    aria-label={t('identity.entryModesAria')}
+                  >
+                    <button
+                      type="button"
+                      className={`entry-mode-btn ${
+                        mode !== 'signupRequest' ? 'active' : ''
+                      }`}
+                      aria-pressed={mode !== 'signupRequest'}
+                      onClick={() =>
+                        switchMode(
+                          localPasswordEnabled ? 'signIn' : 'magicLinkRequest',
+                        )
+                      }
+                    >
+                      {t('login.heading')}
                     </button>
                     <button
                       type="button"
-                      className="secondary"
-                      onClick={() => switchMode('signIn')}
+                      className={`entry-mode-btn ${
+                        mode === 'signupRequest' ? 'active' : ''
+                      }`}
+                      aria-pressed={mode === 'signupRequest'}
+                      onClick={() => switchMode('signupRequest')}
                     >
-                      {t('identity.haveAccount')}
+                      {t('identity.startTogether')}
                     </button>
-                  </form>
-                </>
-              ) : mode === 'recoveryRequest' ? (
-                <>
-                  <div>
-                    <p className="eyebrow">
-                      {t('identity.recoveryRequestEyebrow')}
-                    </p>
-                    <h2 id="identity-entry-heading">
-                      {t('identity.recoveryRequestTitle')}
-                    </h2>
-                    <p className="muted">{t('identity.recoveryRequestBody')}</p>
                   </div>
-                  {recoveryRequested ? (
-                    <NeutralMailResult />
-                  ) : (
-                    <form
-                      onSubmit={submitRecoveryRequest}
-                      className="form-grid login-form"
-                    >
-                      <EmailField />
-                      <button
-                        type="submit"
-                        disabled={pendingAction === 'recoveryRequest'}
-                        aria-busy={pendingAction === 'recoveryRequest'}
-                      >
-                        {pendingAction === 'recoveryRequest'
-                          ? t('identity.recoveryRequestPending')
-                          : t('identity.recoveryRequestSubmit')}
-                      </button>
-                    </form>
-                  )}
-                  <BackToSignIn
-                    onClick={() => {
-                      setRecoveryRequested(false);
-                      switchMode('signIn');
-                    }}
-                  />
-                </>
-              ) : mode === 'magicLinkRequest' ? (
-                <>
-                  <div
-                    className={
-                      selfServiceSignupAvailable
-                        ? 'entry-heading entry-heading-quiet'
-                        : 'entry-heading'
-                    }
-                  >
-                    <p className="eyebrow">{t('identity.magicLinkEyebrow')}</p>
-                    <h2 id="identity-entry-heading">
-                      {t('identity.magicLinkTitle')}
-                    </h2>
-                    <p className="muted">{t('identity.magicLinkBody')}</p>
-                  </div>
-                  {magicLinkRequested ? (
-                    <NeutralMailResult />
-                  ) : selfServiceSignupAvailable &&
-                    invitationToken &&
-                    termsOutdated ? (
-                    outdatedTerms
-                  ) : (
-                    <form
-                      onSubmit={submitMagicLinkRequest}
-                      className="form-grid login-form"
-                    >
-                      {selfServiceSignupAvailable &&
-                      invitationToken &&
-                      asksForTerms ? (
-                        <TermsAcceptanceField
-                          checked={termsAccepted}
-                          onChange={setTermsAccepted}
-                        />
-                      ) : null}
-                      {providerChoices({
-                        signup: false,
-                        needsTerms: Boolean(
-                          selfServiceSignupAvailable &&
-                            invitationToken &&
-                            asksForTerms,
-                        ),
-                        dividerKey: 'identity.dividerEmailLink',
-                        passkey: true,
-                      })}
-                      {providerTermsHint(
-                        Boolean(
-                          selfServiceSignupAvailable &&
-                            invitationToken &&
-                            asksForTerms,
-                        ),
-                      )}
-                      <EmailField inputRef={emailInputRef} />
-                      <button
-                        type="submit"
-                        disabled={pendingAction === 'magicLinkRequest'}
-                        aria-busy={pendingAction === 'magicLinkRequest'}
-                      >
-                        {pendingAction === 'magicLinkRequest'
-                          ? t('identity.magicLinkRequestPending')
-                          : t('identity.magicLinkRequestSubmit')}
-                      </button>
-                      <p className="login-hint login-hint-compact">
-                        {t('identity.magicLinkHint')}
+                ) : null}
+
+                {mode === 'signupRequest' ? (
+                  <>
+                    <div className="entry-heading entry-heading-quiet">
+                      <p className="eyebrow">
+                        {t('identity.startTogetherEyebrow')}
                       </p>
-                    </form>
-                  )}
-                  {localPasswordEnabled ? (
-                    <BackToSignIn
-                      onClick={() => {
-                        setMagicLinkRequested(false);
-                        switchMode('signIn');
-                      }}
-                    />
-                  ) : null}
-                </>
-              ) : (
-                <>
-                  <div>
-                    <p className="eyebrow">
-                      {invitationToken
-                        ? t('identity.invitationEyebrow')
-                        : t('login.eyebrow')}
-                    </p>
-                    <h2 id="identity-entry-heading">
-                      {invitationToken
-                        ? t('identity.invitationTitle')
-                        : t('login.heading')}
-                    </h2>
-                    <p className="muted">
-                      {invitationToken
-                        ? registrationAvailability === 'available'
-                          ? t('identity.invitationBody')
-                          : t('identity.invitationExistingAccountBody')
-                        : t('login.body')}
-                    </p>
-                  </div>
-                  {invitationToken &&
-                  registrationAvailability !== 'available' ? (
-                    <div className="inline-message" role="status">
-                      <strong>
-                        {t(
-                          registrationAvailabilityTitleKey(
-                            registrationAvailability,
-                          ),
-                        )}
-                      </strong>
-                      <span>
-                        {t(
-                          registrationAvailabilityBodyKey(
-                            registrationAvailability,
-                          ),
-                        )}
-                      </span>
+                      <h2 id="identity-entry-heading">
+                        {t('identity.startTogetherTitle')}
+                      </h2>
+                      <p className="muted">{t('identity.startTogetherBody')}</p>
                     </div>
-                  ) : null}
-                  <form
-                    onSubmit={submitSignIn}
-                    className="form-grid login-form"
-                  >
-                    {providerChoices({
-                      signup: false,
-                      needsTerms: false,
-                      dividerKey: 'identity.dividerOr',
-                      passkey: true,
-                    })}
-                    <EmailField inputRef={emailInputRef} />
-                    <div className="field-group">
-                      <label htmlFor="password">{t('login.password')}</label>
-                      <input
-                        id="password"
-                        name="password"
-                        type="password"
-                        autoComplete="current-password"
-                        required
-                      />
-                    </div>
-                    <button
-                      type="submit"
-                      disabled={pendingAction === 'signIn'}
-                      aria-busy={pendingAction === 'signIn'}
-                    >
-                      {pendingAction === 'signIn'
-                        ? t('login.pending')
-                        : t('login.submit')}
-                    </button>
-                    {invitationToken ? (
-                      registrationAvailability === 'available' &&
-                      localPasswordEnabled ? (
+                    {signupRequested ? (
+                      <>
+                        <NeutralMailResult statusRef={neutralMailStatusRef} />
+                        <MailRequestedActions
+                          pending={pendingAction === 'signupRequest'}
+                          pendingLabel={t('identity.startTogetherPending')}
+                          onResend={() =>
+                            sendSignupRequest(requestedEmail.current)
+                          }
+                          onOtherAddress={restartMailRequest}
+                        />
+                      </>
+                    ) : termsOutdated ? (
+                      outdatedTerms
+                    ) : (
+                      <form
+                        onSubmit={submitSignupRequest}
+                        className="form-grid login-form"
+                      >
+                        {asksForTerms ? (
+                          <TermsAcceptanceField
+                            checked={termsAccepted}
+                            onChange={setTermsAccepted}
+                          />
+                        ) : null}
+                        {oidcSignupAvailable
+                          ? providerTermsHint(asksForTerms)
+                          : null}
+                        {providerChoices({
+                          signup: true,
+                          needsTerms: asksForTerms,
+                          dividerKey: 'identity.dividerEmailLink',
+                          passkey: false,
+                          show: oidcSignupAvailable,
+                        })}
+                        <EmailField inputRef={emailInputRef} />
                         <button
-                          type="button"
-                          className="secondary"
-                          onClick={() => switchMode('register')}
+                          type="submit"
+                          disabled={pendingAction === 'signupRequest'}
+                          aria-busy={pendingAction === 'signupRequest'}
                         >
-                          {t('identity.createAccount')}
+                          {pendingAction === 'signupRequest'
+                            ? t('identity.startTogetherPending')
+                            : t('identity.startTogetherSubmit')}
                         </button>
-                      ) : null
-                    ) : magicLinkEnabled ? (
+                        {oidcSignupAvailable && passkeysAvailable() ? (
+                          <p className="login-hint">
+                            {t('identity.passkeyLaterHint')}
+                          </p>
+                        ) : null}
+                      </form>
+                    )}
+                    <button
+                      type="button"
+                      className="secondary"
+                      onClick={() => {
+                        setSignupRequested(false);
+                        switchMode(
+                          localPasswordEnabled ? 'signIn' : 'magicLinkRequest',
+                        );
+                      }}
+                    >
+                      {t('identity.alreadyRegistered')}
+                    </button>
+                  </>
+                ) : mode === 'register' &&
+                  invitationToken &&
+                  registrationAvailability === 'available' ? (
+                  <>
+                    <div className="login-intro">
+                      <p className="eyebrow eyebrow-inverse">
+                        {t('identity.invitationEyebrow')}
+                      </p>
+                      <h2
+                        id="identity-entry-heading"
+                        className="invite-hero-title"
+                      >
+                        {t('identity.invitationTitle')}
+                      </h2>
+                      <p className="muted invite-hero-body">
+                        {t('identity.invitationBody')}
+                      </p>
+                    </div>
+                    <form
+                      onSubmit={submitRegistration}
+                      className="form-grid login-form"
+                    >
+                      <div className="field-group">
+                        <label htmlFor="display-name">
+                          {t('identity.displayName')}
+                        </label>
+                        <input
+                          id="display-name"
+                          name="displayName"
+                          autoComplete="name"
+                          required
+                        />
+                      </div>
+                      <EmailField />
+                      <PasswordFields />
+                      <button
+                        type="submit"
+                        disabled={pendingAction === 'register'}
+                        aria-busy={pendingAction === 'register'}
+                      >
+                        {pendingAction === 'register'
+                          ? t('identity.registerPending')
+                          : t('identity.registerSubmit')}
+                      </button>
                       <button
                         type="button"
                         className="secondary"
-                        onClick={() => switchMode('magicLinkRequest')}
+                        onClick={() => switchMode('signIn')}
                       >
-                        {t('identity.useMagicLink')}
+                        {t('identity.haveAccount')}
                       </button>
-                    ) : null}
+                    </form>
+                  </>
+                ) : mode === 'recoveryRequest' ? (
+                  <>
+                    <div>
+                      <p className="eyebrow">
+                        {t('identity.recoveryRequestEyebrow')}
+                      </p>
+                      <h2 id="identity-entry-heading">
+                        {t('identity.recoveryRequestTitle')}
+                      </h2>
+                      <p className="muted">
+                        {t('identity.recoveryRequestBody')}
+                      </p>
+                    </div>
+                    {recoveryRequested ? (
+                      <>
+                        <NeutralMailResult statusRef={neutralMailStatusRef} />
+                        <MailRequestedActions
+                          pending={pendingAction === 'recoveryRequest'}
+                          pendingLabel={t('identity.recoveryRequestPending')}
+                          onResend={() =>
+                            sendRecoveryRequest(requestedEmail.current)
+                          }
+                          onOtherAddress={restartMailRequest}
+                        />
+                      </>
+                    ) : (
+                      <form
+                        onSubmit={submitRecoveryRequest}
+                        className="form-grid login-form"
+                      >
+                        <EmailField />
+                        <button
+                          type="submit"
+                          disabled={pendingAction === 'recoveryRequest'}
+                          aria-busy={pendingAction === 'recoveryRequest'}
+                        >
+                          {pendingAction === 'recoveryRequest'
+                            ? t('identity.recoveryRequestPending')
+                            : t('identity.recoveryRequestSubmit')}
+                        </button>
+                      </form>
+                    )}
+                    <BackToSignIn
+                      onClick={() => {
+                        setRecoveryRequested(false);
+                        switchMode('signIn');
+                      }}
+                    />
+                  </>
+                ) : mode === 'magicLinkRequest' ? (
+                  <>
+                    <div
+                      className={
+                        selfServiceSignupAvailable
+                          ? 'entry-heading entry-heading-quiet'
+                          : 'entry-heading'
+                      }
+                    >
+                      <p className="eyebrow">
+                        {t('identity.magicLinkEyebrow')}
+                      </p>
+                      <h2 id="identity-entry-heading">
+                        {t('identity.magicLinkTitle')}
+                      </h2>
+                      <p className="muted">{t('identity.magicLinkBody')}</p>
+                    </div>
+                    {magicLinkRequested ? (
+                      <>
+                        <NeutralMailResult statusRef={neutralMailStatusRef} />
+                        <MailRequestedActions
+                          pending={pendingAction === 'magicLinkRequest'}
+                          pendingLabel={t('identity.magicLinkRequestPending')}
+                          onResend={() =>
+                            sendMagicLinkRequest(requestedEmail.current)
+                          }
+                          onOtherAddress={restartMailRequest}
+                        />
+                      </>
+                    ) : selfServiceSignupAvailable &&
+                      invitationToken &&
+                      termsOutdated ? (
+                      outdatedTerms
+                    ) : (
+                      <form
+                        onSubmit={submitMagicLinkRequest}
+                        className="form-grid login-form"
+                      >
+                        {selfServiceSignupAvailable &&
+                        invitationToken &&
+                        asksForTerms ? (
+                          <TermsAcceptanceField
+                            checked={termsAccepted}
+                            onChange={setTermsAccepted}
+                          />
+                        ) : null}
+                        {providerChoices({
+                          signup: false,
+                          needsTerms: Boolean(
+                            selfServiceSignupAvailable &&
+                              invitationToken &&
+                              asksForTerms,
+                          ),
+                          dividerKey: 'identity.dividerEmailLink',
+                          passkey: true,
+                        })}
+                        {providerTermsHint(
+                          Boolean(
+                            selfServiceSignupAvailable &&
+                              invitationToken &&
+                              asksForTerms,
+                          ),
+                        )}
+                        <EmailField inputRef={emailInputRef} />
+                        <button
+                          type="submit"
+                          disabled={pendingAction === 'magicLinkRequest'}
+                          aria-busy={pendingAction === 'magicLinkRequest'}
+                        >
+                          {pendingAction === 'magicLinkRequest'
+                            ? t('identity.magicLinkRequestPending')
+                            : t('identity.magicLinkRequestSubmit')}
+                        </button>
+                        <p className="login-hint login-hint-compact">
+                          {t('identity.magicLinkHint')}
+                        </p>
+                      </form>
+                    )}
                     {localPasswordEnabled ? (
-                      <button
-                        type="button"
-                        className="tertiary"
-                        onClick={() => switchMode('recoveryRequest')}
-                      >
-                        {t('identity.forgotPassword')}
-                      </button>
+                      <BackToSignIn
+                        onClick={() => {
+                          setMagicLinkRequested(false);
+                          switchMode('signIn');
+                        }}
+                      />
                     ) : null}
-                  </form>
-                </>
-              )}
-            </>
-          )}
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <p className="eyebrow">
+                        {invitationToken
+                          ? t('identity.invitationEyebrow')
+                          : t('login.eyebrow')}
+                      </p>
+                      <h2 id="identity-entry-heading">
+                        {invitationToken
+                          ? t('identity.invitationTitle')
+                          : t('login.heading')}
+                      </h2>
+                      <p className="muted">
+                        {invitationToken
+                          ? registrationAvailability === 'available'
+                            ? t('identity.invitationBody')
+                            : t('identity.invitationExistingAccountBody')
+                          : t('login.body')}
+                      </p>
+                    </div>
+                    {invitationToken &&
+                    registrationAvailability !== 'available' ? (
+                      <div className="inline-message" role="status">
+                        <strong>
+                          {t(
+                            registrationAvailabilityTitleKey(
+                              registrationAvailability,
+                            ),
+                          )}
+                        </strong>
+                        <span>
+                          {t(
+                            registrationAvailabilityBodyKey(
+                              registrationAvailability,
+                            ),
+                          )}
+                        </span>
+                      </div>
+                    ) : null}
+                    <form
+                      onSubmit={submitSignIn}
+                      className="form-grid login-form"
+                    >
+                      {providerChoices({
+                        signup: false,
+                        needsTerms: false,
+                        dividerKey: 'identity.dividerOr',
+                        passkey: true,
+                      })}
+                      <EmailField inputRef={emailInputRef} />
+                      <div className="field-group">
+                        <label htmlFor="password">{t('login.password')}</label>
+                        <input
+                          id="password"
+                          name="password"
+                          type="password"
+                          autoComplete="current-password"
+                          required
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={pendingAction === 'signIn'}
+                        aria-busy={pendingAction === 'signIn'}
+                      >
+                        {pendingAction === 'signIn'
+                          ? t('login.pending')
+                          : t('login.submit')}
+                      </button>
+                      {invitationToken ? (
+                        registrationAvailability === 'available' &&
+                        localPasswordEnabled ? (
+                          <button
+                            type="button"
+                            className="secondary"
+                            onClick={() => switchMode('register')}
+                          >
+                            {t('identity.createAccount')}
+                          </button>
+                        ) : null
+                      ) : magicLinkEnabled ? (
+                        <button
+                          type="button"
+                          className="secondary"
+                          onClick={() => switchMode('magicLinkRequest')}
+                        >
+                          {t('identity.useMagicLink')}
+                        </button>
+                      ) : null}
+                      {localPasswordEnabled ? (
+                        <button
+                          type="button"
+                          className="tertiary"
+                          onClick={() => switchMode('recoveryRequest')}
+                        >
+                          {t('identity.forgotPassword')}
+                        </button>
+                      ) : null}
+                    </form>
+                  </>
+                )}
+              </>
+            )}
 
-          {validationError ? (
-            <p className="status status-error" role="alert">
-              {validationError}
-            </p>
-          ) : null}
-          {activeError &&
-          !(activeError instanceof ActiveAccountMismatchError) &&
-          entryToken?.kind !== 'magicLink' &&
-          entryToken?.kind !== 'oidc' &&
-          entryToken?.kind !== 'emailVerification' &&
-          entryToken?.kind !== 'signup' ? (
-            problemCode(activeError) === TERMS_VERSION_OUTDATED ? (
-              outdatedTerms
-            ) : failedAction === 'signIn' &&
-              clientProblemKind(activeError) === 'unauthorized' ? (
-              // A wrong password is not an expired session.
-              <div className="inline-message inline-message-error" role="alert">
-                <span>{t('login.errorFallback')}</span>
-              </div>
-            ) : (
-              <ProblemState error={activeError} />
-            )
-          ) : null}
-          <p className="login-assurance">{t('login.assurance')}</p>
-          {cloudLegalDocumentsApply(termsOfUseVersion) ? (
-            <LegalFooterLinks className="login-legal" inPlace />
-          ) : null}
-        </section>
+            {validationError ? (
+              <p className="status status-error" role="alert">
+                {validationError}
+              </p>
+            ) : null}
+            {activeError &&
+            !(activeError instanceof ActiveAccountMismatchError) &&
+            entryToken?.kind !== 'magicLink' &&
+            entryToken?.kind !== 'oidc' &&
+            entryToken?.kind !== 'emailVerification' &&
+            entryToken?.kind !== 'signup' ? (
+              problemCode(activeError) === TERMS_VERSION_OUTDATED ? (
+                outdatedTerms
+              ) : failedAction === 'signIn' &&
+                clientProblemKind(activeError) === 'unauthorized' ? (
+                // A wrong password is not an expired session.
+                <div
+                  className="inline-message inline-message-error"
+                  role="alert"
+                >
+                  <span>{t('login.errorFallback')}</span>
+                </div>
+              ) : (
+                <ProblemState error={activeError} />
+              )
+            ) : null}
+            {demoUrl && !entryToken && !isDemoModeConfigured() ? (
+              <a
+                className="login-demo-link"
+                href={demoUrl}
+                onClick={(event) => {
+                  // The native shell must not navigate away from the app.
+                  if (!isCapacitorNative()) return;
+                  event.preventDefault();
+                  void Browser.open({ url: demoUrl });
+                }}
+              >
+                {t('demo.launch')}
+              </a>
+            ) : null}
+            <p className="login-assurance">{t('login.assurance')}</p>
+            {cloudLegalDocumentsApply(termsOfUseVersion) ? (
+              <LegalFooterLinks className="login-legal" inPlace />
+            ) : null}
+          </section>
+        )}
       </div>
     </main>
   );
@@ -1342,6 +1466,41 @@ function NeutralMailResult({
     >
       <strong>{t('identity.mailRequestedTitle')}</strong>
       <span>{t('identity.mailRequestedBody')}</span>
+    </div>
+  );
+}
+
+function MailRequestedActions({
+  pending,
+  pendingLabel,
+  onResend,
+  onOtherAddress,
+}: {
+  pending: boolean;
+  pendingLabel: string;
+  onResend: () => void;
+  onOtherAddress: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div className="form-grid">
+      <button
+        type="button"
+        className="secondary"
+        disabled={pending}
+        aria-busy={pending}
+        onClick={onResend}
+      >
+        {pending ? pendingLabel : t('identity.requestNewLink')}
+      </button>
+      <button
+        type="button"
+        className="tertiary"
+        disabled={pending}
+        onClick={onOtherAddress}
+      >
+        {t('identity.useOtherAddress')}
+      </button>
     </div>
   );
 }

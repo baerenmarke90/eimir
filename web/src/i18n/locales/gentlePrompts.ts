@@ -2,8 +2,6 @@ export default {
   label: 'Kleine Impulse',
   description:
     'Gelegentliche Einladungen, etwas festzuhalten oder wiederzuentdecken. Passend zu deiner Nutzung.',
-  explanation:
-    'eimir. berücksichtigt, wann und wie du die App nutzt, und hält sich zurück, wenn du bereits aktiv bist.',
   permissionHint:
     'Push muss auf einem deiner Geräte eingerichtet sein. Deine Auswahl bleibt davon unabhängig.',
   writingTitle: 'Ein kleiner Moment für euch',

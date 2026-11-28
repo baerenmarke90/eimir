@@ -12,16 +12,20 @@ import {
 import type { AppearanceApi } from '../api/generated/apis/AppearanceApi';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import { WirDesignId } from '../api/generated/models/WirDesignId';
+import type { WirDesignPreferencePatch } from '../api/generated/models/WirDesignPreferencePatch';
 import {
   type WirDesignPreferenceView,
   WirDesignPreferenceViewFromJSON,
 } from '../api/generated/models/WirDesignPreferenceView';
 import {
   APP_DESIGNS,
+  APP_PALETTE_IDS,
   type AppDesignLayout,
+  DEFAULT_APP_DESIGN,
 } from '../design/appDesigns.generated';
 import { syncDocumentThemeColor } from '../theme';
-import { APP_ICON_CAPABILITY, appIconQueryKey } from './appIcon';
+import { refreshAppearanceSiblings } from './appearanceSiblings';
+import { APP_ICON_CAPABILITY } from './appIcon';
 import {
   ClientProblemError,
   clientProblemKind,
@@ -35,6 +39,8 @@ import {
 } from './spaceEntitlement';
 import {
   forgetWirDesign,
+  parseDesignPaletteId,
+  parseWirDesignId,
   readWirDesign,
   rememberWirDesign,
   wirDesignStorageKey,
@@ -47,10 +53,15 @@ export const WIR_DESIGNS: readonly WirDesignId[] = [
   WirDesignId.modern,
   WirDesignId.classic,
   WirDesignId.quiet_together,
-  WirDesignId.handwriting,
+  WirDesignId.home_rooms,
+  WirDesignId.shared_rhythm,
 ];
+const paletteIds = new Set<WirDesignId>(APP_PALETTE_IDS);
+export const DESIGN_PALETTES = WIR_DESIGNS.filter((design) =>
+  paletteIds.has(design),
+);
 /** The design every account starts with; it needs no entitlement. */
-export const DEFAULT_WIR_DESIGN: WirDesignId = WirDesignId.connected;
+export const DEFAULT_WIR_DESIGN: WirDesignId = DEFAULT_APP_DESIGN;
 /** Designs that never require Pro: the default and the earlier default. */
 export const FREE_WIR_DESIGNS: readonly WirDesignId[] = [
   WirDesignId.connected,
@@ -81,10 +92,11 @@ export function wirDesignQueryKey(
 }
 async function snapshot(response: Response): Promise<WirDesignSnapshot> {
   const preference = WirDesignPreferenceViewFromJSON(await response.json());
+  const designId = parseWirDesignId(preference.designId);
   const etag = response.headers.get('ETag');
   if (
     !etag ||
-    !WIR_DESIGNS.includes(preference.designId) ||
+    !designId ||
     !Number.isInteger(preference.version) ||
     preference.version < 0
   )
@@ -93,7 +105,14 @@ async function snapshot(response: Response): Promise<WirDesignSnapshot> {
       response.status,
       'INVALID_APPEARANCE_RESPONSE',
     );
-  return { preference, etag };
+  return {
+    preference: {
+      ...preference,
+      designId,
+      paletteId: parseDesignPaletteId(preference.paletteId),
+    },
+    etag,
+  };
 }
 function useWirDesignState({
   api,
@@ -113,10 +132,10 @@ function useWirDesignState({
   const storageKey = wirDesignStorageKey(instance, accountId, spaceId);
   const [remembered] = useState(() => ({
     key: storageKey,
-    design: readWirDesign(storageKey),
+    selection: readWirDesign(storageKey),
   }));
-  const initialDesign =
-    remembered.key === storageKey ? remembered.design : undefined;
+  const initialSelection =
+    remembered.key === storageKey ? remembered.selection : undefined;
   const active = useRef(true);
   const writing = useRef(false);
   const pendingController = useRef<AbortController | null>(null);
@@ -131,8 +150,8 @@ function useWirDesignState({
   const preference = useQuery({
     queryKey: key,
     gcTime: 30 * 60_000,
-    placeholderData: initialDesign
-      ? { preference: { designId: initialDesign, version: 0 }, etag: '' }
+    placeholderData: initialSelection
+      ? { preference: { ...initialSelection, version: 0 }, etag: '' }
       : undefined,
     retry: false,
     queryFn: async ({ signal }) => {
@@ -160,11 +179,11 @@ function useWirDesignState({
   const mutation = useMutation({
     retry: false,
     mutationFn: async ({
-      designId,
+      patch,
       ownsQuery,
       previous,
     }: {
-      designId: WirDesignId;
+      patch: WirDesignPreferencePatch;
       ownsQuery: () => boolean;
       previous: WirDesignSnapshot;
     }) => {
@@ -179,7 +198,7 @@ function useWirDesignState({
           {
             spaceId,
             ifMatch: previous.etag,
-            wirDesignPreferencePatch: { designId },
+            wirDesignPreferencePatch: patch,
           },
           { signal: controller.signal },
         );
@@ -197,11 +216,10 @@ function useWirDesignState({
     onSuccess: (result, { ownsQuery }) => {
       if (active.current && ownsQuery()) {
         client.setQueryData(key, result);
-        rememberWirDesign(storageKey, result.preference.designId);
-        void client.invalidateQueries({
-          queryKey: appIconQueryKey(instance, accountId, spaceId),
-          exact: true,
-        });
+        const { designId, paletteId } = result.preference;
+        rememberWirDesign(storageKey, designId, paletteId);
+        // All appearance choices share one version token (#2345).
+        refreshAppearanceSiblings(client, 'wir-design');
       }
     },
     onError: (error, { ownsQuery }) => {
@@ -229,7 +247,8 @@ function useWirDesignState({
       !preference.isPlaceholderData &&
       preference.data
     ) {
-      rememberWirDesign(storageKey, preference.data.preference.designId);
+      const { designId, paletteId } = preference.data.preference;
+      rememberWirDesign(storageKey, designId, paletteId);
     }
   }, [
     storageKey,
@@ -238,67 +257,118 @@ function useWirDesignState({
     preference.isPlaceholderData,
     preference.data,
   ]);
+  const selection = readDenied
+    ? undefined
+    : (preference.data?.preference ?? initialSelection);
+
+  async function savePreference(patch: WirDesignPreferencePatch) {
+    if (
+      writing.current ||
+      !preference.data ||
+      preference.isPlaceholderData ||
+      preference.error ||
+      preference.isFetching
+    )
+      throw new ClientProblemError('unknown');
+    writing.current = true;
+    const ownsQuery = captureAuthorizedQuery(client, key);
+    try {
+      return await mutation.mutateAsync({
+        patch,
+        previous: preference.data,
+        ownsQuery,
+      });
+    } finally {
+      writing.current = false;
+    }
+  }
+
   return {
     preference,
     capability,
     mutation,
-    presentationReady: initialDesign !== undefined || preference.isFetched,
-    current: readDenied
-      ? DEFAULT_WIR_DESIGN
-      : (preference.data?.preference.designId ??
-        initialDesign ??
-        DEFAULT_WIR_DESIGN),
+    presentationReady: initialSelection !== undefined || preference.isFetched,
+    current: selection?.designId ?? DEFAULT_WIR_DESIGN,
+    palette: selection?.paletteId ?? null,
     inspectCapability: () => {
       // Opening the settings never re-reads a completed startup read.
       if (!inspect) setInspect(true);
       else if (capability.isError) void capability.refetch();
     },
-    save: async (designId: WirDesignId) => {
-      if (
-        writing.current ||
-        !preference.data ||
-        preference.isPlaceholderData ||
-        preference.error ||
-        preference.isFetching
-      )
-        throw new ClientProblemError('unknown');
-      writing.current = true;
-      const ownsQuery = captureAuthorizedQuery(client, key);
-      try {
-        return await mutation.mutateAsync({
-          designId,
-          previous: preference.data,
-          ownsQuery,
-        });
-      } finally {
-        writing.current = false;
-      }
-    },
+    save: (designId: WirDesignId) => savePreference({ designId }),
+    savePalette: (paletteId: WirDesignId | null) =>
+      savePreference({ paletteId }),
   };
 }
 const Context = createContext<ReturnType<typeof useWirDesignState> | null>(
   null,
 );
+
+/**
+ * What the pages compose with. The full state above is a new object on every
+ * render of the provider, which renders with the app on each navigation; the
+ * pages of every kept tab read only this, which changes with the design.
+ */
+interface WirDesignPresentation {
+  current: WirDesignId;
+  presentationReady: boolean;
+}
+const PresentationContext = createContext<WirDesignPresentation | null>(null);
 export function WirDesignProvider(
   props: Parameters<typeof useWirDesignState>[0] & { children: ReactNode },
 ) {
   const state = useWirDesignState(props);
   const applied = state.presentationReady ? state.current : undefined;
-  // The design's semantic tokens hang off the root, so every tab, sheet and
-  // the browser theme colour follow it. A layout effect applies them in the
-  // same frame as the Wir composition.
+  const palette = applied ? (state.palette ?? applied) : undefined;
   useLayoutEffect(() => {
     if (!applied) return;
     const root = document.documentElement;
     root.setAttribute('data-app-design', applied);
-    syncDocumentThemeColor();
+    const layout = wirDesignLayout(applied);
+    if (layout) root.setAttribute('data-wir-layout', layout);
     return () => {
       root.removeAttribute('data-app-design');
-      syncDocumentThemeColor();
+      root.removeAttribute('data-wir-layout');
     };
   }, [applied]);
-  return <Context.Provider value={state}>{props.children}</Context.Provider>;
+  // Palette tokens reach every tab and portaled sheet without changing layout.
+  useLayoutEffect(() => {
+    if (!palette) return;
+    const root = document.documentElement;
+    root.setAttribute('data-app-palette', palette);
+    syncDocumentThemeColor();
+    return () => {
+      root.removeAttribute('data-app-palette');
+      syncDocumentThemeColor();
+    };
+  }, [palette]);
+  const { current, presentationReady } = state;
+  const presentation = useMemo(
+    () => ({ current, presentationReady }),
+    [current, presentationReady],
+  );
+  return (
+    <Context.Provider value={state}>
+      <PresentationContext.Provider value={presentation}>
+        {props.children}
+      </PresentationContext.Provider>
+    </Context.Provider>
+  );
 }
+/** The full design state with its reads and saving, for the settings. */
 export function useWirDesign() {
   return useContext(Context);
+}
+
+/** The applied design for composing a page; `null` outside a signed-in Space. */
+export function useWirDesignPresentation() {
+  return useContext(PresentationContext);
+}
+
+/** A saved layout is visible as soon as its scoped preference is ready. */
+export function useAppLayout() {
+  const design = useWirDesignPresentation();
+  return design?.presentationReady
+    ? wirDesignLayout(design.current)
+    : undefined;
 }

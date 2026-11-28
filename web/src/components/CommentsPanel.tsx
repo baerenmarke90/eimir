@@ -544,7 +544,7 @@ function CommentsPanelContent({
                             setEditingId(comment.id);
                           }}
                         >
-                          {t('comments.edit')}
+                          {t('common.edit')}
                         </button>
                         <button
                           type="button"
@@ -559,7 +559,7 @@ function CommentsPanelContent({
                           }}
                           disabled={deleting}
                         >
-                          {t('comments.delete')}
+                          {t('common.delete')}
                         </button>
                       </div>
                     </details>
@@ -662,7 +662,7 @@ function CommentsPanelContent({
               }}
               disabled={creating}
             >
-              {t('comments.cancel')}
+              {t('common.cancel')}
             </button>
           </div>
         </form>

@@ -1,5 +1,34 @@
 # Readable photo Places (#1478)
 
+## One Place per spot
+
+A selected photo's position is first matched against the Space's existing,
+non-archived located Places. The nearest one within 75 m is linked to the entry
+(idempotently, so a second photo on the same entry changes nothing); only when none
+is that close is a new automatic Place created, and photos of one save within 75 m of
+each other share it. This keeps one Place per spot across later photos, several
+photos and separate entries instead of a row per photo or per entry. The 75 m radius
+stays below the 200 m the reverse geocoder accepts. Because coordinates live in the
+protected payload, nearness is compared in the application over the newest 500
+located Places of the Space, serialized by a per-Space advisory lock taken after the
+target lock (nothing else takes it). Existing duplicates are not merged. See the
+M3-D07 amendment in `m3/decisions/PLACE-RELATIONS-CHAPTERS.md`.
+
+## Private Heart Moments
+
+A private (owner-only) Heart Moment never creates or links a shared Place. When
+its author chose no location, the first selected photo's position fills the
+moment's own protected `location` instead, which only the author reads and which
+never appears in the Space's Places. It starts with the same generic name and a
+separate ID-only job (`photo_private_location_enrichment`) names it, with the same
+owner, Membership, preference and rate-limit checks as Place enrichment. The job
+changes nothing once the author edited the location or the moment is no longer
+private. Sharing the moment later keeps this location on the moment, as for a
+manually chosen one, and still creates no shared Place. Product decision by the
+Product Owner, 2026-11-28.
+
+## Enrichment
+
 New automatic Places enqueue one ID-only job in the existing PostgreSQL worker.
 The saved Memory is available immediately. MomentPlaces refreshes unresolved
 results while visible, with at most 20 successful/failed reads per query lifetime;

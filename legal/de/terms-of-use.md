@@ -1,7 +1,7 @@
 ---
 document: terms-of-use
 locale: de-DE
-version: 2026-11-06.draft-2
+version: 2026-11-25.draft-4
 status: draft
 effective: null
 legal_review: pending
@@ -18,27 +18,27 @@ Diese Übersicht soll dir den Einstieg erleichtern. Verbindlich ist der vollstä
 - eimir. ist euer privater gemeinsamer Raum für Erinnerungen, Wünsche und Pläne – für genau zwei Menschen.
 - Deine Inhalte bleiben deine. Wir nutzen sie nur, um eimir. für euch zu betreiben – nicht für Werbung, nicht zum Verkauf und nicht zum Training von KI-Modellen.
 - Was ihr teilt, sieht dein Partner. Was du als „Nur für mich“ speicherst, sieht dein Partner nicht.
-- Die Grundfunktionen sind kostenlos. eimir. Pro ist kostenpflichtig und gilt für euren gemeinsamen Space. Endet Pro, bleiben eure Inhalte erhalten.
-- Du kannst deine Daten jederzeit exportieren und dein Konto jederzeit löschen.
+- Die Grundfunktionen sind kostenlos. Ein Pro-Abo gilt für euren gemeinsamen Space. Wenn es endet, bleiben eure gespeicherten Erinnerungen lesbar. Für den Garten und die Standortfreigabe gelten die Regeln in § 12.
+- Du kannst jederzeit eine Kopie deiner Daten verlangen und dein Konto jederzeit löschen.
 - eimir. ist ein Raum für Nähe, nicht für Kontrolle: Nutze es respektvoll und nie, um jemanden zu überwachen oder unter Druck zu setzen.
 
 ## § 1 Geltungsbereich
 
-1. Diese Nutzungsbedingungen regeln die Nutzung von eimir. Cloud, dem von uns betriebenen Online-Dienst eimir., über die Web-App und die offiziellen Apps (zusammen „eimir.“). Sie gelten auch für den Kauf von eimir. Pro, einschließlich Pro-Lizenzen für selbst betriebene Installationen (§ 12).
-2. eimir. kann auch auf einem eigenen Server betrieben werden („Self-Hosted“). Für eine solche Installation ist ihr Betreiber verantwortlich, nicht wir. Nutzt du eine Installation, die nicht von uns betrieben wird, gelten diese Bedingungen nur für die offiziellen Apps, die wir dafür bereitstellen (§ 14), und für eine bei uns gekaufte Pro-Lizenz. Ob für die Installation eigene Bedingungen gelten, legt ihr Betreiber fest.
+1. Diese Nutzungsbedingungen regeln die Nutzung von eimir. Cloud, dem von uns betriebenen Online-Dienst, über die Web-App und die offiziellen Apps. Sie gelten auch für die Nutzung der Pro-Funktionen. Für den Erwerb eines Pro-Abos über Google Play gilt § 12.
+2. Verbindest du eine offizielle App mit einer selbst betriebenen Installation („Self-Hosted“), gelten diese Bedingungen für die App (§ 14). Für die Installation ist ihr jeweiliger Betreiber verantwortlich. Ob dort eigene Bedingungen gelten, legt er fest. Das Cloud-Abo schaltet Pro ausschließlich in eimir. Cloud frei.
 3. Für den Quellcode von eimir. gilt die jeweilige Softwarelizenz, derzeit die PolyForm Noncommercial License 1.0.0. Diese Nutzungsbedingungen schränken die Rechte aus dieser Lizenz nicht ein.
 4. eimir. ist für die private, nicht gewerbliche Nutzung bestimmt. Eine gewerbliche Nutzung, etwa der Betrieb von eimir. für Dritte oder der Weiterverkauf, ist nur mit einer gesonderten Vereinbarung mit uns erlaubt.
 
 ## § 2 Anbieter und Kontakt
 
-1. Anbieter von eimir. Cloud und dein Vertragspartner ist [[PROVIDER_NAME]], [[PROVIDER_ADDRESS]]. Die vollständigen Anbieterangaben findest du im Impressum unter [[IMPRINT_URL]].
-2. Du erreichst uns unter [[CONTACT_EMAIL]]. Diese Adresse ist zugleich unsere zentrale Kontaktstelle für Nutzerinnen und Nutzer sowie für Behörden nach Art. 11 und 12 der Verordnung (EU) 2022/2065 (Digital Services Act). Du kannst uns auf Deutsch oder Englisch schreiben.
+1. Dein Vertragspartner für die Nutzung von eimir. Cloud ist Philipp Reis, Einzelunternehmen „Reis wie Nudel“, Zur Schwimmhalle 3, 66636 Tholey, Deutschland. Die Anbieterangaben findest du auch im [Impressum](https://eimir.de/impressum/).
+2. Du erreichst uns unter kontakt@reiswienudel.de. Diese Adresse ist zugleich unsere zentrale Kontaktstelle für Nutzerinnen und Nutzer sowie für Behörden nach Art. 11 und 12 der Verordnung (EU) 2022/2065 (Digital Services Act). Du kannst uns auf Deutsch oder Englisch schreiben.
 
 ## § 3 Was eimir. ist – und was nicht
 
 1. eimir. ist ein privater digitaler Raum für zwei Menschen in einer Beziehung. In eurem gemeinsamen Space, eurem privaten gemeinsamen Raum, könnt ihr Erinnerungen, Herzmomente, Wünsche, Pläne, Orte, Listen und weitere Inhalte festhalten und teilen. Zusätzlich hast du einen Bereich „Nur für mich“ für Inhalte, die nur du siehst.
-2. Die Grundfunktionen von eimir. sind kostenlos. Weitere Funktionen bieten wir als kostenpflichtiges eimir. Pro an (§ 12). Welche Funktionen jeweils dazugehören, siehst du in der App und unter [[WEBSITE_URL]].
-3. eimir. hat keine öffentlichen Bereiche. Eure Inhalte sind nur innerhalb eures Space sichtbar und werden nicht veröffentlicht.
+2. Die Grundfunktionen sind kostenlos. Welche zusätzlichen Funktionen eimir. Pro umfasst, siehst du in der App. Ein Abo kannst du abschließen, sobald die Android-App dir ein Angebot von Google Play zeigt (§ 12).
+3. eimir. hat keine öffentlichen Bereiche. Wenn du selbst einen externen Kalender verbindest und einen Plan dorthin überträgst, können Personen mit Zugriff auf diesen Kalender den Termin sehen (§ 15).
 4. eimir. ist keine Paar-, Lebens- oder Psychotherapieberatung und ersetzt keine professionelle Hilfe. eimir. ist auch kein Notruf- oder Krisendienst. Wenn du dich in Gefahr befindest, wende dich bitte an die Polizei (110) oder den Notruf (112).
 5. Einige Funktionen formulieren Texte automatisch oder machen Vorschläge, zum Beispiel für Rückblicke. Diese Ergebnisse entstehen durch automatisierte Verfahren und können unvollständig oder unzutreffend sein. Bitte prüfe sie, bevor du sie teilst.
 
@@ -46,32 +46,32 @@ Diese Übersicht soll dir den Einstieg erleichtern. Verbindlich ist der vollstä
 
 1. Für eimir. brauchst du ein eigenes Konto. Du musst mindestens 18 Jahre alt sein.
 2. Jede Person darf nur ein Konto haben und es nur für sich selbst nutzen. Konten sind persönlich und nicht übertragbar. Lege bitte kein Konto für eine andere Person an, auch nicht für deinen Partner. Dein Partner erstellt über deine Einladung ein eigenes Konto.
-3. Verwende eine E-Mail-Adresse, die dir gehört und die du regelmäßig nutzt. Über sie meldest du dich an, und über sie informieren wir dich über wichtige Änderungen.
+3. Verwende eine E-Mail-Adresse, die dir gehört und die du regelmäßig nutzt. An diese Adresse schicken wir wichtige Informationen zu deinem Konto.
 4. Schütze deinen Zugang. Deine E-Mail-Adresse, deine Passkeys und deine Geräte sind der Schlüssel zu deinem Konto. Gib Anmeldelinks nicht weiter. Wenn du vermutest, dass jemand anderes Zugriff auf dein Konto hat, melde dich bitte sofort bei uns.
-5. So kommt der Vertrag zustande: Du gibst deine E-Mail-Adresse ein und erhältst von uns einen Link, mit dem du bestätigst, dass die Adresse dir gehört. Vor dem Absenden kannst du deine Eingabe jederzeit korrigieren. Der Nutzungsvertrag kommt zustande, wenn du diesen Nutzungsbedingungen zugestimmt hast und dein Konto angelegt wird. Das gilt auch, wenn du über eine Einladung deines Partners zu eimir. kommst. Vertragssprache ist Deutsch.
-6. Wir speichern, welcher Fassung dieser Nutzungsbedingungen du wann zugestimmt hast. Die aktuelle Fassung kannst du jederzeit in der App und unter [[TERMS_URL]] aufrufen, speichern und ausdrucken. Eine frühere Fassung, der du zugestimmt hast, schicken wir dir auf Anfrage.
+5. Du kannst deine E-Mail-Adresse vor dem Absenden korrigieren und bestätigst sie über unseren Anmeldelink. Bieten wir die Registrierung mit Google an, kannst du stattdessen dein Google-Konto mit bestätigter E-Mail-Adresse wählen. Der Nutzungsvertrag kommt in beiden Fällen zustande, wenn du diesen Bedingungen zugestimmt hast und wir dein Konto anlegen. Das gilt auch bei einer Einladung deines Partners. Vertragssprache ist Deutsch.
+6. Wir speichern, welcher Fassung dieser Nutzungsbedingungen du wann zugestimmt hast. Die aktuelle Fassung kannst du jederzeit in der App und auf [unserer Website](https://app.eimir.de/legal/terms) aufrufen, speichern und ausdrucken. Eine frühere Fassung, der du zugestimmt hast, schicken wir dir auf Anfrage.
 
 ## § 5 Euer gemeinsamer Space
 
 1. Ein Space ist für genau zwei Menschen da: dich und deinen Partner. Du kannst einen Space anlegen und deinen Partner mit einer persönlichen Einladung dazuholen. Lade nur eine Person ein, mit der du eure Inhalte wirklich teilen möchtest, und gib Einladungen nicht an andere weiter.
-2. Inhalte, die du für euch beide speicherst („Für uns beide“), kann dein Partner sehen. Gemeinsame Erinnerungen und ähnliche gemeinsame Inhalte kann dein Partner auch bearbeiten. Außerdem kann dein Partner gemeinsame Inhalte im Rahmen des Datenexports herunterladen, auch solche, die du erstellt hast.
+2. Inhalte, die du für euch beide speicherst („Für uns beide“), kann dein Partner sehen. Gemeinsame Erinnerungen und ähnliche gemeinsame Inhalte kann dein Partner auch bearbeiten. Außerdem kann dein Partner gemeinsame Inhalte in seiner Datenkopie (§ 13 Abs. 1) erhalten, auch solche, die du erstellt hast.
 3. Inhalte, die du als „Nur für mich“ speicherst, sind für deinen Partner nicht sichtbar.
 4. Du kannst einen Space jederzeit verlassen, ohne dass dein Partner zustimmen muss. Dann gilt:
    - Dein Zugriff auf den Space endet sofort.
-   - Gemeinsame Inhalte bleiben für deinen Partner erhalten, auch solche, die du erstellt hast.
+   - Gemeinsame Erinnerungen bleiben für deinen Partner erhalten, auch solche, die du erstellt hast. Euer gemeinsamer Garten wird beim Verlassen gelöscht. Was ihr daraus schon als Erinnerung gespeichert habt, bleibt erhalten.
    - Deine „Nur für mich“-Inhalte aus diesem Space werden gelöscht.
    - Der Space kann danach keine neue Person mehr aufnehmen und nicht wieder geöffnet werden. Für einen neuen gemeinsamen Anfang legt ihr einen neuen Space an.
    - Verlässt auch die zweite Person den Space, endet ihr Zugriff ebenfalls sofort. Der Space wird dann nach Ablauf von 30 Tagen mit allen Inhalten gelöscht.
-5. Exportiere vorher, was du behalten möchtest (§ 13 Abs. 1). Nach dem Verlassen ist ein Export aus diesem Space nicht mehr möglich.
+5. Wenn du eine Kopie eurer Space-Inhalte behalten möchtest, fordere sie vor dem Verlassen an (§ 13 Abs. 1). Auch danach kannst du deine gesetzlichen Auskunfts- und Herausgaberechte bei uns geltend machen.
 
 ## § 6 Deine Inhalte
 
 1. Inhalte, die du in eimir. speicherst, also etwa Texte, Fotos, Videos und Sprachaufnahmen, bleiben deine. Wir erwerben daran keine Rechte, die über diesen Paragrafen hinausgehen.
 2. Damit wir eimir. für euch betreiben können, räumst du uns das einfache, unentgeltliche Recht ein, deine Inhalte zu speichern, zu sichern, technisch zu verarbeiten (zum Beispiel Vorschaubilder zu erzeugen oder Dateiformate umzuwandeln) und den Personen anzuzeigen, für die du sie freigegeben hast. Dieses Recht gilt nur, soweit es für den Betrieb von eimir. und für die Funktionen nötig ist, die du nutzt. Wir dürfen dafür Dienstleister einsetzen, die in unserem Auftrag und nach unseren Weisungen handeln. Das Recht endet, wenn die Inhalte gelöscht werden.
-3. Teilst du Inhalte mit deinem Partner, darf dein Partner sie innerhalb von eimir. ansehen, im Rahmen der jeweiligen Funktion bearbeiten und im Rahmen des Datenexports herunterladen.
+3. Teilst du Inhalte mit deinem Partner, darf dein Partner sie innerhalb von eimir. ansehen, im Rahmen der jeweiligen Funktion bearbeiten und in seiner Datenkopie (§ 13 Abs. 1) erhalten.
 4. Wir verwenden deine Inhalte nicht für Werbung, verkaufen sie nicht und nutzen sie nicht zum Training von KI-Modellen. Wir sehen uns deine Inhalte nicht an, außer du bittest uns ausdrücklich darum (zum Beispiel im Support), wir gehen einem konkreten Hinweis auf einen Rechtsverstoß nach (§ 9) oder wir sind gesetzlich dazu verpflichtet.
 5. Du bist für deine Inhalte verantwortlich. Speichere und teile nur Inhalte, an denen du die nötigen Rechte hast. Sind auf Fotos, in Videos oder in Texten andere Menschen erkennbar, zum Beispiel Freunde, Familie oder Kinder, achte bitte auf deren Rechte und ihre Privatsphäre.
-6. Wir sichern eimir. regelmäßig. Trotzdem empfehlen wir dir, wichtige Inhalte zusätzlich über den Datenexport selbst zu sichern.
+6. Wir sichern eimir. regelmäßig. Trotzdem empfehlen wir dir, wichtige Inhalte zusätzlich selbst zu sichern, zum Beispiel mit einer Datenkopie auf Anfrage (§ 13 Abs. 1).
 
 ## § 7 Datenschutz
 
@@ -108,58 +108,59 @@ Wie wir personenbezogene Daten verarbeiten, erklären wir in unseren [Datenschut
 ## § 10 Verfügbarkeit und Weiterentwicklung
 
 1. Wir bemühen uns, eimir. möglichst unterbrechungsfrei bereitzustellen. Wartungen, Sicherheitsupdates, Störungen bei Dritten wie Rechenzentren oder Netzbetreibern oder höhere Gewalt können die Verfügbarkeit jedoch vorübergehend einschränken. Geplante Wartungen kündigen wir nach Möglichkeit vorher an.
-2. Wir entwickeln eimir. weiter. Wir dürfen Funktionen ändern, ergänzen oder ersetzen, wenn es dafür einen triftigen Grund gibt, etwa neue rechtliche Anforderungen, die Sicherheit, technische Entwicklungen oder eine Verbesserung des Angebots, und der Kern von eimir. erhalten bleibt.
-3. Beeinträchtigt eine Änderung deinen Zugang zu eimir. Pro oder dessen Nutzbarkeit mehr als nur unerheblich, informieren wir dich rechtzeitig vorher in Textform, zum Beispiel per E-Mail. Du kannst Pro dann innerhalb von 30 Tagen kostenlos beenden. Die Frist beginnt mit unserer Information oder, wenn die Änderung später erfolgt, mit der Änderung.
-4. Stellen wir eimir. Cloud insgesamt ein, informieren wir dich mindestens drei Monate vorher, damit du deine Daten exportieren kannst. Für bereits bezahlte Pro-Zeiträume nach der Einstellung erstatten wir dir den Betrag anteilig.
+2. Wir dürfen Funktionen an neue gesetzliche Anforderungen, konkrete Sicherheitsrisiken oder geänderte technische Schnittstellen anpassen. Der Kern des Dienstes bleibt dabei erhalten. Durch eine solche Änderung entstehen dir keine zusätzlichen Kosten. Wir informieren dich klar und verständlich über die Änderung.
+3. Beeinträchtigt eine Änderung deinen Zugang oder die Nutzbarkeit mehr als nur unerheblich, informieren wir dich in angemessenem Abstand vorher per E-Mail über Art, Zeitpunkt und deine Rechte. Du kannst den betroffenen Vertrag innerhalb von 30 Tagen kostenlos beenden. Die Frist beginnt mit Zugang der Nachricht oder, falls später, mit der Änderung. Das Beendigungsrecht entfällt, wenn du den unveränderten Dienst ohne zusätzliche Kosten weiter nutzen kannst.
+4. Stellen wir eimir. Cloud insgesamt ein, informieren wir dich mindestens drei Monate vorher, damit du eine Kopie deiner Daten verlangen kannst. Für bereits bezahlte Pro-Zeiträume nach der Einstellung hast du Anspruch auf anteilige Erstattung. Wie du die Erstattung für den Play-Kauf beantragst, steht in § 12.
 
 ## § 11 E-Mails und Benachrichtigungen
 
-1. Wir schicken dir E-Mails und Benachrichtigungen, die für eimir. nötig sind, zum Beispiel Anmeldelinks, Sicherheitshinweise, Informationen zu deinem Pro-Abo und zu Änderungen dieser Nutzungsbedingungen.
+1. Wir schicken dir E-Mails und Benachrichtigungen, die für eimir. nötig sind, zum Beispiel Anmeldelinks, Sicherheitshinweise und Informationen zu Änderungen dieser Nutzungsbedingungen. Kaufbelege für dein Pro-Abo erhältst du von Google Play (§ 12).
 2. Werbung schicken wir dir nur, wenn du ausdrücklich eingewilligt hast.
 3. Benachrichtigungen auf deinen Geräten kannst du in der App und in den Einstellungen deines Geräts steuern.
 
 ## § 12 eimir. Pro
 
-1. eimir. Pro ergänzt die kostenlosen Funktionen um weitere Funktionen. Welche das sind, welche Preise und welche Laufzeiten gelten, siehst du vor dem Kauf in der App oder auf unserer Website. Die angezeigten Preise sind Endpreise.
-2. Pro gilt für euren gemeinsamen Space: Kauft einer von euch Pro, könnt ihr beide die Pro-Funktionen in diesem Space nutzen. Vertragspartner und zur Zahlung verpflichtet ist nur, wer Pro kauft. Pro verschafft keinen Zugriff auf „Nur für mich“-Inhalte des Partners.
-3. Du wählst im Kaufprozess Laufzeit und Zahlungsweg. Vor dem Absenden siehst du eine Übersicht und kannst deine Eingaben korrigieren. Mit der Bestellschaltfläche am Ende des Kaufprozesses, zum Beispiel „Zahlungspflichtig abonnieren“, gibst du ein verbindliches Angebot ab. Der Vertrag kommt zustande, wenn wir den Kauf bestätigen. Die Bestätigung schicken wir dir per E-Mail.
-4. Die Zahlung wickeln wir über einen Zahlungsdienstleister ab, derzeit [[PAYMENT_PROVIDER]]. Zahlungsdaten wie Kartennummern speichern wir nicht selbst. Kaufst du Pro in einem App-Store, zum Beispiel bei Google Play, gelten für Bezahlung, Verlängerung, Kündigung und Erstattung zusätzlich die Bedingungen des jeweiligen Stores.
-5. Laufzeit und Verlängerung:
-   - **Monatlich:** Das Abo läuft einen Monat und verlängert sich jeweils um einen weiteren Monat, wenn du nicht kündigst. Du kannst jederzeit zum Ende des laufenden Monats kündigen.
-   - **Jährlich:** Das Abo läuft zunächst ein Jahr. Du kannst jederzeit zum Ende dieses ersten Jahres kündigen. Kündigst du nicht, läuft es danach auf unbestimmte Zeit weiter und kann jederzeit mit einer Frist von einem Monat gekündigt werden. Im Voraus gezahlte Beträge für die Zeit nach dem Vertragsende erstatten wir dir dann anteilig.
-6. Du kannst Pro in der App und auf unserer Website über die Schaltfläche „Verträge hier kündigen“ oder per E-Mail an [[CONTACT_EMAIL]] kündigen. Ein Abo aus einem App-Store kündigst du dort. Wir bestätigen dir jede Kündigung in Textform. Das Recht beider Seiten zur Kündigung aus wichtigem Grund bleibt unberührt.
-7. Bieten wir einen kostenlosen Testzeitraum an, nennen wir dir vorher seine Dauer und seine Bedingungen, insbesondere ob und ab wann danach Kosten entstehen.
-8. Schlägt eine Zahlung fehl, bleibt Pro noch 14 Tage aktiv, damit du die Zahlung klären kannst. Danach können wir Pro beenden.
-9. Endet Pro, bleibt alles erhalten: Eure Inhalte, auch die mit Pro erstellten, bleiben lesbar und exportierbar. Neue Pro-Inhalte könnt ihr dann nicht mehr erstellen. Belegt ihr mehr Speicher, als in der kostenlosen Version enthalten ist, löschen wir nichts. Neue Uploads können dann pausieren, bis ihr Speicher freigebt oder Pro wieder nutzt.
-10. Endet euer Space (§ 5 Abs. 4), endet Pro für diesen Space. Ein laufendes Abo kann die Person, die es gekauft hat, mit „Kauf wiederherstellen“ auf einen neuen Space übertragen.
-11. Den Preis eines laufenden Abos ändern wir nur mit deiner Zustimmung. Stimmst du nicht zu, können wir das Abo zum Ende des laufenden Abrechnungszeitraums kündigen. Wir informieren dich vorher rechtzeitig.
-12. Für eine selbst betriebene Installation kannst du eine Pro-Lizenz kaufen. Sie schaltet die Pro-Funktionen für einen Space auf dieser Installation frei und wird dort ohne Verbindung zu unseren Servern geprüft. Die Lizenz gilt für die private, nicht gewerbliche Nutzung und berechtigt nicht dazu, eimir. für Dritte zu betreiben. Für den Betrieb der Installation sind wir nicht verantwortlich. Für Laufzeit und Kündigung gelten die Absätze 5 und 6 entsprechend.
-13. Als Verbraucherin oder Verbraucher hast du beim Kauf von Pro ein gesetzliches Widerrufsrecht. Einzelheiten findest du in der Widerrufsbelehrung unter [[WITHDRAWAL_URL]], die wir dir auch im Kaufprozess zur Verfügung stellen.
-14. Für Mängel von eimir. Pro gelten die gesetzlichen Rechte bei digitalen Produkten, einschließlich unserer Pflicht, dir Aktualisierungen bereitzustellen.
+1. Sobald die Android-App dir einen Monatstarif oder Jahrestarif anbietet, kannst du eimir. Pro für euren Cloud-Space über Google Play abonnieren. Die im Kaufdialog angezeigten Endpreise, der Abrechnungszeitraum und etwaige Testangebote gelten für deinen Kauf.
+2. Kauft einer von euch Pro, können beide die Funktionen im gemeinsamen Space nutzen. Nur die kaufende Person schuldet den Preis. Inhalte unter „Nur für mich“ bleiben persönlich.
+3. Deinen Nutzungsvertrag für eimir. Cloud schließt du mit uns (§ 2). Für den über Google Play abgerechneten Kauf in Deutschland schließt du einen gesonderten Vertrag mit Google Commerce Limited in Irland. In anderen Ländern gelten die im jeweiligen Play-Angebot genannten Verkäuferangaben und Bedingungen. [Google-Play-Bedingungen für Deutschland](https://play.google.com/intl/ALL_de/about/play-terms/)
+4. Vor der Bestätigung des Kaufs kannst du Tarif, Preis, Beginn der Zahlung und Zahlungsmethode in Google Play prüfen oder den Kauf abbrechen. Google Play schickt den Kaufbeleg an die E-Mail-Adresse deines Google-Kontos. Wir schalten Pro frei, sobald der Kauf bestätigt und von uns geprüft ist. Solange die Zahlung aussteht, bleibt die Freischaltung aus.
+5. Ein angebotener Testzeitraum ist kostenlos. Dauer, erster Zahlungstermin und der anschließend fällige Preis stehen im Play-Angebot. Wenn du keine kostenpflichtige Fortsetzung möchtest, kündige vor Ende des Testzeitraums.
+6. Nach der ersten Laufzeit läuft das Abo bis zur Kündigung weiter. Google rechnet im gewählten Monats- oder Jahresrhythmus ab. Bei künftigen Preisänderungen gelten die Mitteilungen und Zustimmungserfordernisse von Google Play sowie deine gesetzlichen Rechte.
+7. In [deinen Google-Play-Abos](https://play.google.com/store/account/subscriptions) kannst du jederzeit kündigen. Wenn dir in der Android-App „Abo in Google Play verwalten“ angezeigt wird, führt dich die Schaltfläche dorthin. Bei einer Kündigung zum Periodenende kannst du Pro bis zum Ende des bezahlten Zeitraums nutzen. Bei einem Jahrestarif in Deutschland kannst du nach dem ersten Jahr bei Google auch die sofortige Kündigung mit anteiliger Erstattung der verbleibenden Tage wählen. Dein Recht zur Kündigung aus wichtigem Grund bleibt bestehen.
+8. Bei einer fehlgeschlagenen Zahlung bleibt Pro während einer von Google Play eingeräumten Zahlungsfrist aktiv. Pausiert Google das Abo oder setzt es aus, endet der Pro-Zugang für diesen Zeitraum.
+9. Nach dem Ende von Pro bleiben eure gespeicherten Erinnerungen und Medien lesbar. Überschreitet ihr das kostenlose Speicherlimit, bleiben bestehende Dateien erhalten. Neue Uploads sind wieder möglich, sobald Platz frei wird oder ihr wieder Pro nutzt. Euer Garten bleibt beim Aboende gespeichert und ist in der App wieder zugänglich, sobald euer Space erneut Pro hat. Aktive Standortfreigaben enden und die dazu gespeicherten Positionen werden gelöscht. Für kurzlebige Inhalte gelten weiterhin die [Speicherfristen aus Abschnitt 22](/legal/privacy). Eine Datenkopie nach § 13 könnt ihr auch ohne Pro anfordern.
+10. Verlässt du als kaufende Person den bisherigen Space, kannst du dein laufendes Abo in deinem neuen Space über „Kauf wiederherstellen“ zuordnen. Nutze dazu dasselbe eimir.-Konto und das Google-Konto, mit dem du das Abo gekauft hast.
+11. **Widerruf.** Als Verbraucherin oder Verbraucher in Deutschland kannst du den Kauf dieser digitalen Dienstleistung innerhalb von 14 Tagen ab Vertragsschluss ohne Angabe von Gründen gegenüber Google Commerce Limited widerrufen. Es genügt, deine eindeutige Erklärung vor Fristablauf abzusenden. Du erreichst Google Commerce Limited, c/o Customer Support, 70 Sir John Rogerson's Quay, Dublin 2, D02 R296, Irland, telefonisch unter 0800 6270506 oder über den in der [Google-Play-Hilfe zum Widerruf und zur Erstattung](https://support.google.com/googleplay/answer/15576634?hl=de) beschriebenen Onlineweg.
+12. Für deinen Widerruf kannst du das folgende Muster verwenden. Ergänze deine Angaben an den mit „…“ gekennzeichneten Stellen.
+   - An Google Commerce Limited, c/o Customer Support, 70 Sir John Rogerson's Quay, Dublin 2, D02 R296, Irland.
+   - Hiermit widerrufe ich meinen am … abgeschlossenen Vertrag über das eimir.-Pro-Abo.
+   - Name und Anschrift …, Datum …, bei Mitteilung auf Papier Unterschrift …
+13. Nutzt du die elektronische Widerrufsfunktion, hast du Anspruch auf eine unverzügliche Eingangsbestätigung auf einem dauerhaften Datenträger, zum Beispiel per E-Mail. Bei wirksamem Widerruf erstattet Google Zahlungen innerhalb von 14 Tagen nach dessen Eingang grundsätzlich über dasselbe Zahlungsmittel und ohne zusätzliche Gebühren. Hast du ausdrücklich verlangt, dass die Dienstleistung vor Fristablauf beginnt, kann unter den gesetzlichen Voraussetzungen ein anteiliger Betrag für die bis zum Widerruf erbrachte Leistung anfallen.
+14. Für eimir. Pro gelten die gesetzlichen Mängelrechte für digitale Produkte, einschließlich des Anspruchs auf erforderliche Aktualisierungen.
 
-## § 13 Datenexport, Kündigung und Löschung
+## § 13 Datenkopie, Kündigung und Löschung
 
-1. Du kannst deine Daten jederzeit kostenlos in einem maschinenlesbaren Format exportieren, unabhängig davon, ob ihr Pro nutzt.
-2. Du kannst den Nutzungsvertrag jederzeit ohne Frist kündigen, indem du dein Konto in den Einstellungen der App löschst. Die Löschung kann nicht rückgängig gemacht werden. Dann gilt:
+1. Du kannst jederzeit kostenlos eine Kopie deiner Daten in einem maschinenlesbaren Format von uns verlangen, unabhängig davon, ob ihr Pro nutzt.
+2. Du kannst den Nutzungsvertrag jederzeit ohne Frist beenden, indem du dein Konto in den App-Einstellungen löschst. Ohne App kannst du die Löschung über [Konto löschen](https://eimir.de/konto-loeschen/) anfordern. Die Löschung kann nicht rückgängig gemacht werden. Mit der Löschung endet dein Zugang.
    - Deine Anmeldedaten, dein Profil und deine „Nur für mich“-Inhalte werden gelöscht.
-   - Gemeinsame Inhalte bleiben für deinen Partner im Space erhalten. Du wirst dort nur noch als ehemaliges Mitglied angezeigt.
-   - Ein direkt bei uns abgeschlossenes Pro-Abo kündigen wir mit der Löschung zum Ende des laufenden Abrechnungszeitraums. Ein Abo aus einem App-Store kündigst du bitte dort.
+   - Gemeinsame Erinnerungen bleiben für deinen Partner im Space erhalten. Du wirst dort nur noch als ehemaliges Mitglied angezeigt. Für den gemeinsamen Garten gilt § 5 Abs. 4.
+   - Hast du ein Google-Play-Abo abgeschlossen, kündige es gesondert in [deinen Play-Abos](https://play.google.com/store/account/subscriptions). Google kann auch nach der Löschung deines eimir.-Kontos weiter abrechnen.
    - Kopien in unseren Sicherungen werden nach Ablauf ihrer Aufbewahrungsfrist gelöscht und nicht wiederhergestellt. Einzelheiten findest du in den Datenschutzhinweisen.
-3. Wir können den Nutzungsvertrag mit einer Frist von drei Monaten in Textform kündigen. Ein laufendes Pro-Abo endet dann frühestens mit Ablauf des bereits bezahlten Zeitraums.
+3. Wir können den Nutzungsvertrag mit einer Frist von drei Monaten in Textform kündigen. Bei einem laufenden Pro-Abo endet dein Zugang bei einer solchen ordentlichen Kündigung frühestens mit Ablauf des bereits bezahlten Zeitraums.
 4. Beide Seiten können den Vertrag aus wichtigem Grund fristlos kündigen. Ein wichtiger Grund liegt für uns insbesondere bei schweren oder trotz Hinweis wiederholten Verstößen gegen § 8 vor. Einen vorherigen Hinweis geben wir nicht, wenn er uns wegen der Schwere des Verstoßes nicht zumutbar ist.
-5. Vor einer Kündigung durch uns geben wir dir Gelegenheit, deine Daten zu exportieren, es sei denn, das ist rechtlich unzulässig oder wegen der Schwere eines Verstoßes nicht zumutbar.
+5. Vor einer Kündigung durch uns geben wir dir Gelegenheit, eine Kopie deiner Daten zu erhalten, es sei denn, das ist rechtlich unzulässig oder wegen der Schwere eines Verstoßes nicht zumutbar.
 
 ## § 14 Offizielle Apps, Software und Marke
 
 1. Für die offiziellen Apps erhältst du das einfache, nicht übertragbare Recht, sie auf deinen Geräten für die Nutzung von eimir. einzusetzen. Weitergehende Rechte aus der Softwarelizenz (§ 1 Abs. 3) bleiben unberührt. Lädst du eine App aus einem App-Store, gelten dafür zusätzlich dessen Bedingungen.
 2. Die offiziellen Apps lassen sich auch mit selbst betriebenen Installationen verbinden. Für eine solche Installation, ihre Inhalte und ihre Verfügbarkeit ist ihr Betreiber verantwortlich.
-3. Wir stellen dir Updates bereit, auch Sicherheitsupdates. Bitte installiere sie zeitnah. Installierst du ein bereitgestelltes Update nicht, obwohl wir dich darüber und über die Folgen informiert haben, haften wir nicht für Mängel, die allein darauf beruhen.
+3. Wir stellen die erforderlichen Aktualisierungen einschließlich Sicherheitsupdates bereit und informieren dich darüber. Tritt ein Mangel allein deshalb auf, weil du ein bereitgestelltes Update nicht innerhalb einer angemessenen Frist installiert hast, entfällt unsere Haftung für diesen Mangel nur unter zwei Voraussetzungen. Wir müssen dich über die Verfügbarkeit des Updates und die Folgen einer unterlassenen Installation informiert haben. Außerdem darf eine fehlende oder fehlerhafte Installation nicht auf eine mangelhafte Anleitung von uns zurückzuführen sein.
 4. Name, Logo und Gestaltung von eimir. sind geschützt. Weder diese Nutzungsbedingungen noch die Softwarelizenz erlauben es dir, sie außerhalb der Nutzung von eimir. zu verwenden.
 
 ## § 15 Dienste Dritter
 
-1. Einige Funktionen binden auf deinen Wunsch Dienste Dritter ein, zum Beispiel einen eigenen Fotodienst wie Immich oder Google Fotos sowie Karten und Adresssuche auf Grundlage von OpenStreetMap. Für diese Dienste gelten deren eigene Bedingungen. Auf ihre Verfügbarkeit und ihren Umfang haben wir keinen Einfluss.
-2. Du kannst die Verbindung zu einem solchen Dienst jederzeit trennen. Bereits übernommene Inhalte bleiben in eimir. erhalten.
+1. Einige Funktionen beziehen auf deinen Wunsch Dienste Dritter ein, etwa deinen Immich-Server, einen CalDAV-Kalender oder, soweit angeboten, Google Kalender oder Google Fotos. Für diese Dienste gelten deren eigene Bedingungen. Für Karten und Adresssuche nutzen wir Dienste auf Grundlage von OpenStreetMap.
+2. Verbindungen kannst du in den Einstellungen trennen. Bereits importierte Fotos bleiben in eimir. erhalten. Bereits übertragene Termine bleiben im externen Kalender, bis du sie dort löschst.
 
 ## § 16 Haftung
 

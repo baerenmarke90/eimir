@@ -8,6 +8,10 @@ This document defines how eimir. remains continuously developable after a real
 Production instance exists. `ARCANE.md`, `SELF-HOSTING.md`, and environment templates
 must point here rather than defining competing release rules.
 
+The repository split of [Decision 0019](decisions/0019-repository-split-and-cutover.md) moves the
+source, the test channel and the Android update location to new repositories. Its day-by-day plan,
+cut-over checklist, rehearsal and rollback are in the [cut-over runbook](CUTOVER-RUNBOOK.md).
+
 ## 1. Environment topology
 
 | Environment | Purpose | Data | Runtime identity |
@@ -187,6 +191,20 @@ For Development source images both identities derive from `EIMIR_BUILD_REVISION`
 published release they derive from the source revision that produced the #193 archives.
 Release smoke requires both identities to equal the selected release/candidate source
 SHA. A healthy stale component is still a failed promotion.
+
+### 6.1 Version and build in support reports
+
+In-app problem reports carry the product version and source build the client was built
+from (`VITE_EIMIR_APP_VERSION`, `VITE_EIMIR_BUILD`, at most 32 characters each). Release
+workflows derive them from the existing identities: the `release_version` input
+(`EIMIR_APP_VERSION`) and the first 12 characters of the source SHA
+(`EIMIR_BUILD_REVISION`). The Web image build (`--build-arg EIMIR_APP_VERSION`) and the
+Capacitor Android Web build (`npm run cap:build:web`) both apply them. With
+`EIMIR_REQUIRE_BUILD_IDENTITY=true`, set by the release evidence and publish workflows,
+`npm run build:bundle` fails when either value is missing, `unknown`, longer than 32
+characters or contains whitespace (`web/scripts/check-build-identity.mjs`). Local and
+ordinary Development builds are not checked and report `unknown` for what they cannot
+resolve.
 
 ## 7. Promotion gates
 

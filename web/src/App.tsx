@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  lazy,
   type ReactNode,
   Suspense,
   useCallback,
@@ -26,25 +27,32 @@ import type { AccountView } from './api/generated/models/AccountView';
 import { AttachmentReadRequestParentTypeEnum } from './api/generated/models/AttachmentReadRequest';
 import type { SpaceView } from './api/generated/models/SpaceView';
 import type { TokenView } from './api/generated/models/TokenView';
+import { accountReadsMayStart } from './client/accountReadGate';
 import { Configuration } from './client/apiConfiguration';
 import { AppIconProvider } from './client/appIconContext';
 import { clearPublicationMemory } from './client/approximateLocation';
 import { invalidateStoryProjections } from './client/authorSummaryConsumers';
 import {
+  browserNotificationTray,
   stopBrowserPushForSignedOutAccount,
   useBrowserPush,
 } from './client/browserPush';
-import { loadReferenceClientConfig } from './client/config';
+import { isAndroidApp, loadReferenceClientConfig } from './client/config';
 import { invalidateDashboard } from './client/dashboardQueries';
 import {
   rememberCurrentAuthReturnTarget,
   restoreAuthReturnTarget,
 } from './client/deepLinks';
 import {
+  androidNotificationTray,
   stopNativePushForSignedOutAccount,
   useDevicePush,
 } from './client/devicePush';
-import { enableGentlePrompts, useGentleUse } from './client/gentlePrompts';
+import {
+  enableGentlePrompts,
+  prepareGentlePrompts,
+  useGentleUse,
+} from './client/gentlePrompts';
 import { useHistoryEntryTracker } from './client/historyEntries';
 import {
   ActiveAccountMismatchError,
@@ -54,6 +62,7 @@ import { loadInstanceAccessStatus } from './client/instanceStatus';
 import { createM4ProductApis } from './client/m4Product';
 import { ProfilesApi } from './client/mediaApis';
 import type { MemoryMapSession } from './client/memoryMapSession';
+import { MemoryWorldProvider } from './client/memoryWorldContext';
 import {
   ONCE_CREATE_ROUTE,
   ONCE_ROUTE,
@@ -91,6 +100,7 @@ import {
   HEART_MOMENT_DETAIL_ROUTE_PATTERN,
   HEART_MOMENT_EDIT_ROUTE_PATTERN,
   LEGACY_ROUTE_REWRITES,
+  LEGACY_THREAD_ROUTE,
   MEMORY_CREATE_ROUTE,
   MEMORY_DETAIL_ROUTE_PATTERN,
   MEMORY_EDIT_ROUTE_PATTERN,
@@ -99,8 +109,6 @@ import {
   MILESTONE_DETAIL_ROUTE_PATTERN,
   MILESTONE_EDIT_ROUTE_PATTERN,
   MORE_COLLECTIONS_ROUTE,
-  MORE_INSIGHTS_PATTERNS_ROUTE,
-  MORE_INSIGHTS_RECAP_ROUTE,
   MORE_INSIGHTS_ROUTE,
   MORE_NOTES_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
@@ -151,9 +159,15 @@ import {
   loadAuthorizedSpaces,
   resolveActiveSpaceId,
 } from './client/spaceContext';
+import {
+  besideMomente,
+  usePrefetchStoryDiscover,
+} from './client/storyDiscoverQuery';
 import { loadAuthorizedStoryImageResource } from './client/storyMediaLoader';
 import { type StoryStartupReads, startStoryReads } from './client/storyStartup';
+import { useTrayNoticeSync } from './client/trayNoticeSync';
 import { useAccountLanguage } from './client/useAccountLanguage';
+import { useAppShortcuts } from './client/useAppShortcuts';
 import { useCalendarGoogleAppReturn } from './client/useCalendarGoogleAppReturn';
 import { useIdentityEntry } from './client/useIdentityEntry';
 import { usePlanShortLinkAppOpen } from './client/usePlanShortLinkAppOpen';
@@ -163,6 +177,7 @@ import { useVideoTransferNavigation } from './client/useVideoTransferNavigation'
 import { VideoProcessingContext } from './client/video';
 import { AudioProcessingContext } from './client/voiceNotes';
 import { WirDesignProvider } from './client/wirDesign';
+import { WirReelStyleProvider } from './client/wirReelStyleContext';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { AppShell } from './components/AppShell';
 import { Brand } from './components/Brand';
@@ -171,6 +186,7 @@ import { CollectionProductPage } from './components/CollectionProductPage';
 import { DemoEntry } from './components/DemoEntry';
 import { DevicePushOnboarding } from './components/DevicePushOnboarding';
 import { FirstSpaceGate } from './components/FirstSpaceGate';
+import { GameNoticesRead } from './components/GameNoticesRead';
 import { IdentityEntry } from './components/IdentityEntry';
 import { LegacyPathRedirect } from './components/LegacyPathRedirect';
 import { LegalDocumentPage } from './components/LegalDocumentPage';
@@ -192,11 +208,8 @@ import {
 import { ProblemState } from './components/ProblemState';
 import { RelationshipStoryPage } from './components/RelationshipStoryPage';
 import { SecureSurface } from './components/SecureSurface';
-import {
-  ServerAdminAccessGate,
-  ServerAdminPage,
-} from './components/ServerAdminPage';
 import { SharedPlanningOverviewPage } from './components/SharedPlanningOverviewPage';
+import { Snackbar } from './components/Snackbar';
 import { StoryProductPage } from './components/StoryProductPage';
 import {
   StoryYearDetailPage,
@@ -210,6 +223,17 @@ import { deferredComponent } from './deferredModules';
 import { useTranslation } from './i18n';
 import { legalDocumentIdForRoute } from './legal/legalDocuments';
 import { isCapacitorNative } from './pwa';
+
+const ServerAdminAccessGate = lazy(() =>
+  import('./components/ServerAdminPage').then(({ ServerAdminAccessGate }) => ({
+    default: ServerAdminAccessGate,
+  })),
+);
+const ServerAdminPage = lazy(() =>
+  import('./components/ServerAdminPage').then(({ ServerAdminPage }) => ({
+    default: ServerAdminPage,
+  })),
+);
 
 const ChapterCreatePage = deferredComponent(() =>
   import('./components/ChapterCreatePage').then(
@@ -234,11 +258,6 @@ const CollectionsOverviewPage = deferredComponent(() =>
 const CoupleExperiencePage = deferredComponent(() =>
   import('./components/CoupleExperiencePage').then(
     (module) => module.CoupleExperiencePage,
-  ),
-);
-const DailyInsightsPage = deferredComponent(() =>
-  import('./components/DailyInsightsPage').then(
-    (module) => module.DailyInsightsPage,
   ),
 );
 const DateIdeasPage = deferredComponent(() =>
@@ -413,7 +432,11 @@ function DeferredPanel({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   return (
     <Suspense
-      fallback={<UiState kind="loading" title={t('states.loading.title')} />}
+      fallback={
+        <div className="page">
+          <UiState kind="loading" title={t('states.loading.title')} />
+        </div>
+      }
     >
       {children}
     </Suspense>
@@ -515,6 +538,7 @@ function AuthenticatedApp({
   serverAdmin: boolean;
   storyStartupReads?: StoryStartupReads;
 }) {
+  useAppShortcuts();
   const { t } = useTranslation();
   const location = useLocation();
   const queryClient = useQueryClient();
@@ -539,6 +563,13 @@ function AuthenticatedApp({
     () => createM4ProductApis(apiBaseUrl, tokens.accessToken),
     [apiBaseUrl, tokens.accessToken],
   );
+  usePrefetchStoryDiscover({
+    // Only where a swipe leads to Momente.
+    enabled: isCapacitorNative() && besideMomente(location.pathname),
+    apis,
+    accountId: account.id,
+    spaceId,
+  });
   useGentleUse({ account, spaceId, api: m4Apis.notifications });
   useSystemTimeZone(apiBaseUrl, tokens.accessToken, account.id, spaceId);
   useVideoTransferNavigation({
@@ -550,12 +581,24 @@ function AuthenticatedApp({
     () => enableGentlePrompts(queryClient, m4Apis.notifications, account.id),
     [queryClient, m4Apis.notifications, account.id],
   );
+  const prepareOnboardingPrompts = () =>
+    prepareGentlePrompts(queryClient, m4Apis.notifications, account.id);
   // The partner-distance start sheet follows the push start prompt.
   const [pushPromptSettled, setPushPromptSettled] = useState(false);
   const settlePushPrompt = useCallback(() => setPushPromptSettled(true), []);
   const devicePush = useDevicePush({
     accountId: account.id,
     apiBaseUrl,
+    notificationsApi: m4Apis.notifications,
+    queryClient,
+    spaceId,
+  });
+  useTrayNoticeSync({
+    tray: isAndroidApp()
+      ? androidNotificationTray
+      : isCapacitorNative()
+        ? null
+        : browserNotificationTray,
     notificationsApi: m4Apis.notifications,
     queryClient,
     spaceId,
@@ -737,108 +780,164 @@ function AuthenticatedApp({
     spaceId,
     currentAccountId: account.id,
   };
-  const planningProductProps = {
-    accountId: account.id,
-    apis: planningApis,
-    spaceId,
-    apiBaseUrl,
-    accessToken: tokens.accessToken,
-  };
+  const planningProductProps = useMemo(
+    () => ({
+      accountId: account.id,
+      apis: planningApis,
+      spaceId,
+      apiBaseUrl,
+      accessToken: tokens.accessToken,
+    }),
+    [account.id, planningApis, spaceId, apiBaseUrl, tokens.accessToken],
+  );
 
-  const routeErrorFallback = (
-    <UiState
-      kind="error"
-      title={t('states.unexpected.title')}
-      body={t('states.unexpected.body')}
-      action={
-        <Link className="button-link secondary-link" to={DEFAULT_APP_ROUTE}>
-          {t('navigation.today')}
-        </Link>
-      }
-    />
+  const routeErrorFallback = useMemo(
+    () => (
+      <UiState
+        kind="error"
+        title={t('states.unexpected.title')}
+        body={t('states.unexpected.body')}
+        action={
+          <Link className="button-link secondary-link" to={DEFAULT_APP_ROUTE}>
+            {t('navigation.today')}
+          </Link>
+        }
+      />
+    ),
+    [t],
   );
   // Visited primary tabs stay mounted; their routes above render nothing.
-  const primaryTabPanels: PrimaryTabPanel[] = [
-    {
-      path: appRoutePath('today'),
-      element: (
-        <TodayPage
-          apis={m4Apis}
-          recapMediaApis={apis}
-          apiBaseUrl={apiBaseUrl}
-          spaceId={spaceId}
-          spacesApi={spacesApi}
-          dailyCheckInsApi={dailyCheckInsApi}
-          dailyQuoteApi={dailyQuoteApi}
-          entitlementApi={entitlementApi}
-          collectionsApi={planningApis.collections}
-          sharedNotesApi={planningApis.sharedNotes}
-          loadMemoryImage={loadMemoryImage}
-          profilesApi={profilesApi}
-          account={account}
-          partnerLocationApi={partnerLocationApi}
-          gamesApi={gamesApi}
-        />
-      ),
-    },
-    {
-      path: appRoutePath('story'),
-      element: (
-        <StoryProductPage
-          apis={apis}
-          mapSession={memoryMapSession.current}
-          accountId={account.id}
-          spaceId={spaceId}
-          loadMemoryImage={loadMemoryImage}
-          profilesApi={profilesApi}
-          dashboardApi={m4Apis.dashboard}
-          recapsApi={m4Apis.recaps}
-          startupReads={
-            storyStartupReads?.kind === 'diary' ? storyStartupReads : undefined
-          }
-        />
-      ),
-    },
-    {
-      // The Momente map stays mounted once visited (#2063): starting a map
-      // needs the GPU and its places' photos, so returning to it reuses the
-      // live map instead of building it again.
-      path: MEMORY_MAP_ROUTE,
-      element: (
-        <DeferredPanel>
-          <MemoryMapPage
-            {...planningProductProps}
+  // The panels are built once per session inputs, not per navigation: a kept
+  // page renders again only when its own data or its tab's state changes
+  // (`usePrimaryTabActive`), never because another tab was opened.
+  const mapSession = memoryMapSession.current;
+  const primaryTabPanels = useMemo<PrimaryTabPanel[]>(
+    () => [
+      {
+        path: appRoutePath('today'),
+        element: (
+          <TodayPage
+            apis={m4Apis}
+            recapMediaApis={apis}
+            apiBaseUrl={apiBaseUrl}
+            spaceId={spaceId}
+            spacesApi={spacesApi}
+            dailyCheckInsApi={dailyCheckInsApi}
+            dailyQuoteApi={dailyQuoteApi}
+            entitlementApi={entitlementApi}
+            collectionsApi={planningApis.collections}
+            sharedNotesApi={planningApis.sharedNotes}
             loadMemoryImage={loadMemoryImage}
-            sessionViewport={memoryMapSession.current}
+            profilesApi={profilesApi}
+            account={account}
+            partnerLocationApi={partnerLocationApi}
+            gamesApi={gamesApi}
           />
-        </DeferredPanel>
-      ),
-    },
-    {
-      path: appRoutePath('plan'),
-      element: (
-        <SharedPlanningOverviewPage
-          key={JSON.stringify([apiBaseUrl, account.id, spaceId])}
-          {...planningProductProps}
-          accountId={account.id}
-          apiBaseUrl={apiBaseUrl}
-          peopleApi={peopleApi}
-          profilesApi={profilesApi}
-        />
-      ),
-    },
-    {
-      path: appRoutePath('more'),
-      element: (
-        <MoreOverviewPage
-          apiBaseUrl={apiBaseUrl}
-          accessToken={tokens.accessToken}
-          account={account}
-          spaceId={spaceId}
-        />
-      ),
-    },
-  ];
+        ),
+      },
+      {
+        path: appRoutePath('story'),
+        element: (
+          <StoryProductPage
+            apis={apis}
+            mapSession={mapSession}
+            accountId={account.id}
+            spaceId={spaceId}
+            loadMemoryImage={loadMemoryImage}
+            profilesApi={profilesApi}
+            dashboardApi={m4Apis.dashboard}
+            recapsApi={m4Apis.recaps}
+            startupReads={
+              storyStartupReads?.kind === 'diary'
+                ? storyStartupReads
+                : undefined
+            }
+          />
+        ),
+      },
+      {
+        // The Momente map stays mounted once visited (#2063): starting a map
+        // needs the GPU and its places' photos, so returning to it reuses the
+        // live map instead of building it again.
+        path: MEMORY_MAP_ROUTE,
+        element: (
+          <DeferredPanel>
+            <MemoryMapPage
+              {...planningProductProps}
+              loadMemoryImage={loadMemoryImage}
+              sessionViewport={mapSession}
+            />
+          </DeferredPanel>
+        ),
+      },
+      {
+        path: appRoutePath('plan'),
+        element: (
+          <SharedPlanningOverviewPage
+            key={JSON.stringify([apiBaseUrl, account.id, spaceId])}
+            {...planningProductProps}
+            accountId={account.id}
+            apiBaseUrl={apiBaseUrl}
+            peopleApi={peopleApi}
+            profilesApi={profilesApi}
+          />
+        ),
+      },
+      {
+        // The shared overviews unmount on exit so their forms and tab IDs
+        // belong only to the visible view.
+        path: MORE_COLLECTIONS_ROUTE,
+        retain: false,
+        element: (
+          <DeferredPanel>
+            <CollectionsOverviewPage {...planningProductProps} />
+          </DeferredPanel>
+        ),
+      },
+      {
+        path: MORE_NOTES_ROUTE,
+        retain: false,
+        element: (
+          <DeferredPanel>
+            <SharedNotesOverviewPage {...planningProductProps} />
+          </DeferredPanel>
+        ),
+      },
+      {
+        path: appRoutePath('more'),
+        element: (
+          <MoreOverviewPage
+            apiBaseUrl={apiBaseUrl}
+            accessToken={tokens.accessToken}
+            account={account}
+            spaceId={spaceId}
+          />
+        ),
+      },
+    ],
+    [
+      account,
+      apiBaseUrl,
+      apis,
+      dailyCheckInsApi,
+      dailyQuoteApi,
+      entitlementApi,
+      gamesApi,
+      loadMemoryImage,
+      m4Apis,
+      mapSession,
+      partnerLocationApi,
+      peopleApi,
+      planningApis.collections,
+      planningApis.sharedNotes,
+      planningProductProps,
+      profilesApi,
+      spaceId,
+      spacesApi,
+      storyStartupReads,
+      tokens.accessToken,
+    ],
+  );
 
   const relationshipContent = (
     <PartnerNicknameProvider
@@ -859,6 +958,7 @@ function AuthenticatedApp({
             panels={primaryTabPanels}
             fallback={routeErrorFallback}
             prewarm={PREWARMED_PANELS}
+            prewarmNeighbours={isCapacitorNative()}
           />
         }
       >
@@ -1026,10 +1126,7 @@ function AuthenticatedApp({
                 />
               }
             />
-            <Route
-              path={MORE_COLLECTIONS_ROUTE}
-              element={<CollectionsOverviewPage {...planningProductProps} />}
-            />
+            <Route path={MORE_COLLECTIONS_ROUTE} element={null} />
             <Route
               path="/plan/collections"
               element={<Navigate replace to={MORE_COLLECTIONS_ROUTE} />}
@@ -1044,10 +1141,7 @@ function AuthenticatedApp({
                 />
               }
             />
-            <Route
-              path={MORE_NOTES_ROUTE}
-              element={<SharedNotesOverviewPage {...planningProductProps} />}
-            />
+            <Route path={MORE_NOTES_ROUTE} element={null} />
             <Route
               path={NOTE_CREATE_ROUTE}
               element={
@@ -1107,108 +1201,117 @@ function AuthenticatedApp({
             <Route
               path={GAMES_MOMENTS_ROUTE}
               element={
-                <OurMomentsGamePage
-                  apiBaseUrl={apiBaseUrl}
-                  accessToken={tokens.accessToken}
-                  spaceId={spaceId}
-                  currentAccountId={account.id}
-                />
+                <>
+                  <GameNoticesRead
+                    gamesApi={gamesApi}
+                    spaceId={spaceId}
+                    surface="OUR_MOMENTS"
+                  />
+                  <OurMomentsGamePage
+                    apiBaseUrl={apiBaseUrl}
+                    accessToken={tokens.accessToken}
+                    spaceId={spaceId}
+                    currentAccountId={account.id}
+                  />
+                </>
               }
             />
             <Route
               path={GAMES_PICTURE_PING_PONG_ROUTE}
               element={
-                <PicturePingPongPage
-                  apiBaseUrl={apiBaseUrl}
-                  accessToken={tokens.accessToken}
-                  spaceId={spaceId}
-                  currentAccountId={account.id}
-                />
+                <>
+                  <GameNoticesRead
+                    gamesApi={gamesApi}
+                    spaceId={spaceId}
+                    surface="PICTURE_PING_PONG"
+                  />
+                  <PicturePingPongPage
+                    apiBaseUrl={apiBaseUrl}
+                    accessToken={tokens.accessToken}
+                    spaceId={spaceId}
+                    currentAccountId={account.id}
+                  />
+                </>
               }
             />
             <Route
               path={GAMES_GARDEN_ROUTE}
               element={
-                <GardenGamePage
-                  apiBaseUrl={apiBaseUrl}
-                  accessToken={tokens.accessToken}
-                  spaceId={spaceId}
-                  currentAccountId={account.id}
-                />
+                <>
+                  <GameNoticesRead
+                    gamesApi={gamesApi}
+                    spaceId={spaceId}
+                    surface="GARDEN"
+                  />
+                  <GardenGamePage
+                    apiBaseUrl={apiBaseUrl}
+                    accessToken={tokens.accessToken}
+                    spaceId={spaceId}
+                    currentAccountId={account.id}
+                  />
+                </>
               }
             />
             <Route
               path={GAMES_WHO_OF_US_ROUTE}
               element={
-                <WhoOfUsGamePage
-                  apiBaseUrl={apiBaseUrl}
-                  accessToken={tokens.accessToken}
-                  spaceId={spaceId}
-                  currentAccountId={account.id}
-                />
+                <>
+                  <GameNoticesRead
+                    gamesApi={gamesApi}
+                    spaceId={spaceId}
+                    surface="WHO_OF_US"
+                  />
+                  <WhoOfUsGamePage
+                    apiBaseUrl={apiBaseUrl}
+                    accessToken={tokens.accessToken}
+                    spaceId={spaceId}
+                    currentAccountId={account.id}
+                  />
+                </>
               }
             />
             <Route
               path={GAMES_WISH_DETECTIVE_ROUTE}
               element={
-                <WishDetectiveGamePage
-                  apiBaseUrl={apiBaseUrl}
-                  accessToken={tokens.accessToken}
-                  spaceId={spaceId}
-                  currentAccountId={account.id}
-                />
+                <>
+                  <GameNoticesRead
+                    gamesApi={gamesApi}
+                    spaceId={spaceId}
+                    surface="WISH_DETECTIVE"
+                  />
+                  <WishDetectiveGamePage
+                    apiBaseUrl={apiBaseUrl}
+                    accessToken={tokens.accessToken}
+                    spaceId={spaceId}
+                    currentAccountId={account.id}
+                  />
+                </>
               }
             />
             <Route
               path={GAMES_HEART_HUNT_ROUTE}
               element={
-                <HeartHuntGamePage
-                  apiBaseUrl={apiBaseUrl}
-                  accessToken={tokens.accessToken}
-                  spaceId={spaceId}
-                  currentAccountId={account.id}
-                />
+                <>
+                  <GameNoticesRead
+                    gamesApi={gamesApi}
+                    spaceId={spaceId}
+                    surface="HEART_HUNT"
+                  />
+                  <HeartHuntGamePage
+                    apiBaseUrl={apiBaseUrl}
+                    accessToken={tokens.accessToken}
+                    spaceId={spaceId}
+                    currentAccountId={account.id}
+                  />
+                </>
               }
             />
             <Route path={appRoutePath('more')} element={null} />
+            {/* Einblicke was removed and deferred (#2210); old links land on More. */}
             <Route
-              path={MORE_INSIGHTS_RECAP_ROUTE}
-              element={
-                <Navigate
-                  replace
-                  to={{
-                    pathname: MORE_INSIGHTS_ROUTE,
-                    search: location.search,
-                    hash: '#wochenrueckblick',
-                  }}
-                  state={location.state}
-                />
-              }
+              path={`${MORE_INSIGHTS_ROUTE}/*`}
+              element={<Navigate replace to={appRoutePath('more')} />}
             />
-            {(
-              [
-                [MORE_INSIGHTS_ROUTE, 'week'],
-                [MORE_INSIGHTS_PATTERNS_ROUTE, 'patterns'],
-              ] as const
-            ).map(([path, insightView]) => (
-              <Route
-                key={path}
-                path={path}
-                element={
-                  <DailyInsightsPage
-                    apiBaseUrl={apiBaseUrl}
-                    key={`${account.id}:${spaceId}`}
-                    view={insightView}
-                    spaceId={spaceId}
-                    account={account}
-                    dailyCheckInsApi={dailyCheckInsApi}
-                    entitlementApi={entitlementApi}
-                    dashboardApi={m4Apis.dashboard}
-                    profilesApi={profilesApi}
-                  />
-                }
-              />
-            ))}
             <Route
               path={STORY_OURS_ROUTE}
               element={
@@ -1259,6 +1362,10 @@ function AuthenticatedApp({
                   currentAccountId={account.id}
                 />
               }
+            />
+            <Route
+              path={LEGACY_THREAD_ROUTE}
+              element={<Navigate replace to={DEFAULT_APP_ROUTE} />}
             />
             <Route
               path={MORE_PROFILE_ROUTE}
@@ -1507,14 +1614,32 @@ function AuthenticatedApp({
           accountId={account.id}
           spaceId={spaceId}
         >
-          <OnceMessagesProvider
-            apiBaseUrl={apiBaseUrl}
-            accessToken={tokens.accessToken}
+          <MemoryWorldProvider
+            key={`memory-world:${apiBaseUrl}:${account.id}:${spaceId}`}
+            api={appearanceApi}
+            entitlementsApi={entitlementApi}
+            instance={apiBaseUrl}
             accountId={account.id}
             spaceId={spaceId}
           >
-            {relationshipContent}
-          </OnceMessagesProvider>
+            <WirReelStyleProvider
+              key={`wir-reel-style:${apiBaseUrl}:${account.id}:${spaceId}`}
+              api={appearanceApi}
+              entitlementsApi={entitlementApi}
+              instance={apiBaseUrl}
+              accountId={account.id}
+              spaceId={spaceId}
+            >
+              <OnceMessagesProvider
+                apiBaseUrl={apiBaseUrl}
+                accessToken={tokens.accessToken}
+                accountId={account.id}
+                spaceId={spaceId}
+              >
+                {relationshipContent}
+              </OnceMessagesProvider>
+            </WirReelStyleProvider>
+          </MemoryWorldProvider>
           <VoiceShareIngress
             key={`${apiBaseUrl}:${account.id}:${spaceId}`}
             scope={JSON.stringify([apiBaseUrl, account.id, spaceId])}
@@ -1525,6 +1650,7 @@ function AuthenticatedApp({
             devicePush={devicePush}
             accountId={account.id}
             apiBaseUrl={apiBaseUrl}
+            onPreparePrompts={prepareOnboardingPrompts}
             onEnablePrompts={enableOnboardingPrompts}
             onSettled={settlePushPrompt}
           />
@@ -1738,7 +1864,9 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
         throw await normalizeClientError(error);
       }
     },
-    enabled: !isRestoring && tokens !== null && account !== null,
+    // The stored account already names the owner, so this read does not wait
+    // for /me. It starts with the membership read once a usable token exists.
+    enabled: accountReadsMayStart(tokens, account, isRestoring),
     retry: false,
   });
 
@@ -1890,6 +2018,8 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     return (
       <>
         <ThemeControl />
+        {/* The shell's snackbar is not mounted while signed out; a mailed link that cannot be used is reported here. */}
+        <Snackbar />
         {showDemoEntry ? (
           <DemoEntry />
         ) : (
@@ -1924,32 +2054,24 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     location.pathname.startsWith(`${SERVER_ADMIN_ROUTE}/`);
 
   if (serverAdminPath) {
-    if (capabilitiesQuery.isPending || capabilitiesQuery.error) {
-      return (
-        <ServerAdminAccessGate
-          loading={capabilitiesQuery.isPending}
-          error={capabilitiesQuery.error}
-          onRetry={() => void capabilitiesQuery.refetch()}
-        />
-      );
-    }
-
-    if (!capabilitiesQuery.data?.serverAdmin) {
-      return (
-        <ServerAdminAccessGate
-          loading={false}
-          error={null}
-          onRetry={() => void capabilitiesQuery.refetch()}
-        />
-      );
-    }
-
     return (
-      <ServerAdminPage
-        apiBaseUrl={config.apiBaseUrl}
-        accessToken={tokens.accessToken}
-        onLogout={logout}
-      />
+      <DeferredPanel>
+        {capabilitiesQuery.isPending ||
+        capabilitiesQuery.error ||
+        !capabilitiesQuery.data?.serverAdmin ? (
+          <ServerAdminAccessGate
+            loading={capabilitiesQuery.isPending}
+            error={capabilitiesQuery.error}
+            onRetry={() => void capabilitiesQuery.refetch()}
+          />
+        ) : (
+          <ServerAdminPage
+            apiBaseUrl={config.apiBaseUrl}
+            accessToken={tokens.accessToken}
+            onLogout={logout}
+          />
+        )}
+      </DeferredPanel>
     );
   }
 

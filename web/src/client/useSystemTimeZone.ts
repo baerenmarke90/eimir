@@ -1,4 +1,8 @@
-import { useQueryClient } from '@tanstack/react-query';
+import {
+  type QueryClient,
+  type QueryKey,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { AccountApi } from '../api/generated/apis/AccountApi';
 import { Configuration } from './apiConfiguration';
@@ -6,6 +10,24 @@ import { dailyCheckInTodayQueryKey } from './dailyCheckIn';
 import { dashboardQueryKey } from './dashboardQueries';
 import { localDateInputValue } from './dateInput';
 import { spaceConfigurationQueryKey } from './spaceConfiguration';
+
+/** Whether any cached read under these keys was made on another local day. */
+function hasReadFromEarlierDay(
+  queryClient: QueryClient,
+  queryKeys: QueryKey[],
+  today: string,
+): boolean {
+  return queryKeys.some((queryKey) =>
+    queryClient
+      .getQueryCache()
+      .findAll({ queryKey })
+      .some(
+        ({ state }) =>
+          state.dataUpdatedAt > 0 &&
+          localDateInputValue(new Date(state.dataUpdatedAt)) !== today,
+      ),
+  );
+}
 
 /** The OS owns clock/zone; calendar dates already authored are never converted. */
 export function useSystemTimeZone(
@@ -36,33 +58,37 @@ export function useSystemTimeZone(
         return;
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       if (!timezone) return;
-      const identity = `${timezone}:${localDateInputValue()}`;
+      const today = localDateInputValue();
+      const identity = `${timezone}:${today}`;
       if (confirmed === identity || Date.now() - attemptedAt < 60_000) return;
       pending = true;
       attemptedAt = Date.now();
       try {
-        await api.updateOwnDeviceContext(
+        const context = await api.updateOwnDeviceContext(
           { deviceContextUpdate: { timezone, spaceId } },
           { signal: controller.signal },
         );
         if (controller.signal.aborted) return;
         confirmed = identity;
+        const dayDependentKeys = [
+          dashboardQueryKey(spaceId),
+          dailyCheckInTodayQueryKey(accountId, spaceId),
+          spaceConfigurationQueryKey(accountId, spaceId),
+        ];
+        // An unchanged context leaves reads of the current local day valid.
+        // Older servers omit the result; treat that as a possible change.
+        if (
+          context.changed === false &&
+          !hasReadFromEarlierDay(queryClient, dayDependentKeys, today)
+        )
+          return;
         // Device context changes the current day, not authored content or read
         // authorization. Refresh it without revoking durable warm-start data.
-        await Promise.all([
-          queryClient.refetchQueries({
-            queryKey: dashboardQueryKey(spaceId),
-            type: 'all',
-          }),
-          queryClient.refetchQueries({
-            queryKey: dailyCheckInTodayQueryKey(accountId, spaceId),
-            type: 'all',
-          }),
-          queryClient.refetchQueries({
-            queryKey: spaceConfigurationQueryKey(accountId, spaceId),
-            type: 'all',
-          }),
-        ]);
+        await Promise.all(
+          dayDependentKeys.map((queryKey) =>
+            queryClient.refetchQueries({ queryKey, type: 'all' }),
+          ),
+        );
       } catch {
         /* Resume/online retries the current context, never another login's work. */
       } finally {

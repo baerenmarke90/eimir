@@ -54,7 +54,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '26.13.1'
-      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
         with:
           distribution: temurin
           java-version: '21'
@@ -234,7 +234,7 @@ jobs:
             -e class de.eimir.app.IdentityAppLinksTest,de.eimir.app.LauncherIconsTest \
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee instrumentation.log
-          grep -Eq '^OK \(8 tests\)' instrumentation.log
+          grep -Eq '^OK \(10 tests\)' instrumentation.log
           timeout 180 adb -e shell am instrument -w -r \
             -e class de.eimir.app.UnifiedPushAccountReplacementTest \
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
@@ -311,7 +311,7 @@ jobs:
             -e class de.eimir.app.PushPreviewTest \
             de.eimir.app.debug.test/de.eimir.app.PushFixtureRunner \
             | tee push-preview.log
-          grep -Eq '^OK \(7 tests\)' push-preview.log
+          grep -Eq '^OK \(11 tests\)' push-preview.log
           if [ '${{ matrix.api }}' != '28' ]; then
             adb -e exec-out run-as de.eimir.app.debug cat files/native-photo-picker.png > native-photo-picker.png
             test -s native-photo-picker.png

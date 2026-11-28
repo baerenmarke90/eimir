@@ -21,8 +21,8 @@ import {
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import m5s3 from '../i18n/locales/m5s3';
 import m5s5 from '../i18n/locales/m5s5';
-import taskSheets from '../i18n/locales/taskSheets';
 import { WirLists } from './WirLists';
+import germanUi from '../i18n/locales/de';
 
 const AT = new Date('2026-11-14T10:00:00Z');
 const LATER = new Date('2026-11-14T11:00:00Z');
@@ -231,7 +231,7 @@ describe('WirLists (#1808)', () => {
       0,
     );
     expect(
-      within(sheet).getByRole('button', { name: taskSheets.close }),
+      within(sheet).getByRole('button', { name: germanUi.common.close }),
     ).toBeTruthy();
   });
 
@@ -257,7 +257,7 @@ describe('WirLists (#1808)', () => {
     const sheet = await screen.findByRole('dialog');
 
     await user.click(
-      within(sheet).getByRole('button', { name: taskSheets.close }),
+      within(sheet).getByRole('button', { name: germanUi.common.close }),
     );
 
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());

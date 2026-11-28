@@ -50,7 +50,7 @@ import { choreography, now } from './choreography';
 import { hasPlayed, markPlayed } from './playRegistry';
 import { prefersReducedMotion } from './reducedMotion';
 import { durationMs } from './tokens';
-import { isVisibleNow, observeVisibility } from './visibility';
+import { isVisibleNow, keptViewParked, observeVisibility } from './visibility';
 
 export const STAGE_ANIMATION_PREFIX = 'eimir-motion-stage-';
 export const STAGE_ATTRIBUTE = 'data-motion-stage';
@@ -83,6 +83,12 @@ export interface StageOptions {
   hold?: number;
   /** An ancestor that belongs to the stage too (it shares the clock). */
   scope?: (root: Element) => Element | null;
+  /**
+   * A root inside a hidden kept view (a tab built ahead) is first considered
+   * when that view is shown, not when it mounts. Without it the opening is
+   * skipped for good when it mounts hidden.
+   */
+  deferWhileHidden?: boolean;
 }
 
 interface StageRecord {
@@ -96,6 +102,8 @@ interface StageRecord {
   detach: (() => void) | null;
   /** Late members already placed on the clock. */
   placed: WeakSet<Animation>;
+  /** The pending placement of late members, at most one per frame. */
+  placeFrame: number | null;
 }
 
 const records = new Map<string, StageRecord>();
@@ -118,14 +126,32 @@ function record(identity: string): StageRecord {
       holdTimer: null,
       detach: null,
       placed: new WeakSet(),
+      placeFrame: null,
     };
     records.set(identity, found);
   }
   return found;
 }
 
+/** Listeners for a phase change of any stage. */
+const anyPhase = new Set<() => void>();
+
 function notify(identity: string): void {
   for (const listener of listeners.get(identity) ?? []) listener();
+  for (const listener of [...anyPhase]) listener();
+}
+
+/** Resolves the first time `ready()` holds, checked on every phase change. */
+function whenStages(ready: () => boolean): Promise<void> {
+  if (ready()) return Promise.resolve();
+  return new Promise((resolve) => {
+    const check = () => {
+      if (!ready()) return;
+      anyPhase.delete(check);
+      resolve();
+    };
+    anyPhase.add(check);
+  });
 }
 
 function setPhase(identity: string, phase: StagePhase): void {
@@ -168,6 +194,35 @@ function end(identity: string): void {
 /** Resolves once the opening of `identity` ended or was skipped. */
 export function stageFinished(identity: string): Promise<void> {
   return record(identity).finished;
+}
+
+/**
+ * Resolves once no opening waits for data or plays. Background work (building
+ * a neighbouring tab) waits for it, so it never competes with an opening.
+ */
+/**
+ * Resolves once an opening has begun (or was skipped) and none waits for its
+ * data any more: the shown page has its data, and network reads for another
+ * page no longer delay it.
+ */
+export function stagesReleased(): Promise<void> {
+  return whenStages(() => {
+    const phases = [...records.values()].map((found) => found.phase);
+    return (
+      phases.some((phase) => phase === 'playing' || phase === 'ended') &&
+      !phases.includes('waiting')
+    );
+  });
+}
+
+export async function stagesSettled(): Promise<void> {
+  for (;;) {
+    const open = [...records.values()].filter(
+      (found) => found.phase === 'waiting' || found.phase === 'playing',
+    );
+    if (!open.length) return;
+    await Promise.all(open.map((found) => found.finished));
+  }
 }
 
 /** The opening's phase: not yet considered, waiting for data, playing, ended. */
@@ -315,7 +370,7 @@ function attach(identity: string, start: number): void {
   const scope = scopeOf(found);
   const mutations =
     scope && typeof MutationObserver !== 'undefined'
-      ? new MutationObserver(() => placeMembers(found, start))
+      ? new MutationObserver(() => schedulePlacement(found, start))
       : null;
   if (scope)
     mutations?.observe(scope, {
@@ -327,6 +382,7 @@ function attach(identity: string, start: number): void {
     clearTimeout(deadline);
     stopWatching();
     mutations?.disconnect();
+    cancelPlacement(found);
   };
 }
 
@@ -344,6 +400,28 @@ function checkHold(identity: string): void {
   });
 }
 
+/**
+ * Keeps an opening whose kept view is hidden unconsidered until the view is
+ * shown, then considers it in that same task (before the frame that shows
+ * the view), so its first frame already belongs to the opening.
+ */
+function deferUntilShown(identity: string, root: Element): void {
+  const found = record(identity);
+  if (found.detach) return;
+  const stop = observeVisibility(
+    root,
+    (state) => {
+      if (!state.keptView) return;
+      stop?.();
+      if (found.detach === stopWatching) found.detach = null;
+      if (found.root === root && found.phase === 'idle') arm(identity);
+    },
+    { onScreen: false },
+  );
+  const stopWatching = () => stop();
+  found.detach = stopWatching;
+}
+
 /** The first consideration: wait for data, or play (or skip) at once. */
 function arm(identity: string): void {
   const found = record(identity);
@@ -352,6 +430,10 @@ function arm(identity: string): void {
   if (!root || !options) return;
   if (hasPlayed(identity, 'app-start')) {
     end(identity);
+    return;
+  }
+  if (options.deferWhileHidden && keptViewParked(root)) {
+    deferUntilShown(identity, root);
     return;
   }
   markPlayed(identity, 'app-start');
@@ -392,6 +474,27 @@ export function useStageHold(identity: string, pending: boolean): void {
   }, [identity, pending]);
 }
 
+/**
+ * Places late members once per frame, in the frame's animation callbacks
+ * (before its style, layout and paint, so a member never paints off the
+ * clock). Several renders and mutations of one frame need one placement:
+ * each `getAnimations({ subtree: true })` recalculates style for the scope.
+ */
+function schedulePlacement(found: StageRecord, start: number): void {
+  if (found.placeFrame !== null || typeof requestAnimationFrame !== 'function')
+    return;
+  found.placeFrame = requestAnimationFrame(() => {
+    found.placeFrame = null;
+    if (found.phase === 'playing') placeMembers(found, start);
+  });
+}
+
+function cancelPlacement(found: StageRecord): void {
+  if (found.placeFrame === null) return;
+  cancelAnimationFrame(found.placeFrame);
+  found.placeFrame = null;
+}
+
 export function useStage<T extends HTMLElement>(
   identity: string,
   options: StageOptions,
@@ -427,7 +530,7 @@ export function useStage<T extends HTMLElement>(
         if (rootChanged || !found.detach) attach(identity, start);
         else {
           paint(found, 'playing');
-          placeMembers(found, start);
+          schedulePlacement(found, start);
         }
         return;
       }
@@ -448,4 +551,5 @@ export function resetStagesForTests(): void {
   records.clear();
   holds.clear();
   listeners.clear();
+  anyPhase.clear();
 }

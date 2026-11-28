@@ -339,7 +339,7 @@ function ImportantDateEditorSheet({
                       onClick={() => onDelete(date)}
                     >
                       {deletePending
-                        ? t('importantDates.deleting')
+                        ? t('common.deleting')
                         : t('importantDates.deleteConfirm')}
                     </button>
                   </div>
@@ -401,7 +401,7 @@ function ImportantDateEditorSheet({
 
                   <div className="field-group">
                     <label htmlFor="important-date-label">
-                      {t('importantDates.labelLabel')}
+                      {t('common.title')}
                     </label>
                     <input
                       id="important-date-label"
@@ -564,7 +564,7 @@ function ImportantDateEditorSheet({
                     disabled={pending || deletePending}
                     onClick={() => setShowDeleteConfirm(true)}
                   >
-                    {t('importantDates.delete')}
+                    {t('common.delete')}
                   </button>
                 </section>
               ) : null}
@@ -574,9 +574,9 @@ function ImportantDateEditorSheet({
           <footer className="focused-editor-actions">
             <button type="submit" disabled={pending || deletePending}>
               {pending
-                ? t('importantDates.saving')
+                ? t('common.saving')
                 : date
-                  ? t('importantDates.saveChanges')
+                  ? t('common.save')
                   : t('importantDates.create')}
             </button>
             <button
@@ -1705,7 +1705,7 @@ export function ImportantDatesPanel({
                 className={canCreatePlan ? 'tertiary' : undefined}
                 onClick={openEditor}
               >
-                {t('importantDates.edit')}
+                {t('common.edit')}
               </button>
             ) : null}
             {selected.person ? (

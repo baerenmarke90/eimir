@@ -3,7 +3,6 @@ import { RecapViewFromJSON } from '../api/generated/models/RecapView';
 import {
   monthlyRecapInvitation,
   recapPeriodStatus,
-  recapRhythm,
   recapScenes,
 } from './recaps';
 
@@ -99,46 +98,19 @@ describe('monthly recap invitation', () => {
   });
 });
 
-describe('recap rhythm scene', () => {
-  const mood = (goodDays: number[], leading: number | null = null) => ({
-    buckets: goodDays.map((days, index) => ({
-      index: index + 1,
-      mutualDays: days,
-      goodDays: days,
-    })),
-    leading,
-  });
-  const facts = {
-    memories: 3,
-    heartMoments: 1,
-    milestones: 0,
-    chapters: 0,
-    plans: 0,
-    activeDays: 4,
-    busiestMonth: null,
-  };
-
-  it('follows the counted facts and counts the good days', () => {
-    const value = edition(2026, 10, { facts, mood: mood([3, 2, 4, 0, 0], 3) });
-    expect(recapScenes(value).map((scene) => scene.type)).toEqual([
-      'cover',
-      'facts',
-      'rhythm',
-      'highlight',
-      'closing',
-    ]);
-    expect(recapRhythm(value)).toMatchObject({ total: 9, leading: 3 });
-  });
-
-  it('is omitted without a mood and below three good days', () => {
-    expect(recapRhythm(edition())).toBeNull();
+describe('recap scenes without the retired good-days rhythm (#2210)', () => {
+  it('goes from the counted facts straight to the highlights', () => {
+    const facts = {
+      memories: 3,
+      heartMoments: 1,
+      milestones: 0,
+      chapters: 0,
+      plans: 0,
+      activeDays: 4,
+      busiestMonth: null,
+    };
     expect(
-      recapRhythm(edition(2026, 10, { mood: mood([1, 1, 0]) })),
-    ).toBeNull();
-    expect(
-      recapScenes(edition(2026, 10, { mood: mood([1, 1, 0]) })).map(
-        (scene) => scene.type,
-      ),
-    ).not.toContain('rhythm');
+      recapScenes(edition(2026, 10, { facts })).map((scene) => scene.type),
+    ).toEqual(['cover', 'facts', 'highlight', 'closing']);
   });
 });

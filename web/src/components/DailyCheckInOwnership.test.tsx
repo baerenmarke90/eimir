@@ -21,6 +21,7 @@ import { ClientProblemError } from '../client/problemDetails';
 import dailyVibe from '../i18n/locales/dailyVibe';
 import wirCheckIn from '../i18n/locales/wirCheckIn';
 import { useWirDailyCheckIn } from './WirDailyCheckIn';
+import germanUi from '../i18n/locales/de';
 
 /**
  * Concurrency and privacy contract of the shared DailyCheckIn write hook,
@@ -222,7 +223,7 @@ for (const dimension of ['energy', 'vibe'] as const) {
     );
     expect(ownPending()).toBe('true');
     await openPanel();
-    expect(screen.getByText(wirCheckIn.saving)).not.toBeNull();
+    expect(screen.getByText(germanUi.common.saving)).not.toBeNull();
     // A further choice waits for the pending write instead of racing it.
     if (dimension === 'energy') {
       const slider = await energy();
@@ -370,7 +371,9 @@ it('reopens the panel for a failed own Energy value after return and retries wit
   await waitFor(() => expect(h.client.isMutating()).toBe(0));
   h.get.mockResolvedValue(response(h.current, '"today:4"'));
   h.mount();
-  const retry = await screen.findByRole('button', { name: wirCheckIn.retry });
+  const retry = await screen.findByRole('button', {
+    name: germanUi.common.retry,
+  });
   expect(screen.getByText(wirCheckIn.saveError)).not.toBeNull();
   // The failed value is not shown as saved; the confirmed value stays.
   expect(
@@ -415,7 +418,9 @@ it('preserves only the failed own Vibe and note across return until deliberate r
   await act(async () => h.reject(new ClientProblemError('server', 503)));
   await waitFor(() => expect(h.client.isMutating()).toBe(0));
   h.mount();
-  const retry = await screen.findByRole('button', { name: wirCheckIn.retry });
+  const retry = await screen.findByRole('button', {
+    name: germanUi.common.retry,
+  });
   expect(vibeButton('OKAY').getAttribute('aria-pressed')).toBe('true');
   expect(partnerState()).toBe('hidden');
   expect(h.update).toHaveBeenCalledTimes(1);
@@ -453,7 +458,9 @@ it('retries a failed Vibe removal as a clear rather than resaving the visible ch
   await act(async () => h.reject(new ClientProblemError('server', 503)));
   await waitFor(() => expect(h.client.isMutating()).toBe(0));
   h.mount();
-  const retry = await screen.findByRole('button', { name: wirCheckIn.retry });
+  const retry = await screen.findByRole('button', {
+    name: germanUi.common.retry,
+  });
   expect(vibeButton('GOOD').getAttribute('aria-pressed')).toBe('true');
   h.update.mockResolvedValueOnce(
     response(
@@ -592,7 +599,7 @@ it('fails a connectivity race without a paused write or automatic reconnect PATC
   ).toBe(true);
   await act(async () => onlineManager.setOnline(true));
   expect(h.update).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: wirCheckIn.retry }));
+  fireEvent.click(screen.getByRole('button', { name: germanUi.common.retry }));
   await waitFor(() => expect(h.update).toHaveBeenCalledTimes(1));
   expect(h.update.mock.calls[0][0].dailyCheckInUpdate).toEqual({
     energyLevel: 80,
@@ -808,7 +815,7 @@ for (const outcome of ['success', 'lost-ack'] as const) {
       h.client.setQueryData(key, { projection: cleared, etag: '"today:2"' }),
     );
     await openPanel();
-    expect(screen.getByText(wirCheckIn.saving)).not.toBeNull();
+    expect(screen.getByText(germanUi.common.saving)).not.toBeNull();
     expect(vibeButton('GOOD').getAttribute('aria-pressed')).toBe('false');
     expect(h.update).toHaveBeenCalledTimes(1);
     if (outcome === 'success') {
@@ -818,10 +825,12 @@ for (const outcome of ['success', 'lost-ack'] as const) {
     }
     await waitFor(() => expect(h.client.isMutating()).toBe(0));
     await waitFor(() => expect(ownPending()).toBeNull());
-    expect(screen.queryByText(wirCheckIn.saving)).toBeNull();
+    expect(screen.queryByText(germanUi.common.saving)).toBeNull();
     // The removal is already confirmed by the authorized read: no error.
     expect(screen.queryByText(wirCheckIn.saveError)).toBeNull();
-    expect(screen.queryByRole('button', { name: wirCheckIn.retry })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: germanUi.common.retry }),
+    ).toBeNull();
     expect(h.update).toHaveBeenCalledTimes(1);
   });
 }

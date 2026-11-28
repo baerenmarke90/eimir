@@ -10,11 +10,15 @@ from eimir.appearance.models import (
     DEFAULT_WIR_DESIGN,
     AppIconId,
     AppIconPreference,
+    MemoryWorldId,
     PersonColoursId,
     WirDesignId,
+    WirReelStyleId,
 )
 from eimir.authorization import AuthorizationContext
 from eimir.core.errors import ConflictError, ErrorCode
+
+_UNSET: Any = object()
 
 
 def read_preference(
@@ -53,10 +57,14 @@ def save_preference(
 def save_wir_design(
     session: Session,
     authorization: AuthorizationContext,
-    design_id: WirDesignId,
     expected_token: str,
+    *,
+    design_id: WirDesignId | None = None,
+    palette_id: WirDesignId | None = _UNSET,
 ) -> AppIconPreference:
-    return _save_selection(session, authorization, expected_token, design_id=design_id)
+    return _save_selection(
+        session, authorization, expected_token, design_id=design_id, palette_id=palette_id
+    )
 
 
 def save_person_colours(
@@ -69,7 +77,24 @@ def save_person_colours(
     return _save_selection(session, authorization, expected_token, person_colours=colours)
 
 
-_UNSET: Any = object()
+def save_memory_world(
+    session: Session,
+    authorization: AuthorizationContext,
+    world_id: MemoryWorldId,
+    expected_token: str,
+) -> AppIconPreference:
+    """Save the personal memory world; the default Story is stored explicitly too."""
+    return _save_selection(session, authorization, expected_token, memory_world=world_id)
+
+
+def save_wir_reel_style(
+    session: Session,
+    authorization: AuthorizationContext,
+    style_id: WirReelStyleId,
+    expected_token: str,
+) -> AppIconPreference:
+    """Save the personal Wir reel style; circles are stored explicitly too."""
+    return _save_selection(session, authorization, expected_token, wir_reel_style=style_id)
 
 
 def _save_selection(
@@ -80,6 +105,9 @@ def _save_selection(
     icon_id: AppIconId | None = None,
     design_id: WirDesignId | None = None,
     person_colours: PersonColoursId | None = _UNSET,
+    palette_id: WirDesignId | None = _UNSET,
+    memory_world: MemoryWorldId | None = None,
+    wir_reel_style: WirReelStyleId | None = None,
 ) -> AppIconPreference:
     preference = read_preference(session, authorization, for_update=True)
     if concurrency_token(preference, authorization) != expected_token:
@@ -98,11 +126,18 @@ def _save_selection(
                 space_id=authorization.space_id,
                 icon_id=icon_id.value if icon_id else AppIconId.ORIGINAL.value,
                 wir_design=design_id.value if design_id else DEFAULT_WIR_DESIGN.value,
+                wir_design_palette=(
+                    palette_id.value
+                    if palette_id is not _UNSET and palette_id is not None
+                    else None
+                ),
                 person_colours=(
                     person_colours.value
                     if person_colours is not _UNSET and person_colours is not None
                     else None
                 ),
+                memory_world=memory_world.value if memory_world else None,
+                wir_reel_style=wir_reel_style.value if wir_reel_style else None,
                 version=1,
             )
             .on_conflict_do_nothing(index_elements=["account_id", "space_id"])
@@ -118,8 +153,14 @@ def _save_selection(
             preference.icon_id = icon_id.value
         if design_id is not None:
             preference.wir_design = design_id.value
+        if palette_id is not _UNSET:
+            preference.wir_design_palette = palette_id.value if palette_id else None
         if person_colours is not _UNSET:
             preference.person_colours = person_colours.value if person_colours else None
+        if memory_world is not None:
+            preference.memory_world = memory_world.value
+        if wir_reel_style is not None:
+            preference.wir_reel_style = wir_reel_style.value
         preference.version += 1
     session.flush()
     return preference

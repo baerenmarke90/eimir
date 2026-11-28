@@ -18,6 +18,14 @@ import sharedNotes from '../i18n/locales/sharedNotes';
 import taskBoundary from '../i18n/locales/taskBoundary';
 import { PlanningCreatePage } from './PlanningCreatePage';
 import { sharedNote } from './sharedNoteFixtures';
+import germanUi from '../i18n/locales/de';
+import germanFixture from '../../e2e/fixtures/locales/de';
+
+function LocationTracker({ locations }: { locations: string[] }) {
+  const location = useLocation();
+  locations.push(location.pathname);
+  return null;
+}
 
 beforeAll(() => {
   HTMLDialogElement.prototype.showModal = function () {
@@ -46,11 +54,6 @@ function renderCreate(
     ...overrides,
   } as SharedPlanningApis;
   const locations: string[] = [];
-  const Tracker = () => {
-    const location = useLocation();
-    locations.push(location.pathname);
-    return null;
-  };
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
@@ -62,7 +65,7 @@ function renderCreate(
           kind === 'plan' ? '/plan/plans/new' : '/plan/wishes/new',
         ]}
       >
-        <Tracker />
+        <LocationTracker locations={locations} />
         <Routes>
           <Route
             path="/plan/plans/new"
@@ -138,7 +141,7 @@ describe('PlanningCreatePage', () => {
     expect(screen.getByRole('button', { name: 'Packing list' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Door codes' })).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('button', { name: m5s3.common.save }));
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.save }));
     await screen.findByText('Plan result');
     expect(createPlan).toHaveBeenCalledTimes(1);
     expect(
@@ -176,7 +179,7 @@ describe('PlanningCreatePage', () => {
       }),
     );
     expect(screen.queryByRole('button', { name: 'Packing list' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: m5s3.common.save }));
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.save }));
     await screen.findByText('Plan result');
     expect(linkPlanNote).not.toHaveBeenCalled();
   });
@@ -188,7 +191,7 @@ describe('PlanningCreatePage', () => {
       .mockResolvedValue(undefined);
     const { createPlan } = renderCreateWithNotes(linkPlanNote);
     await chooseNotes('Packing list');
-    fireEvent.click(screen.getByRole('button', { name: m5s3.common.save }));
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.save }));
     await waitFor(() => expect(createPlan).toHaveBeenCalledTimes(1));
     // The Plan is saved, the link is not: the page says exactly that and stays.
     await screen.findByText(i18n.t('composer.planSavedLinkFailed'));
@@ -235,12 +238,12 @@ describe('PlanningCreatePage', () => {
       expect(
         (
           screen.getByRole('button', {
-            name: m5s3.common.save,
+            name: germanUi.common.save,
           }) as HTMLButtonElement
         ).disabled,
       ).toBe(false),
     );
-    fireEvent.click(screen.getByRole('button', { name: m5s3.common.save }));
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.save }));
     await waitFor(() => expect(createPlan).toHaveBeenCalledTimes(1));
     await screen.findByText(m5s3.collection.planSavedLinkFailed);
     fireEvent.click(
@@ -253,14 +256,18 @@ describe('PlanningCreatePage', () => {
   it('omits redundant fixed-audience banners from Plan and Wish creation', () => {
     const { unmount } = renderCreate('wish');
 
-    expect(screen.queryByText(m5s3.wish.sharedBody)).toBeNull();
+    expect(
+      screen.queryByText(germanFixture.retiredCopy.sharedWishHint),
+    ).toBeNull();
     expect(screen.queryByText(m5s3.plan.sharedBody)).toBeNull();
 
     unmount();
     renderCreate('plan');
 
     expect(screen.queryByText(m5s3.plan.sharedBody)).toBeNull();
-    expect(screen.queryByText(m5s3.wish.sharedBody)).toBeNull();
+    expect(
+      screen.queryByText(germanFixture.retiredCopy.sharedWishHint),
+    ).toBeNull();
   });
 
   it('creates a valid undated Plan and opens the canonical result', async () => {
@@ -269,7 +276,7 @@ describe('PlanningCreatePage', () => {
 
     expect(document.activeElement).not.toBe(title);
     fireEvent.change(title, { target: { value: 'Park picnic' } });
-    fireEvent.click(screen.getByRole('button', { name: m5s3.common.save }));
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.save }));
 
     await waitFor(() => expect(createPlan).toHaveBeenCalledTimes(1));
     expect(createPlan).toHaveBeenCalledWith({
@@ -300,9 +307,9 @@ describe('PlanningCreatePage', () => {
       target: { value: '2026-10-03' },
     });
     fireEvent.click(
-      screen.getByRole('button', { name: i18n.t('experiences.finish') }),
+      screen.getByRole('button', { name: i18n.t('common.done') }),
     );
-    fireEvent.click(screen.getByRole('button', { name: m5s3.common.save }));
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.save }));
 
     await waitFor(() => expect(createPlan).toHaveBeenCalledTimes(1));
     const request = createPlan.mock.calls[0]?.[0];
@@ -330,9 +337,9 @@ describe('PlanningCreatePage', () => {
       target: { value: '19:30' },
     });
     fireEvent.click(
-      screen.getByRole('button', { name: i18n.t('experiences.finish') }),
+      screen.getByRole('button', { name: i18n.t('common.done') }),
     );
-    fireEvent.click(screen.getByRole('button', { name: m5s3.common.save }));
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.save }));
     await waitFor(() => expect(createPlan).toHaveBeenCalledOnce());
     const schedule = createPlan.mock.calls[0][0].planCreate.schedule;
     expect(schedule.plannedStart.getHours()).toBe(18);
@@ -378,7 +385,7 @@ describe('PlanningCreatePage', () => {
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(linkWishToPlan).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: m5s3.common.save }));
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.save }));
     await screen.findByText(i18n.t('composer.planSavedLinkFailed'));
     fireEvent.click(
       screen.getByRole('button', { name: i18n.t('common.retry') }),
@@ -447,14 +454,14 @@ describe('PlanningCreatePage', () => {
     expect(
       (
         screen.getByRole('button', {
-          name: m5s3.common.save,
+          name: germanUi.common.save,
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(true);
     expect(
       (
         within(creation).getByRole('button', {
-          name: m5s3.common.saving,
+          name: germanUi.common.saving,
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(true);
@@ -487,7 +494,7 @@ describe('PlanningCreatePage', () => {
       },
     });
     const save = screen.getByRole('button', {
-      name: m5s3.common.save,
+      name: germanUi.common.save,
     });
     expect((save as HTMLButtonElement).disabled).toBe(false);
     fireEvent.click(save);
@@ -525,7 +532,7 @@ describe('PlanningCreatePage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Rose garden' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(createPlace).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: m5s3.common.save }));
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.save }));
     await waitFor(() => expect(createPlan).toHaveBeenCalledTimes(1));
     expect(createPlan.mock.calls[0][0].planCreate.placeId).toBe('place-saved');
   });
@@ -537,7 +544,7 @@ describe('PlanningCreatePage', () => {
     });
     const title = screen.getByLabelText(m5s3.wish.intentionLabel);
     fireEvent.change(title, { target: { value: 'See the northern lights' } });
-    fireEvent.click(screen.getByRole('button', { name: m5s3.common.save }));
+    fireEvent.click(screen.getByRole('button', { name: germanUi.common.save }));
 
     await waitFor(() => expect(createWish).toHaveBeenCalledTimes(1));
     expect(createWish).toHaveBeenCalledWith({
@@ -548,7 +555,9 @@ describe('PlanningCreatePage', () => {
     await waitFor(() => expect(screen.getByRole('alert')).toBeDefined());
     expect((title as HTMLInputElement).value).toBe('See the northern lights');
 
-    fireEvent.click(screen.getByRole('button', { name: taskBoundary.close }));
+    fireEvent.click(
+      screen.getByRole('button', { name: germanUi.common.close }),
+    );
     expect(
       screen.getByRole('alertdialog', {
         name: taskBoundary.discardTitle,

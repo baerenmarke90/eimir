@@ -1,7 +1,6 @@
 const quietHints = {
   tipLabel: 'Tipp',
   newLabel: 'Neu in eimir.',
-  newTag: 'Neu',
   gotIt: 'Verstanden',
   hide: 'Ausblenden',
   firstPlan: 'Ersten Plan anlegen',

@@ -1,0 +1,65 @@
+{
+  "$description": "Zuhause: a private view of the shared home, with a room picker and warm paper surfaces.",
+  "id": "home_rooms",
+  "tier": "pro",
+  "layout": "rooms",
+  "color": {
+    "light": {
+      "page": "#F8F5F0",
+      "surface": "#FFFDF9",
+      "elevated": "#FFFDF9",
+      "text": "#2D2827",
+      "mutedText": "#645754",
+      "border": "#968780",
+      "action": "#754435",
+      "actionFill": "#754435",
+      "onAction": "#FFF9F2",
+      "accentRose": "#754435",
+      "accentSky": "#754435",
+      "softRose": "#E9E1EB",
+      "softBlue": "#F0E9E0",
+      "focus": "#754435",
+      "pressed": "#754435",
+      "hover": "#F0E9E0",
+      "borderSubtle": "#DFD4CD",
+      "surfaceSubtle": "#F0E9E0",
+      "surfaceOverlay": "#FFFDF9"
+    },
+    "dark": {
+      "page": "#231F23",
+      "surface": "#2C262B",
+      "elevated": "#2C262B",
+      "text": "#F4EEE9",
+      "mutedText": "#CDBEB9",
+      "border": "#A0898C",
+      "action": "#EBB7A0",
+      "actionFill": "#EBB7A0",
+      "onAction": "#42251D",
+      "accentRose": "#EBB7A0",
+      "accentSky": "#EBB7A0",
+      "softRose": "#352C3B",
+      "softBlue": "#372C2B",
+      "focus": "#EBB7A0",
+      "pressed": "#EBB7A0",
+      "hover": "#372C2B",
+      "borderSubtle": "#4F4349",
+      "surfaceSubtle": "#372C2B",
+      "surfaceOverlay": "#2C262B"
+    }
+  },
+  "shape": "standard",
+  "type": {
+    "display": "literata",
+    "headings": "display"
+  },
+  "icon": {
+    "stroke": "standard",
+    "accent": "duotone"
+  },
+  "motion": "standard",
+  "surface": {
+    "backdrop": "flat",
+    "elevation": "standard",
+    "edges": "none"
+  }
+}

@@ -1,0 +1,6500 @@
+{
+  "license_notice": "The sayings are text without an individual author. They are AI-generated drafts that the Product Owner edited and approved one by one, used by eimir. under the repository license. The Klassiker are public-domain quotations with author and work; their translations are catalog translations under CC0 1.0 Universal. The previous catalog is archived in backend/pro/archive/quotes.",
+  "translations": {
+    "en": {
+      "translator": "eimir. catalog translation from the German source",
+      "source_display": "English translation",
+      "rights_basis": "Catalog translation contributed under CC0 1.0 Universal."
+    },
+    "de": {
+      "translator": "eimir. catalog translation from the English source",
+      "source_display": "Deutsche Übersetzung",
+      "rights_basis": "Catalog translation contributed under CC0 1.0 Universal."
+    }
+  },
+  "collections": {
+    "ai-sayings": {
+      "author_display": "",
+      "source_edition": "eimir. Daily Quote catalog, AI-generated sayings, approved by the Product Owner.",
+      "source_url": "https://github.com/baerenmarke90/eimir/blob/main/backend/src/eimir/quotes/daily_sayings.json",
+      "source_display": null,
+      "source_id": "poetic_wisdom",
+      "rights_basis": "AI-generated sayings without an individual author, edited and approved by the Product Owner, used by eimir. under the repository license.",
+      "rights_classification": "EDITORIAL_CURATED",
+      "publication_year": 2026,
+      "original_locale": "de"
+    },
+    "klassiker-johann-wolfgang-von-goethe-de": {
+      "author_display": "Johann Wolfgang von Goethe",
+      "source_edition": "Original wording checked against the work by the Product Owner's quotation selection; spelling modernised.",
+      "source_id": "classic_literature",
+      "rights_basis": "Public Domain (author died 1832, p.m.a. > 70 years).",
+      "rights_classification": "PUBLIC_DOMAIN",
+      "original_locale": "de"
+    },
+    "klassiker-marie-von-ebner-eschenbach-de": {
+      "author_display": "Marie von Ebner-Eschenbach",
+      "source_edition": "Original wording checked against the work by the Product Owner's quotation selection; spelling modernised.",
+      "source_id": "classic_literature",
+      "rights_basis": "Public Domain (author died 1916, p.m.a. > 70 years).",
+      "rights_classification": "PUBLIC_DOMAIN",
+      "original_locale": "de"
+    },
+    "klassiker-novalis-de": {
+      "author_display": "Novalis",
+      "source_edition": "Original wording checked against the work by the Product Owner's quotation selection; spelling modernised.",
+      "source_id": "classic_literature",
+      "rights_basis": "Public Domain (author died 1801, p.m.a. > 70 years).",
+      "rights_classification": "PUBLIC_DOMAIN",
+      "original_locale": "de"
+    },
+    "klassiker-georg-christoph-lichtenberg-de": {
+      "author_display": "Georg Christoph Lichtenberg",
+      "source_edition": "Original wording checked against the work by the Product Owner's quotation selection; spelling modernised.",
+      "source_id": "classic_literature",
+      "rights_basis": "Public Domain (author died 1799, p.m.a. > 70 years).",
+      "rights_classification": "PUBLIC_DOMAIN",
+      "original_locale": "de"
+    },
+    "klassiker-friedrich-hebbel-de": {
+      "author_display": "Friedrich Hebbel",
+      "source_edition": "Original wording checked against the work by the Product Owner's quotation selection; spelling modernised.",
+      "source_id": "classic_literature",
+      "rights_basis": "Public Domain (author died 1863, p.m.a. > 70 years).",
+      "rights_classification": "PUBLIC_DOMAIN",
+      "original_locale": "de"
+    },
+    "klassiker-friedrich-nietzsche-de": {
+      "author_display": "Friedrich Nietzsche",
+      "source_edition": "Original wording checked against the work by the Product Owner's quotation selection; spelling modernised.",
+      "source_id": "classic_literature",
+      "rights_basis": "Public Domain (author died 1900, p.m.a. > 70 years).",
+      "rights_classification": "PUBLIC_DOMAIN",
+      "original_locale": "de"
+    },
+    "klassiker-friedrich-schiller-de": {
+      "author_display": "Friedrich Schiller",
+      "source_edition": "Original wording checked against the work by the Product Owner's quotation selection; spelling modernised.",
+      "source_id": "classic_literature",
+      "rights_basis": "Public Domain (author died 1805, p.m.a. > 70 years).",
+      "rights_classification": "PUBLIC_DOMAIN",
+      "original_locale": "de"
+    },
+    "klassiker-heinrich-heine-de": {
+      "author_display": "Heinrich Heine",
+      "source_edition": "Original wording checked against the work by the Product Owner's quotation selection; spelling modernised.",
+      "source_id": "classic_literature",
+      "rights_basis": "Public Domain (author died 1856, p.m.a. > 70 years).",
+      "rights_classification": "PUBLIC_DOMAIN",
+      "original_locale": "de"
+    },
+    "klassiker-g-k-chesterton-en": {
+      "author_display": "G. K. Chesterton",
+      "source_edition": "Original wording checked against the work by the Product Owner's quotation selection.",
+      "source_id": "classic_literature",
+      "rights_basis": "Public Domain (author died 1936, p.m.a. > 70 years).",
+      "rights_classification": "PUBLIC_DOMAIN",
+      "original_locale": "en"
+    },
+    "klassiker-ralph-waldo-emerson-en": {
+      "author_display": "Ralph Waldo Emerson",
+      "source_edition": "Original wording checked against the work by the Product Owner's quotation selection.",
+      "source_id": "classic_literature",
+      "rights_basis": "Public Domain (author died 1882, p.m.a. > 70 years).",
+      "rights_classification": "PUBLIC_DOMAIN",
+      "original_locale": "en"
+    },
+    "klassiker-oscar-wilde-en": {
+      "author_display": "Oscar Wilde",
+      "source_edition": "Original wording checked against the work by the Product Owner's quotation selection.",
+      "source_id": "classic_literature",
+      "rights_basis": "Public Domain (author died 1900, p.m.a. > 70 years).",
+      "rights_classification": "PUBLIC_DOMAIN",
+      "original_locale": "en"
+    },
+    "klassiker-rabindranath-tagore-en": {
+      "author_display": "Rabindranath Tagore",
+      "source_edition": "Original wording checked against the work by the Product Owner's quotation selection.",
+      "source_id": "classic_literature",
+      "rights_basis": "Public Domain (author died 1941, p.m.a. > 70 years).",
+      "rights_classification": "PUBLIC_DOMAIN",
+      "original_locale": "en"
+    },
+    "klassiker-jane-austen-en": {
+      "author_display": "Jane Austen",
+      "source_edition": "Original wording checked against the work by the Product Owner's quotation selection.",
+      "source_id": "classic_literature",
+      "rights_basis": "Public Domain (author died 1817, p.m.a. > 70 years).",
+      "rights_classification": "PUBLIC_DOMAIN",
+      "original_locale": "en"
+    },
+    "klassiker-charlotte-bronte-en": {
+      "author_display": "Charlotte Brontë",
+      "source_edition": "Original wording checked against the work by the Product Owner's quotation selection.",
+      "source_id": "classic_literature",
+      "rights_basis": "Public Domain (author died 1855, p.m.a. > 70 years).",
+      "rights_classification": "PUBLIC_DOMAIN",
+      "original_locale": "en"
+    },
+    "klassiker-louisa-may-alcott-en": {
+      "author_display": "Louisa May Alcott",
+      "source_edition": "Original wording checked against the work by the Product Owner's quotation selection.",
+      "source_id": "classic_literature",
+      "rights_basis": "Public Domain (author died 1888, p.m.a. > 70 years).",
+      "rights_classification": "PUBLIC_DOMAIN",
+      "original_locale": "en"
+    },
+    "klassiker-george-eliot-en": {
+      "author_display": "George Eliot",
+      "source_edition": "Original wording checked against the work by the Product Owner's quotation selection.",
+      "source_id": "classic_literature",
+      "rights_basis": "Public Domain (author died 1880, p.m.a. > 70 years).",
+      "rights_classification": "PUBLIC_DOMAIN",
+      "original_locale": "en"
+    },
+    "klassiker-kahlil-gibran-en": {
+      "author_display": "Kahlil Gibran",
+      "source_edition": "Original wording checked against the work by the Product Owner's quotation selection.",
+      "source_id": "classic_literature",
+      "rights_basis": "Public Domain (author died 1931, p.m.a. > 70 years).",
+      "rights_classification": "PUBLIC_DOMAIN",
+      "original_locale": "en"
+    },
+    "klassiker-l-m-montgomery-en": {
+      "author_display": "L. M. Montgomery",
+      "source_edition": "Original wording checked against the work by the Product Owner's quotation selection.",
+      "source_id": "classic_literature",
+      "rights_basis": "Public Domain (author died 1942, p.m.a. > 70 years).",
+      "rights_classification": "PUBLIC_DOMAIN",
+      "original_locale": "en"
+    },
+    "klassiker-willa-cather-en": {
+      "author_display": "Willa Cather",
+      "source_edition": "Original wording checked against the work by the Product Owner's quotation selection.",
+      "source_id": "classic_literature",
+      "rights_basis": "Public Domain (author died 1947, p.m.a. > 70 years).",
+      "rights_classification": "PUBLIC_DOMAIN",
+      "original_locale": "en"
+    }
+  },
+  "entries": [
+    {
+      "id": "ai-courage-001",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Angst gibt Rat, aber keinen Kurs.",
+        "en": "Fear offers advice, but not a course."
+      }
+    },
+    {
+      "id": "ai-courage-002",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Auch Grenzen einzugestehen kostet Mut.",
+        "en": "Admitting your limits takes courage, too."
+      }
+    },
+    {
+      "id": "ai-courage-003",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Benennt eure Zweifel. Der Versuch betrifft beide.",
+        "en": "Name your doubts. The attempt concerns you both."
+      }
+    },
+    {
+      "id": "ai-courage-004",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Bewahre den Wunsch. Ändere den Anfang.",
+        "en": "Keep the wish. Change the beginning."
+      }
+    },
+    {
+      "id": "ai-courage-005",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Bittet einander um Hilfe. Liebe verträgt Schwäche.",
+        "en": "Ask each other for help. Love can bear weakness."
+      }
+    },
+    {
+      "id": "ai-courage-006",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Dein Anfang braucht keinen Applaus.",
+        "en": "Your beginning doesn't need applause."
+      }
+    },
+    {
+      "id": "ai-courage-007",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Deine Geschichte ist nicht auf die bisherigen Entscheidungen begrenzt.",
+        "en": "Your story isn't limited to your previous decisions."
+      }
+    },
+    {
+      "id": "ai-courage-008",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Deine Unsicherheit braucht keine heimliche Hauptrolle.",
+        "en": "Your uncertainty doesn't need a secret leading role."
+      }
+    },
+    {
+      "id": "ai-courage-009",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Der eine wagt laut, der andere leise.",
+        "en": "One dares out loud, the other quietly."
+      }
+    },
+    {
+      "id": "ai-courage-010",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Die Angst redet mit. Das letzte Wort hast du.",
+        "en": "Fear gets a say. You have the last word."
+      }
+    },
+    {
+      "id": "ai-courage-011",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Du darfst wieder Anfänger sein, obwohl du woanders viel kannst.",
+        "en": "You may be a beginner again even though you're skilled elsewhere."
+      }
+    },
+    {
+      "id": "ai-courage-012",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Du kannst anfangen, ohne dich sicher zu fühlen.",
+        "en": "You can begin without feeling sure."
+      }
+    },
+    {
+      "id": "ai-courage-013",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Du kannst den Ausgang nicht bestimmen, nur deinen Einsatz.",
+        "en": "You can't control the outcome, only your effort."
+      }
+    },
+    {
+      "id": "ai-courage-014",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Du musst deine Angst nicht besiegen, bevor du etwas versuchen darfst.",
+        "en": "You don't have to defeat your fear before you're allowed to try something."
+      }
+    },
+    {
+      "id": "ai-courage-015",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Du musst den alten Weg nicht schlechtreden, um einen neuen zu wählen.",
+        "en": "You don't have to badmouth the old path to choose a new one."
+      }
+    },
+    {
+      "id": "ai-courage-016",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Du musst nicht dieselbe Person bleiben, um glaubwürdig zu sein.",
+        "en": "You don't have to stay the same person to be credible."
+      }
+    },
+    {
+      "id": "ai-courage-017",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Ein Fehler ist kein Grund zum Stillstand.",
+        "en": "A mistake is no reason to stand still."
+      }
+    },
+    {
+      "id": "ai-courage-018",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Ein Fehlversuch sagt wenig über dein Können.",
+        "en": "A failed attempt says little about your ability."
+      }
+    },
+    {
+      "id": "ai-courage-019",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Ein Rückzieher kostet Mut, wenn alle von dir einen Erfolg erwarten.",
+        "en": "Backing out takes courage when everyone expects you to succeed."
+      }
+    },
+    {
+      "id": "ai-courage-020",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Ein ehrlicher Versuch ist besser als erzwungene Sicherheit.",
+        "en": "An honest try beats forced certainty."
+      }
+    },
+    {
+      "id": "ai-courage-021",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Ein mutiges Gespräch beginnt, bevor du alle Antworten kennst.",
+        "en": "A brave conversation begins before you know all the answers."
+      }
+    },
+    {
+      "id": "ai-courage-022",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Ein später Anfang braucht keine Eile.",
+        "en": "A late start needs no rush."
+      }
+    },
+    {
+      "id": "ai-courage-023",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Eine Veränderung wird nicht falsch, weil sie ungewohnt ist.",
+        "en": "A change doesn't become wrong just because it's unfamiliar."
+      }
+    },
+    {
+      "id": "ai-courage-024",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Eine neue Fähigkeit ist mehr wert als der Ruf, alles zu beherrschen.",
+        "en": "A new skill is worth more than a reputation for mastering everything."
+      }
+    },
+    {
+      "id": "ai-courage-025",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Euer Anfang zählt mehr als fremde Bedenken.",
+        "en": "Your beginning counts for more than other people's doubts."
+      }
+    },
+    {
+      "id": "ai-courage-026",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Euer Scheitern ist kein Grund, einander weniger zuzutrauen.",
+        "en": "Your failure is no reason to trust each other less."
+      }
+    },
+    {
+      "id": "ai-courage-027",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Euer früheres Nein verbietet euch keinen neuen Wunsch.",
+        "en": "Your earlier no doesn't forbid you a new wish."
+      }
+    },
+    {
+      "id": "ai-courage-028",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Fang an. Bleiben musst du nicht.",
+        "en": "Begin. You don't have to stay."
+      }
+    },
+    {
+      "id": "ai-courage-029",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Fang klein an, denn auch Begeisterung braucht Übung.",
+        "en": "Start small, because even enthusiasm needs practice."
+      }
+    },
+    {
+      "id": "ai-courage-030",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Feiert eure Fortschritte schon während des Lernens.",
+        "en": "Celebrate your progress while you're still learning."
+      }
+    },
+    {
+      "id": "ai-courage-031",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Für Begeisterung lohnt sich Verlegenheit.",
+        "en": "Enthusiasm is worth a little embarrassment."
+      }
+    },
+    {
+      "id": "ai-courage-032",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Herzklopfen ist kein Stoppschild.",
+        "en": "A racing heart is not a stop sign."
+      }
+    },
+    {
+      "id": "ai-courage-033",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Leiht euch Mut, ohne Stärke vorzuspielen.",
+        "en": "Borrow courage from each other, without pretending to be strong."
+      }
+    },
+    {
+      "id": "ai-courage-034",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Lerne von Menschen, die weniger Erfahrung haben als du.",
+        "en": "Learn from people who have less experience than you."
+      }
+    },
+    {
+      "id": "ai-courage-035",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Lernt zusammen, ohne euch zu benoten.",
+        "en": "Learn together, without grading each other."
+      }
+    },
+    {
+      "id": "ai-courage-036",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Manchmal verlangt Mut nur, eine Nachricht tatsächlich abzuschicken.",
+        "en": "Sometimes courage only asks you to actually send a message."
+      }
+    },
+    {
+      "id": "ai-courage-037",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Mut bedeutet auch, rechtzeitig umzukehren.",
+        "en": "Courage also means turning back in time."
+      }
+    },
+    {
+      "id": "ai-courage-038",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Mut beginnt vor der Bereitschaft.",
+        "en": "Courage begins before you're ready."
+      }
+    },
+    {
+      "id": "ai-courage-039",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Mut braucht nicht immer einen sichtbaren Sprung.",
+        "en": "Courage doesn't always need a visible leap."
+      }
+    },
+    {
+      "id": "ai-courage-040",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Mut kann eine höfliche Stimme und einen festen Standpunkt haben.",
+        "en": "Courage can have a polite voice and a firm stance."
+      }
+    },
+    {
+      "id": "ai-courage-041",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Mut kostet Ausreden.",
+        "en": "Courage costs you your excuses."
+      }
+    },
+    {
+      "id": "ai-courage-042",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Mut verlangt keinen Alleingang.",
+        "en": "Courage doesn't ask you to go it alone."
+      }
+    },
+    {
+      "id": "ai-courage-043",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Mut wird nicht kleiner, weil jemand anderes den Schritt leicht findet.",
+        "en": "Courage doesn't get smaller because someone else finds the step easy."
+      }
+    },
+    {
+      "id": "ai-courage-044",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Mut zeigt sich auch darin, um Begleitung zu bitten.",
+        "en": "Courage also shows in asking for company."
+      }
+    },
+    {
+      "id": "ai-courage-045",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Mut zeigt sich, wenn du deine Idee der Kritik aussetzt.",
+        "en": "Courage shows when you expose your idea to criticism."
+      }
+    },
+    {
+      "id": "ai-courage-046",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Mut zu zweit verlangt nicht gleiches Können.",
+        "en": "Courage as a pair doesn't require equal skill."
+      }
+    },
+    {
+      "id": "ai-courage-047",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Mutig sein heißt nicht, Sicherheit zu verachten.",
+        "en": "Being brave doesn't mean despising safety."
+      }
+    },
+    {
+      "id": "ai-courage-048",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Sei entschlossen und bleib offen. Ein guter Einwand rettet manchen Plan.",
+        "en": "Be determined and stay open. A good objection can save a plan."
+      }
+    },
+    {
+      "id": "ai-courage-049",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Sprecht eure Wünsche aus. Schweigen schützt sie nicht.",
+        "en": "Say your wishes out loud. Silence doesn't protect them."
+      }
+    },
+    {
+      "id": "ai-courage-050",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Stolz ersetzt kein Wissen. Gib zu, dass du es nicht weißt.",
+        "en": "Pride is no substitute for knowledge. Admit you don't know."
+      }
+    },
+    {
+      "id": "ai-courage-051",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Traut euch mehr zu, ohne einander zu drängen.",
+        "en": "Trust yourselves with more, without pushing each other."
+      }
+    },
+    {
+      "id": "ai-courage-052",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Verkleinere den Versuch. Verzichte nicht auf ihn.",
+        "en": "Make the attempt smaller. Don't give it up."
+      }
+    },
+    {
+      "id": "ai-courage-053",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Vertraut einander einen Traum an, bevor er sicher ist.",
+        "en": "Entrust each other with a dream before it's certain."
+      }
+    },
+    {
+      "id": "ai-courage-054",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Vertraut einander mehr als der Angst vor Fehlern.",
+        "en": "Trust each other more than the fear of mistakes."
+      }
+    },
+    {
+      "id": "ai-courage-055",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Wagt Pläne, für die ihr erst lernen müsst.",
+        "en": "Dare plans you'll have to learn for first."
+      }
+    },
+    {
+      "id": "ai-courage-056",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Wagt den Anfang. Sicherheit wächst durch Erfahrung.",
+        "en": "Dare to begin. Confidence grows through experience."
+      }
+    },
+    {
+      "id": "ai-courage-057",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Wer gemeinsam wagt, teilt auch die Angst.",
+        "en": "Whoever dares together shares the fear, too."
+      }
+    },
+    {
+      "id": "ai-courage-058",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Zeig deine Angst. Wer sie versteckt, verliert Kraft.",
+        "en": "Show your fear. Hiding it costs strength."
+      }
+    },
+    {
+      "id": "ai-courage-059",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Zeig dich unfertig. Vertrauen wächst ohne Fassade.",
+        "en": "Show yourself unfinished. Trust grows without a facade."
+      }
+    },
+    {
+      "id": "ai-courage-060",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Zeig, was du kannst. Falsche Bescheidenheit erfüllt keinen Wunsch.",
+        "en": "Show what you can do. False modesty grants no wish."
+      }
+    },
+    {
+      "id": "ai-courage-061",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Zweifel an einem Gedanken ist kein Misstrauen gegen dich.",
+        "en": "Doubting a thought isn't distrusting you."
+      }
+    },
+    {
+      "id": "ai-courage-062",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Übt gemeinsam, was euch einzeln Angst macht.",
+        "en": "Practice together what scares you each on your own."
+      }
+    },
+    {
+      "id": "ai-friendship-001",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "friendship"
+      ],
+      "texts": {
+        "de": "Ein Freund kann dich erinnern, ohne dich an früher festzubinden.",
+        "en": "A friend can remind you without tying you to the past."
+      }
+    },
+    {
+      "id": "ai-friendship-002",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "friendship"
+      ],
+      "texts": {
+        "de": "Ein Freund kann ein Problem nicht lösen und trotzdem vieles leichter machen.",
+        "en": "A friend can't solve a problem and still make a lot of things easier."
+      }
+    },
+    {
+      "id": "ai-friendship-003",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "friendship"
+      ],
+      "texts": {
+        "de": "Ein Freund kann helfen und trotzdem eigene Grenzen haben.",
+        "en": "A friend can help and still have limits of their own."
+      }
+    },
+    {
+      "id": "ai-friendship-004",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "friendship"
+      ],
+      "texts": {
+        "de": "Ein Freund nimmt dein Problem ernst, auch wenn er es nicht selbst erlebt hat.",
+        "en": "A friend takes your problem seriously, even if they haven't lived it themselves."
+      }
+    },
+    {
+      "id": "ai-friendship-005",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "friendship"
+      ],
+      "texts": {
+        "de": "Ein Wiedersehen kann sich wie ein tiefes Ausatmen anfühlen.",
+        "en": "A reunion can feel like a deep exhale."
+      }
+    },
+    {
+      "id": "ai-friendship-006",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "friendship"
+      ],
+      "texts": {
+        "de": "Ein ehrlicher Freund spart sich die Schadenfreude.",
+        "en": "An honest friend spares you the gloating."
+      }
+    },
+    {
+      "id": "ai-friendship-007",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "friendship"
+      ],
+      "texts": {
+        "de": "Ein guter Freund erkennt eine Grenze und sucht keinen Trick, sie zu umgehen.",
+        "en": "A good friend recognizes a boundary and doesn't look for a trick to get around it."
+      }
+    },
+    {
+      "id": "ai-friendship-008",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "friendship"
+      ],
+      "texts": {
+        "de": "Ein guter Freund hört auch die Frage hinter deiner Geschichte.",
+        "en": "A good friend also hears the question behind your story."
+      }
+    },
+    {
+      "id": "ai-friendship-009",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "friendship"
+      ],
+      "texts": {
+        "de": "Ein vertrautes Lachen kann selbst nach Jahren sofort wieder Anschluss finden.",
+        "en": "A familiar laugh can pick up right where it left off, even after years."
+      }
+    },
+    {
+      "id": "ai-friendship-010",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "friendship"
+      ],
+      "texts": {
+        "de": "Freunde erinnern uns manchmal an Fähigkeiten, die wir selbst übersehen.",
+        "en": "Friends sometimes remind us of abilities we overlook ourselves."
+      }
+    },
+    {
+      "id": "ai-friendship-011",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "friendship"
+      ],
+      "texts": {
+        "de": "Freunde helfen manchmal beim Tragen und manchmal beim Aussortieren.",
+        "en": "Friends sometimes help with carrying and sometimes with sorting out."
+      }
+    },
+    {
+      "id": "ai-friendship-012",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "friendship"
+      ],
+      "texts": {
+        "de": "Freunde können sich korrigieren, ohne einander bloßzustellen.",
+        "en": "Friends can correct each other without exposing each other."
+      }
+    },
+    {
+      "id": "ai-friendship-013",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "friendship"
+      ],
+      "texts": {
+        "de": "Freunde können unterschiedliche Wege gehen und verbunden bleiben.",
+        "en": "Friends can go different ways and stay connected."
+      }
+    },
+    {
+      "id": "ai-friendship-014",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "friendship"
+      ],
+      "texts": {
+        "de": "Freunde lassen einander auch bei Veränderungen würdevoll aussehen.",
+        "en": "Friends help each other look dignified even in times of change."
+      }
+    },
+    {
+      "id": "ai-friendship-015",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "friendship"
+      ],
+      "texts": {
+        "de": "Freundschaft bleibt lebendig, wenn beide gelegentlich den ersten Schritt machen.",
+        "en": "Friendship stays alive when both of us occasionally take the first step."
+      }
+    },
+    {
+      "id": "ai-friendship-016",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "friendship"
+      ],
+      "texts": {
+        "de": "Freundschaft braucht Aufmerksamkeit, auch wenn sie sich selbstverständlich anfühlt.",
+        "en": "Friendship needs attention, even when it feels like a given."
+      }
+    },
+    {
+      "id": "ai-friendship-017",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "friendship"
+      ],
+      "texts": {
+        "de": "Freundschaft entsteht auch dort, wo zwei Menschen ihre Unsicherheit zugeben.",
+        "en": "Friendship also arises where two people admit their insecurity."
+      }
+    },
+    {
+      "id": "ai-friendship-018",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "friendship"
+      ],
+      "texts": {
+        "de": "Freundschaft ist auch die Geduld mit einer verspäteten Antwort.",
+        "en": "Friendship is also patience with a late reply."
+      }
+    },
+    {
+      "id": "ai-friendship-019",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "friendship"
+      ],
+      "texts": {
+        "de": "Freundschaft ist ein guter Ort für noch unfertige Gedanken.",
+        "en": "Friendship is a good place for thoughts that aren't finished yet."
+      }
+    },
+    {
+      "id": "ai-friendship-020",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "friendship"
+      ],
+      "texts": {
+        "de": "Freundschaft ist schöner, wenn niemand ständig die Punkte zählt.",
+        "en": "Friendship is nicer when nobody keeps score."
+      }
+    },
+    {
+      "id": "ai-friendship-021",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "friendship"
+      ],
+      "texts": {
+        "de": "Freundschaft muss nicht spektakulär sein, um wichtig zu bleiben.",
+        "en": "Friendship doesn't have to be spectacular to stay important."
+      }
+    },
+    {
+      "id": "ai-friendship-022",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "friendship"
+      ],
+      "texts": {
+        "de": "Freundschaft verträgt Wahrheit, wenn sie mit Sorgfalt ausgesprochen wird.",
+        "en": "Friendship can handle the truth when it's said with care."
+      }
+    },
+    {
+      "id": "ai-friendship-023",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "friendship"
+      ],
+      "texts": {
+        "de": "Freundschaft wird nicht weniger wert, wenn sie neue Menschen willkommen heißt.",
+        "en": "Friendship doesn't lose value when it welcomes new people."
+      }
+    },
+    {
+      "id": "ai-friendship-024",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "friendship"
+      ],
+      "texts": {
+        "de": "Gemeinsam über einen alten Witz zu lachen ist eine kleine Zeitreise.",
+        "en": "Laughing together about an old joke is a little time trip."
+      }
+    },
+    {
+      "id": "ai-friendship-025",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "friendship"
+      ],
+      "texts": {
+        "de": "Gute Freunde hören bei deinem Erfolg nicht auf, neugierig zu sein.",
+        "en": "Good friends don't stop being curious when you succeed."
+      }
+    },
+    {
+      "id": "ai-friendship-026",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "friendship"
+      ],
+      "texts": {
+        "de": "Manche Menschen sollte man öfter anrufen und seltener nur vermissen.",
+        "en": "Some people you should call more often and just miss less."
+      }
+    },
+    {
+      "id": "ai-friendship-027",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "friendship"
+      ],
+      "texts": {
+        "de": "Treue zeigt sich auch darin, vertrauliche Dinge vertraulich zu lassen.",
+        "en": "Loyalty also shows in keeping confidences confidential."
+      }
+    },
+    {
+      "id": "ai-humor-001",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Auch das Glück verträgt liebevollen Spott.",
+        "en": "Even happiness can take some loving teasing."
+      }
+    },
+    {
+      "id": "ai-humor-002",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Bewahrt euch den Unsinn. Vernunft bekommt genug Zeit.",
+        "en": "Keep your nonsense. Reason gets plenty of time."
+      }
+    },
+    {
+      "id": "ai-humor-003",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Deine Freude muss nicht vornehm sein.",
+        "en": "Your joy doesn't have to be refined."
+      }
+    },
+    {
+      "id": "ai-humor-004",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Der schönste Humor kommt ohne Opfer aus.",
+        "en": "The best humor needs no victim."
+      }
+    },
+    {
+      "id": "ai-humor-005",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Die lustigsten Erinnerungen sind die liebsten.",
+        "en": "The funniest memories are the dearest."
+      }
+    },
+    {
+      "id": "ai-humor-006",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Die lustigsten Geschichten handeln nicht von deinen größten Erfolgen.",
+        "en": "The funniest stories aren't about your greatest successes."
+      }
+    },
+    {
+      "id": "ai-humor-007",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Ein Kichern macht eure Zärtlichkeit nicht weniger ehrlich.",
+        "en": "A giggle doesn't make your tenderness any less honest."
+      }
+    },
+    {
+      "id": "ai-humor-008",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Ein Scherz ersetzt keine Entschuldigung.",
+        "en": "A joke is no substitute for an apology."
+      }
+    },
+    {
+      "id": "ai-humor-009",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Ein Witz versöhnt, ohne den Streit zu gewinnen.",
+        "en": "A joke makes peace without winning the argument."
+      }
+    },
+    {
+      "id": "ai-humor-010",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Ein guter Vorsatz nimmt dir die Freude nicht.",
+        "en": "A good resolution won't take away your joy."
+      }
+    },
+    {
+      "id": "ai-humor-011",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Ein liebevoller Spitzname schlägt jedes große Kompliment.",
+        "en": "A loving nickname beats any grand compliment."
+      }
+    },
+    {
+      "id": "ai-humor-012",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Euer Glück braucht keinen guten Geschmack.",
+        "en": "Your happiness doesn't need good taste."
+      }
+    },
+    {
+      "id": "ai-humor-013",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Eure Liebe darf peinlich sein.",
+        "en": "Your love is allowed to be embarrassing."
+      }
+    },
+    {
+      "id": "ai-humor-014",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Fantasie macht witziger als Zynismus.",
+        "en": "Imagination is funnier than cynicism."
+      }
+    },
+    {
+      "id": "ai-humor-015",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Freu dich über dein Können. Beifall ist Zugabe.",
+        "en": "Take joy in your skill. Applause is the encore."
+      }
+    },
+    {
+      "id": "ai-humor-016",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Gemeinsame Witze sind eine Form von Nähe.",
+        "en": "Shared jokes are a form of closeness."
+      }
+    },
+    {
+      "id": "ai-humor-017",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Genießt eure schlechten Witze.",
+        "en": "Enjoy your bad jokes."
+      }
+    },
+    {
+      "id": "ai-humor-018",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Gute Laune braucht keine guten Gründe.",
+        "en": "Good spirits don't need good reasons."
+      }
+    },
+    {
+      "id": "ai-humor-019",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Gute Unterhaltung lebt von Überraschungen, nicht von perfekten Antworten.",
+        "en": "Good conversation thrives on surprise, not perfect answers."
+      }
+    },
+    {
+      "id": "ai-humor-020",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Humor macht Fremde für einen Moment zu Vertrauten.",
+        "en": "Humor turns strangers into familiar faces for a moment."
+      }
+    },
+    {
+      "id": "ai-humor-021",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Humor macht aus Scham eine Geschichte.",
+        "en": "Humor turns shame into a story."
+      }
+    },
+    {
+      "id": "ai-humor-022",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Ironie verlangt Vertrauen. Ehrlichkeit geht ohne Pointe.",
+        "en": "Irony takes trust. Honesty needs no punchline."
+      }
+    },
+    {
+      "id": "ai-humor-023",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Jede Macke verdient Humor, keine Erziehung.",
+        "en": "Every quirk deserves humor, not correction."
+      }
+    },
+    {
+      "id": "ai-humor-024",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Kindischer Humor schließt Klugheit nicht aus.",
+        "en": "Childish humor doesn't rule out wisdom."
+      }
+    },
+    {
+      "id": "ai-humor-025",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Lach über den Irrtum, bevor du dich dafür schämst.",
+        "en": "Laugh at the mistake before you feel ashamed of it."
+      }
+    },
+    {
+      "id": "ai-humor-026",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Lach über dich, schimpf nicht mit dir.",
+        "en": "Laugh at yourself, don't scold yourself."
+      }
+    },
+    {
+      "id": "ai-humor-027",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Lacht ein Kompliment nicht weg.",
+        "en": "Don't laugh a compliment away."
+      }
+    },
+    {
+      "id": "ai-humor-028",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Lacht freiwillig, nicht aus Treue.",
+        "en": "Laugh because you want to, not out of loyalty."
+      }
+    },
+    {
+      "id": "ai-humor-029",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Lasst euch eure Eigenheiten. Liebe braucht keine Kopie.",
+        "en": "Keep your quirks. Love doesn't need a copy."
+      }
+    },
+    {
+      "id": "ai-humor-030",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Lautes Lachen ist keine Unhöflichkeit.",
+        "en": "Loud laughter isn't rudeness."
+      }
+    },
+    {
+      "id": "ai-humor-031",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Liebe ohne Nachsicht wird humorlos.",
+        "en": "Love without leniency loses its humor."
+      }
+    },
+    {
+      "id": "ai-humor-032",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Lieber Quatsch machen als Blamage fürchten.",
+        "en": "Better to goof around than to fear looking foolish."
+      }
+    },
+    {
+      "id": "ai-humor-033",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Lieber albern als unnahbar.",
+        "en": "Rather silly than aloof."
+      }
+    },
+    {
+      "id": "ai-humor-034",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Mehr Übermut. Weniger Sorge ums Ansehen.",
+        "en": "More exuberance. Less worry about appearances."
+      }
+    },
+    {
+      "id": "ai-humor-035",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Neckt euch aus Zuneigung, nicht aus dem Wunsch, recht zu behalten.",
+        "en": "Tease each other out of affection, not to be proven right."
+      }
+    },
+    {
+      "id": "ai-humor-036",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Nehmt Revanche beim Spielen, nie in der Liebe.",
+        "en": "Take your revenge in games, never in love."
+      }
+    },
+    {
+      "id": "ai-humor-037",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Nimm deine Wünsche ernst, deine Launen nicht.",
+        "en": "Take your wishes seriously, not your moods."
+      }
+    },
+    {
+      "id": "ai-humor-038",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Sarkasmus ist leichter als Herzlichkeit.",
+        "en": "Sarcasm is easier than warmth."
+      }
+    },
+    {
+      "id": "ai-humor-039",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Schlechte Laune macht dich nicht tiefgründig.",
+        "en": "A bad mood doesn't make you profound."
+      }
+    },
+    {
+      "id": "ai-humor-040",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Sei albern. Wer dich mag, lacht mit.",
+        "en": "Be silly. Whoever likes you will laugh along."
+      }
+    },
+    {
+      "id": "ai-humor-041",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Spielt gegeneinander, freut euch füreinander.",
+        "en": "Play against each other, cheer for each other."
+      }
+    },
+    {
+      "id": "ai-humor-042",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Stellt einander nicht für einen Lacher bloß.",
+        "en": "Don't expose each other for a laugh."
+      }
+    },
+    {
+      "id": "ai-humor-043",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Stolz verträgt einen Scherz auf eigene Kosten.",
+        "en": "Pride can take a joke at its own expense."
+      }
+    },
+    {
+      "id": "ai-humor-044",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Unerfüllbare Ansprüche verdienen Spott, keinen Respekt.",
+        "en": "Impossible standards deserve mockery, not respect."
+      }
+    },
+    {
+      "id": "ai-humor-045",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Wer Glück dosiert, verpasst es.",
+        "en": "Whoever rations happiness misses it."
+      }
+    },
+    {
+      "id": "ai-humor-046",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Wer zusammen lacht, nimmt den Alltag leichter.",
+        "en": "Laughing together makes everyday life lighter."
+      }
+    },
+    {
+      "id": "ai-humor-047",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Würde hängt nicht vom Ernst ab.",
+        "en": "Dignity doesn't depend on being serious."
+      }
+    },
+    {
+      "id": "ai-humor-048",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Zärtlicher Spott statt tierischer Ernst.",
+        "en": "Tender teasing, not deadly seriousness."
+      }
+    },
+    {
+      "id": "ai-life-001",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Auch ein unsicherer Mensch kann eine kluge Frage stellen.",
+        "en": "Even an insecure person can ask a smart question."
+      }
+    },
+    {
+      "id": "ai-life-002",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Behalte die Erfahrung, nicht das Urteil.",
+        "en": "Keep the experience, not the verdict."
+      }
+    },
+    {
+      "id": "ai-life-003",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Bewundere andere, ohne dich abzuwerten.",
+        "en": "Admire others without putting yourself down."
+      }
+    },
+    {
+      "id": "ai-life-004",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Bleib nicht aus Stolz bei einem alten Wunsch.",
+        "en": "Don't cling to an old wish out of pride."
+      }
+    },
+    {
+      "id": "ai-life-005",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Dank wird glaubwürdig, wenn er konkret wird.",
+        "en": "Thanks become believable when they get specific."
+      }
+    },
+    {
+      "id": "ai-life-006",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Das Gewöhnliche verdient Aufmerksamkeit, bevor es fehlt.",
+        "en": "The ordinary deserves attention before it is missing."
+      }
+    },
+    {
+      "id": "ai-life-007",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Dein Leben braucht nicht für jeden Abschnitt eine Überschrift.",
+        "en": "Your life doesn't need a heading for every chapter."
+      }
+    },
+    {
+      "id": "ai-life-008",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Dein Tag darf gut sein, ohne außergewöhnlich zu werden.",
+        "en": "Your day may be good without becoming extraordinary."
+      }
+    },
+    {
+      "id": "ai-life-009",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Deine Zeit wird kostbar, sobald du sie bewusst verteilst.",
+        "en": "Your time becomes precious once you distribute it consciously."
+      }
+    },
+    {
+      "id": "ai-life-010",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Die Vergangenheit erklärt manches, aber sie muss nicht alles entscheiden.",
+        "en": "The past explains some things, but it doesn't have to decide everything."
+      }
+    },
+    {
+      "id": "ai-life-011",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Dinge verlieren ihre Macht, wenn du sie klar benennst.",
+        "en": "Things lose their power when you name them clearly."
+      }
+    },
+    {
+      "id": "ai-life-012",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Du kannst Grenzen achten und Mitgefühl behalten.",
+        "en": "You can respect boundaries and keep your compassion."
+      }
+    },
+    {
+      "id": "ai-life-013",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Du kannst etwas bedauern, ohne dich dauerhaft dafür zu bestrafen.",
+        "en": "You can regret something without punishing yourself for it forever."
+      }
+    },
+    {
+      "id": "ai-life-014",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Du kannst jemanden verstehen und trotzdem anderer Meinung sein.",
+        "en": "You can understand someone and still disagree."
+      }
+    },
+    {
+      "id": "ai-life-015",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Du kannst nicht allen gefallen und frei bleiben.",
+        "en": "You can't please everyone and stay free."
+      }
+    },
+    {
+      "id": "ai-life-016",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Du kannst nicht jede Möglichkeit zugleich ausprobieren.",
+        "en": "You can't try every possibility at once."
+      }
+    },
+    {
+      "id": "ai-life-017",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Du kannst zufrieden sein und trotzdem etwas verändern wollen.",
+        "en": "You can be content and still want to change something."
+      }
+    },
+    {
+      "id": "ai-life-018",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Du musst nicht alles erklären können, was dich bewegt.",
+        "en": "You don't have to be able to explain everything that moves you."
+      }
+    },
+    {
+      "id": "ai-life-019",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Ehrgeiz kennt kein Limit. Deine Zeit schon.",
+        "en": "Ambition knows no limit. Your time does."
+      }
+    },
+    {
+      "id": "ai-life-020",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Eigene Wünsche statt fremder Maßstäbe.",
+        "en": "Your own wishes, not other people's yardsticks."
+      }
+    },
+    {
+      "id": "ai-life-021",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Ein Unterschied ist noch kein Gegensatz.",
+        "en": "A difference is not yet an opposition."
+      }
+    },
+    {
+      "id": "ai-life-022",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Ein bewusster Verzicht kann Raum für etwas Wichtigeres schaffen.",
+        "en": "Deliberately going without can create room for something more important."
+      }
+    },
+    {
+      "id": "ai-life-023",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Ein ehrlicher Zweifel kann mehr Einsicht bringen als eine schnelle Gewissheit.",
+        "en": "An honest doubt can bring more insight than a quick certainty."
+      }
+    },
+    {
+      "id": "ai-life-024",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Ein ehrliches Nein macht dein Ja glaubwürdig.",
+        "en": "An honest no makes your yes believable."
+      }
+    },
+    {
+      "id": "ai-life-025",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Ein freundlicher Umgang hinterlässt Spuren, die keine Rechnung erfasst.",
+        "en": "A friendly manner leaves traces that no invoice records."
+      }
+    },
+    {
+      "id": "ai-life-026",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Ein gemeinsames Problem braucht keine gegenseitige Schuldverteilung.",
+        "en": "A shared problem needs no mutual assigning of blame."
+      }
+    },
+    {
+      "id": "ai-life-027",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Ein guter Alltag braucht Platz für Ungeplantes.",
+        "en": "A good everyday life needs room for the unplanned."
+      }
+    },
+    {
+      "id": "ai-life-028",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Ein guter Rat berücksichtigt den Menschen, der ihn umsetzen soll.",
+        "en": "Good advice takes into account the person who has to carry it out."
+      }
+    },
+    {
+      "id": "ai-life-029",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Ein gutes Gespräch braucht nicht dieselbe Meinung.",
+        "en": "A good conversation doesn't need the same opinion."
+      }
+    },
+    {
+      "id": "ai-life-030",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Ein gutes Gespräch lässt Menschen größer aus dem Raum gehen.",
+        "en": "A good conversation sends people out of the room standing taller."
+      }
+    },
+    {
+      "id": "ai-life-031",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Ein langsamer Blick sieht mehr als ein schneller Kommentar.",
+        "en": "A slow look sees more than a quick comment."
+      }
+    },
+    {
+      "id": "ai-life-032",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Ein offener Blick kann einen bekannten Weg verändern.",
+        "en": "An open look can change a familiar path."
+      }
+    },
+    {
+      "id": "ai-life-033",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Ein ruhiges Gewissen ist ein angenehmer Reisebegleiter.",
+        "en": "A clear conscience is a pleasant travel companion."
+      }
+    },
+    {
+      "id": "ai-life-034",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Ein verlässlicher Mensch macht die Welt an einer Stelle leichter.",
+        "en": "A reliable person makes the world a little lighter in one place."
+      }
+    },
+    {
+      "id": "ai-life-035",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Ein voller Tag ist nicht automatisch ein erfüllter Tag.",
+        "en": "A full day is not automatically a fulfilling day."
+      }
+    },
+    {
+      "id": "ai-life-036",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Eine Grenze macht Beziehungen erst dauerhaft möglich.",
+        "en": "A boundary is what makes lasting relationships possible."
+      }
+    },
+    {
+      "id": "ai-life-037",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Eine Pause im Urteil lässt Platz für Verständnis.",
+        "en": "A pause in judgment leaves room for understanding."
+      }
+    },
+    {
+      "id": "ai-life-038",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Eine einfache Freude braucht keine überzeugende Begründung.",
+        "en": "A simple joy needs no convincing justification."
+      }
+    },
+    {
+      "id": "ai-life-039",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Eine freundliche Erinnerung kann eine strenge Forderung ersetzen.",
+        "en": "A friendly reminder can replace a stern demand."
+      }
+    },
+    {
+      "id": "ai-life-040",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Eine gute Frage kann eine alte Gewohnheit aufwecken.",
+        "en": "A good question can wake an old habit."
+      }
+    },
+    {
+      "id": "ai-life-041",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Erinnerungen bewahren Gefühle genauer als Einzelheiten.",
+        "en": "Memories keep feelings more accurately than details."
+      }
+    },
+    {
+      "id": "ai-life-042",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Freiheit ist größer als die Lust, sie zu beweisen.",
+        "en": "Freedom is bigger than the urge to prove it."
+      }
+    },
+    {
+      "id": "ai-life-043",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Freundlichkeit verpflichtet dich nicht zur Freundschaft.",
+        "en": "Kindness doesn't oblige you to friendship."
+      }
+    },
+    {
+      "id": "ai-life-044",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Gedanken kommen und gehen, Entschlüsse bleiben.",
+        "en": "Thoughts come and go, decisions stay."
+      }
+    },
+    {
+      "id": "ai-life-045",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Geduld ist eine Form von Großzügigkeit.",
+        "en": "Patience is a form of generosity."
+      }
+    },
+    {
+      "id": "ai-life-046",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Gelassenheit wächst, wenn du Einfluss und Wunsch unterscheiden lernst.",
+        "en": "Serenity grows when you learn to tell influence from wish."
+      }
+    },
+    {
+      "id": "ai-life-047",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Gespräche werden tiefer, wenn Menschen Widersprüche zugeben.",
+        "en": "Conversations deepen when people admit contradictions."
+      }
+    },
+    {
+      "id": "ai-life-048",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Gib Wichtigem Zeit. Dringendes drängelt ohnehin.",
+        "en": "Give time to what matters. The urgent will elbow in anyway."
+      }
+    },
+    {
+      "id": "ai-life-049",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Gib deinem Glück weniger Bedingungen.",
+        "en": "Put fewer conditions on your happiness."
+      }
+    },
+    {
+      "id": "ai-life-050",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Gib dem Neid weniger Zeit als deinen Wünschen.",
+        "en": "Give envy less time than your wishes."
+      }
+    },
+    {
+      "id": "ai-life-051",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Glück ist mehr als ein vernünftig geführtes Leben.",
+        "en": "Happiness is more than a sensibly run life."
+      }
+    },
+    {
+      "id": "ai-life-052",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Glück verträgt unerfüllte Wünsche.",
+        "en": "Happiness can bear unfulfilled wishes."
+      }
+    },
+    {
+      "id": "ai-life-053",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Große Worte brauchen kleine Taten.",
+        "en": "Big words need small deeds."
+      }
+    },
+    {
+      "id": "ai-life-054",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Güte zeigt sich dort, wo niemand sie belohnt.",
+        "en": "Kindness shows where no one rewards it."
+      }
+    },
+    {
+      "id": "ai-life-055",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Keine Entscheidung verrät dir vorher alles über ihre Folgen.",
+        "en": "No decision tells you everything about its consequences beforehand."
+      }
+    },
+    {
+      "id": "ai-life-056",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Keine verpasste Gelegenheit entwertet die genutzten.",
+        "en": "No missed chance devalues the ones you took."
+      }
+    },
+    {
+      "id": "ai-life-057",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Kleine Erfolge sind große Gründe zur Freude.",
+        "en": "Small successes are big reasons for joy."
+      }
+    },
+    {
+      "id": "ai-life-058",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Manche Antworten werden erst verständlich, wenn die Frage sich verändert.",
+        "en": "Some answers only become understandable once the question changes."
+      }
+    },
+    {
+      "id": "ai-life-059",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Manche Dinge sind wichtig, obwohl sie sich schlecht messen lassen.",
+        "en": "Some things are important even though they're hard to measure."
+      }
+    },
+    {
+      "id": "ai-life-060",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Manche Gewohnheiten passen nur zu einer früheren Version deines Lebens.",
+        "en": "Some habits only fit an earlier version of your life."
+      }
+    },
+    {
+      "id": "ai-life-061",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Nicht jede Schwierigkeit ist ein persönliches Versagen.",
+        "en": "Not every difficulty is a personal failure."
+      }
+    },
+    {
+      "id": "ai-life-062",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Nicht jede Stille ist leer.",
+        "en": "Not every silence is empty."
+      }
+    },
+    {
+      "id": "ai-life-063",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Nicht jede offene Frage braucht noch heute eine Antwort.",
+        "en": "Not every open question needs an answer today."
+      }
+    },
+    {
+      "id": "ai-life-064",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Nicht jeder Umweg braucht im Nachhinein einen großen Sinn.",
+        "en": "Not every detour needs a grand meaning in hindsight."
+      }
+    },
+    {
+      "id": "ai-life-065",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Nicht jedes Ende macht das Vorherige bedeutungslos.",
+        "en": "Not every ending makes what came before meaningless."
+      }
+    },
+    {
+      "id": "ai-life-066",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Prüfe alte Ansichten, denn du weißt heute mehr als damals.",
+        "en": "Revisit old views, because you know more today than you did then."
+      }
+    },
+    {
+      "id": "ai-life-067",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Respekt beginnt vor dem Verstehen.",
+        "en": "Respect begins before understanding."
+      }
+    },
+    {
+      "id": "ai-life-068",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Schenk Menschen Interesse, bevor sie Eindruck machen.",
+        "en": "Give people your interest before they make an impression."
+      }
+    },
+    {
+      "id": "ai-life-069",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Von anderen sehen wir nur das, was sichtbar sein darf.",
+        "en": "Of others we see only what is allowed to be seen."
+      }
+    },
+    {
+      "id": "ai-life-070",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Was selbstverständlich wirkt, hat jemand möglich gemacht.",
+        "en": "What seems self-evident, someone made possible."
+      }
+    },
+    {
+      "id": "ai-life-071",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Wer Fehler zugibt, wählt Wahrheit statt Stolz.",
+        "en": "Whoever admits mistakes chooses truth over pride."
+      }
+    },
+    {
+      "id": "ai-life-072",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Wer seine Meinung ändert, nimmt neue Erfahrungen ernst.",
+        "en": "Whoever changes their mind takes new experience seriously."
+      }
+    },
+    {
+      "id": "ai-life-073",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Wer sich vergleicht, verlernt das eigene Glück.",
+        "en": "Whoever compares loses touch with their own happiness."
+      }
+    },
+    {
+      "id": "ai-life-074",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Wähle mit Bedacht. Auch Gutes kostet Zeit.",
+        "en": "Choose with care. Even good things cost time."
+      }
+    },
+    {
+      "id": "ai-life-075",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Zufriedenheit braucht keinen Vorsprung.",
+        "en": "Contentment needs no head start."
+      }
+    },
+    {
+      "id": "ai-life-076",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Zufriedenheit fragt nicht nach mehr.",
+        "en": "Contentment doesn't ask for more."
+      }
+    },
+    {
+      "id": "ai-life-077",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Zuhören ist die klügste Beteiligung.",
+        "en": "Listening is the wisest way to take part."
+      }
+    },
+    {
+      "id": "ai-love-001",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Alte Fehler verdienen keine neuen Strafen.",
+        "en": "Old mistakes don't deserve new punishments."
+      }
+    },
+    {
+      "id": "ai-love-002",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "An der Schulter des anderen verlieren Gedanken ihre scharfen Kanten.",
+        "en": "On each other's shoulder, thoughts lose their sharp edges."
+      }
+    },
+    {
+      "id": "ai-love-003",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Besser eine ehrliche Bitte als ein heimlicher Vorwurf.",
+        "en": "Better an honest request than a secret reproach."
+      }
+    },
+    {
+      "id": "ai-love-004",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Dein Lachen bleibt manchmal länger im Raum als du.",
+        "en": "Your laughter sometimes stays in the room longer than you do."
+      }
+    },
+    {
+      "id": "ai-love-005",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Deine Eigenheiten machen aus Nähe etwas Unverwechselbares.",
+        "en": "Your quirks make closeness something unmistakable."
+      }
+    },
+    {
+      "id": "ai-love-006",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Die schönste Gemeinsamkeit ist, einander wohlzuwollen.",
+        "en": "The loveliest thing you share is wishing each other well."
+      }
+    },
+    {
+      "id": "ai-love-007",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Du bringst Wärme in Räume, ohne die Heizung zu berühren.",
+        "en": "You bring warmth into rooms without touching the heating."
+      }
+    },
+    {
+      "id": "ai-love-008",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Du kannst lieben, ohne alles gutzuheißen.",
+        "en": "You can love without approving of everything."
+      }
+    },
+    {
+      "id": "ai-love-009",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Eifersucht beweist Angst, keine Liebe.",
+        "en": "Jealousy proves fear, not love."
+      }
+    },
+    {
+      "id": "ai-love-010",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Ein Kuss kann einen Moment öffnen, den der Alltag beinahe übersehen hätte.",
+        "en": "A kiss can open a moment that everyday life almost overlooked."
+      }
+    },
+    {
+      "id": "ai-love-011",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Ein Versprechen hält länger als die Begeisterung.",
+        "en": "A promise outlasts enthusiasm."
+      }
+    },
+    {
+      "id": "ai-love-012",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Ein ehrliches Entschuldigen macht eine Beziehung wieder begehbar.",
+        "en": "An honest apology makes a relationship walkable again."
+      }
+    },
+    {
+      "id": "ai-love-013",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Ein ehrliches Gespräch kann zärtlicher sein als hundert rote Rosen.",
+        "en": "An honest conversation can be more tender than a hundred red roses."
+      }
+    },
+    {
+      "id": "ai-love-014",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Ein gemeinsamer Alltag ist voller unscheinbarer Gelegenheiten zur Zärtlichkeit.",
+        "en": "A shared everyday life is full of unremarkable chances for tenderness."
+      }
+    },
+    {
+      "id": "ai-love-015",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Ein gemeinsames Frühstück kann die schönste Verabredung der Woche sein.",
+        "en": "A shared breakfast can be the best date of the week."
+      }
+    },
+    {
+      "id": "ai-love-016",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Ein geteilter Regenschirm ist manchmal groß genug für eine ganze Liebesgeschichte.",
+        "en": "A shared umbrella is sometimes big enough for a whole love story."
+      }
+    },
+    {
+      "id": "ai-love-017",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Ein gutes Wir braucht keinen Menschen, der sich dauernd kleiner macht.",
+        "en": "A good \"us\" doesn't need someone who keeps making themselves smaller."
+      }
+    },
+    {
+      "id": "ai-love-018",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Ein kleines Wir entsteht aus vielen aufmerksamen Ichs.",
+        "en": "A small \"us\" grows out of many attentive \"I\"s."
+      }
+    },
+    {
+      "id": "ai-love-019",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Ein liebevoller Blick kann einen hektischen Morgen unterbrechen.",
+        "en": "A loving look can interrupt a hectic morning."
+      }
+    },
+    {
+      "id": "ai-love-020",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Ein stilles „Ich bin da“ hält mehr als viele Versprechen.",
+        "en": "A quiet “I'm here” holds more than many promises."
+      }
+    },
+    {
+      "id": "ai-love-021",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Ein verschlafenes Lächeln ist die schönste Morgenansicht.",
+        "en": "A sleepy smile is the loveliest view in the morning."
+      }
+    },
+    {
+      "id": "ai-love-022",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Ein versöhntes Schweigen klingt anders als ein verletztes.",
+        "en": "A reconciled silence sounds different from a hurt one."
+      }
+    },
+    {
+      "id": "ai-love-023",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Eine gute Beziehung lässt beide Stimmen hörbar bleiben.",
+        "en": "A good relationship lets both voices stay audible."
+      }
+    },
+    {
+      "id": "ai-love-024",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Eine schwierige Antwort darf Zeit brauchen.",
+        "en": "A hard answer is allowed to take its time."
+      }
+    },
+    {
+      "id": "ai-love-025",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Es ist romantisch, gemeinsam über etwas völlig Unromantisches zu lachen.",
+        "en": "It's romantic to laugh together about something completely unromantic."
+      }
+    },
+    {
+      "id": "ai-love-026",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Es ist schön, bei jemandem erwartet zu werden und trotzdem frei anzukommen.",
+        "en": "It's lovely to be expected by someone and still arrive free."
+      }
+    },
+    {
+      "id": "ai-love-027",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Eure Hände finden einander auch dann, wenn die Worte ausgehen.",
+        "en": "Your hands find each other even when the words run out."
+      }
+    },
+    {
+      "id": "ai-love-028",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Eure Nähe braucht keine Zuschauer.",
+        "en": "Your closeness needs no audience."
+      }
+    },
+    {
+      "id": "ai-love-029",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Frag nach, denn auch vertraute Menschen verändern sich.",
+        "en": "Ask, because even the people we know best change."
+      }
+    },
+    {
+      "id": "ai-love-030",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Gebt einander Halt, ohne einander festzuhalten.",
+        "en": "Support each other without holding each other back."
+      }
+    },
+    {
+      "id": "ai-love-031",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Höre die Bitte hinter dem Ärger. Übernimm nicht seinen Ton.",
+        "en": "Hear the request behind the anger. Don't take on its tone."
+      }
+    },
+    {
+      "id": "ai-love-032",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Ich freue mich über deine Nachricht, bevor ich ihren Inhalt kenne.",
+        "en": "I'm happy about your message before I know what it says."
+      }
+    },
+    {
+      "id": "ai-love-033",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Ich liebe die Vertrautheit, mit der du meinen Namen sagst.",
+        "en": "I love the familiarity with which you say my name."
+      }
+    },
+    {
+      "id": "ai-love-034",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Ich mag dich auch dann, wenn dein Mut gerade Pause macht.",
+        "en": "I like you even when your courage is taking a break."
+      }
+    },
+    {
+      "id": "ai-love-035",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Ich möchte auch nach vielen Jahren neugierig auf dich bleiben.",
+        "en": "Even after many years, I want to stay curious about you."
+      }
+    },
+    {
+      "id": "ai-love-036",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Ich möchte deine Freude vermehren, ohne deine Freiheit zu verkleinern.",
+        "en": "I want to add to your joy without shrinking your freedom."
+      }
+    },
+    {
+      "id": "ai-love-037",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Ich möchte deine Sorgen kennen, ohne sie gegen dich zu verwenden.",
+        "en": "I want to know your worries without using them against you."
+      }
+    },
+    {
+      "id": "ai-love-038",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Ich möchte unsere Zeit nicht nur organisieren, sondern genießen.",
+        "en": "I don't want to just organize our time, I want to enjoy it."
+      }
+    },
+    {
+      "id": "ai-love-039",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Ich will dich kennenlernen, auch wenn ich dich längst kenne.",
+        "en": "I want to get to know you, even though I've known you for ages."
+      }
+    },
+    {
+      "id": "ai-love-040",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Ich will für dich ein Mensch sein, bei dem Fragen willkommen sind.",
+        "en": "I want to be someone for you with whom questions are welcome."
+      }
+    },
+    {
+      "id": "ai-love-041",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Ich wünsche uns mehr ehrliche Minuten als perfekte Bilder.",
+        "en": "I wish us more honest minutes than perfect pictures."
+      }
+    },
+    {
+      "id": "ai-love-042",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Ihr dürft verschieden sein und trotzdem dieselbe Nähe suchen.",
+        "en": "You two can be different and still seek the same closeness."
+      }
+    },
+    {
+      "id": "ai-love-043",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Ihr müsst nicht denselben Traum haben, um einander beim Träumen zu halten.",
+        "en": "You don't need the same dream to hold each other while you dream."
+      }
+    },
+    {
+      "id": "ai-love-044",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Ihr müsst nicht immer stark sein, um füreinander da zu sein.",
+        "en": "You don't always have to be strong to be there for each other."
+      }
+    },
+    {
+      "id": "ai-love-045",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Ihr passt zusammen, wenn ihr Unterschiede nicht als Fehler behandelt.",
+        "en": "You fit together when you don't treat differences as flaws."
+      }
+    },
+    {
+      "id": "ai-love-046",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Ihr seid einander wichtig, auch wenn gerade nichts Besonderes passiert.",
+        "en": "You matter to each other, even when nothing special is happening."
+      }
+    },
+    {
+      "id": "ai-love-047",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Ihr seid mehr als das, was an schwierigen Tagen zwischen euch steht.",
+        "en": "You two are more than whatever stands between you on hard days."
+      }
+    },
+    {
+      "id": "ai-love-048",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Im Streit zählt Wärme mehr als Schlagfertigkeit.",
+        "en": "In an argument, warmth counts for more than a quick comeback."
+      }
+    },
+    {
+      "id": "ai-love-049",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Jede Entschuldigung ist nur so ehrlich wie ihre Absicht.",
+        "en": "Every apology is only as honest as its intention."
+      }
+    },
+    {
+      "id": "ai-love-050",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Kein Rat ersetzt das Gefühl, verstanden zu werden.",
+        "en": "No advice replaces the feeling of being understood."
+      }
+    },
+    {
+      "id": "ai-love-051",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Keine Liebe verlangt blinden Gehorsam.",
+        "en": "No love demands blind obedience."
+      }
+    },
+    {
+      "id": "ai-love-052",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Liebe braucht Raum zum Atmen und Gründe zum Wiederkommen.",
+        "en": "Love needs room to breathe and reasons to come back."
+      }
+    },
+    {
+      "id": "ai-love-053",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Liebe fragt nach, bevor sie Vermutungen zur Wahrheit macht.",
+        "en": "Love asks before it turns assumptions into truth."
+      }
+    },
+    {
+      "id": "ai-love-054",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Liebe kann in einer Nachricht stecken, die nur fragt, ob du gut angekommen bist.",
+        "en": "Love can be in a message that only asks whether you got home safely."
+      }
+    },
+    {
+      "id": "ai-love-055",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Liebe wird im Zuhören genauer.",
+        "en": "Love becomes more precise through listening."
+      }
+    },
+    {
+      "id": "ai-love-056",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Liebe zeigt sich im Umgang mit dem, was dem anderen schwerfällt.",
+        "en": "Love shows in how we handle what the other finds hard."
+      }
+    },
+    {
+      "id": "ai-love-057",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Liebe zeigt sich manchmal darin, die letzte Erdbeere liegen zu lassen.",
+        "en": "Sometimes love shows in leaving the last strawberry on the plate."
+      }
+    },
+    {
+      "id": "ai-love-058",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Manche Abende werden allein dadurch schön, dass du noch kurz sitzen bleibst.",
+        "en": "Some evenings become lovely simply because you stay seated a little longer."
+      }
+    },
+    {
+      "id": "ai-love-059",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Manche Liebeserklärungen tragen Hausschuhe und bringen Tee.",
+        "en": "Some declarations of love wear slippers and bring tea."
+      }
+    },
+    {
+      "id": "ai-love-060",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Manchmal bedeutet Liebe, einen Rat zurückzuhalten und einfach dazubleiben.",
+        "en": "Sometimes love means holding back advice and simply staying."
+      }
+    },
+    {
+      "id": "ai-love-061",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Mehr Wärme. Weniger Rechthaberei.",
+        "en": "More warmth. Less need to be right."
+      }
+    },
+    {
+      "id": "ai-love-062",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Nähe beginnt nicht erst nach der Versöhnung.",
+        "en": "Closeness doesn't begin only after the making up."
+      }
+    },
+    {
+      "id": "ai-love-063",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Nähe ersetzt kein eigenes Leben, sie bereichert es.",
+        "en": "Closeness doesn't replace a life of your own; it enriches it."
+      }
+    },
+    {
+      "id": "ai-love-064",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Nähe findet neue Formen, wenn sich das Leben verändert.",
+        "en": "Closeness finds new forms when life changes."
+      }
+    },
+    {
+      "id": "ai-love-065",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Nähe wächst dort, wo ein Nein genauso sicher ist wie ein Ja.",
+        "en": "Closeness grows where a no is as safe as a yes."
+      }
+    },
+    {
+      "id": "ai-love-066",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Rache oder Versöhnung. Ihr habt die Wahl.",
+        "en": "Revenge or reconciliation. You two get to choose."
+      }
+    },
+    {
+      "id": "ai-love-067",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Sagt, was euch verletzt, denn Schweigen erklärt es nicht.",
+        "en": "Tell each other what hurts, because silence explains nothing."
+      }
+    },
+    {
+      "id": "ai-love-068",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Seid stolz aufeinander. Konkurrenz kostet Wärme.",
+        "en": "Be proud of each other. Competition costs warmth."
+      }
+    },
+    {
+      "id": "ai-love-069",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Sprecht die Sehnsucht aus. Niemand errät alles.",
+        "en": "Say what you long for. Nobody can guess everything."
+      }
+    },
+    {
+      "id": "ai-love-070",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Sprecht über die Enttäuschung, nicht übereinander.",
+        "en": "Talk about the disappointment, not about each other."
+      }
+    },
+    {
+      "id": "ai-love-071",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Trost braucht keine Lösung.",
+        "en": "Comfort needs no solution."
+      }
+    },
+    {
+      "id": "ai-love-072",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Trost geht vor der Suche nach Schuld.",
+        "en": "Comfort comes before the search for blame."
+      }
+    },
+    {
+      "id": "ai-love-073",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Ungeteilte Minuten wiegen mehr als ein Tag nebenher.",
+        "en": "A few undivided minutes outweigh a whole day of half-attention."
+      }
+    },
+    {
+      "id": "ai-love-074",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Vermissen ist kein Vorwurf, sondern Zuneigung.",
+        "en": "Missing someone is not a reproach, but affection."
+      }
+    },
+    {
+      "id": "ai-love-075",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Versprecht weniger. Haltet mehr.",
+        "en": "Promise less. Keep more."
+      }
+    },
+    {
+      "id": "ai-love-076",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Vertrautheit ersetzt keine Neugier.",
+        "en": "Familiarity is no substitute for curiosity."
+      }
+    },
+    {
+      "id": "ai-love-077",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Verzeihen braucht mehr als eine Bitte.",
+        "en": "Forgiving takes more than a request."
+      }
+    },
+    {
+      "id": "ai-love-078",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Wer zuhört, muss nicht auf alles antworten.",
+        "en": "Whoever listens doesn't have to answer everything."
+      }
+    },
+    {
+      "id": "ai-love-079",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Wir können uns vermissen und trotzdem den eigenen Tag genießen.",
+        "en": "We can miss each other and still enjoy our own day."
+      }
+    },
+    {
+      "id": "ai-love-080",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Zeigt euren Dank. Gedanken bleiben unsichtbar.",
+        "en": "Show your thanks. Thoughts stay invisible."
+      }
+    },
+    {
+      "id": "ai-love-081",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Zu Nähe gehört ein ehrliches Aber.",
+        "en": "Real closeness has room for an honest \"but.\""
+      }
+    },
+    {
+      "id": "ai-love-082",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Zusammen alt werden beginnt mit der Geduld von heute.",
+        "en": "Growing old together begins with today's patience."
+      }
+    },
+    {
+      "id": "ai-love-083",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Zärtlichkeit beginnt damit, die Grenzen des anderen ernst zu nehmen.",
+        "en": "Tenderness begins with taking the other person's boundaries seriously."
+      }
+    },
+    {
+      "id": "ai-motivation-001",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "motivation"
+      ],
+      "texts": {
+        "de": "Arbeite so, dass du morgen noch gern weitermachst.",
+        "en": "Work in such a way that you'll still want to carry on tomorrow."
+      }
+    },
+    {
+      "id": "ai-motivation-002",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "motivation"
+      ],
+      "texts": {
+        "de": "Auch langsames Lernen verändert deine Möglichkeiten.",
+        "en": "Even slow learning changes your possibilities."
+      }
+    },
+    {
+      "id": "ai-motivation-003",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "motivation"
+      ],
+      "texts": {
+        "de": "Deine nächsten zehn Minuten sind ein brauchbarer Anfang.",
+        "en": "Your next ten minutes are a workable start."
+      }
+    },
+    {
+      "id": "ai-motivation-004",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "motivation"
+      ],
+      "texts": {
+        "de": "Du musst nicht der Schnellste sein, um etwas Wichtiges zu leisten.",
+        "en": "You don't have to be the fastest to achieve something important."
+      }
+    },
+    {
+      "id": "ai-motivation-005",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "motivation"
+      ],
+      "texts": {
+        "de": "Ein Rückschlag liefert Informationen, keine endgültige Identität.",
+        "en": "A setback provides information, not a final identity."
+      }
+    },
+    {
+      "id": "ai-motivation-006",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "motivation"
+      ],
+      "texts": {
+        "de": "Ein fehlender Erfolg heute löscht gelernte Fähigkeiten nicht.",
+        "en": "A lack of success today doesn't erase the skills you've learned."
+      }
+    },
+    {
+      "id": "ai-motivation-007",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "motivation"
+      ],
+      "texts": {
+        "de": "Ein guter Anfang ist unspektakulär.",
+        "en": "A good start is unspectacular."
+      }
+    },
+    {
+      "id": "ai-motivation-008",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "motivation"
+      ],
+      "texts": {
+        "de": "Halte fest, was funktioniert, damit du es wiederholen kannst.",
+        "en": "Hold on to what works so you can repeat it."
+      }
+    },
+    {
+      "id": "ai-motivation-009",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "motivation"
+      ],
+      "texts": {
+        "de": "Jede gelernte Abkürzung war einmal ein langer Weg.",
+        "en": "Every shortcut you've learned was once a long road."
+      }
+    },
+    {
+      "id": "ai-motivation-010",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "motivation"
+      ],
+      "texts": {
+        "de": "Kleine Verbesserungen sind wirksam, wenn du sie beibehältst.",
+        "en": "Small improvements work when you stick with them."
+      }
+    },
+    {
+      "id": "ai-motivation-011",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "motivation"
+      ],
+      "texts": {
+        "de": "Lernen lohnt sich auch ohne sofortige Belohnung.",
+        "en": "Learning is worthwhile even without an immediate reward."
+      }
+    },
+    {
+      "id": "ai-motivation-012",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "motivation"
+      ],
+      "texts": {
+        "de": "Mach aus einer vagen Sorge eine Frage, die du prüfen kannst.",
+        "en": "Turn a vague worry into a question you can test."
+      }
+    },
+    {
+      "id": "ai-motivation-013",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "motivation"
+      ],
+      "texts": {
+        "de": "Mach dein Ziel so konkret, dass der nächste Schritt einen Namen hat.",
+        "en": "Make your goal so concrete that the next step has a name."
+      }
+    },
+    {
+      "id": "ai-motivation-014",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "motivation"
+      ],
+      "texts": {
+        "de": "Manche Türen öffnen sich erst, wenn du freundlich klopfst.",
+        "en": "Some doors only open when you knock kindly."
+      }
+    },
+    {
+      "id": "ai-motivation-015",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "motivation"
+      ],
+      "texts": {
+        "de": "Nimm hilfreiche Kritik als Werkzeug, nicht als Namensschild.",
+        "en": "Take helpful criticism as a tool, not as a name tag."
+      }
+    },
+    {
+      "id": "ai-motivation-016",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "motivation"
+      ],
+      "texts": {
+        "de": "Prüfe deinen Plan an der Wirklichkeit, nicht deinen Wert am Plan.",
+        "en": "Test your plan against reality, not your worth against the plan."
+      }
+    },
+    {
+      "id": "ai-motivation-017",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "motivation"
+      ],
+      "texts": {
+        "de": "Setze deine Energie dort ein, wo sie etwas verändert.",
+        "en": "Put your energy where it makes a difference."
+      }
+    },
+    {
+      "id": "ai-motivation-018",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "motivation"
+      ],
+      "texts": {
+        "de": "Wer Hilfe annimmt, erweitert seine Handlungsmöglichkeiten.",
+        "en": "Whoever accepts help widens their options."
+      }
+    },
+    {
+      "id": "ai-motivation-019",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "motivation"
+      ],
+      "texts": {
+        "de": "Wer seine Fehler untersucht, gewinnt Material für den nächsten Versuch.",
+        "en": "Whoever examines their mistakes gains material for the next attempt."
+      }
+    },
+    {
+      "id": "ai-nature-001",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "nature"
+      ],
+      "texts": {
+        "de": "Das Meer bleibt lebendig, auch wenn niemand es betrachtet.",
+        "en": "The sea stays alive even when nobody is watching."
+      }
+    },
+    {
+      "id": "ai-nature-002",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "nature"
+      ],
+      "texts": {
+        "de": "Das Rauschen der Blätter lässt sich nicht beschleunigen.",
+        "en": "The rustling of leaves can't be rushed."
+      }
+    },
+    {
+      "id": "ai-nature-003",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "nature"
+      ],
+      "texts": {
+        "de": "Die Jahreszeiten verändern Vertrautes, ohne seinen Ort zu wechseln.",
+        "en": "The seasons change what's familiar without changing its place."
+      }
+    },
+    {
+      "id": "ai-nature-004",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "nature"
+      ],
+      "texts": {
+        "de": "Die Luft nach einem Gewitter fühlt sich wie ein neuer Anfang an.",
+        "en": "The air after a thunderstorm feels like a fresh start."
+      }
+    },
+    {
+      "id": "ai-nature-005",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "nature"
+      ],
+      "texts": {
+        "de": "Die Natur schenkt Schönheit, ohne nach unserem Geschmack zu fragen.",
+        "en": "Nature gives beauty without asking for our taste."
+      }
+    },
+    {
+      "id": "ai-nature-006",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "nature"
+      ],
+      "texts": {
+        "de": "Die Natur verdient Rücksicht auch dort, wo sie uns nicht beeindruckt.",
+        "en": "Nature deserves consideration even where it doesn't impress us."
+      }
+    },
+    {
+      "id": "ai-nature-007",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "nature"
+      ],
+      "texts": {
+        "de": "Ein Baum wirft Schatten, den viele Menschen teilen können.",
+        "en": "A tree casts shade that many people can share."
+      }
+    },
+    {
+      "id": "ai-nature-008",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "nature"
+      ],
+      "texts": {
+        "de": "Ein Blatt im Gegenlicht zeigt, wie fein das Gewöhnliche gebaut ist.",
+        "en": "A leaf in backlight shows how finely the ordinary is built."
+      }
+    },
+    {
+      "id": "ai-nature-009",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "nature"
+      ],
+      "texts": {
+        "de": "Ein Garten verbindet Fürsorge mit Überraschung.",
+        "en": "A garden combines care with surprise."
+      }
+    },
+    {
+      "id": "ai-nature-010",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "nature"
+      ],
+      "texts": {
+        "de": "Ein Sonnenfleck auf der Bank reicht manchmal als Einladung zur Pause.",
+        "en": "A patch of sun on the bench is sometimes enough of an invitation to pause."
+      }
+    },
+    {
+      "id": "ai-nature-011",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "nature"
+      ],
+      "texts": {
+        "de": "Ein Sonnenuntergang braucht keine Wiederholung, um in Erinnerung zu bleiben.",
+        "en": "A sunset needs no repeat to stay in memory."
+      }
+    },
+    {
+      "id": "ai-nature-012",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "nature"
+      ],
+      "texts": {
+        "de": "Ein Vogelgesang braucht keine große Bühne.",
+        "en": "Birdsong needs no big stage."
+      }
+    },
+    {
+      "id": "ai-nature-013",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "nature"
+      ],
+      "texts": {
+        "de": "Ein Wald ist mehr als die Summe seiner Bäume.",
+        "en": "A forest is more than the sum of its trees."
+      }
+    },
+    {
+      "id": "ai-nature-014",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "nature"
+      ],
+      "texts": {
+        "de": "Ein Waldspaziergang beginnt mit Schritten und endet mit einem ruhigeren Blick.",
+        "en": "A walk in the woods begins with steps and ends with a calmer gaze."
+      }
+    },
+    {
+      "id": "ai-nature-015",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "nature"
+      ],
+      "texts": {
+        "de": "Ein grüner Trieb im Mauerspalt verändert das Bild von Möglichkeiten.",
+        "en": "A green shoot in a crack in the wall changes how you see what's possible."
+      }
+    },
+    {
+      "id": "ai-nature-016",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "nature"
+      ],
+      "texts": {
+        "de": "Ein herabfallendes Blatt braucht keinen Applaus für seinen Tanz.",
+        "en": "A falling leaf needs no applause for its dance."
+      }
+    },
+    {
+      "id": "ai-nature-017",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "nature"
+      ],
+      "texts": {
+        "de": "Ein kräftiger Baum war einmal leicht zu übersehen.",
+        "en": "A sturdy tree was once easy to overlook."
+      }
+    },
+    {
+      "id": "ai-nature-018",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "nature"
+      ],
+      "texts": {
+        "de": "Ein kühler Morgen kann den Kopf freundlicher wecken als ein lauter Wecker.",
+        "en": "A cool morning can wake your head more kindly than a loud alarm."
+      }
+    },
+    {
+      "id": "ai-nature-019",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "nature"
+      ],
+      "texts": {
+        "de": "Eine Landschaft muss nichts leisten, um schön zu sein.",
+        "en": "A landscape doesn't have to achieve anything to be beautiful."
+      }
+    },
+    {
+      "id": "ai-nature-020",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "nature"
+      ],
+      "texts": {
+        "de": "Eine Wolke verändert ihre Form, ohne sich dafür zu rechtfertigen.",
+        "en": "A cloud changes its shape without justifying itself."
+      }
+    },
+    {
+      "id": "ai-nature-021",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "nature"
+      ],
+      "texts": {
+        "de": "Eine alte Eiche trägt Jahre, ohne sie zu zählen.",
+        "en": "An old oak carries years without counting them."
+      }
+    },
+    {
+      "id": "ai-nature-022",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "nature"
+      ],
+      "texts": {
+        "de": "Eine wilde Blume muss ihren Platz nicht erst dekorativ verdienen.",
+        "en": "A wildflower doesn't have to earn its place by being decorative."
+      }
+    },
+    {
+      "id": "ai-nature-023",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "nature"
+      ],
+      "texts": {
+        "de": "Im Herbst verabschiedet sich das Grün mit Farbe.",
+        "en": "In autumn, the green says goodbye in color."
+      }
+    },
+    {
+      "id": "ai-selfcare-001",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Abstand ist kein Liebesentzug, sondern Raum für beide.",
+        "en": "Distance is not withdrawn love, but room for both of you."
+      }
+    },
+    {
+      "id": "ai-selfcare-002",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Achte auf deine Kraft. Rechne nicht jeden Tag mit derselben.",
+        "en": "Watch your strength. Don't count on having the same amount every day."
+      }
+    },
+    {
+      "id": "ai-selfcare-003",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Alleinsein ist keine Absage an euch.",
+        "en": "Being alone is no rejection of the two of you."
+      }
+    },
+    {
+      "id": "ai-selfcare-004",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Beende den Tag mit Ruhe, nicht mit Bilanz.",
+        "en": "End the day with calm, not with a balance sheet."
+      }
+    },
+    {
+      "id": "ai-selfcare-005",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Beende die Selbstvorwürfe. Strafe schafft keine Ruhe.",
+        "en": "Stop the self-blame. Punishment doesn't bring peace."
+      }
+    },
+    {
+      "id": "ai-selfcare-006",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Behandelt eure eigene Zeit so respektvoll wie die des anderen.",
+        "en": "Treat your own time as respectfully as you treat each other's."
+      }
+    },
+    {
+      "id": "ai-selfcare-007",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Dein Nein braucht keinen Ärger.",
+        "en": "Your no doesn't have to come with anger."
+      }
+    },
+    {
+      "id": "ai-selfcare-008",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Deine Belastbarkeit ist nicht an jedem Tag gleich.",
+        "en": "Your resilience isn't the same every day."
+      }
+    },
+    {
+      "id": "ai-selfcare-009",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Du kannst nicht ausruhen und dich zugleich antreiben.",
+        "en": "You can't rest and drive yourself at the same time."
+      }
+    },
+    {
+      "id": "ai-selfcare-010",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Du musst nicht jedem Gefühl sofort eine Lösung liefern.",
+        "en": "You don't have to deliver a solution to every feeling right away."
+      }
+    },
+    {
+      "id": "ai-selfcare-011",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Du schuldest deiner Wut kein ganzes Wochenende.",
+        "en": "You don't owe your anger a whole weekend."
+      }
+    },
+    {
+      "id": "ai-selfcare-012",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Ehrgeiz hält dich wach. Schlaf macht dich klar.",
+        "en": "Ambition keeps you awake. Sleep makes you clear."
+      }
+    },
+    {
+      "id": "ai-selfcare-013",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Ein Hobby braucht kein großes Ziel.",
+        "en": "A hobby needs no big goal."
+      }
+    },
+    {
+      "id": "ai-selfcare-014",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Ein Spaziergang ohne Zweck bleibt ein guter Spaziergang.",
+        "en": "A walk without a purpose is still a good walk."
+      }
+    },
+    {
+      "id": "ai-selfcare-015",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Ein freier Morgen ist kein Problem, das gelöst werden muss.",
+        "en": "A free morning is not a problem that needs solving."
+      }
+    },
+    {
+      "id": "ai-selfcare-016",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Ein freundlicher Gedanke über dich selbst muss nicht verdient werden.",
+        "en": "A kind thought about yourself doesn't have to be earned."
+      }
+    },
+    {
+      "id": "ai-selfcare-017",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Ein guter Tag endet auch mit unerledigter Arbeit.",
+        "en": "A good day can end with work left undone."
+      }
+    },
+    {
+      "id": "ai-selfcare-018",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Ein realistischer Anspruch kann freundlicher sein als ein perfekter Vorsatz.",
+        "en": "A realistic standard can be kinder than a perfect resolution."
+      }
+    },
+    {
+      "id": "ai-selfcare-019",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Eine Sorge ist kein Tagesprogramm.",
+        "en": "A worry is not a plan for the day."
+      }
+    },
+    {
+      "id": "ai-selfcare-020",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Einer trägt mit, keiner trägt alles.",
+        "en": "Everyone carries some; no one carries it all."
+      }
+    },
+    {
+      "id": "ai-selfcare-021",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Erholung braucht keine vorherige Erschöpfung.",
+        "en": "Rest doesn't require exhaustion first."
+      }
+    },
+    {
+      "id": "ai-selfcare-022",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Euer Kummer muss nicht zur gemeinsamen Aufgabe werden.",
+        "en": "Your grief doesn't have to become a shared task."
+      }
+    },
+    {
+      "id": "ai-selfcare-023",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Eure Ruhe ist ein gemeinsamer Gewinn.",
+        "en": "Your rest is a shared gain."
+      }
+    },
+    {
+      "id": "ai-selfcare-024",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Freu dich über Tage, an denen du nichts geschafft hast.",
+        "en": "Be glad about the days when you got nothing done."
+      }
+    },
+    {
+      "id": "ai-selfcare-025",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Freude ist mehr als eine Belohnung.",
+        "en": "Joy is more than a reward."
+      }
+    },
+    {
+      "id": "ai-selfcare-026",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Geh langsamer. Es ist dein Leben.",
+        "en": "Go slower. It's your life."
+      }
+    },
+    {
+      "id": "ai-selfcare-027",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Gönn dir Pausen, denn Begeisterung schützt nicht vor Erschöpfung.",
+        "en": "Allow yourself breaks, because enthusiasm doesn't protect against exhaustion."
+      }
+    },
+    {
+      "id": "ai-selfcare-028",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Gönnt euch Abstand, bevor Nähe zur Pflicht wird.",
+        "en": "Give yourselves some distance before closeness becomes a duty."
+      }
+    },
+    {
+      "id": "ai-selfcare-029",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Kein Erfolg zahlt dir verlorene Ruhe zurück.",
+        "en": "No success pays back the rest you lost."
+      }
+    },
+    {
+      "id": "ai-selfcare-030",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Lass einen schönen Moment unkommentiert.",
+        "en": "Leave a beautiful moment uncommented."
+      }
+    },
+    {
+      "id": "ai-selfcare-031",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Lasst die Ruhe dauern. Geduld wächst nicht unter Zeitdruck.",
+        "en": "Let the quiet last. Patience doesn't grow under time pressure."
+      }
+    },
+    {
+      "id": "ai-selfcare-032",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Liebe verlangt keine Dauerbereitschaft.",
+        "en": "Love doesn't demand constant availability."
+      }
+    },
+    {
+      "id": "ai-selfcare-033",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Lieber heute weniger schaffen als morgen erschöpft sein.",
+        "en": "Better to get less done today than to be exhausted tomorrow."
+      }
+    },
+    {
+      "id": "ai-selfcare-034",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Macht aus Müdigkeit keinen Zweifel an der Liebe.",
+        "en": "Don't turn tiredness into doubt about love."
+      }
+    },
+    {
+      "id": "ai-selfcare-035",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Manche Tage brauchen mehr Zuneigung als Ehrgeiz.",
+        "en": "Some days need more affection than ambition."
+      }
+    },
+    {
+      "id": "ai-selfcare-036",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Manchmal ist ein Spaziergang eine bessere Antwort als weiteres Grübeln.",
+        "en": "Sometimes a walk is a better answer than more brooding."
+      }
+    },
+    {
+      "id": "ai-selfcare-037",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Nähe braucht keine Anwesenheitspflicht.",
+        "en": "Closeness has no attendance requirement."
+      }
+    },
+    {
+      "id": "ai-selfcare-038",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Nähe hält einen stillen Abend aus.",
+        "en": "Closeness can handle a quiet evening."
+      }
+    },
+    {
+      "id": "ai-selfcare-039",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Pflegt eure eigenen Interessen. Persönliche Freude bereichert die gemeinsame Zeit.",
+        "en": "Nurture your own interests. Personal joy enriches your time together."
+      }
+    },
+    {
+      "id": "ai-selfcare-040",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Ruhe braucht Wiederholung, nicht Belohnung.",
+        "en": "Rest needs repetition, not reward."
+      }
+    },
+    {
+      "id": "ai-selfcare-041",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Ruhe gehört in den Plan, nicht an den Rand.",
+        "en": "Rest belongs in the plan, not on the margins."
+      }
+    },
+    {
+      "id": "ai-selfcare-042",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Ruhe mit schlechtem Gewissen ist keine Ruhe.",
+        "en": "Rest with a guilty conscience isn't rest."
+      }
+    },
+    {
+      "id": "ai-selfcare-043",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Ruhe zu zweit ist mehr als Zeit ohne Gespräch.",
+        "en": "Rest for two is more than time without conversation."
+      }
+    },
+    {
+      "id": "ai-selfcare-044",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Ruht euch miteinander aus. Liebe verträgt Langeweile.",
+        "en": "Rest together. Love can survive boredom."
+      }
+    },
+    {
+      "id": "ai-selfcare-045",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Schlaf geht vor falschem Stolz.",
+        "en": "Sleep comes before false pride."
+      }
+    },
+    {
+      "id": "ai-selfcare-046",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Sei heute langsam. Eile wird zur Gewohnheit.",
+        "en": "Be slow today. Hurry becomes a habit."
+      }
+    },
+    {
+      "id": "ai-selfcare-047",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Sprich mit dir so, dass du dir weiterhin zuhören möchtest.",
+        "en": "Talk to yourself in a way that you'll still want to listen to."
+      }
+    },
+    {
+      "id": "ai-selfcare-048",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Vergleicht eure Müdigkeit nicht. Niemand wird durch den Sieg ausgeruhter.",
+        "en": "Don't compare your tiredness. Nobody ends up more rested by winning."
+      }
+    },
+    {
+      "id": "ai-selfcare-049",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Vertrauen heißt nicht, alle Gedanken zu teilen.",
+        "en": "Trust doesn't mean sharing every thought."
+      }
+    },
+    {
+      "id": "ai-selfcare-050",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Vorwürfe können warten. Trost nicht.",
+        "en": "Blame can wait. Comfort can't."
+      }
+    },
+    {
+      "id": "ai-selfcare-051",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Wer es eilig hat, ist nicht wichtiger.",
+        "en": "Being in a hurry doesn't make you more important."
+      }
+    },
+    {
+      "id": "ai-selfcare-052",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Zieh dich für dein Leben an, nicht für die Bühne.",
+        "en": "Dress for your life, not for the stage."
+      }
+    },
+    {
+      "id": "ai-together-001",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Auch beim Abwasch können Geschichten entstehen.",
+        "en": "Stories can arise even while doing the dishes."
+      }
+    },
+    {
+      "id": "ai-together-002",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Auch ein gewöhnlicher Mittwoch kann eine gute Geschichte bekommen.",
+        "en": "Even an ordinary Wednesday can get a good story."
+      }
+    },
+    {
+      "id": "ai-together-003",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Auch ein kurzer Tanz in der Küche ist ein Erlebnis.",
+        "en": "Even a short dance in the kitchen is an experience."
+      }
+    },
+    {
+      "id": "ai-together-004",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Auch ein kurzer Umweg zum Eisstand zählt als Unternehmung.",
+        "en": "Even a short detour to the ice cream stand counts as an outing."
+      }
+    },
+    {
+      "id": "ai-together-005",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Auch vertraute Menschen haben noch unbekannte Geschichten.",
+        "en": "Even familiar people still have stories you haven't heard."
+      }
+    },
+    {
+      "id": "ai-together-006",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Bemerkt die guten Momente nicht erst im Rückblick.",
+        "en": "Notice the good moments as they happen, not only in hindsight."
+      }
+    },
+    {
+      "id": "ai-together-007",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Ein Kompromiss beendet den Streit, nicht den Wunsch.",
+        "en": "A compromise ends the argument, not the wish."
+      }
+    },
+    {
+      "id": "ai-together-008",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Ein Kompromiss ohne Freude kostet Nähe.",
+        "en": "A compromise without joy costs closeness."
+      }
+    },
+    {
+      "id": "ai-together-009",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Ein Streit soll etwas klären, nicht einen Sieger küren.",
+        "en": "An argument should settle something, not crown a winner."
+      }
+    },
+    {
+      "id": "ai-together-010",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Ein gemeinsamer Spaziergang muss kein wichtiges Gespräch erzwingen.",
+        "en": "A walk together doesn't have to force an important conversation."
+      }
+    },
+    {
+      "id": "ai-together-011",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Ein gemeinsames Foto darf unperfekt und trotzdem kostbar sein.",
+        "en": "A photo together may be imperfect and still precious."
+      }
+    },
+    {
+      "id": "ai-together-012",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Ein geteilter Ausblick verbindet auch ohne gleiche Gedanken.",
+        "en": "A shared view connects even without the same thoughts."
+      }
+    },
+    {
+      "id": "ai-together-013",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Ein geteilter Sonnenaufgang braucht keine lange Unterhaltung.",
+        "en": "A shared sunrise needs no long conversation."
+      }
+    },
+    {
+      "id": "ai-together-014",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Ein schöner Alltag ist ein Ziel, kein Trostpreis.",
+        "en": "A lovely everyday life is a goal, not a consolation prize."
+      }
+    },
+    {
+      "id": "ai-together-015",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Eine kleine Tradition kann einer Woche einen freundlichen Anker geben.",
+        "en": "A small tradition can give a week a friendly anchor."
+      }
+    },
+    {
+      "id": "ai-together-016",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Erzählt auch Unfertiges, denn Gespräche brauchen kein Fazit.",
+        "en": "Share even the unfinished, because conversations need no conclusion."
+      }
+    },
+    {
+      "id": "ai-together-017",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Erzählt einander, was euch heute begeistert hat. So lernt ihr euch weiter kennen.",
+        "en": "Tell each other what excited you today. That's how you keep getting to know each other."
+      }
+    },
+    {
+      "id": "ai-together-018",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Euer Glück beginnt vor der Erfüllung eurer Pläne.",
+        "en": "Your happiness begins before your plans come true."
+      }
+    },
+    {
+      "id": "ai-together-019",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Euer Glück darf leise sein.",
+        "en": "Your happiness is allowed to be quiet."
+      }
+    },
+    {
+      "id": "ai-together-020",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Euer Glück muss nicht gleich aussehen.",
+        "en": "Your happiness doesn't have to look the same."
+      }
+    },
+    {
+      "id": "ai-together-021",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Euer Tempo braucht keinen Sieger.",
+        "en": "Your pace needs no winner."
+      }
+    },
+    {
+      "id": "ai-together-022",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Eure Rituale machen Freude, nicht Arbeit.",
+        "en": "Your rituals should bring joy, not work."
+      }
+    },
+    {
+      "id": "ai-together-023",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Eure Zukunft verdient mehr Lust als fremden Beifall.",
+        "en": "Your future deserves more delight than outside applause."
+      }
+    },
+    {
+      "id": "ai-together-024",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Familie verdient Respekt, aber keinen Gehorsam.",
+        "en": "Family deserves respect, but not obedience."
+      }
+    },
+    {
+      "id": "ai-together-025",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Fragt nach. Nähe schützt vor Missverständnissen nicht.",
+        "en": "Ask. Closeness doesn't protect against misunderstandings."
+      }
+    },
+    {
+      "id": "ai-together-026",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Gebt Freunden Zeit. Liebe verdrängt keine Freundschaft.",
+        "en": "Make time for friends. Love doesn't push out friendship."
+      }
+    },
+    {
+      "id": "ai-together-027",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Gemeinsam etwas zu reparieren gibt Dingen und Gesprächen eine zweite Chance.",
+        "en": "Repairing something together gives things and conversations a second chance."
+      }
+    },
+    {
+      "id": "ai-together-028",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Gemeinsam kochen macht aus Zutaten Gesprächsstoff.",
+        "en": "Cooking together turns ingredients into conversation."
+      }
+    },
+    {
+      "id": "ai-together-029",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Gemeinsames Glück verlangt keine gemeinsamen Freunde.",
+        "en": "Shared happiness doesn't require shared friends."
+      }
+    },
+    {
+      "id": "ai-together-030",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Im Wir ist Platz für zwei ganze Menschen.",
+        "en": "There's room in the \"we\" for two whole people."
+      }
+    },
+    {
+      "id": "ai-together-031",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Keine Gemeinsamkeit macht eure Unterschiede unwichtig.",
+        "en": "No common ground makes your differences unimportant."
+      }
+    },
+    {
+      "id": "ai-together-032",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Lasst Rituale ausfallen. Liebe hält das aus.",
+        "en": "Let rituals slide. Love can take it."
+      }
+    },
+    {
+      "id": "ai-together-033",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Lasst bei gemeinsamen Plänen auch stille Wünsche zählen.",
+        "en": "In shared plans, let quiet wishes count, too."
+      }
+    },
+    {
+      "id": "ai-together-034",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Lasst den Alltag gelegentlich Gastgeber für etwas Schönes sein.",
+        "en": "Let everyday life be the host of something lovely now and then."
+      }
+    },
+    {
+      "id": "ai-together-035",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Lieber ein gemeinsamer Entschluss als ein widerwilliges Ja.",
+        "en": "Better a shared decision than a reluctant yes."
+      }
+    },
+    {
+      "id": "ai-together-036",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Lieblingsmomente brauchen keine Eintrittskarte.",
+        "en": "Favorite moments need no ticket."
+      }
+    },
+    {
+      "id": "ai-together-037",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Lob verliert durch Gewohnheit seine Wärme.",
+        "en": "Praise loses its warmth through habit."
+      }
+    },
+    {
+      "id": "ai-together-038",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Manche Erinnerungen entstehen zwischen den Programmpunkten.",
+        "en": "Some memories arise between the items on the program."
+      }
+    },
+    {
+      "id": "ai-together-039",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Manche Lieblingsrituale dauern nur wenige Minuten.",
+        "en": "Some favorite rituals last only a few minutes."
+      }
+    },
+    {
+      "id": "ai-together-040",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Manche Tage verdienen ein kleines Fest ohne offizielle Begründung.",
+        "en": "Some days deserve a small celebration without an official reason."
+      }
+    },
+    {
+      "id": "ai-together-041",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Plant Zeit füreinander. Verplant nicht jede Minute davon.",
+        "en": "Plan time for each other. Don't schedule every minute of it."
+      }
+    },
+    {
+      "id": "ai-together-042",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Teilt eure Freude, nicht nur eure Sorgen.",
+        "en": "Share your joy, not just your worries."
+      }
+    },
+    {
+      "id": "ai-together-043",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Unterstützt einander bei Zielen, die ihr selbst nicht verfolgt.",
+        "en": "Support each other in goals you aren't pursuing yourselves."
+      }
+    },
+    {
+      "id": "ai-together-044",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Verbringt Zeit als Verliebte, nicht nur als eingespieltes Team.",
+        "en": "Spend time as lovers, not just as a well-oiled team."
+      }
+    },
+    {
+      "id": "ai-together-045",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Wer den Weg teilt, teilt auch die Wahl.",
+        "en": "Whoever shares the path shares the choice."
+      }
+    },
+    {
+      "id": "ai-together-046",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Widersprecht euch, bevor Schweigen zu Streit wird.",
+        "en": "Disagree with each other before silence turns into a fight."
+      }
+    },
+    {
+      "id": "ai-together-047",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Wiederholt, was euch glücklich macht.",
+        "en": "Repeat what makes you happy."
+      }
+    },
+    {
+      "id": "ai-together-048",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Zu zweit braucht jeder seine Freiheit.",
+        "en": "Even as a pair, each of you needs your freedom."
+      }
+    },
+    {
+      "id": "ai-travel-001",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Abenteuer braucht keine Gefahr, um aufregend zu sein.",
+        "en": "Adventure needs no danger to be exciting."
+      }
+    },
+    {
+      "id": "ai-travel-002",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Besucht, was euch begeistert, nicht was alle empfehlen.",
+        "en": "Visit what excites you, not what everyone recommends."
+      }
+    },
+    {
+      "id": "ai-travel-003",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Bleib neugierig, auch wenn es unbequem wird.",
+        "en": "Stay curious, even when it gets uncomfortable."
+      }
+    },
+    {
+      "id": "ai-travel-004",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Das beste Reisegepäck enthält Rücksicht.",
+        "en": "The best luggage contains consideration."
+      }
+    },
+    {
+      "id": "ai-travel-005",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Der beste Reiseplan hat Platz für Zufall.",
+        "en": "The best travel plan has room for chance."
+      }
+    },
+    {
+      "id": "ai-travel-006",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Die Aussicht beginnt mit dem Weg dorthin.",
+        "en": "The view begins with the way there."
+      }
+    },
+    {
+      "id": "ai-travel-007",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Ein Ort verdient mehr als einen Vergleich mit zu Hause.",
+        "en": "A place deserves more than a comparison with home."
+      }
+    },
+    {
+      "id": "ai-travel-008",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Ein Ort wird durch Vertrautheit schöner, nicht durch Ruhm.",
+        "en": "A place grows lovelier through familiarity, not fame."
+      }
+    },
+    {
+      "id": "ai-travel-009",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Ein Umweg kostet Zeit. Vorwürfe kosten Nähe.",
+        "en": "A detour costs time. Blame costs closeness."
+      }
+    },
+    {
+      "id": "ai-travel-010",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Eine Reise muss dich nicht verändern. Freude allein ist ein guter Grund, aufzubrechen.",
+        "en": "A trip doesn't have to change you. Joy alone is a good reason to set out."
+      }
+    },
+    {
+      "id": "ai-travel-011",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Erlebe es, bevor du es fotografierst.",
+        "en": "Experience it before you photograph it."
+      }
+    },
+    {
+      "id": "ai-travel-012",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Fremdes verdient Geduld statt schneller Urteile.",
+        "en": "The unfamiliar deserves patience instead of quick judgments."
+      }
+    },
+    {
+      "id": "ai-travel-013",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Gastfreundschaft ist ein Geschenk, kein Anspruch.",
+        "en": "Hospitality is a gift, not an entitlement."
+      }
+    },
+    {
+      "id": "ai-travel-014",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Genießt den Urlaub schon beim Planen. Vorfreude braucht keinen freien Tag.",
+        "en": "Enjoy the vacation while you're still planning it. Anticipation needs no day off."
+      }
+    },
+    {
+      "id": "ai-travel-015",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Heimkehr ist kein Rückzieher.",
+        "en": "Coming home is not backing out."
+      }
+    },
+    {
+      "id": "ai-travel-016",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Im Urlaub zählt eure Freude mehr als eure Erreichbarkeit.",
+        "en": "On vacation, your joy matters more than being reachable."
+      }
+    },
+    {
+      "id": "ai-travel-017",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Kein Urlaub entschuldigt einen lieblosen Alltag.",
+        "en": "No vacation excuses a loveless everyday life."
+      }
+    },
+    {
+      "id": "ai-travel-018",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Keine Aussicht ist es wert, dass einer seine Angst überspielt.",
+        "en": "No view is worth one of you hiding their fear."
+      }
+    },
+    {
+      "id": "ai-travel-019",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Lieber Fremdes verstehen als Bekanntes vermissen.",
+        "en": "Better to understand the unfamiliar than to miss the familiar."
+      }
+    },
+    {
+      "id": "ai-travel-020",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Lieber fremd und neugierig als vertraut und gelangweilt.",
+        "en": "Better unfamiliar and curious than familiar and bored."
+      }
+    },
+    {
+      "id": "ai-travel-021",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Lieber gemeinsam langsam als allein weit.",
+        "en": "Better slow together than far alone."
+      }
+    },
+    {
+      "id": "ai-travel-022",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Mehr Reiseziele machen keine schönere Reise.",
+        "en": "More destinations don't make a better trip."
+      }
+    },
+    {
+      "id": "ai-travel-023",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Reise aus Sehnsucht, nicht aus Pflicht.",
+        "en": "Travel out of longing, not out of duty."
+      }
+    },
+    {
+      "id": "ai-travel-024",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Reise mit offenen Augen, nicht mit Erwartungen.",
+        "en": "Travel with open eyes, not with expectations."
+      }
+    },
+    {
+      "id": "ai-travel-025",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Reist für neue Fragen, nicht für fertige Antworten.",
+        "en": "Travel for new questions, not for ready-made answers."
+      }
+    },
+    {
+      "id": "ai-travel-026",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Reist gemeinsam. Lasst euch die Freiheit, Verschiedenes zu verpassen.",
+        "en": "Travel together. Give each other the freedom to miss different things."
+      }
+    },
+    {
+      "id": "ai-travel-027",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Reist miteinander. Flieht nicht voreinander.",
+        "en": "Travel with each other. Don't run away from each other."
+      }
+    },
+    {
+      "id": "ai-travel-028",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Sehnsucht braucht keine große Entfernung.",
+        "en": "Longing needs no great distance."
+      }
+    },
+    {
+      "id": "ai-travel-029",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Sprich, auch wenn dir Worte fehlen. Mut zählt mehr als Grammatik.",
+        "en": "Speak, even when words fail you. Courage counts for more than grammar."
+      }
+    },
+    {
+      "id": "ai-travel-030",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Sucht unterwegs mehr Gemeinsamkeit als Abwechslung.",
+        "en": "On the road, look for more togetherness than variety."
+      }
+    },
+    {
+      "id": "ai-travel-031",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Urlaub verlangt Ruhe, keine Höchstform.",
+        "en": "A vacation asks for rest, not peak form."
+      }
+    },
+    {
+      "id": "ai-travel-032",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Verzichtet auf Eile, nicht auf Fernweh.",
+        "en": "Give up the rush, not the wanderlust."
+      }
+    },
+    {
+      "id": "ai-travel-033",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Weniger Sehnsucht nach der Ferne. Mehr Mut zum Aufbruch.",
+        "en": "Less longing for faraway places. More courage to set out."
+      }
+    },
+    {
+      "id": "ai-travel-034",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Ändere die Richtung. Neugier braucht Bewegung.",
+        "en": "Change direction. Curiosity needs movement."
+      }
+    },
+    {
+      "id": "ai-travel-035",
+      "collection": "ai-sayings",
+      "work": "eimir. AI-generated sayings",
+      "category_ids": [
+        "travel"
+      ],
+      "texts": {
+        "de": "Ändert eure Reisepläne, bevor ihr einander ändern wollt.",
+        "en": "Change your travel plans before you try to change each other."
+      }
+    },
+    {
+      "id": "klassiker-001",
+      "collection": "klassiker-johann-wolfgang-von-goethe-de",
+      "work": "Maximen und Reflexionen (aus den Wahlverwandtschaften) (1809)",
+      "source_display": "Maximen und Reflexionen (aus den Wahlverwandtschaften)",
+      "publication_year": 1809,
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Freiwillige Abhängigkeit ist der schönste Zustand, und wie wäre der möglich ohne Liebe!",
+        "en": "Voluntary dependence is the most beautiful state – and how could it be possible without love!"
+      }
+    },
+    {
+      "id": "klassiker-002",
+      "collection": "klassiker-johann-wolfgang-von-goethe-de",
+      "work": "Maximen und Reflexionen (aus den Wahlverwandtschaften) (1809)",
+      "source_display": "Maximen und Reflexionen (aus den Wahlverwandtschaften)",
+      "publication_year": 1809,
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Gegen große Vorzüge eines andern gibt es kein Rettungsmittel als die Liebe.",
+        "en": "Against another person's great qualities there is no remedy but love."
+      }
+    },
+    {
+      "id": "klassiker-003",
+      "collection": "klassiker-johann-wolfgang-von-goethe-de",
+      "work": "Maximen und Reflexionen (aus den Wahlverwandtschaften) (1809)",
+      "source_display": "Maximen und Reflexionen (aus den Wahlverwandtschaften)",
+      "publication_year": 1809,
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Es gibt eine Höflichkeit des Herzens; sie ist der Liebe verwandt.",
+        "en": "There is a courtesy of the heart; it is akin to love."
+      }
+    },
+    {
+      "id": "klassiker-004",
+      "collection": "klassiker-johann-wolfgang-von-goethe-de",
+      "work": "Maximen und Reflexionen (aus Wilhelm Meisters Wanderjahren) (1829)",
+      "source_display": "Maximen und Reflexionen (aus Wilhelm Meisters Wanderjahren)",
+      "publication_year": 1829,
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Alles Gescheite ist schon gedacht worden, man muss nur versuchen, es noch einmal zu denken.",
+        "en": "Everything clever has already been thought; one only has to try to think it once more."
+      }
+    },
+    {
+      "id": "klassiker-005",
+      "collection": "klassiker-johann-wolfgang-von-goethe-de",
+      "work": "Maximen und Reflexionen (aus Kunst und Altertum) (1826)",
+      "source_display": "Maximen und Reflexionen (aus Kunst und Altertum)",
+      "publication_year": 1826,
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Die Irrtümer des Menschen machen ihn eigentlich liebenswürdig.",
+        "en": "Human beings' errors are really what make them lovable."
+      }
+    },
+    {
+      "id": "klassiker-006",
+      "collection": "klassiker-johann-wolfgang-von-goethe-de",
+      "work": "Maximen und Reflexionen (aus Wilhelm Meisters Wanderjahren) (1829)",
+      "source_display": "Maximen und Reflexionen (aus Wilhelm Meisters Wanderjahren)",
+      "publication_year": 1829,
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Das höchste Glück ist das, welches unsere Mängel verbessert und unsere Fehler ausgleicht.",
+        "en": "The greatest happiness is the kind that mends our shortcomings and makes up for our faults."
+      }
+    },
+    {
+      "id": "klassiker-007",
+      "collection": "klassiker-marie-von-ebner-eschenbach-de",
+      "work": "Aphorismen (1893)",
+      "source_display": "Aphorismen",
+      "publication_year": 1893,
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Die Liebe hat nicht nur Rechte, sie hat auch immer recht.",
+        "en": "Love has not only rights, it is also always right."
+      }
+    },
+    {
+      "id": "klassiker-008",
+      "collection": "klassiker-marie-von-ebner-eschenbach-de",
+      "work": "Aphorismen (1893)",
+      "source_display": "Aphorismen",
+      "publication_year": 1893,
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Wir sind für nichts so dankbar wie für Dankbarkeit.",
+        "en": "We are grateful for nothing so much as for gratitude."
+      }
+    },
+    {
+      "id": "klassiker-009",
+      "collection": "klassiker-marie-von-ebner-eschenbach-de",
+      "work": "Aphorismen (1893)",
+      "source_display": "Aphorismen",
+      "publication_year": 1893,
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Vertrauen ist Mut, und Treue ist Kraft.",
+        "en": "Trust is courage, and loyalty is strength."
+      }
+    },
+    {
+      "id": "klassiker-010",
+      "collection": "klassiker-marie-von-ebner-eschenbach-de",
+      "work": "Aphorismen (1893)",
+      "source_display": "Aphorismen",
+      "publication_year": 1893,
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Wir entschuldigen nichts so leicht wie Torheiten, die uns zuliebe begangen wurden.",
+        "en": "We excuse nothing so readily as follies committed for our sake."
+      }
+    },
+    {
+      "id": "klassiker-011",
+      "collection": "klassiker-marie-von-ebner-eschenbach-de",
+      "work": "Aphorismen (1893)",
+      "source_display": "Aphorismen",
+      "publication_year": 1893,
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Soweit die Erde Himmel sein kann, soweit ist sie es in einer glücklichen Ehe.",
+        "en": "As far as the earth can be heaven, it is so in a happy marriage."
+      }
+    },
+    {
+      "id": "klassiker-012",
+      "collection": "klassiker-marie-von-ebner-eschenbach-de",
+      "work": "Aphorismen (1893)",
+      "source_display": "Aphorismen",
+      "publication_year": 1893,
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Die Menschen, denen wir eine Stütze sind, die geben uns den Halt im Leben.",
+        "en": "The people for whom we are a support are the ones who give us our footing in life."
+      }
+    },
+    {
+      "id": "klassiker-013",
+      "collection": "klassiker-marie-von-ebner-eschenbach-de",
+      "work": "Aphorismen (1893)",
+      "source_display": "Aphorismen",
+      "publication_year": 1893,
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "In jede hohe Freude mischt sich eine Empfindung der Dankbarkeit.",
+        "en": "A feeling of gratitude mingles with every great joy."
+      }
+    },
+    {
+      "id": "klassiker-014",
+      "collection": "klassiker-marie-von-ebner-eschenbach-de",
+      "work": "Aphorismen (1893)",
+      "source_display": "Aphorismen",
+      "publication_year": 1893,
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Späte Freuden sind die schönsten; sie stehen zwischen entschwundener Sehnsucht und kommendem Frieden.",
+        "en": "Late joys are the loveliest; they stand between vanished longing and coming peace."
+      }
+    },
+    {
+      "id": "klassiker-015",
+      "collection": "klassiker-marie-von-ebner-eschenbach-de",
+      "work": "Aphorismen (1893)",
+      "source_display": "Aphorismen",
+      "publication_year": 1893,
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Wenn es einen Glauben gibt, der Berge versetzen kann, so ist es der Glaube an die eigene Kraft.",
+        "en": "If there is a faith that can move mountains, it is faith in one's own strength."
+      }
+    },
+    {
+      "id": "klassiker-016",
+      "collection": "klassiker-marie-von-ebner-eschenbach-de",
+      "work": "Aphorismen (1893)",
+      "source_display": "Aphorismen",
+      "publication_year": 1893,
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Seit dem bekannten Siege der Schildkröte über den Hasen hält sie sich für eine Schnellläuferin.",
+        "en": "Ever since the famous victory of the tortoise over the hare, she has considered herself a sprinter."
+      }
+    },
+    {
+      "id": "klassiker-017",
+      "collection": "klassiker-marie-von-ebner-eschenbach-de",
+      "work": "Aphorismen (1893)",
+      "source_display": "Aphorismen",
+      "publication_year": 1893,
+      "category_ids": [
+        "friendship"
+      ],
+      "texts": {
+        "de": "Beim Wiedersehen nach einer Trennung fragen die Bekannten nach dem, was mit uns, die Freunde nach dem, was in uns vorgegangen.",
+        "en": "When we meet again after a parting, acquaintances ask what has happened to us; friends ask what has happened within us."
+      }
+    },
+    {
+      "id": "klassiker-018",
+      "collection": "klassiker-marie-von-ebner-eschenbach-de",
+      "work": "Aphorismen (1893)",
+      "source_display": "Aphorismen",
+      "publication_year": 1893,
+      "category_ids": [
+        "friendship"
+      ],
+      "texts": {
+        "de": "Ein wahrer Freund trägt mehr zu unserem Glück bei, als tausend Feinde zu unserem Unglück.",
+        "en": "A true friend contributes more to our happiness than a thousand enemies do to our misfortune."
+      }
+    },
+    {
+      "id": "klassiker-019",
+      "collection": "klassiker-novalis-de",
+      "work": "Blüthenstaub (1798)",
+      "source_display": "Blüthenstaub",
+      "publication_year": 1798,
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Jeder geliebte Gegenstand ist der Mittelpunkt eines Paradieses.",
+        "en": "Every beloved object is the center of a paradise."
+      }
+    },
+    {
+      "id": "klassiker-020",
+      "collection": "klassiker-novalis-de",
+      "work": "Heinrich von Ofterdingen (1802)",
+      "source_display": "Heinrich von Ofterdingen",
+      "publication_year": 1802,
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Die Erinnerung ist der sicherste Grund der Liebe.",
+        "en": "Memory is the surest foundation of love."
+      }
+    },
+    {
+      "id": "klassiker-021",
+      "collection": "klassiker-novalis-de",
+      "work": "Heinrich von Ofterdingen (1802)",
+      "source_display": "Heinrich von Ofterdingen",
+      "publication_year": 1802,
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Die Liebe ist stumm, nur die Poesie kann für sie sprechen.",
+        "en": "Love is mute; only poetry can speak for it."
+      }
+    },
+    {
+      "id": "klassiker-022",
+      "collection": "klassiker-novalis-de",
+      "work": "Blüthenstaub (1798)",
+      "source_display": "Blüthenstaub",
+      "publication_year": 1798,
+      "category_ids": [
+        "together"
+      ],
+      "texts": {
+        "de": "Wo Kinder sind, da ist ein goldnes Zeitalter.",
+        "en": "Where there are children, there is a golden age."
+      }
+    },
+    {
+      "id": "klassiker-023",
+      "collection": "klassiker-georg-christoph-lichtenberg-de",
+      "work": "Sudelbücher (Heft K) (1902)",
+      "source_display": "Sudelbücher (Heft K)",
+      "publication_year": 1902,
+      "category_ids": [
+        "humor"
+      ],
+      "texts": {
+        "de": "Ich kann bis diese Stunde nicht recht begreifen, warum die kleinen Kinder nicht eben so beständig lachen, als sie beständig weinen.",
+        "en": "To this hour I cannot quite understand why small children do not laugh as constantly as they cry."
+      }
+    },
+    {
+      "id": "klassiker-024",
+      "collection": "klassiker-friedrich-hebbel-de",
+      "work": "Tagebücher (1885)",
+      "source_display": "Tagebücher",
+      "publication_year": 1885,
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Das Publikum beklatscht ein Feuerwerk, doch keinen Sonnenaufgang.",
+        "en": "The public applauds a firework, but never a sunrise."
+      }
+    },
+    {
+      "id": "klassiker-025",
+      "collection": "klassiker-friedrich-hebbel-de",
+      "work": "Tagebücher (1885)",
+      "source_display": "Tagebücher",
+      "publication_year": 1885,
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Ein Maitag ist ein kategorischer Imperativ der Freude.",
+        "en": "A day in May is a categorical imperative of joy."
+      }
+    },
+    {
+      "id": "klassiker-026",
+      "collection": "klassiker-friedrich-hebbel-de",
+      "work": "Tagebücher (1885)",
+      "source_display": "Tagebücher",
+      "publication_year": 1885,
+      "category_ids": [
+        "friendship"
+      ],
+      "texts": {
+        "de": "Zum Mitleiden gab die Natur Vielen ein Talent, zur Mitfreude Wenigen.",
+        "en": "Nature gave many a talent for compassion, but only a few a talent for sharing in another's joy."
+      }
+    },
+    {
+      "id": "klassiker-027",
+      "collection": "klassiker-friedrich-nietzsche-de",
+      "work": "Also sprach Zarathustra (1883)",
+      "source_display": "Also sprach Zarathustra",
+      "publication_year": 1883,
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Ich sage euch: man muss noch Chaos in sich haben, um einen tanzenden Stern gebären zu können.",
+        "en": "I tell you: one must still have chaos in oneself to be able to give birth to a dancing star."
+      }
+    },
+    {
+      "id": "klassiker-028",
+      "collection": "klassiker-friedrich-schiller-de",
+      "work": "Wilhelm Tell (1804)",
+      "source_display": "Wilhelm Tell",
+      "publication_year": 1804,
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Wer gar zu viel bedenkt, wird wenig leisten.",
+        "en": "Whoever deliberates too much will accomplish little."
+      }
+    },
+    {
+      "id": "klassiker-029",
+      "collection": "klassiker-heinrich-heine-de",
+      "work": "Die Harzreise (1826)",
+      "source_display": "Die Harzreise",
+      "publication_year": 1826,
+      "category_ids": [
+        "nature"
+      ],
+      "texts": {
+        "de": "Düfte sind die Gefühle der Blumen.",
+        "en": "Scents are the feelings of flowers."
+      }
+    },
+    {
+      "id": "klassiker-030",
+      "collection": "klassiker-g-k-chesterton-en",
+      "work": "Tremendous Trifles (1909)",
+      "source_display": "Tremendous Trifles",
+      "publication_year": 1909,
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Der Welt werden nie die Wunder ausgehen, sondern nur das Staunen.",
+        "en": "The world will never starve for want of wonders; but only for want of wonder."
+      }
+    },
+    {
+      "id": "klassiker-031",
+      "collection": "klassiker-g-k-chesterton-en",
+      "work": "Heretics (1905)",
+      "source_display": "Heretics",
+      "publication_year": 1905,
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Es gibt auf Erden kein uninteressantes Thema; es kann nur uninteressierte Menschen geben.",
+        "en": "There is no such thing on earth as an uninteresting subject; the only thing that can exist is an uninterested person."
+      }
+    },
+    {
+      "id": "klassiker-032",
+      "collection": "klassiker-ralph-waldo-emerson-en",
+      "work": "Circles (Essays: First Series) (1841)",
+      "source_display": "Circles (Essays: First Series)",
+      "publication_year": 1841,
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Nichts Großes wurde je ohne Begeisterung erreicht.",
+        "en": "Nothing great was ever achieved without enthusiasm."
+      }
+    },
+    {
+      "id": "klassiker-033",
+      "collection": "klassiker-ralph-waldo-emerson-en",
+      "work": "Friendship (Essays: First Series) (1841)",
+      "source_display": "Friendship (Essays: First Series)",
+      "publication_year": 1841,
+      "category_ids": [
+        "friendship"
+      ],
+      "texts": {
+        "de": "Der einzige Weg, einen Freund zu haben, ist, selbst einer zu sein.",
+        "en": "The only way to have a friend is to be one."
+      }
+    },
+    {
+      "id": "klassiker-034",
+      "collection": "klassiker-oscar-wilde-en",
+      "work": "An Ideal Husband (1899)",
+      "source_display": "An Ideal Husband",
+      "publication_year": 1899,
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Sich selbst zu lieben ist der Beginn einer lebenslangen Romanze.",
+        "en": "To love oneself is the beginning of a lifelong romance."
+      }
+    },
+    {
+      "id": "klassiker-035",
+      "collection": "klassiker-rabindranath-tagore-en",
+      "work": "Stray Birds (1916)",
+      "source_display": "Stray Birds",
+      "publication_year": 1916,
+      "category_ids": [
+        "selfcare"
+      ],
+      "texts": {
+        "de": "Sei still, mein Herz, wirbele keinen Staub auf. Lass die Welt ihren Weg zu dir finden.",
+        "en": "Sit still my heart, do not raise your dust. Let the world find its way to you."
+      }
+    },
+    {
+      "id": "klassiker-036",
+      "collection": "klassiker-rabindranath-tagore-en",
+      "work": "Stray Birds (1916)",
+      "source_display": "Stray Birds",
+      "publication_year": 1916,
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Wenn du Tränen vergießt, weil du die Sonne vermisst, versäumst du auch die Sterne.",
+        "en": "If you shed tears when you miss the sun, you also miss the stars."
+      }
+    },
+    {
+      "id": "klassiker-037",
+      "collection": "klassiker-rabindranath-tagore-en",
+      "work": "Stray Birds (1916)",
+      "source_display": "Stray Birds",
+      "publication_year": 1916,
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Nicht Hammerschläge, sondern der Tanz des Wassers bringt die Kiesel singend zur Vollendung.",
+        "en": "Not hammerstrokes, but dance of the water sings the pebbles into perfection."
+      }
+    },
+    {
+      "id": "klassiker-038",
+      "collection": "klassiker-rabindranath-tagore-en",
+      "work": "Stray Birds (1916)",
+      "source_display": "Stray Birds",
+      "publication_year": 1916,
+      "category_ids": [
+        "courage"
+      ],
+      "texts": {
+        "de": "Kleines Gras, deine Schritte sind klein, doch dir gehört die Erde unter deinem Tritt.",
+        "en": "Tiny grass, your steps are small, but you possess the earth under your tread."
+      }
+    },
+    {
+      "id": "klassiker-039",
+      "collection": "klassiker-jane-austen-en",
+      "work": "Emma (1815)",
+      "source_display": "Emma",
+      "publication_year": 1815,
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Liebte ich dich weniger, könnte ich wohl mehr darüber reden.",
+        "en": "If I loved you less, I might be able to talk about it more."
+      }
+    },
+    {
+      "id": "klassiker-040",
+      "collection": "klassiker-charlotte-bronte-en",
+      "work": "Jane Eyre (1847)",
+      "source_display": "Jane Eyre",
+      "publication_year": 1847,
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Ich wäre immer lieber glücklich als würdevoll.",
+        "en": "I would always rather be happy than dignified."
+      }
+    },
+    {
+      "id": "klassiker-041",
+      "collection": "klassiker-louisa-may-alcott-en",
+      "work": "Little Women (1868)",
+      "source_display": "Little Women",
+      "publication_year": 1868,
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Mein Liebes, lass die Sonne nicht über deinem Zorn untergehen. Vergebt einander, helft einander und fangt morgen neu an.",
+        "en": "My dear, don't let the sun go down upon your anger. Forgive each other, help each other, and begin again tomorrow."
+      }
+    },
+    {
+      "id": "klassiker-042",
+      "collection": "klassiker-george-eliot-en",
+      "work": "Middlemarch (1871)",
+      "source_display": "Middlemarch",
+      "publication_year": 1871,
+      "category_ids": [
+        "friendship"
+      ],
+      "texts": {
+        "de": "Wofür leben wir, wenn nicht dafür, einander das Leben leichter zu machen?",
+        "en": "What do we live for, if it is not to make life less difficult to each other?"
+      }
+    },
+    {
+      "id": "klassiker-043",
+      "collection": "klassiker-kahlil-gibran-en",
+      "work": "The Prophet (On Marriage) (1923)",
+      "source_display": "The Prophet (On Marriage)",
+      "publication_year": 1923,
+      "category_ids": [
+        "love"
+      ],
+      "texts": {
+        "de": "Liebt einander, aber macht aus der Liebe keine Fessel: Lasst sie lieber ein bewegtes Meer sein zwischen den Ufern eurer Seelen.",
+        "en": "Love one another, but make not a bond of love: Let it rather be a moving sea between the shores of your souls."
+      }
+    },
+    {
+      "id": "klassiker-044",
+      "collection": "klassiker-l-m-montgomery-en",
+      "work": "Anne of Green Gables (1908)",
+      "source_display": "Anne of Green Gables",
+      "publication_year": 1908,
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Marilla, ist es nicht schön, daran zu denken, dass morgen ein neuer Tag ist, in dem noch keine Fehler stecken?",
+        "en": "Marilla, isn't it nice to think that tomorrow is a new day with no mistakes in it yet?"
+      }
+    },
+    {
+      "id": "klassiker-045",
+      "collection": "klassiker-willa-cather-en",
+      "work": "My Ántonia (1918)",
+      "source_display": "My Ántonia",
+      "publication_year": 1918,
+      "category_ids": [
+        "life"
+      ],
+      "texts": {
+        "de": "Manche Erinnerungen sind Wirklichkeiten und besser als alles, was einem noch geschehen kann.",
+        "en": "Some memories are realities, and are better than anything that can ever happen to one again."
+      }
+    }
+  ]
+}

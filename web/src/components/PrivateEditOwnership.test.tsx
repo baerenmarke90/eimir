@@ -8,7 +8,6 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import { useState } from 'react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import {
   afterEach,
@@ -33,6 +32,7 @@ import {
   PrivateCollectionEditPage,
 } from './PrivateCollectionsPage';
 import { PrivateNoteEditPage } from './PrivateNotesPage';
+import germanUi from '../i18n/locales/de';
 
 const accountId = 'account-1';
 const spaceId = 'space-1';
@@ -75,7 +75,7 @@ const definitions = [
     path: `/more/private/notes/${resourceId}/edit`,
     result: `/more/private/notes/${resourceId}`,
     key: privateAreaQueryKeys.note(accountId, spaceId, resourceId),
-    label: privateArea.notes.titleLabel,
+    label: germanUi.common.title,
     idField: 'noteId',
     inline: false,
   },
@@ -99,7 +99,7 @@ const definitions = [
     path: `/more/private/collections/${resourceId}/edit`,
     result: `/more/private/collections/${resourceId}`,
     key: privateAreaQueryKeys.collection(accountId, spaceId, resourceId),
-    label: privateArea.collections.titleLabel,
+    label: germanUi.common.title,
     idField: 'collectionId',
     inline: false,
   },
@@ -111,7 +111,7 @@ const definitions = [
     path: `/more/private/collections/${resourceId}`,
     result: `/more/private/collections/${resourceId}`,
     key: privateAreaQueryKeys.collection(accountId, spaceId, resourceId),
-    label: privateArea.collections.titleLabel,
+    label: germanUi.common.title,
     idField: 'collectionId',
     inline: true,
   },
@@ -169,10 +169,7 @@ for (const definition of definitions) {
         updatePrivateCollection: update,
       } as unknown as PrivateAreaApi;
       const Editor = definition.Editor;
-      let hideEditor!: () => void;
-      function Harness() {
-        const [visible, setVisible] = useState(true);
-        hideEditor = () => setVisible(false);
+      function application(visible: boolean) {
         return (
           <QueryClientProvider client={queryClient}>
             <MemoryRouter initialEntries={[definition.path]}>
@@ -203,7 +200,8 @@ for (const definition of definitions) {
           </QueryClientProvider>
         );
       }
-      render(<Harness />);
+      const view = render(application(true));
+      const hideEditor = () => view.rerender(application(false));
       async function submit() {
         if (definition.inline) {
           // The collection starts editing from its item menu.
@@ -213,7 +211,7 @@ for (const definition of definitions) {
             }),
           );
           fireEvent.click(
-            await screen.findByRole('button', { name: privateArea.edit }),
+            await screen.findByRole('button', { name: germanUi.common.edit }),
           );
         }
         fireEvent.change(await screen.findByLabelText(definition.label), {
@@ -223,7 +221,7 @@ for (const definition of definitions) {
           screen.getByRole('button', {
             name: definition.inline
               ? m5s3.common.saveChanges
-              : privateArea.save,
+              : germanUi.common.save,
           }),
         );
         await waitFor(() => expect(update).toHaveBeenCalledTimes(1));

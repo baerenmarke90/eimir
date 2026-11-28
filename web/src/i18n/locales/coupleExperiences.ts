@@ -34,7 +34,7 @@ export default {
     PHOTO_REACTION: '{{name}} hat auf Fotos deines Moments reagiert.',
     PARTNER_JOINED: '{{name}} ist eurem gemeinsamen Bereich beigetreten.',
     COLLECTION_SENT: '{{name}} hat dir eine Liste geschickt.',
-    GARDEN_SEED_ARRIVED: '{{name}} hat dir einen Samen geschickt.',
+    GARDEN_SEED_ARRIVED: '{{name}} hat dir Saatgut für euren Garten geschenkt.',
     GARDEN_BOUQUET: '{{name}} hat dir einen Strauß geschenkt.',
     TRANSFER_READY:
       'Dein Datenauftrag ist bereit. Du kannst ihn jetzt ansehen.',
@@ -43,8 +43,6 @@ export default {
     VIDEO_PROCESSING_FAILED: 'Ein Video konnte nicht verarbeitet werden.',
   },
   share: 'Mit {{name}} teilen',
-  shareHint:
-    'Dein Partner wird benachrichtigt. Der Eintrag bleibt in euren Erinnerungen.',
   history: 'Bereits geteilt',
   historyGroups: {
     today: 'Heute',
@@ -142,9 +140,6 @@ export default {
   },
   more: 'Mehr anzeigen',
   prompts: {
-    progress: 'Impuls {{current}} von {{total}}',
-    answer: 'Antwort teilen',
-    next: 'Nächster Impuls',
     happiness: {
       first:
         'Sagt euch eine kleine Sache, die ihr heute am anderen geschätzt habt.',

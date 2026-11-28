@@ -6,8 +6,6 @@ import {
   glowTurns,
 } from './placeMapConnection';
 
-const size = { width: 360, height: 440 };
-
 describe('connectionArc', () => {
   it('bows towards the top, more for far connections', () => {
     const from = { x: 100, y: 400 };
@@ -67,7 +65,6 @@ describe('ConnectionOverlay', () => {
       { tier: 'regional', earlier: false },
       { x: 50, y: 400 },
       { x: 300, y: 80 },
-      size,
     );
     const { classList } = overlay.element;
     // Nothing plays before the map is drawn.
@@ -97,7 +94,7 @@ describe('ConnectionOverlay', () => {
     ).toBe(`${glowTurns(length).start.toFixed(2)}%`);
     const path = overlay.element.querySelector('.place-map-connection-stroke');
     expect(path?.getAttribute('d')).toBe(
-      connectionArc({ x: 50, y: 400 }, { x: 300, y: 80 }, 'regional'),
+      connectionArc({ x: 0, y: 0 }, { x: 250, y: -320 }, 'regional'),
     );
     overlay.pause();
     expect(classList.contains('is-paused')).toBe(true);
@@ -108,6 +105,32 @@ describe('ConnectionOverlay', () => {
     overlay.resume();
     expect(classList.contains('is-paused')).toBe(false);
     expect(classList.contains('is-playing')).toBe(true);
+  });
+
+  it('translates a pan without rebuilding the curve, and redraws it for a zoom', () => {
+    const { container, canvas } = setup();
+    const overlay = new ConnectionOverlay(container, canvas);
+    const connection = { tier: 'far', earlier: false } as const;
+    overlay.update(connection, { x: -30, y: 85 }, { x: 210, y: 175 });
+    const path = overlay.element.querySelector('.place-map-connection-reveal');
+    if (!path) throw new Error('Expected a connection path');
+    const writes = vi.spyOn(path, 'setAttribute');
+    for (let step = 1; step <= 60; step++) {
+      overlay.update(
+        connection,
+        { x: -30 + step, y: 85 },
+        { x: 210 + step, y: 175 },
+      );
+    }
+    expect(writes).not.toHaveBeenCalled();
+    expect(
+      overlay.element.style.getPropertyValue('--place-map-connection-origin'),
+    ).toBe('30px 85px');
+    overlay.update(connection, { x: 30, y: 85 }, { x: 510, y: 265 });
+    expect(writes).toHaveBeenCalledWith(
+      'd',
+      connectionArc({ x: 0, y: 0 }, { x: 480, y: 180 }, 'far'),
+    );
   });
 
   it('resumes where it paused instead of replaying (M4)', () => {
@@ -133,19 +156,18 @@ describe('ConnectionOverlay', () => {
       { tier: 'near', earlier: false },
       { x: 100, y: 200 },
       { x: 160, y: 180 },
-      size,
     );
     const heart = overlay.element.querySelector<HTMLElement>(
       '.place-map-connection-heart',
     );
     expect(overlay.element.classList.contains('is-near')).toBe(true);
-    expect(heart?.style.left).toBe('130px');
-    expect(heart?.style.top).toBe('146px');
+    const expected = document.createElement('span').style;
+    expected.translate = 'calc(130px - 50%) calc(146px - 50%)';
+    expect(heart?.style.translate).toBe(expected.translate);
     overlay.update(
       { tier: 'far', earlier: true },
       { x: 100, y: 200 },
       { x: 300, y: 20 },
-      size,
     );
     expect(overlay.element.classList.contains('is-near')).toBe(false);
     expect(overlay.element.classList.contains('is-earlier')).toBe(true);

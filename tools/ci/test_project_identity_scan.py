@@ -22,14 +22,14 @@ class ProjectIdentityScanTest(unittest.TestCase):
                 self.assertEqual(classify(candidate, text, match)[0], Classification.MUST_RENAME)
 
     def test_date_idea_catalog_exempts_only_its_exact_editorial_phrases(self) -> None:
-        path = Path("backend/src/eimir/date_ideas/data/catalog.json")
+        path = Path("backend/pro/src/eimir_pro/date_ideas/data/catalog.json")
         line = '          "wishTitle": "Read quietly side by side",'
         self.assertEqual(classify(path, line, "side by side")[0], Classification.FALSE_POSITIVE)
         for candidate, text, match in (
             (path, '"title": "Meet side by side branding"', "side by side"),
             (path, line + " SideBySide", "SideBySide"),
             (path, line + " side by side", "side by side"),
-            (Path("backend/src/eimir/quotes/daily_sayings.json"), line, "side by side"),
+            (Path("backend/pro/src/eimir_pro/quotes/daily_sayings.json"), line, "side by side"),
         ):
             with self.subTest(path=candidate, match=match):
                 self.assertEqual(classify(candidate, text, match)[0], Classification.MUST_RENAME)

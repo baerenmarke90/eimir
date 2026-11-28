@@ -3,17 +3,13 @@ import { useMutation } from '@tanstack/react-query';
 import type { ServerAdminApi } from '../api/generated/apis/ServerAdminApi';
 import type { ServerAdminAccountDetail } from '../api/generated/models/ServerAdminAccountDetail';
 import { normalizeClientError } from '../client/problemDetails';
-import { isRecentAuthRequired } from '../client/recentAuthentication';
 import { useTranslation } from '../i18n';
-import { ServerAdminRecentAuthModal } from './ServerAdminRecentAuthModal';
 import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
 import './ServerAdminAccountDeletionDialog.css';
 
 export interface ServerAdminAccountDeletionDialogProps {
   account: ServerAdminAccountDetail;
   api: ServerAdminApi;
-  apiBaseUrl: string;
-  accessToken: string;
   onSuccess: () => void;
   onClose: () => void;
 }
@@ -21,13 +17,11 @@ export interface ServerAdminAccountDeletionDialogProps {
 export function ServerAdminAccountDeletionDialog({
   account,
   api,
-  apiBaseUrl,
-  accessToken,
   onSuccess,
   onClose,
 }: ServerAdminAccountDeletionDialogProps) {
   const { t } = useTranslation();
-  const [stage, setStage] = useState<1 | 2 | 3>(1);
+  const [stage, setStage] = useState<'review' | 'confirm'>('review');
   const [confirmationInput, setConfirmationInput] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -61,10 +55,6 @@ export function ServerAdminAccountDeletionDialog({
       onSuccess();
     },
     onError: (error) => {
-      if (isRecentAuthRequired(error)) {
-        setStage(2);
-        return;
-      }
       const problem = error as { code?: string; message?: string };
       switch (problem.code) {
         case 'SERVER_ADMIN_SELF_LOCKOUT_BLOCKED':
@@ -98,8 +88,9 @@ export function ServerAdminAccountDeletionDialog({
   const busy = deleteMutation.isPending;
 
   useModalLifecycle({
-    active: stage !== 2,
-    initialFocusRef: stage === 3 ? confirmationInputRef : cancelButtonRef,
+    active: true,
+    initialFocusRef:
+      stage === 'confirm' ? confirmationInputRef : cancelButtonRef,
   });
 
   function handleKeyDown(event: KeyboardEvent<HTMLElement>) {
@@ -118,17 +109,6 @@ export function ServerAdminAccountDeletionDialog({
     deleteMutation.mutate(confirmationInput.trim());
   }
 
-  if (stage === 2) {
-    return (
-      <ServerAdminRecentAuthModal
-        apiBaseUrl={apiBaseUrl}
-        accessToken={accessToken}
-        onCancel={() => setStage(1)}
-        onSuccess={() => setStage(3)}
-      />
-    );
-  }
-
   return (
     <div className="server-admin-deletion-backdrop">
       <section
@@ -142,12 +122,12 @@ export function ServerAdminAccountDeletionDialog({
         <div className="server-admin-deletion-head">
           <div>
             <p className="eyebrow">
-              {stage === 1
+              {stage === 'review'
                 ? t('serverAdmin.accounts.deletionDialog.stage1Eyebrow')
                 : t('serverAdmin.accounts.deletionDialog.stage3Eyebrow')}
             </p>
             <h2 id="server-admin-deletion-title">
-              {stage === 1
+              {stage === 'review'
                 ? t('serverAdmin.accounts.deletionDialog.stage1Title')
                 : t('serverAdmin.accounts.deletionDialog.stage3Title')}
             </h2>
@@ -159,7 +139,7 @@ export function ServerAdminAccountDeletionDialog({
             disabled={busy}
             onClick={onClose}
           >
-            {t('serverAdmin.accounts.deletionDialog.cancel')}
+            {t('common.cancel')}
           </button>
         </div>
 
@@ -170,7 +150,7 @@ export function ServerAdminAccountDeletionDialog({
           </span>
         </div>
 
-        {stage === 1 ? (
+        {stage === 'review' ? (
           <>
             <p className="server-admin-muted">
               {t('serverAdmin.accounts.deletionDialog.stage1Intro')}
@@ -208,14 +188,14 @@ export function ServerAdminAccountDeletionDialog({
                 className="secondary-button"
                 onClick={onClose}
               >
-                {t('serverAdmin.accounts.deletionDialog.cancel')}
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
                 className="primary-button"
-                onClick={() => setStage(2)}
+                onClick={() => setStage('confirm')}
               >
-                {t('serverAdmin.accounts.deletionDialog.proceedToAuth')}
+                {t('serverAdmin.accounts.deletionDialog.proceedToConfirm')}
               </button>
             </div>
           </>
@@ -260,9 +240,9 @@ export function ServerAdminAccountDeletionDialog({
                 type="button"
                 className="secondary-button"
                 disabled={busy}
-                onClick={() => setStage(1)}
+                onClick={() => setStage('review')}
               >
-                {t('serverAdmin.accounts.deletionDialog.back')}
+                {t('common.back')}
               </button>
               <button
                 type="button"
@@ -270,7 +250,7 @@ export function ServerAdminAccountDeletionDialog({
                 disabled={busy}
                 onClick={onClose}
               >
-                {t('serverAdmin.accounts.deletionDialog.cancel')}
+                {t('common.cancel')}
               </button>
               <button
                 type="submit"

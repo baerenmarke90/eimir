@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
+import { defaultAvatarUrl } from '../client/defaultAvatar';
 import navigation from '../i18n/locales/navigation';
 import { HeaderProfileMenu } from './HeaderProfileMenu';
 
@@ -41,6 +42,12 @@ function renderMenu(onLogout = vi.fn()) {
 }
 
 describe('HeaderProfileMenu', () => {
+  it('shows the neutral stand-in picture while the account has no profile picture', () => {
+    const { container } = renderMenu();
+    const image = container.querySelector('.header-profile-trigger img');
+    expect(image?.getAttribute('src')).toBe(defaultAvatarUrl('account-1'));
+  });
+
   it('opens on trigger click and closes on outside click', () => {
     renderMenu();
     const trigger = screen.getByRole('button', {
@@ -115,7 +122,7 @@ describe('HeaderProfileMenu', () => {
       fireEvent.click(trigger);
     });
 
-    const logoutBtn = screen.getByRole('button', { name: navigation.logout });
+    const logoutBtn = screen.getByRole('button', { name: 'Abmelden' });
     act(() => {
       fireEvent.click(logoutBtn);
     });

@@ -54,6 +54,12 @@ jobs:
       - name: Test nightly regression wiring
         run: python3 tools/ci/test_nightly_regression.py
 
+      - name: Test supply-chain capability state
+        run: python3 tools/ci/test_supply_chain_state.py
+
+      - name: Test codec advisory review issue wiring
+        run: python3 tools/ci/test_codec_advisory_issue.py
+
       - name: Test encryption test-key generator
         run: python3 tools/ci/test_encryption_test_keys.py
 
@@ -171,6 +177,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       EIMIR_ENVIRONMENT: test
+      # Core plus the Pro plugin, as in the released image (#2182).
+      EIMIR_PLUGINS: pro
     defaults:
       run:
         working-directory: backend
@@ -188,7 +196,7 @@ jobs:
         run: |
           python -m pip install "uv==$UV_VERSION"
           uv lock --check
-          uv sync --frozen
+          uv sync --frozen --all-packages
 
       - name: Safe Self-Hosted configuration
         working-directory: .
@@ -208,9 +216,9 @@ jobs:
         working-directory: .
         run: |
           missing_files=$(comm -23 \
-            <(find backend/src web -name "*.py" -o -name "*.ts" \
+            <(find backend/src backend/pro/src backend/admin/src web -name "*.py" -o -name "*.ts" \
                 -o -name "*.tsx" 2>/dev/null | sort) \
-            <(git ls-files backend/src web | sort))
+            <(git ls-files backend/src backend/pro/src backend/admin/src web | sort))
           if [ -n "$missing_files" ]; then
             echo "These source files are not tracked:"
             echo "$missing_files"
@@ -218,15 +226,18 @@ jobs:
           fi
 
       - name: Lint
-        run: uv run --frozen ruff check src tests scripts alembic
+        run: uv run --frozen ruff check src tests scripts alembic pro admin
 
       - name: Formatting
-        run: uv run --frozen ruff format --check src tests scripts alembic
+        run: uv run --frozen ruff format --check src tests scripts alembic pro admin
 
       - name: Type checking
         run: uv run --frozen mypy
 
       - name: OpenAPI contract
+        # The versioned contract is complete: Pro and the operator plugin loaded.
+        env:
+          EIMIR_PLUGINS: pro,admin
         run: uv run --frozen python scripts/openapi_contract.py check
 
       - name: Tests without integration
@@ -311,6 +322,8 @@ jobs:
       EIMIR_ENVIRONMENT: test
       EIMIR_DATABASE_URL: postgresql+psycopg://eimir:eimir@localhost:5432/eimir_test
       EIMIR_TEST_DATABASE_URL: postgresql+psycopg://eimir:eimir@localhost:5432/eimir_test
+      # Core plus the Pro plugin, as in the released image (#2182).
+      EIMIR_PLUGINS: pro
 
     defaults:
       run:
@@ -329,10 +342,15 @@ jobs:
         run: |
           python -m pip install "uv==$UV_VERSION"
           uv lock --check
-          uv sync --frozen
+          uv sync --frozen --all-packages
 
       - name: Migrations
         run: uv run --frozen alembic upgrade head
+
+      - name: Schema matches the committed fingerprint
+        # Decision 0017, Phase 2 (#2182): moving the Pro code must not change the
+        # schema a fresh database reaches, with or without the plugin.
+        run: uv run --frozen python -m scripts.schema_fingerprint check
 
       - name: Migrations are complete
         # A model/schema difference indicates a missing migration and would
@@ -471,10 +489,15 @@ jobs:
         run: |
           python -m pip install "uv==$UV_VERSION"
           uv lock --check
+          # Core only: the Pro distribution (backend/pro, #2182) is not
+          # installed, so nothing here can import or load Pro code.
           uv sync --frozen
 
       - name: Core-only migrations
         run: uv run --frozen alembic upgrade head
+
+      - name: Core-only schema matches the committed fingerprint
+        run: uv run --frozen python -m scripts.schema_fingerprint check
 
       - name: Core-only autogenerate keeps plugin tables
         run: |
@@ -572,6 +595,155 @@ jobs:
             exit 1
           fi
           echo "All Backend Core-only shards succeeded."
+
+  pro_extraction_dry_run:
+    name: Pro extraction dry run
+    needs: changes
+    if: needs.changes.outputs.backend_integration == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Decision 0017, Phase 2 (#2182): backend/pro installs from a clean copy on
+    # top of a Core wheel built from this checkout, and its tests pass there.
+    # Nothing is published; no other repository is involved.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: eimir
+          POSTGRES_PASSWORD: eimir
+          POSTGRES_DB: eimir_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U eimir -d eimir_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      EIMIR_ENVIRONMENT: test
+      EIMIR_TEST_DATABASE_URL: postgresql+psycopg://eimir:eimir@localhost:5432/eimir_test
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Pinned uv
+        run: python -m pip install "uv==$UV_VERSION"
+
+      # Decision 0019 (#2183): the Core comes from the allow-listed export tree
+      # and Pro from the eimir-pro export tree, the way the private repository
+      # will pin a public eimir-core revision.
+      - name: Export the public Core tree and the private Pro tree
+        run: |
+          python tools/cutover/core_export.py export --rev HEAD \
+            --out "$RUNNER_TEMP/core-tree" --manifest "$RUNNER_TEMP/core-manifest.json"
+          python tools/cutover/core_export.py --allowlist tools/cutover/pro-allowlist.toml export --rev HEAD \
+            --out "$RUNNER_TEMP/pro-tree" --manifest "$RUNNER_TEMP/pro-manifest.json"
+
+      - name: Pro tests from the Pro tree on top of the exported Core wheel
+        env:
+          EIMIR_CORE_ROOT: ${{ runner.temp }}/core-tree
+          EIMIR_PRO_ROOT: ${{ runner.temp }}/pro-tree
+        run: tools/ci/pro_extraction_dry_run.sh -m ""
+
+  core_export:
+    name: Core Export Dry Run
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Decision 0019 (#2183): every pull request proves that the allow-listed
+    # public eimir-core tree is clean (coverage, no plugin import, contract,
+    # licence, no operator runner, secret scan), that the private eimir-pro
+    # tree is clean, that both together split every tracked file, and that a
+    # single-commit snapshot can be made from each. The snapshots stay in the
+    # runner; nothing is pushed anywhere.
+    permissions:
+      contents: read
+    env:
+      # The pinned image of the Secret Scan job.
+      EIMIR_CUTOVER_GITLEAKS_IMAGE: zricethezav/gitleaks:v8.24.3
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Pinned uv
+        run: python -m pip install "uv==$UV_VERSION"
+
+      - name: Export tool tests (including the negative gates)
+        run: python tools/cutover/test_core_export.py
+
+      - name: Export both trees, gates and local snapshots
+        run: |
+          python tools/cutover/core_export.py dry-run --rev HEAD --with-pro \
+            --work "$RUNNER_TEMP/core-export"
+
+      - name: Report
+        if: always()
+        run: |
+          for report in "$RUNNER_TEMP/core-export/report/report.md" "$RUNNER_TEMP/core-export/pro-report/report.md"; do
+            if [ -f "$report" ]; then cat "$report" >> "$GITHUB_STEP_SUMMARY"; fi
+          done
+
+  core_export_backend:
+    name: Core Export Backend
+    needs: changes
+    if: needs.changes.outputs.backend_integration == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Decision 0019 (#2183): the backend of the export tree installs and starts
+    # without the plugin distributions, builds a Core wheel without plugin
+    # files, passes the Core-only unit lane and migrates a fresh database. The
+    # Core-only integration lane runs on the checkout (Backend Core-only); the
+    # exported backend sources are byte-identical to it (coverage gate).
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: eimir
+          POSTGRES_PASSWORD: eimir
+          POSTGRES_DB: eimir_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U eimir -d eimir_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      EIMIR_TEST_DATABASE_URL: postgresql+psycopg://eimir:eimir@localhost:5432/eimir_test
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/uv.lock
+
+      - name: Pinned uv
+        run: python -m pip install "uv==$UV_VERSION"
+
+      - name: Export the public Core tree
+        run: |
+          python tools/cutover/core_export.py export --rev HEAD \
+            --out "$RUNNER_TEMP/core-tree" --manifest "$RUNNER_TEMP/core-manifest.json"
+
+      - name: Core-only install, start, wheel, unit lane and migrations
+        run: |
+          python tools/cutover/core_export.py check-backend \
+            --tree "$RUNNER_TEMP/core-tree" --manifest "$RUNNER_TEMP/core-manifest.json" \
+            --work "$RUNNER_TEMP/core-work"
 
   self-hosted:
     name: Self-Hosted Start
@@ -778,16 +950,56 @@ jobs:
       - name: Dependency inventory
         if: needs.changes.outputs.supply_chain_backend == 'true'
         run: |
-          uv sync --frozen
+          uv sync --frozen --all-packages
           uv run --frozen python scripts/check_dependency_inventory.py ../docs/DEPENDENCIES.md
 
       - name: Build backend wheel without cache
         if: needs.changes.outputs.supply_chain_backend_build == 'true'
         run: uv build --no-cache --wheel --out-dir /tmp/eimir-dist
 
+      - name: Core wheel carries no Pro code
+        if: needs.changes.outputs.supply_chain_backend_build == 'true'
+        # Decision 0017, Phase 2 (#2182): the Core distribution must not ship
+        # the Pro plugin, its object or its editorial data. The Core export
+        # (tools/cutover) runs the same check on the wheel of the export tree.
+        run: python ../tools/ci/check_core_wheel.py /tmp/eimir-dist
+
       - name: Build backend production container from scratch
         if: needs.changes.outputs.supply_chain_backend_build == 'true'
         run: docker build --pull --no-cache --tag eimir-backend:ci .
+
+      - name: Core image without Pro, Pro image with it
+        if: needs.changes.outputs.supply_chain_backend_build == 'true'
+        # The default target is the image with the Pro plugin; the `core`
+        # stage is the Core alone (Decision 0017, Phase 2, #2182).
+        run: |
+          docker build --tag eimir-backend:core --target core .
+          docker run --rm --entrypoint python eimir-backend:core -c "
+          import importlib.util, os
+          from eimir.plugins.loader import loaded_plugins
+          assert not os.path.exists('/app/pro/src')
+          assert importlib.util.find_spec('eimir_pro') is None
+          assert importlib.util.find_spec('eimir_admin') is None
+          assert not os.path.exists('/app/admin/src')
+          assert loaded_plugins().names == ()
+          print('Core image: Core only.')
+          "
+          docker run --rm --entrypoint python eimir-backend:ci -c "
+          from eimir.plugins.loader import loaded_plugins
+          assert loaded_plugins().names == ('pro',)
+          print('Pro image: Core with the Pro plugin.')
+          "
+          # The operator plugin ships in the same image but is opt-in: it loads
+          # when named and carries its migration chain as package data (#2189).
+          docker run --rm --env EIMIR_PLUGINS=pro,admin --entrypoint python eimir-backend:ci -c "
+          import pathlib
+          import eimir_admin
+          from eimir.plugins.loader import loaded_plugins
+          assert loaded_plugins().names == ('pro', 'admin'), loaded_plugins().names
+          versions = pathlib.Path(eimir_admin.__file__).parent / 'alembic' / 'versions'
+          assert list(versions.glob('0001_*.py')), versions
+          print('Pro image: operator plugin loads and carries its migration.')
+          "
 
       - name: Build Web production container from scratch
         if: needs.changes.outputs.supply_chain_web_build == 'true'

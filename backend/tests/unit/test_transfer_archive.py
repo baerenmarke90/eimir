@@ -172,7 +172,11 @@ def test_compression_ratio_is_bounded() -> None:
     assert getattr(caught.value, "code", None) == ErrorCode.TRANSFER_TOO_LARGE
 
 
-def test_weekly_feedback_is_a_personal_only_bundle_entry() -> None:
+def test_legacy_weekly_feedback_entry_is_accepted_and_never_imported() -> None:
+    """Exports before #2210 carried retired ratings: still valid, but ignored on import."""
+    from eimir.transfer import service
+
+    assert "private/weekly-insight-feedback.json" not in service.FILE_TABLES
     entries = {
         "accounts.json": _json({"members": []}),
         "private/weekly-insight-feedback.json": _json({"tables": []}),

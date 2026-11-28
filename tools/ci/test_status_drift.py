@@ -9,6 +9,8 @@ from status_drift import (
     AUTHORITATIVE_STATUS_FILE,
     STATUS_ROLE_MARKERS,
     check_repository,
+    open_issue_references,
+    resolve_tracker_repository,
     validate_role,
     validate_text,
 )
@@ -86,6 +88,135 @@ class StatusDriftTest(unittest.TestCase):
         )
         self.assertEqual(errors, [])
         self.assertFalse(called)
+
+    def test_bare_and_qualified_open_references_are_parsed(self) -> None:
+        text = (
+            "- [ ] **#2148:** deferred items\n"
+            "- [ ] **baerenmarke90/eimir-archive#2183:** cut-over tracker\n"
+            "- [ ] see Owner.Name/repo_x.y#7 for details\n"
+            "- [x] **other/repo#1:** delivered\n"
+            "- [ ] not/a reference #12\n"
+        )
+        self.assertEqual(
+            open_issue_references(text),
+            [
+                (None, 2148),
+                ("baerenmarke90/eimir-archive", 2183),
+                ("Owner.Name/repo_x.y", 7),
+                (None, 12),
+            ],
+        )
+
+    def test_reference_qualified_with_tracker_repository_is_checked(self) -> None:
+        requested: list[int] = []
+
+        def fetch(number: int) -> str:
+            requested.append(number)
+            return "closed"
+
+        errors = validate_text(
+            AUTHORITATIVE_STATUS_FILE,
+            "- [ ] **Baerenmarke90/Eimir-Core#41:** still open\n",
+            fetch,
+            tracker_repository="baerenmarke90/eimir-core",
+        )
+        self.assertEqual(requested, [41])
+        self.assertEqual(len(errors), 1)
+        self.assertIn("issue Baerenmarke90/Eimir-Core#41", errors[0])
+
+    def test_reference_to_other_repository_is_reported_not_checked(self) -> None:
+        requested: list[int] = []
+        skipped: list[str] = []
+
+        def fetch(number: int) -> str:
+            requested.append(number)
+            return "open"
+
+        errors = validate_text(
+            AUTHORITATIVE_STATUS_FILE,
+            "- [ ] **baerenmarke90/eimir-archive#2183:** re-created later\n"
+            "- [ ] **#7:** current tracker item\n",
+            fetch,
+            tracker_repository="baerenmarke90/eimir-core",
+            skipped=skipped,
+        )
+        self.assertEqual(errors, [])
+        self.assertEqual(requested, [7])
+        self.assertEqual(len(skipped), 1)
+        self.assertIn("baerenmarke90/eimir-archive#2183", skipped[0])
+        self.assertIn("baerenmarke90/eimir-core", skipped[0])
+
+    def test_qualified_reference_without_known_tracker_is_reported_not_checked(self) -> None:
+        skipped: list[str] = []
+
+        def fetch(_number: int) -> str:
+            raise AssertionError("no request expected")
+
+        errors = validate_text(
+            AUTHORITATIVE_STATUS_FILE,
+            "- [ ] **baerenmarke90/eimir#5:** open\n",
+            fetch,
+            skipped=skipped,
+        )
+        self.assertEqual(errors, [])
+        self.assertEqual(len(skipped), 1)
+
+    def test_tracker_repository_override_wins_over_workflow_repository(self) -> None:
+        self.assertEqual(
+            resolve_tracker_repository(
+                None,
+                {
+                    "GITHUB_REPOSITORY": "baerenmarke90/eimir-core",
+                    "EIMIR_STATUS_TRACKER_REPOSITORY": "baerenmarke90/eimir-pro",
+                },
+            ),
+            "baerenmarke90/eimir-pro",
+        )
+        self.assertEqual(
+            resolve_tracker_repository(
+                "owner/cli",
+                {"EIMIR_STATUS_TRACKER_REPOSITORY": "owner/env"},
+            ),
+            "owner/cli",
+        )
+        self.assertEqual(
+            resolve_tracker_repository(None, {"GITHUB_REPOSITORY": "baerenmarke90/eimir"}),
+            "baerenmarke90/eimir",
+        )
+        self.assertEqual(
+            resolve_tracker_repository(
+                None,
+                {"GITHUB_REPOSITORY": "o/r", "EIMIR_STATUS_TRACKER_REPOSITORY": ""},
+            ),
+            "o/r",
+        )
+        self.assertEqual(resolve_tracker_repository(None, {}), "")
+
+    def test_malformed_tracker_repository_is_rejected(self) -> None:
+        for value in ("eimir", "a/b/c", "owner/repo name", "https://github.com/o/r"):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                resolve_tracker_repository(value, {})
+
+    def test_check_repository_passes_tracker_and_collects_skipped(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            write_contract_files(root)
+            status = root / AUTHORITATIVE_STATUS_FILE
+            status.write_text(
+                role_marker(AUTHORITATIVE_STATUS_FILE)
+                + "- [ ] **baerenmarke90/eimir-archive#2183:** tracker\n"
+                + "- [ ] **#3:** open item\n",
+                encoding="utf-8",
+            )
+            skipped: list[str] = []
+            errors = check_repository(
+                root,
+                lambda _number: "open",
+                tracker_repository="baerenmarke90/eimir-core",
+                skipped=skipped,
+            )
+            self.assertEqual(errors, [])
+            self.assertEqual(len(skipped), 1)
 
     def test_secondary_surface_does_not_become_issue_database(self) -> None:
         called = False

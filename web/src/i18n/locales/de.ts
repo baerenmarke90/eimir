@@ -7,31 +7,32 @@ const de = {
     backToStart: 'Zur Startseite',
     edit: 'Bearbeiten',
     saving: 'Wird gespeichert …',
+    save: 'Speichern',
+    delete: 'Löschen',
+    deleting: 'Wird gelöscht …',
+    close: 'Schließen',
+    back: 'Zurück',
+    done: 'Fertig',
+    open: 'Öffnen',
+    title: 'Titel',
+    continue: 'Weiter',
   },
   navigation: {
     skipToContent: 'Zum Inhalt springen',
     primary: 'Hauptnavigation',
     story: 'Momente',
-    newMemory: 'Neue Erinnerung',
   },
   more: {
-    yearsTitle: 'Jahre',
     destinations: {
       media: 'Medien',
       chapters: 'Kapitel',
-      years: 'Jahre',
-      recaps: 'Rückblicke',
       yearsAndRecaps: 'Jahre & Rückblicke',
-      insights: 'Einblicke',
-      lists: 'Listen',
     },
     subtitles: {
       private: 'Notizen, Geschenkideen und Listen · {{visibility}}',
       media: 'Alle Fotos und Videos',
       chapters: 'Reisen, Umzüge, große Abschnitte',
       yearsAndRecaps: 'Eure Monate und Jahre im Überblick',
-      insights: 'Wie es euch zuletzt ging',
-      lists: 'Packlisten, Einkauf, Checklisten',
       places: 'Eure Lieblingsorte',
       people: 'Familie, Freunde und ihre wichtigen Tage',
       games: 'Fragen und Spiele für euch zwei',
@@ -84,7 +85,7 @@ const de = {
     },
     settings: {
       title: 'Einstellungen',
-      description: 'Darstellung, Verbindung, Privatsphäre und Datenexport.',
+      description: 'Darstellung, Verbindung, Privatsphäre und Speicher.',
     },
   },
   states: {
@@ -211,9 +212,6 @@ const de = {
       'Der Serverstatus konnte nicht geprüft werden. Deshalb wird keine neue Registrierung angeboten; die Anmeldung mit einem bestehenden Konto kann weiterhin versucht werden.',
     registrationUnavailable:
       'Ein neues Konto kann derzeit nicht erstellt werden. Bitte nutze ein bestehendes Konto oder versuche es später erneut.',
-    registerTitle: 'Dein Konto erstellen',
-    registerBody:
-      'Dein neues Konto wird direkt mit dem eingeladenen gemeinsamen Bereich verbunden.',
     displayName: 'Anzeigename',
     registerSubmit: 'Konto erstellen und beitreten',
     registerPending: 'Konto wird erstellt …',
@@ -240,6 +238,8 @@ const de = {
     mailRequestedBody:
       'Wenn die Adresse für diesen Zugang verwendet werden kann, wurde ein zeitlich begrenzter Link gesendet.',
     backToSignIn: 'Zur Anmeldung',
+    requestNewLink: 'Neuen Link anfordern',
+    useOtherAddress: 'Andere Adresse verwenden',
     useMagicLink: 'Anmeldelink per E-Mail',
     magicLinkEyebrow: 'Anmelden ohne Passwort',
     magicLinkTitle: 'Anmeldelink anfordern',
@@ -296,25 +296,13 @@ const de = {
   story: {
     savedTitle: 'Erinnerung gespeichert.',
     savedBody: 'Sie ist jetzt Teil eurer gemeinsamen Geschichte.',
-    eyebrow: 'Momente & Erinnerungen',
     title: 'Unsere Momente',
-    intro:
-      'Erinnerungen, Herzmomente und Meilensteine – euer ruhiges Zuhause für die Dinge, die bleiben.',
     timelineTitle: 'Momente',
     timelineIntro: 'Eure gemeinsame Geschichte.',
-    addMemory: 'Erinnerung',
     addMoment: 'Moment hinzufügen',
-    timelineKicker: 'Tagebuch',
     timelineHeading: 'Gemeinsame Geschichte',
-    discoverKicker: 'Entdecken',
     discoverInvitation: 'Ein neuer Blick auf eure Geschichte',
-    discoverDaily:
-      'Täglich neu zusammengestellt. Zum Erinnern, Lächeln und Weiterstöbern.',
-    discoverRenew: 'Neu entdecken',
-    discoverRenewing: 'Wir suchen …',
     discoverRenewed: 'Eure Auswahl ist neu zusammengestellt.',
-    discoverNewDay:
-      'Für heute wartet eine neue Auswahl. Mit „Neu entdecken“ könnt ihr sie ansehen.',
     discoverOffline:
       'Du bist gerade offline. Eure bisherige Auswahl bleibt hier; versuche es mit Verbindung erneut.',
     discoverRateLimit:
@@ -322,32 +310,15 @@ const de = {
     discoverRenewError:
       'Die neue Auswahl konnte nicht geladen werden. Eure bisherige Auswahl bleibt hier.',
     discoverHeading: 'Wiederentdecken',
-    discoverSubhead: 'Kleine Momente, die für immer geblieben sind.',
     tabDiscover: 'Erinnerungen',
     tabTimeline: 'Tagebuch',
     viewToggleAria: 'Ansicht wählen',
     browseTitle: 'Durchstöbern',
-    browseMilestones: 'Meilensteine',
-    browseChapters: 'Kapitel',
-    browseYears: 'Jahre',
-    streamAll: 'Alle in der Zeitleiste ansehen →',
     featuredHighlight: 'Besonderer Moment',
     featuredKicker: 'Wisst ihr noch?',
     onThisDay_one: 'Heute vor einem Jahr',
     onThisDay_other: 'Heute vor {{count}} Jahren',
-    retrospectiveSubhead: 'Ein Moment aus eurer gemeinsamen Geschichte.',
-    retrospectiveOpen: 'Erinnerung öffnen',
-    milestonesTitle: 'Meilensteine',
-    milestonesDesc: 'Große und kleine Stationen eurer gemeinsamen Geschichte.',
-    chaptersTitle: 'Kapitel',
-    chaptersDesc:
-      'Gemeinsame Erlebnisse und Reisen nach Lebensabschnitten bündeln.',
-    yearArchiveTitle: 'Unsere Jahre',
-    yearArchiveSubtitle: 'Eure gemeinsamen Momente, Jahr für Jahr.',
-    yearArchiveAll: 'Alle Jahre ansehen →',
     loadingAria: 'Momente werden geladen',
-    loadErrorTitle: 'Die Momente konnten nicht geladen werden.',
-    loadErrorFallback: 'Bitte versuche es erneut.',
     emptyTitle: 'Eure Geschichte beginnt hier',
     emptyBody: 'Haltet euren ersten gemeinsamen Moment fest.',
     emptyAction: 'Ersten Moment festhalten',
@@ -373,11 +344,7 @@ const de = {
     photos_other: '{{count}} Fotos',
   },
   storyYears: {
-    backToMoments: 'Zurück',
-    backToYears: '← Jahre & Rückblicke',
-    eyebrow: 'Jahresarchiv',
     title: 'Jahre & Rückblicke',
-    intro: 'Eure gemeinsame Geschichte, Jahr für Jahr.',
     listAria: 'Gemeinsame Jahre',
     recapsEntryTitle: 'Eure Rückblicke',
     recapsEntryHint: 'Monate und Jahre, für euch zusammengestellt',
@@ -404,14 +371,9 @@ const de = {
     offline: 'Offline – zuletzt gespeicherte Jahreschronik',
   },
   memory: {
-    backToStory: 'Zurück',
-    eyebrow: 'Euer Tagebuch',
     heading: 'Neuer Tagebucheintrag',
-    intro: 'Ein Gedanke, ein Foto oder eure ganze Geschichte.',
     formAria: 'Erinnerung erstellen',
-    titleLabel: 'Titel',
     titleLabelOptional: 'Titel (optional)',
-    titlePlaceholder: 'Zum Beispiel: Unser Tag am See',
     bodyLabel: 'Euer Tag in Worten',
     bodyPlaceholder: 'Was möchtest du von diesem Tag festhalten?',
     diary: {
@@ -423,7 +385,6 @@ const de = {
       photoRetry: 'Erneut laden',
       recoveryRequired:
         'Der Speicherstatus dieser Fotoauswahl konnte auf diesem Gerät nicht gesichert werden. Für diesen Speicherschritt wurde keine Anfrage gesendet. Deine Worte bleiben hier erhalten. Versuche es erneut oder entferne diese Fotos vor dem Speichern.',
-      optionalDetails: 'Stichworte',
       resumeTitle: 'Dein Entwurf wartet auf dich',
       resumeBody:
         'Auf diesem Gerät liegt ein noch nicht abgeschlossener Eintrag. Möchtest du ihn fortsetzen?',
@@ -449,8 +410,6 @@ const de = {
       },
     },
     tagsLabel: 'Was passt zu diesem Moment?',
-    tagsHelp:
-      'Optional · Wähle aus, was euch später an diesen Moment erinnert.',
     tagLabels: {
       out_together: 'Unterwegs zusammen',
       laughter: 'Lachen',
@@ -458,8 +417,6 @@ const de = {
       special_day: 'Besonderer Tag',
     },
     dateLabel: 'Datum',
-    dateHelp: 'Auch vergangene Tage sind möglich.',
-    dateChangeAction: 'Ändern',
     photoLabel: 'Fotos',
     photoSelected: 'Foto ausgewählt',
     photoPosition: 'Foto {{position}} von {{count}}',
@@ -471,11 +428,8 @@ const de = {
     photoFailures_one: 'Ein Foto braucht deine Hilfe.',
     photoFailures_other: '{{count}} Fotos brauchen deine Hilfe.',
     photoReviewFailure: 'Ansehen',
-    photoSelect: 'Fotos auswählen',
-    photoAddMore: 'Weitere Fotos auswählen',
     photoFormats: 'JPG, PNG, WebP, HEIC oder HEIF',
     photoDraftsAria: 'Ausgewählte Fotos',
-    photoLocalPreview: 'Lokale Vorschau',
     photoPreviewAlt: 'Lokale Vorschau für {{name}}',
     photoUploading: 'Wird hochgeladen …',
     photoValidating: 'Wird geprüft …',
@@ -484,10 +438,6 @@ const de = {
     photoFailedNotSaved:
       'Dieses Foto wird nicht gespeichert, solange der Upload fehlgeschlagen ist.',
     photoRemove: 'Entfernen',
-    photoEarlier: 'Nach vorn',
-    photoLater: 'Nach hinten',
-    photoMoveEarlier: '{{name}} nach vorn verschieben',
-    photoMoveLater: '{{name}} nach hinten verschieben',
     photoMoved: '{{name}} an Position {{position}} von {{count}}.',
     photoPendingSave:
       'Warte, bis alle laufenden Foto-Uploads abgeschlossen sind.',
@@ -495,16 +445,10 @@ const de = {
       'Ein Foto wurde nicht hinzugefügt, weil das Limit pro Erinnerung erreicht ist.',
     photoLimitReached_other:
       '{{count}} Fotos wurden nicht hinzugefügt, weil das Limit pro Erinnerung erreicht ist.',
-    visibilityAria: 'Sichtbarkeit',
     sharedTitle: 'Beim Speichern für euch beide sichtbar',
     sharedBody:
       'Diese Erinnerung ist für beide Personen in eurem gemeinsamen Space sichtbar.',
     save: 'Eintrag speichern',
-    saving: 'Wird gespeichert …',
-    processing: 'Erinnerung wird gespeichert und die Story aktualisiert …',
-    saveErrorTitle: 'Die Erinnerung konnte nicht gespeichert werden.',
-    saveErrorFallback: 'Bitte prüfe deine Verbindung und versuche es erneut.',
-    imageRequired: 'Bitte wähle ein Bild aus.',
   },
   header: {
     sharedArea: 'Gemeinsamer Bereich',
@@ -514,7 +458,6 @@ const de = {
       'Beim Abmelden wird alles von diesem Handy gelöscht: Fotos, offline gespeicherte Inhalte und Entwürfe, die du noch nicht gespeichert hast. Laufende Uploads werden abgebrochen.',
     logoutDeviceKept:
       'In eimir. bleibt alles erhalten. Nach dem nächsten Anmelden lädt die App deine Fotos wieder.',
-    logoutDeviceCancel: 'Abbrechen',
   },
   media: {
     unavailable: 'Foto derzeit nicht verfügbar',
@@ -533,9 +476,6 @@ const de = {
       'Das Dateiformat passt nicht zum ausgewählten Foto. Exportiere es als JPG oder PNG und wähle es erneut aus.',
     imageNotSanitizable:
       'Dieses Foto konnte nicht sicher verarbeitet werden. Exportiere es als JPG oder PNG und wähle es erneut aus.',
-    processingTimeout:
-      'Medienverarbeitung hat das READY-Fenster nicht rechtzeitig erreicht.',
-    imageLoadFailed: 'Bild konnte nicht geladen werden',
     signInFailed: 'Anmeldung fehlgeschlagen.',
     imageOnly: 'S8 akzeptiert ausschließlich Bilder.',
     imageEmpty: 'Das ausgewählte Bild ist leer.',

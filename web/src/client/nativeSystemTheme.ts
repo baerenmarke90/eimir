@@ -51,16 +51,26 @@ export function startNativeSystemTheme(
   let disposed = false;
   let listener: Promise<PluginListenerHandle> | null = null;
 
-  if (Capacitor.isPluginAvailable('SystemTheme')) {
-    listener = systemTheme.addListener('change', ({ dark }) => {
-      if (!disposed) reportSystemPrefersDark(dark);
-    });
+  const refresh = () => {
     void systemTheme
       .current()
       .then(({ dark }) => {
         if (!disposed) reportSystemPrefersDark(dark);
       })
       .catch(() => undefined);
+  };
+  const refreshWhenVisible = () => {
+    if (document.visibilityState === 'visible') refresh();
+  };
+
+  if (Capacitor.isPluginAvailable('SystemTheme')) {
+    listener = systemTheme.addListener('change', ({ dark }) => {
+      if (!disposed) reportSystemPrefersDark(dark);
+    });
+    refresh();
+    // A device change while the app was in the background must show on the
+    // first return, not only after the next one.
+    document.addEventListener('visibilitychange', refreshWhenVisible);
   }
 
   syncSystemBars(root);
@@ -69,6 +79,7 @@ export function startNativeSystemTheme(
 
   stop = () => {
     disposed = true;
+    document.removeEventListener('visibilitychange', refreshWhenVisible);
     observer.disconnect();
     appliedBarStyle = null;
     void listener?.then((handle) => handle.remove()).catch(() => undefined);

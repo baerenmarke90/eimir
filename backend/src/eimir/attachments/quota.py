@@ -27,8 +27,10 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from eimir.attachments import quota_override
 from eimir.attachments.models import Attachment, AttachmentStatus
 from eimir.config import Deployment, Settings, get_settings
+from eimir.core import clock
 from eimir.core.errors import ErrorCode, PayloadTooLargeError
 from eimir.db.locks import lock_subject
 from eimir.entitlements import service as entitlements
@@ -114,6 +116,21 @@ def space_quota(
     settings = settings or get_settings()
     if settings.deployment is not Deployment.CLOUD:
         return None
+    tier = tier_quota(session, space_id, settings=settings)
+    # An individual quota set by a ServerAdmin (#2324) only ever raises the
+    # tier value: the higher one applies, so buying Premium is never undercut
+    # (Product Owner, 2026-11-26). An unmetered tier stays unmetered.
+    override = quota_override.active_override(session, space_id, clock.now())
+    if override is not None and tier is not None:
+        return max(tier, override.quota_bytes)
+    return tier
+
+
+def tier_quota(session: Session, space_id: UUID, *, settings: Settings | None = None) -> int | None:
+    """Return the Free or Premium quota of the Space, ignoring any override."""
+    settings = settings or get_settings()
+    if settings.deployment is not Deployment.CLOUD:
+        return None
     premium = entitlements.has_capability(
         session,
         space_id,
@@ -121,6 +138,66 @@ def space_quota(
         deployment=settings.deployment,
     )
     return settings.storage_quota_premium_bytes if premium else settings.storage_quota_free_bytes
+
+
+def usage_by_media_type(session: Session, space_id: UUID) -> dict[str, int]:
+    """Return the counted bytes of the Space per attachment media type."""
+    counted = func.coalesce(Attachment.size, Attachment.declared_size)
+    rows = session.execute(
+        select(Attachment.media_type, func.coalesce(func.sum(counted), 0))
+        .where(
+            Attachment.space_id == space_id,
+            Attachment.status.in_(COUNTED_STATUSES),
+        )
+        .group_by(Attachment.media_type)
+    ).all()
+    return {str(media_type): int(total) for media_type, total in rows}
+
+
+def spaces_near_quota(
+    session: Session,
+    *,
+    ratio: float,
+    limit: int,
+    settings: Settings | None = None,
+) -> tuple[int, list[tuple[UUID, int, int]]]:
+    """Return the Spaces at or above ``ratio`` of their Cloud quota.
+
+    The result is the total number of such Spaces and at most ``limit`` of
+    them as ``(space_id, used, quota)``, fullest first. Self-Hosted and an
+    unmetered configuration have none. Counts and ids only: the ServerAdmin
+    Situation uses it to say that a Space is close to full, nothing about it.
+    """
+    settings = settings or get_settings()
+    if settings.deployment is not Deployment.CLOUD:
+        return 0, []
+    quotas = [
+        value
+        for value in (settings.storage_quota_free_bytes, settings.storage_quota_premium_bytes)
+        if value is not None
+    ]
+    if not quotas:
+        return 0, []
+    counted = func.coalesce(Attachment.size, Attachment.declared_size)
+    used = func.sum(counted)
+    # The lowest quota any Space can have bounds the candidates; each one is
+    # then measured against its own quota.
+    candidates = session.execute(
+        select(Attachment.space_id, used)
+        .where(
+            Attachment.space_id.is_not(None),
+            Attachment.status.in_(COUNTED_STATUSES),
+        )
+        .group_by(Attachment.space_id)
+        .having(used >= ratio * min(quotas))
+    ).all()
+    near: list[tuple[UUID, int, int]] = []
+    for space_id, total in candidates:
+        quota = space_quota(session, space_id, settings=settings)
+        if quota is not None and int(total) >= ratio * quota:
+            near.append((space_id, int(total), quota))
+    near.sort(key=lambda item: item[1] / item[2], reverse=True)
+    return len(near), near[:limit]
 
 
 def space_storage(

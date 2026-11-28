@@ -1,0 +1,12 @@
+eimir. Android 0.2.0-test.111
+
+- A private Heart Moment can now have its own photo location, a sensitive Heart Moment photo is revealed with one tap, and photos stay in place when a moment with photos is saved.
+- On Wir, the days-together count rolls into place on the anniversary and round days, the "New for you" and "Your turn" cards get personal reel styles, and the bridge heart is larger with a thinner outline.
+- Back navigation, map badges, the full-screen recap, the refresh spinner and the profile menu were fixed.
+- Choosing favourites from a wish selection now works with a swipeable card deck.
+- On Android, action and brand accents can follow your system colours (Material You).
+- You can write the message inside an opened "once" message by hand.
+- In recaps, a marker now sweeps in behind the quoted words of a highlight.
+
+The product changes come from main at da0c90387023fcb684a2a001aa629a479e2cef6f.
+Install over test.110 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 111.

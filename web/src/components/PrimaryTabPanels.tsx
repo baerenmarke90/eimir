@@ -1,24 +1,39 @@
 import {
+  memo,
   type ReactNode,
+  startTransition,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
 import {
   type Location,
+  NavigationType,
   Route,
   Routes,
+  UNSAFE_LocationContext as RouterLocationContext,
   useLocation,
   useNavigationType,
 } from 'react-router-dom';
-import { usePrimaryTabPeek } from '../client/primaryTabPeek';
-import { DEFAULT_APP_ROUTE } from '../client/routes';
+import { PrimaryTabActiveContext } from '../client/primaryTabActive';
+import { PrimaryTabPreparedContext } from '../client/primaryTabPrepared';
+import {
+  primaryTabPeekGeometry,
+  usePrimaryTabPeek,
+} from '../client/primaryTabPeek';
+import {
+  DEFAULT_APP_ROUTE,
+  PRIMARY_APP_ROUTES,
+  primaryTabIndex,
+} from '../client/routes';
 import {
   PrimaryTabTaskOriginScope,
   taskOriginPath,
   useTaskOrigin,
 } from '../client/taskOrigin';
+import { stagesSettled } from '../motion/stage';
 import { AppErrorBoundary } from './AppErrorBoundary';
 
 /** About half a second at 60 Hz for a revealed panel to finish settling. */
@@ -28,9 +43,27 @@ const USER_SCROLL_INTENTS = ['wheel', 'touchstart', 'keydown'] as const;
 const PREWARM_AFTER_MS = 4_000;
 /** ...and for this long without touch, scroll or keys. */
 const PREWARM_QUIET_MS = 1_500;
+/**
+ * The tabs beside the current one are built sooner: a first swipe to a tab
+ * that was never built mounts the whole page under the finger. They wait for
+ * the shown tab's opening, so they never compete with it.
+ */
+const NEIGHBOUR_AFTER_MS = 1_000;
+const NEIGHBOUR_QUIET_MS = 500;
+/**
+ * A built neighbour is drawn once, practically invisibly, a while after it
+ * was built (once its data, photos and memory world settled): its first
+ * layout, image decoding and the GPU's first use of its effects then happen
+ * while nobody touches the screen, not in the first frames of a swipe.
+ */
+const REHEARSE_AFTER_MS = 2_000;
 const PREWARM_INPUT = [
   'pointerdown',
+  'pointerup',
+  'pointercancel',
   'touchstart',
+  'touchend',
+  'touchcancel',
   'wheel',
   'keydown',
   'scroll',
@@ -38,140 +71,360 @@ const PREWARM_INPUT = [
 
 /**
  * Asks for `paths` to be prepared once the app is quiet (#2063): a few
- * seconds after start, with no touch, scroll or keys for a moment, in an idle
- * period, and not while the page is hidden or the person saves data.
+ * seconds after start or after the last change of `paths`, with no touch,
+ * scroll or keys for a moment, in an idle period, and not while the page is
+ * hidden or the person saves data. Prepared paths stay prepared. One path is
+ * prepared per idle period, as a transition, so React builds it in short
+ * slices instead of one long task.
  */
-function usePrewarm(paths: readonly string[]): ReadonlySet<string> {
+function usePrewarm(
+  paths: readonly string[],
+  afterMs = PREWARM_AFTER_MS,
+  quietMs = PREWARM_QUIET_MS,
+  ready?: () => Promise<void>,
+): ReadonlySet<string> {
   const [prepared, setPrepared] = useState<ReadonlySet<string>>(
     () => new Set(),
   );
-  const key = paths.join('|');
+  const pathsKey = paths.join('|');
   useEffect(() => {
+    let key = pathsKey;
     if (!key) return;
     const connection = (
       navigator as Navigator & { connection?: { saveData?: boolean } }
     ).connection;
     if (connection?.saveData) return;
+    const listeners = new AbortController();
+    const contacts = new Set<number>();
+    let touches = 0;
     let lastInput = performance.now();
-    const touched = () => {
+    const touched = (event: Event) => {
+      lastInput = performance.now();
+      if ('touches' in event) touches = (event as TouchEvent).touches.length;
+      if ('pointerId' in event && typeof event.pointerId === 'number') {
+        if (event.type === 'pointerdown') contacts.add(event.pointerId);
+        else contacts.delete(event.pointerId);
+      }
+    };
+    const options = { passive: true, capture: true, signal: listeners.signal };
+    for (const type of PREWARM_INPUT)
+      window.addEventListener(type, touched, options);
+    const releaseContacts = () => {
+      touches = 0;
+      contacts.clear();
       lastInput = performance.now();
     };
-    for (const type of PREWARM_INPUT)
-      window.addEventListener(type, touched, { passive: true, capture: true });
+    window.addEventListener('blur', releaseContacts, options);
+    document.addEventListener('visibilitychange', releaseContacts, options);
     let timer: number | undefined;
     let idle: number | undefined;
-    const prepare = () => setPrepared(new Set(key.split('|')));
-    const attempt = () => {
-      const quietFor = performance.now() - lastInput;
-      if (document.hidden || quietFor < PREWARM_QUIET_MS) {
-        timer = window.setTimeout(attempt, PREWARM_QUIET_MS);
+    const stop = () => {
+      listeners.abort();
+      window.clearTimeout(timer);
+      if (idle !== undefined) window.cancelIdleCallback?.(idle);
+    };
+    const attempt = (inIdlePeriod = false) => {
+      if (listeners.signal.aborted) return;
+      if (connection?.saveData) return stop();
+      if (
+        document.hidden ||
+        contacts.size ||
+        touches ||
+        performance.now() - lastInput < quietMs
+      ) {
+        timer = window.setTimeout(attempt, quietMs);
         return;
       }
+      if (inIdlePeriod) {
+        const [next, ...rest] = key.split('|');
+        startTransition(() =>
+          setPrepared((current) => new Set([...current, next])),
+        );
+        if (!rest.length) return stop();
+        // The next path waits for its own quiet idle period.
+        timer = window.setTimeout(attempt, quietMs);
+        key = rest.join('|');
+        return;
+      }
+      // Input or page visibility can change between this request and its
+      // actual callback. Re-check eligibility immediately before mounting.
+      const prepare = () => attempt(true);
       if (typeof window.requestIdleCallback === 'function')
         idle = window.requestIdleCallback(prepare, { timeout: 2_000 });
       else timer = window.setTimeout(prepare, 0);
     };
-    timer = window.setTimeout(attempt, PREWARM_AFTER_MS);
-    return () => {
-      for (const type of PREWARM_INPUT)
-        window.removeEventListener(type, touched, { capture: true });
-      window.clearTimeout(timer);
-      if (idle !== undefined) window.cancelIdleCallback?.(idle);
-    };
-  }, [key]);
+    timer = window.setTimeout(() => {
+      if (!ready) return attempt();
+      void ready().then(() => attempt());
+    }, afterMs);
+    return stop;
+  }, [pathsKey, afterMs, quietMs, ready]);
   return prepared;
 }
 
 /**
- * A kept tab that is shown again is the same view, not a new arrival. Un-hiding
- * a `display: none` subtree restarts every CSS animation in it, so entrances
- * (the Wir opening, the quote's fade, a badge's arrival) would replay each
- * time and could be cut off half-way by the next render. Finish the single
- * runs at once, before paint. Repeating ambient motion (the rings' breath,
- * garden life) restarts softly from its resting frame and is left running;
- * script-driven animations (flights) are not CSS animations and are kept.
+ * Draws each path of `ready` once, one at a time: the path is returned for
+ * one painted frame, then never again.
  */
-export function settleRestartedEntrances(panel: Element | null) {
-  if (
-    !panel ||
-    typeof panel.getAnimations !== 'function' ||
-    typeof CSSAnimation === 'undefined'
-  )
-    return;
-  for (const animation of panel.getAnimations({ subtree: true })) {
-    if (
-      !(animation instanceof CSSAnimation) ||
-      animation.timeline !== document.timeline
-    )
-      continue;
-    const timing = animation.effect?.getComputedTiming();
-    if (timing?.iterations !== 1 || !Number.isFinite(timing.endTime)) continue;
-    animation.finish();
-  }
+function useRehearsal(ready: ReadonlySet<string>): string | null {
+  const [current, setCurrent] = useState<string | null>(null);
+  const done = useRef(new Set<string>());
+  useEffect(() => {
+    if (current) {
+      // The first callback runs before the frame that draws the panel, the
+      // second one after it was drawn.
+      let second = 0;
+      const first = requestAnimationFrame(() => {
+        second = requestAnimationFrame(() => {
+          done.current.add(current);
+          setCurrent(null);
+        });
+      });
+      return () => {
+        cancelAnimationFrame(first);
+        cancelAnimationFrame(second);
+      };
+    }
+    const next = [...ready].find((path) => !done.current.has(path));
+    if (next) setCurrent(next);
+  }, [ready, current]);
+  return current;
 }
 
 export interface PrimaryTabPanel {
   path: string;
   element: ReactNode;
+  /** Some roots share forms and IDs with separate routes and must unmount on exit. */
+  retain?: boolean;
+}
+
+const WIR_TRACKS = '.wir-lists-row, .today-agenda-list, .today-stream';
+/** Wir tracks that were scrolled away from their first item. */
+const movedTracks = new Set<HTMLElement>();
+let watchingTracks = false;
+
+/**
+ * Tracks report their own scroll, so a reset knows which tracks moved
+ * without reading any offset: writing an offset forces a layout of the whole
+ * page, which cost the Pixel up to 56 ms per swipe back to Wir.
+ */
+function watchWirTracks() {
+  if (watchingTracks || typeof document === 'undefined') return;
+  watchingTracks = true;
+  document.addEventListener(
+    'scroll',
+    (event) => {
+      const track = event.target;
+      if (!(track instanceof HTMLElement) || !track.matches(WIR_TRACKS)) return;
+      if (track.scrollLeft > 0) movedTracks.add(track);
+      else movedTracks.delete(track);
+    },
+    { capture: true, passive: true },
+  );
+}
+
+/** Start Wir's lists, notes, agenda and activity tracks at their first item. */
+function resetWirCarousels(panel: Element | null) {
+  if (!panel) return;
+  for (const track of movedTracks) {
+    if (!track.isConnected) movedTracks.delete(track);
+    else if (panel.contains(track)) {
+      track.scrollLeft = 0;
+      movedTracks.delete(track);
+    }
+  }
 }
 
 /**
- * Wir starts fresh when it is opened again: the carousels inside it (lists,
- * what is coming up, recent activity) show their first item again instead of
- * wherever they were swiped to. They are the only scrollers a person can leave
- * half-way, so any element with a horizontal offset is put back.
+ * The tab's routed page. It depends only on the location the tab sees, so
+ * showing, hiding or peeking the tab never renders the page again.
+ *
+ * `Routes` reads the router's location even when it is given its own, and
+ * hands its routes a new location context each time it renders. Without the
+ * provider here every navigation in the app would therefore render every
+ * page, link and route hook of every kept tab. The provider gives `Routes`
+ * the location the tab sees, which is also the one it passes on.
  */
-function resetHorizontalScroll(panel: Element | null) {
-  if (!panel) return;
-  for (const element of panel.querySelectorAll<HTMLElement>('*'))
-    if (element.scrollLeft !== 0) element.scrollLeft = 0;
-}
+const KeptRoute = memo(function KeptRoute({
+  path,
+  element,
+  location,
+}: {
+  path: string;
+  element: ReactNode;
+  location: Location;
+}) {
+  const seen = useMemo(
+    () => ({ location, navigationType: NavigationType.Pop }),
+    [location],
+  );
+  return (
+    <RouterLocationContext.Provider value={seen}>
+      <Routes location={location}>
+        <Route path={path} element={element} />
+      </Routes>
+    </RouterLocationContext.Provider>
+  );
+});
+
+/**
+ * Revealing a mounted neighbour only changes its panel's visibility. Keep
+ * the nested router and its location consumers at rest during that gesture.
+ */
+const TabRouteContent = memo(function TabRouteContent({
+  path,
+  element,
+  active,
+  location,
+  previewKey,
+  prepared,
+  fallback,
+}: {
+  path: string;
+  element: ReactNode;
+  active: boolean;
+  location: Location;
+  previewKey?: string;
+  /** Set while the tab is prepared before its first visit. */
+  prepared?: () => void;
+  fallback: ReactNode;
+}) {
+  const kept = useMemo(
+    () =>
+      previewKey
+        ? {
+            ...location,
+            pathname: path,
+            search: '',
+            hash: '',
+            state: null,
+            key: previewKey,
+          }
+        : location,
+    [location, path, previewKey],
+  );
+  return (
+    <PrimaryTabActiveContext.Provider value={active}>
+      <PrimaryTabPreparedContext.Provider value={prepared ?? null}>
+        <PrimaryTabTaskOriginScope active={active}>
+          <AppErrorBoundary resetKey={kept.key} fallback={fallback}>
+            <KeptRoute path={path} element={element} location={kept} />
+          </AppErrorBoundary>
+        </PrimaryTabTaskOriginScope>
+      </PrimaryTabPreparedContext.Provider>
+    </PrimaryTabActiveContext.Provider>
+  );
+});
 
 /**
  * Keeps every visited primary tab mounted, like a native tab bar. Returning to
  * a tab reuses the view and its images and restores the reader on Back.
- * Inactive tabs are removed from layout, focus order and accessibility tree
- * and see the location they last had, so they never react to another tab's
- * route. Queries in hidden tabs stay subscribed and follow the normal cache
+ * Inactive tabs keep their rendering state but skip it
+ * (`content-visibility: hidden`, shell.css), so showing one again needs no
+ * new style or layout pass and never restarts its CSS animations. They are
+ * out of the reading flow, focus order and accessibility tree and see the
+ * location they last had, so they never react to another tab's route. Queries in hidden tabs stay subscribed and follow the normal cache
  * freshness and invalidation contracts.
  */
 export function PrimaryTabPanels({
   panels,
   fallback,
   prewarm = [],
+  prewarmNeighbours = false,
 }: {
   panels: readonly PrimaryTabPanel[];
   fallback: ReactNode;
   /**
    * Panels built in the background once the app is quiet, before their
    * first visit, so they open complete (#2063: the Momente map). They are
-   * laid out invisibly, outside the reading flow, until visited.
+   * laid out invisibly, outside the reading flow, until visited. A nested
+   * panel (`/story/map`) is prepared only after its tab (`/story`) was
+   * opened, so it never competes with the app's first seconds.
    */
   prewarm?: readonly string[];
+  /**
+   * Also build the tabs beside the current one soon after start, so a first
+   * swipe reveals a built page. They stay hidden like a parked tab (their
+   * layout is skipped until they are revealed).
+   */
+  prewarmNeighbours?: boolean;
 }) {
-  const prepared = usePrewarm(prewarm);
   const location = useLocation();
   const navigationType = useNavigationType();
   const { resolveOrigin } = useTaskOrigin();
   const pathname = location.pathname.replace(/\/$/, '') || '/';
-  const active = panels.some((panel) => panel.path === pathname)
-    ? pathname
-    : null;
-  const startWirAtTop =
-    active === DEFAULT_APP_ROUTE &&
+  const activePanel = panels.find((panel) => panel.path === pathname);
+  const active = activePanel?.path ?? null;
+  const state = location.state as {
+    primaryRootEntry?: boolean;
+    taskReturnKey?: unknown;
+  } | null;
+  const startAtTop =
     navigationType !== 'POP' &&
-    resolveOrigin(
-      (location.state as { taskReturnKey?: unknown } | null)?.taskReturnKey,
-    )?.to !== taskOriginPath(location.pathname, location.search);
+    (state?.primaryRootEntry === true || active === DEFAULT_APP_ROUTE) &&
+    resolveOrigin(state?.taskReturnKey)?.to !==
+      taskOriginPath(location.pathname, location.search);
   // Idempotent render-time bookkeeping: a newly visited tab mounts in the same
   // commit that makes it active.
   const locations = useRef(new Map<string, Location>());
-  if (active) locations.current.set(active, location);
+  if (active && activePanel?.retain !== false)
+    locations.current.set(active, location);
+  // A nested panel waits until its own tab was opened.
+  const candidates = prewarm.filter((path) => {
+    const parent = panels.find(
+      (panel) => panel.path !== path && path.startsWith(`${panel.path}/`),
+    );
+    return !parent || locations.current.has(parent.path);
+  });
+  const unbuilt = (path: string | undefined): path is string =>
+    typeof path === 'string' &&
+    path !== active &&
+    !locations.current.has(path) &&
+    panels.some((panel) => panel.path === path && panel.retain !== false);
+  const prepared = usePrewarm(candidates.filter(unbuilt));
+  // A prepared page says when it has drawn what it is prepared for; its panel
+  // then rests with its contents skipped until the first visit. One stable
+  // callback per path, so telling it never renders the page.
+  const [rested, setRested] = useState<ReadonlySet<string>>(() => new Set());
+  const restCallbacks = useRef(new Map<string, () => void>());
+  const restFor = (path: string) => {
+    let rest = restCallbacks.current.get(path);
+    if (!rest) {
+      rest = () =>
+        setRested((current) =>
+          current.has(path) ? current : new Set(current).add(path),
+        );
+      restCallbacks.current.set(path, rest);
+    }
+    return rest;
+  };
+  const index = primaryTabIndex(pathname);
+  const neighbours =
+    prewarmNeighbours && index >= 0
+      ? [
+          PRIMARY_APP_ROUTES[index - 1]?.path,
+          PRIMARY_APP_ROUTES[index + 1]?.path,
+        ].filter(unbuilt)
+      : [];
+  const built = usePrewarm(
+    neighbours,
+    NEIGHBOUR_AFTER_MS,
+    NEIGHBOUR_QUIET_MS,
+    stagesSettled,
+  );
+  const rehearsable = usePrewarm(
+    [...built].filter(unbuilt),
+    REHEARSE_AFTER_MS,
+    NEIGHBOUR_QUIET_MS,
+    stagesSettled,
+  );
+  const rehearsing = useRehearsal(rehearsable);
   const scrollPositions = useRef(new Map<string, number>());
   const peek = usePrimaryTabPeek();
   const peekRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<string | null>(null);
   const renderedTab = useRef<string | null>(null);
+  useEffect(watchWirTracks, []);
 
   // Capture the outgoing reading position while its panel is still visible.
   // Once React hides that panel, the shorter destination can clamp scrollY
@@ -182,39 +435,23 @@ export function PrimaryTabPanels({
     renderedTab.current = active;
   }
 
-  // A kept tab that is shown again (made active or peeked) settles the
-  // entrances its un-hiding restarted; its first showing plays them.
-  const shownTabs = useRef(new Set<string>());
-  const everShownTabs = useRef(new Set<string>());
-  const shownNow = [active, peek].filter(
-    (path): path is string => typeof path === 'string',
-  );
-  const shownKey = shownNow.join('\u0000');
-  useLayoutEffect(() => {
-    const now = new Set(shownKey ? shownKey.split('\u0000') : []);
-    for (const path of now) {
-      if (!shownTabs.current.has(path) && everShownTabs.current.has(path))
-        settleRestartedEntrances(
-          document.querySelector(`[data-primary-tab="${path}"]`),
-        );
-      // A peeked tab that was never opened is not kept and may unmount.
-      if (locations.current.has(path)) everShownTabs.current.add(path);
-    }
-    shownTabs.current = now;
-  }, [shownKey]);
-
   useLayoutEffect(() => {
     const previous = activeRef.current;
     activeRef.current = active;
     if (!active || previous === active) return;
-    // Opening Wir from the tab bar starts at the portraits. Back and task
+    // A tab selection opens its overview at the top. History and task
     // returns keep their captured reading position.
-    const target = startWirAtTop
-      ? 0
-      : (scrollPositions.current.get(active) ?? 0);
-    window.scrollTo({ top: target, behavior: 'instant' });
-    if (startWirAtTop)
-      resetHorizontalScroll(
+    const target = startAtTop ? 0 : (scrollPositions.current.get(active) ?? 0);
+    // The page is where the outgoing tab was left (read when it rendered).
+    // Scrolling forces a layout of the shown page, so it only runs when the
+    // position actually changes.
+    const current = previous
+      ? scrollPositions.current.get(previous)
+      : undefined;
+    if (current !== target)
+      window.scrollTo({ top: target, behavior: 'instant' });
+    if (startAtTop && active === DEFAULT_APP_ROUTE)
+      resetWirCarousels(
         document.querySelector(`[data-primary-tab="${active}"]`),
       );
     if (target === 0) return;
@@ -247,48 +484,37 @@ export function PrimaryTabPanels({
       window.addEventListener(type, stop, { passive: true });
     request = requestAnimationFrame(settle);
     return stop;
-  }, [active, startWirAtTop]);
+  }, [active, startAtTop]);
 
   // While a swipe drags the pages, the neighbouring tab is laid over the
-  // viewport at the reading position it was left in. Measure once per peek
-  // and let CSS place it; the gesture only supplies the horizontal offset.
+  // viewport at the top of its overview, in the column the gesture measured
+  // before revealing it. Nothing is read from layout here: revealing the tab
+  // must not force a synchronous layout of it inside the touch handler.
   useLayoutEffect(() => {
     const panel = peekRef.current;
-    const main = panel?.parentElement;
-    if (!panel || !main || !peek) return;
-    // Wir is always shown from its start, like it opens from the tab bar.
-    if (peek === DEFAULT_APP_ROUTE) resetHorizontalScroll(panel);
-    const box = main.getBoundingClientRect();
-    const paddingTop = Number.parseFloat(getComputedStyle(main).paddingTop);
-    const saved =
-      peek === DEFAULT_APP_ROUTE ? 0 : (scrollPositions.current.get(peek) ?? 0);
-    panel.style.setProperty('--primary-tab-peek-left', `${box.left}px`);
-    panel.style.setProperty('--primary-tab-peek-width', `${box.width}px`);
+    const geometry = primaryTabPeekGeometry();
+    if (!panel || !peek || !geometry) return;
+    panel.style.setProperty('--primary-tab-peek-left', `${geometry.left}px`);
+    panel.style.setProperty('--primary-tab-peek-width', `${geometry.width}px`);
     panel.style.setProperty(
       '--primary-tab-peek-origin',
-      `${box.top + window.scrollY - saved + (paddingTop || 0)}px`,
+      `${geometry.origin}px`,
     );
+    if (peek !== DEFAULT_APP_ROUTE) return;
+    // Wir is always shown from its start, like it opens from the tab bar.
+    // Scroll writes need layout, so they join the next frame's own pass.
+    const frame = requestAnimationFrame(() => resetWirCarousels(panel));
+    return () => cancelAnimationFrame(frame);
   }, [peek]);
 
   return panels.map(({ path, element }) => {
     const peeking = peek === path && path !== active;
     // A tab that was never opened is shown from its root while it is peeked,
     // but is not kept (and unmounts again if the swipe is cancelled).
-    const visited = locations.current.get(path);
+    const visited = path === active ? location : locations.current.get(path);
     const preparing = !visited && !peeking && prepared.has(path);
-    const kept =
-      visited ??
-      (peeking || preparing
-        ? {
-            ...location,
-            pathname: path,
-            search: '',
-            hash: '',
-            state: null,
-            key: `${peeking ? 'peek' : 'prewarm'}-${path}`,
-          }
-        : undefined);
-    if (!kept) return null;
+    const prebuilt = !visited && !peeking && !preparing && built.has(path);
+    if (!visited && !peeking && !preparing && !prebuilt) return null;
     const visible = path === active;
     return (
       <div
@@ -297,18 +523,31 @@ export function PrimaryTabPanels({
         className="primary-tab-panel"
         data-primary-tab={path}
         data-primary-tab-peek={peeking ? 'true' : undefined}
-        data-primary-tab-prewarm={preparing ? 'true' : undefined}
-        aria-hidden={peeking || preparing ? true : undefined}
-        inert={peeking || preparing}
+        data-primary-tab-prewarm={
+          preparing ? (rested.has(path) ? 'rested' : 'true') : undefined
+        }
+        data-primary-tab-rehearse={
+          prebuilt && rehearsing === path ? 'true' : undefined
+        }
+        // A parked tab skips its contents (`content-visibility: hidden`),
+        // which also takes them out of focus order, find-in-page and the
+        // accessibility tree; `aria-hidden` covers a peek and a preparation.
+        // No `inert`: it is inherited style, so each park and show would
+        // restyle every element of the tab (19-35 ms for Wir on the Pixel).
+        aria-hidden={visible ? undefined : true}
         hidden={!visible && !peeking && !preparing}
       >
-        <PrimaryTabTaskOriginScope active={visible}>
-          <AppErrorBoundary resetKey={kept.key} fallback={fallback}>
-            <Routes location={kept}>
-              <Route path={path} element={element} />
-            </Routes>
-          </AppErrorBoundary>
-        </PrimaryTabTaskOriginScope>
+        <TabRouteContent
+          path={path}
+          element={element}
+          active={visible}
+          location={visited ?? location}
+          previewKey={
+            visited ? undefined : `${peeking ? 'peek' : 'prewarm'}-${path}`
+          }
+          prepared={preparing ? restFor(path) : undefined}
+          fallback={fallback}
+        />
       </div>
     );
   });

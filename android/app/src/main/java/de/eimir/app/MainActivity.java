@@ -12,6 +12,7 @@ import android.webkit.RenderProcessGoneDetail;
 import android.webkit.WebView;
 import androidx.core.splashscreen.SplashScreen;
 import com.getcapacitor.Bridge;
+import com.getcapacitor.PluginHandle;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.WebViewListener;
@@ -58,6 +59,7 @@ public class MainActivity extends BridgeActivity {
         }
         registerPlugin(NativePushBridge.class);
         registerPlugin(AppIconPlugin.class);
+        registerPlugin(AppShortcutsPlugin.class);
         registerPlugin(LaunchScreenPlugin.class);
         registerPlugin(NativeSessionStoragePlugin.class);
         registerPlugin(PlanCalendarPlugin.class);
@@ -65,10 +67,12 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(VoiceSharePlugin.class);
         registerPlugin(BackgroundMediaUploadsPlugin.class);
         registerPlugin(SystemThemePlugin.class);
+        registerPlugin(SystemColorsPlugin.class);
         registerPlugin(ApproximateLocationPlugin.class);
         registerPlugin(PasskeysPlugin.class);
         registerPlugin(ScreenOrientationPlugin.class);
         registerPlugin(SecureScreenPlugin.class);
+        registerPlugin(SystemHapticsPlugin.class);
         super.onCreate(savedInstanceState);
         // A fresh start owns no composer, so no earlier camera capture may stay
         // (#2048). A restored Activity keeps it: the camera may still return.
@@ -101,7 +105,17 @@ public class MainActivity extends BridgeActivity {
         super.onConfigurationChanged(newConfig);
         // uiMode is handled here, so the night startup color is reapplied
         // instead of recreating the activity and reloading the WebView.
-        if (getBridge() != null) applyStartupBackground();
+        if (getBridge() != null) {
+            applyStartupBackground();
+            reportSystemTheme(newConfig);
+        }
+    }
+
+    private void reportSystemTheme(Configuration newConfig) {
+        PluginHandle handle = getBridge().getPlugin("SystemTheme");
+        if (handle != null && handle.getInstance() instanceof SystemThemePlugin) {
+            ((SystemThemePlugin) handle.getInstance()).onSystemConfiguration(newConfig);
+        }
     }
 
     private void logRuntimeVersion() {
@@ -217,6 +231,7 @@ public class MainActivity extends BridgeActivity {
     public void onStop() {
         rendererRecovery.stopped();
         super.onStop();
+        LauncherIcons.applyPendingAfterLeaving(this);
     }
 
     static boolean isForeground() {

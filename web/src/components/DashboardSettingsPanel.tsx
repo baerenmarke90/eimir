@@ -40,7 +40,9 @@ import { ProMark } from './ProMark';
 const MODULE_ICONS: Record<DashboardModuleKey, EimirIconName> = {
   relationship_presence: 'wir',
   partner_distance: 'orte',
+  new_for_you: 'benachrichtigungen',
   shared_experience: 'nurfuer',
+  games_waiting: 'spiele',
   daily_quote: 'quote',
   keepsake: 'momente',
   upcoming: 'kalender',
@@ -57,6 +59,7 @@ const MODULE_ICONS: Record<DashboardModuleKey, EimirIconName> = {
 /** Pro modules whose row carries the calm Pro marker. */
 const PRO_MARKED_MODULES: readonly DashboardModuleKey[] = [
   'partner_distance',
+  'games_waiting',
   'shared_garden',
 ];
 
@@ -665,7 +668,7 @@ export function DashboardSettingsPanel({
     pendingVisibility[`${settingsScope}:${UPCOMING_MODULE_KEY}`] !==
       undefined || pendingVisibilityMutations.includes(UPCOMING_MODULE_KEY);
   const status = isLimitPending
-    ? t('profileIdentity.dashboardUpcomingSaving')
+    ? t('common.saving')
     : savedLimitScope === settingsScope
       ? t('profileIdentity.dashboardUpcomingSaved')
       : preferencesQuery.isPending
@@ -677,7 +680,7 @@ export function DashboardSettingsPanel({
     Object.keys(pendingVisibility).some((key) =>
       key.startsWith(`${settingsScope}:`),
     )
-      ? t('profileIdentity.dashboardModuleSaving')
+      ? t('common.saving')
       : savedModuleKey
         ? t('profileIdentity.dashboardModuleSaved')
         : null;

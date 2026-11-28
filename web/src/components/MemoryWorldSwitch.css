@@ -1,0 +1,46 @@
+/* The quiet "Welt wechseln" entry of Momente › Erinnerungen (#2283): a round
+   picture of the current world at the end of the world's top row, next to
+   its heading or the Story theme circles. */
+.memory-world-switch {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  /* At least a touch target; it grows with the picture at larger text. */
+  min-inline-size: var(--touch-target-web);
+  min-block-size: var(--touch-target-web);
+  padding: var(--space-1);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-text) 6%, transparent);
+  -webkit-tap-highlight-color: transparent;
+}
+.memory-world-switch:active {
+  background: color-mix(in srgb, var(--color-text) 12%, transparent);
+}
+.memory-world-switch:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+.memory-world-switch-art {
+  inline-size: var(--space-8);
+  block-size: var(--space-8);
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+}
+
+/*
+ * Measured on Android (cold start, frame recordings, #2283): the Erinnerungen
+ * panel had three competing entrances. The world's own calm entrance
+ * (memoryWorlds/WorldEnter) replaces them:
+ * - PlanningReference.css, loaded later with the Planen chunk, fades every
+ *   Momente tabpanel in; arriving late it reset the already visible panel to
+ *   opacity 0 (a blank frame, then a second fade);
+ * - the first-content arrival with its glow on the discover section doubled
+ *   the entrance and read as a flash.
+ */
+.story-page-unified #momente-panel-discover:not([hidden]),
+.story-page #momente-panel-discover {
+  animation: none;
+}
+.momente-discover-page.first-content-settle {
+  animation: none;
+}

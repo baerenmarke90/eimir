@@ -4,13 +4,11 @@ import { expect, type Page, test } from '@playwright/test';
 import composer from '../../src/i18n/locales/composer';
 import contextTags from '../../src/i18n/locales/contextTags';
 import de from '../../src/i18n/locales/de';
-import experiences from '../../src/i18n/locales/experiences';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import photoSources from '../../src/i18n/locales/photoSources';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
-import taskSheets from '../../src/i18n/locales/taskSheets';
 import { expectLabeledComposerTool } from '../support/addAction';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { resumeLegacyMemoryAttempt } from '../support/legacyMemoryDraft';
@@ -242,7 +240,9 @@ for (const [width, colorScheme] of [
         { fullPage: true },
       );
     await expect(
-      sheet.getByLabel(photoSources.accept, { exact: true }),
+      sheet.getByLabel('Ausgewählte Fotos in meinen Entwurf übernehmen', {
+        exact: true,
+      }),
     ).toHaveCount(0);
     await sheet
       .getByRole('button', { name: photoSources.immich, exact: true })
@@ -323,7 +323,9 @@ test('Google browser authorization returns selected copies to the unsaved diary'
     .getByRole('button', { name: photoSources.google, exact: true })
     .click();
   await expect(
-    sheet.getByLabel(photoSources.accept, { exact: true }),
+    sheet.getByLabel('Ausgewählte Fotos in meinen Entwurf übernehmen', {
+      exact: true,
+    }),
   ).toHaveCount(0);
   await expect(sheet).toBeHidden({ timeout: 15_000 });
   expect(externalUrls).toEqual(['https://accounts.google.com/authorize']);
@@ -378,7 +380,9 @@ test('closing a pending source transfer keeps authored words and rejects late ph
   await openComposerMediaSources(page);
   const sheet = page.locator('.photo-source-sheet[role=dialog]');
   await expect(
-    sheet.getByLabel(photoSources.accept, { exact: true }),
+    sheet.getByLabel('Ausgewählte Fotos in meinen Entwurf übernehmen', {
+      exact: true,
+    }),
   ).toHaveCount(0);
   await sheet
     .getByRole('button', { name: photoSources.immich, exact: true })
@@ -388,7 +392,7 @@ test('closing a pending source transfer keeps authored words and rejects late ph
   await expect.poll(() => source.originals).toBe(1);
   await sheet
     .locator('.photo-source-footer')
-    .getByRole('button', { name: taskSheets.close, exact: true })
+    .getByRole('button', { name: de.common.close, exact: true })
     .click();
   finish();
   await expect(sheet).toBeHidden();
@@ -486,7 +490,7 @@ test('Pro expiry retains the personal link and permits disconnect without import
   ).toBeDisabled();
   await sheet
     .locator('.photo-source-footer')
-    .getByRole('button', { name: taskSheets.close, exact: true })
+    .getByRole('button', { name: de.common.close, exact: true })
     .click();
   await page.goto('/more/settings/media');
   await page
@@ -514,7 +518,9 @@ test('offline source import at narrow large text preserves the diary draft', asy
   await openComposerMediaSources(page);
   const sheet = page.locator('.photo-source-sheet[role=dialog]');
   await expect(
-    sheet.getByLabel(photoSources.accept, { exact: true }),
+    sheet.getByLabel('Ausgewählte Fotos in meinen Entwurf übernehmen', {
+      exact: true,
+    }),
   ).toHaveCount(0);
   await sheet
     .getByRole('button', { name: photoSources.immich, exact: true })
@@ -530,7 +536,7 @@ test('offline source import at narrow large text preserves the diary draft', asy
   await context.setOffline(false);
   await sheet
     .locator('.photo-source-footer')
-    .getByRole('button', { name: taskSheets.close, exact: true })
+    .getByRole('button', { name: de.common.close, exact: true })
     .click();
   await expect(
     page.getByRole('textbox', { name: de.memory.bodyLabel, exact: true }),
@@ -1255,7 +1261,7 @@ test('custom Memory tags survive create, reload, edit and removal (#1290)', asyn
       .locator('.memory-tag-summary')
       .getByText('Ostsee 2026', { exact: true }),
   ).toBeVisible();
-  await editViaMenu(page, memoryProduct.edit);
+  await editViaMenu(page, de.common.edit);
   await showContextTags(page);
   await page
     .getByRole('checkbox', {
@@ -2256,7 +2262,7 @@ for (const [width, colorScheme] of [
     const picker = page.getByRole('dialog', { name: placeCopy.add });
     await picker.getByRole('button', { name: /Kölner Dom/ }).click();
     await picker
-      .getByRole('button', { name: experiences.finish, exact: true })
+      .getByRole('button', { name: de.common.done, exact: true })
       .click();
     await expect(picker).toHaveCount(0);
     const selected = page.getByRole('button', {
@@ -2376,7 +2382,7 @@ test('new capture Place is deliberately shared before the entry is saved', async
     .click();
   await page
     .getByRole('dialog', { name: copy.add, exact: true })
-    .getByRole('button', { name: experiences.finish, exact: true })
+    .getByRole('button', { name: de.common.done, exact: true })
     .click();
   await expect(
     page.getByRole('button', {
@@ -2535,7 +2541,7 @@ for (const [width, colorScheme] of [
     await expect.poll(() => photos.ready.size).toBe(3);
     await page.getByRole('button', { name: de.memory.save }).click();
     await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
-    await editViaMenu(page, memoryProduct.edit);
+    await editViaMenu(page, de.common.edit);
     await openComposerMediaSources(page);
     await page.locator('#memory-edit-images-source').setInputFiles({
       name: 'later.jpg',
@@ -2727,7 +2733,9 @@ for (const kind of ['plan', 'heart'] as const) {
     await openComposerMediaSources(page);
     const sheet = page.locator('.photo-source-sheet[role=dialog]');
     await expect(
-      sheet.getByLabel(photoSources.accept, { exact: true }),
+      sheet.getByLabel('Ausgewählte Fotos in meinen Entwurf übernehmen', {
+        exact: true,
+      }),
     ).toHaveCount(0);
     await sheet
       .getByRole('button', { name: photoSources.immich, exact: true })
@@ -2753,7 +2761,7 @@ for (const kind of ['plan', 'heart'] as const) {
         name:
           kind === 'heart'
             ? storyProducts.heartMomentProduct.save
-            : m5s3.common.save,
+            : de.common.save,
         exact: true,
       })
       .click();
@@ -2783,7 +2791,7 @@ for (const kind of ['plan', 'heart'] as const) {
       fullPage: true,
     });
     await page
-      .getByRole('button', { name: taskBoundary.back, exact: true })
+      .getByRole('button', { name: de.common.back, exact: true })
       .click();
     await expect(page).toHaveURL(
       kind === 'heart' ? /\/story(?:\?|$)/ : /\/plan(?:#|$)/,

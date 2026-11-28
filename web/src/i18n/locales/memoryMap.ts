@@ -3,7 +3,6 @@ export default {
   title: 'Erinnerungskarte',
   fullscreen: 'Vollbild',
   closeFullscreen: 'Vollbild schließen',
-  back: 'Zurück zu Momente',
   places: 'Orte eurer Erinnerungen',
   proTitle: 'Eure Erinnerungen auf einer Karte – mit Pro',
   proBody:

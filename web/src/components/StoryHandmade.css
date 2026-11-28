@@ -18,16 +18,6 @@
     drop-shadow(0 8px 8px var(--color-shadow-soft));
   --story-lift-high: drop-shadow(0 1px 1px var(--color-shadow-card))
     drop-shadow(0 18px 14px var(--color-shadow-overlay));
-  --story-tape-own: color-mix(
-    in srgb,
-    var(--person-own-accent) 58%,
-    transparent
-  );
-  --story-tape-partner: color-mix(
-    in srgb,
-    var(--person-partner-accent) 58%,
-    transparent
-  );
   --story-tape-both: color-mix(
     in srgb,
     var(--color-discovery) 30%,
@@ -106,7 +96,7 @@
   .story-timeline-item {
   z-index: 1;
   width: 88%;
-  --story-tape: var(--story-tape-both);
+  --story-fastener-accent: var(--color-discovery);
 }
 /* Side alternates per entry and flips with every month, so a month holding a
    single entry still zig-zags against its neighbours. */
@@ -239,7 +229,7 @@
   color: var(--color-text);
 }
 
-/* Tape: a decorative strip, never part of the content. */
+/* A short piece of translucent paper tape overlaps the top edge. */
 .story-page-unified
   .momente-diary-section[data-diary-layout="album"]
   .story-timeline
@@ -248,38 +238,37 @@
   content: "";
   position: absolute;
   z-index: 2;
-  top: calc(var(--space-3) * -1);
-  inset-inline-start: 50%;
-  width: 5.75rem;
-  height: 1.75rem;
-  margin-inline-start: -2.875rem;
-  rotate: calc(var(--story-tilt) * -1.4);
-  background:
-    repeating-linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--color-surface-raised) 35%, transparent) 0 5px,
-      transparent 5px 10px
-    ),
-    var(--story-tape);
-  clip-path: polygon(
-    0 0,
-    4% 14%,
-    0 28%,
-    4% 42%,
-    0 57%,
-    4% 71%,
-    0 86%,
-    3% 100%,
-    100% 100%,
-    96% 86%,
-    100% 71%,
-    96% 57%,
-    100% 42%,
-    96% 28%,
-    100% 14%,
-    97% 0
-  );
   pointer-events: none;
+  top: -0.4rem;
+  inset-inline-start: 18%;
+  width: 3.25rem;
+  height: 0.8rem;
+  rotate: -6deg;
+  background:
+    linear-gradient(
+      102deg,
+      transparent 34%,
+      color-mix(in srgb, var(--story-paper) 26%, transparent) 52%,
+      transparent 68%
+    ),
+    color-mix(
+      in srgb,
+      var(--story-fastener-accent) 16%,
+      var(--color-discovery-surface)
+    );
+  opacity: 0.76;
+  box-shadow: inset 0 -1px var(--color-shadow-card);
+  clip-path: polygon(
+    1% 0,
+    99% 2%,
+    97% 28%,
+    100% 54%,
+    98% 73%,
+    99% 100%,
+    0 96%,
+    2% 66%,
+    0 39%
+  );
 }
 
 /* ---------- photo entry: Polaroid ---------- */
@@ -410,21 +399,23 @@
   .story-timeline
   .story-card-link
   .story-card-heart-moment::before {
-  top: calc(var(--space-2) * -1);
-  width: 1.25rem;
-  height: 1.25rem;
-  margin-inline-start: -0.625rem;
+  top: var(--space-2);
+  inset-inline-start: auto;
+  inset-inline-end: var(--space-4);
+  width: 0.5rem;
+  height: 0.5rem;
   border-radius: 50%;
   rotate: none;
   clip-path: none;
-  background:
-    radial-gradient(
-      circle at 35% 30%,
-      color-mix(in srgb, var(--color-surface-raised) 60%, transparent),
-      transparent 35%
-    ),
-    var(--story-pin, var(--color-text-secondary));
-  box-shadow: 0 var(--space-1) var(--space-1) var(--color-shadow-overlay);
+  opacity: 1;
+  background: color-mix(
+    in srgb,
+    var(--color-discovery) 30%,
+    var(--color-discovery-surface)
+  );
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--color-discovery) 24%, transparent),
+    0 1px 1px var(--color-shadow-card);
 }
 .story-page-unified
   .momente-diary-section[data-diary-layout="album"]
@@ -495,47 +486,6 @@
   letter-spacing: var(--tracking-personal-heading);
   rotate: -1.6deg;
   filter: var(--story-lift, none);
-}
-.story-page-unified
-  .momente-diary-section[data-diary-layout="album"]
-  .story-year-month-header
-  h2::before,
-.story-page-unified
-  .momente-diary-section[data-diary-layout="album"]
-  .story-year-month-header
-  h2::after {
-  content: "";
-  position: absolute;
-  top: calc(var(--space-2) * -1);
-  width: 2.1rem;
-  height: 0.85rem;
-  background: var(--story-tape-both);
-  clip-path: polygon(
-    0 0,
-    6% 25%,
-    0 50%,
-    6% 75%,
-    0 100%,
-    100% 100%,
-    94% 75%,
-    100% 50%,
-    94% 25%,
-    100% 0
-  );
-}
-.story-page-unified
-  .momente-diary-section[data-diary-layout="album"]
-  .story-year-month-header
-  h2::before {
-  inset-inline-start: calc(var(--space-3) * -1);
-  rotate: -32deg;
-}
-.story-page-unified
-  .momente-diary-section[data-diary-layout="album"]
-  .story-year-month-header
-  h2::after {
-  inset-inline-end: calc(var(--space-3) * -1);
-  rotate: 32deg;
 }
 .story-page-unified
   .momente-diary-section[data-diary-layout="album"]
@@ -646,7 +596,7 @@
   padding-block: 0;
 }
 
-/* Tape and pins overhang the paper edge instead of being cut off. */
+/* Let tape cross the paper edge. */
 .story-page-unified
   .momente-diary-section[data-diary-layout="album"]
   .story-timeline
@@ -655,20 +605,18 @@
   overflow: visible;
 }
 
-/* Tape colour: the author's partner colour; neutral while it is unknown. */
+/* A trace of the author's chosen colour tints the paper tape. */
 .story-page-unified
   .momente-diary-section[data-diary-layout="album"]
   .story-timeline
   .story-timeline-item[data-author-role="own"] {
-  --story-tape: var(--story-tape-own);
-  --story-pin: var(--person-own-accent);
+  --story-fastener-accent: var(--person-own-accent);
 }
 .story-page-unified
   .momente-diary-section[data-diary-layout="album"]
   .story-timeline
   .story-timeline-item[data-author-role="partner"] {
-  --story-tape: var(--story-tape-partner);
-  --story-pin: var(--person-partner-accent);
+  --story-fastener-accent: var(--person-partner-accent);
 }
 
 /* Calm entries: nearly straight, no tape, and they settle in without a flourish. */
@@ -782,7 +730,7 @@
   line-height: var(--note-lh);
 }
 
-/* Taped corners and tilted paper may reach into the page gutter, never past the
+/* Tilted paper may reach into the page gutter, never past the
    screen edge: clipping (not hiding) keeps sticky headings working and the page
    from scrolling sideways. */
 .story-page-unified .momente-diary-section[data-diary-layout="album"] {

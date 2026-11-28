@@ -1,0 +1,15 @@
+eimir. Android 0.2.0-test.108
+
+- The Wir page has a new "New for you" row of tiles, with game tiles and a card that arrives once and stays quiet when you come back.
+- Reading a notification in one place marks it as read in Wir, the inbox and the device notification trays.
+- The create entry now sits at the end of the top bar on wide web windows, on every page.
+- The sign-in card offers the public demo and no longer flips on load.
+- The daily quote is the same for both partners and never repeats the previous day's quote.
+- Switches are readable in Dark and the system theme is applied on the first return to the app.
+- Starts and returns to the app keep you signed in more reliably, and the app starts faster.
+- Server administrators get a Pro area with eimir. gift codes, and the push notices name their topic, open ServerAdmin and stay for an hour.
+- ServerAdmin marks failed jobs and new reports as seen, and its top bar clears the status bar.
+- The words of the Pro scene fit their fields, and the "new" tags are gone from the Pro page.
+
+The product changes come from main at a9b7a23e72dc000cab099c7a749ad29d87a3f665.
+Install over test.107 with the same de.eimir.app package, signing certificate and test server. This build uses versionCode 108.

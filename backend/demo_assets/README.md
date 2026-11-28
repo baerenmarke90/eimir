@@ -12,6 +12,10 @@ The files in this directory are the reproducible local media set for the canonic
 - Never hotlink a provider CDN from demo data. `source_page_url` is provenance only.
 - Never download stock media during container startup or demo reset.
 
+## Supplied persona portraits (avatars)
+
+`avatar-lea` and `avatar-alex` are not stock photos. They are AI-generated images of fictional people, supplied by the project owner (manifest `source_provider` is `eimir`), and no real person is shown. Their `source_page_url` must point into this repository. The project owner is responsible for the rights to use them in this public demo.
+
 ## Manifest
 
 `manifest.json` is authoritative. Every image records at least:

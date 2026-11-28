@@ -14,6 +14,8 @@ on:
       - "web/package-lock.json"
       - "web/scripts/build-capacitor-web.mjs"
       - "tools/ci/test_release_evidence.py"
+      - "scripts/supply_chain_state.py"
+      - "tools/ci/test_supply_chain_state.py"
       - "scripts/android_firebase_configuration.py"
       - "tools/ci/test_android_firebase_configuration.py"
       - "docs/m6/SBOM-ATTESTATIONS.md"
@@ -69,9 +71,22 @@ on:
         description: SemVer product version without the v prefix.
         required: true
         type: string
+      core_repository:
+        description: Pinned Core repository (Decision 0019); empty builds Core from this checkout.
+        required: false
+        default: ''
+        type: string
+      core_revision:
+        description: Full commit SHA of the pinned Core revision; required exactly with core_repository.
+        required: false
+        default: ''
+        type: string
     secrets:
       EIMIR_ANDROID_GOOGLE_SERVICES_JSON:
         description: Public Firebase Android client configuration; never an FCM server service-account key.
+        required: false
+      EIMIR_CORE_READ_TOKEN:
+        description: Read-only token for a private Core repository (rehearsal only); a public Core needs none.
         required: false
 
 permissions:
@@ -104,10 +119,51 @@ jobs:
       - name: Checkout exact source revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # Decision 0019: in the Pro repository the official tree is the pinned Core
+      # revision with the Pro tree on top. Both inputs are empty in the monorepo,
+      # which skips these steps and builds exactly as before.
+      - name: Checkout pinned Core revision
+        if: inputs.core_repository || inputs.core_revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ inputs.core_repository }}
+          ref: ${{ inputs.core_revision }}
+          path: .eimir-core-source
+          persist-credentials: false
+          token: ${{ secrets.EIMIR_CORE_READ_TOKEN || github.token }}
+
+      - name: Compose the official tree from the pinned Core and the Pro tree
+        if: inputs.core_repository || inputs.core_revision
+        env:
+          EIMIR_TEST_CHANNEL_REPOSITORY: ${{ vars.EIMIR_TEST_CHANNEL_REPOSITORY }}
+          EIMIR_CORE_REPOSITORY: ${{ inputs.core_repository }}
+          CORE_REVISION: ${{ inputs.core_revision }}
+        run: |
+          set -euo pipefail
+          python3 scripts/test_deployment_channel.py compose-source \
+            --core .eimir-core-source --core-revision "$CORE_REVISION" --target .
+          rm -rf .eimir-core-source
+
       - name: Validate release-evidence contract
         run: |
           python3 tools/ci/test_release_evidence.py
+          python3 tools/ci/test_supply_chain_state.py
           python3 tools/ci/test_android_firebase_configuration.py
+
+      - name: Record supply-chain capabilities of this repository
+        # Decision 0019, D5: a private personal repository has no artifact
+        # attestations and no CodeQL. The probed state is part of the checksummed
+        # evidence; the attest job verifies it instead of skipping silently.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EIMIR_SUPPLY_CHAIN_EXCEPTION: ${{ vars.EIMIR_SUPPLY_CHAIN_EXCEPTION }}
+        run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}" > "$RUNNER_TEMP/repository.json"
+          python3 scripts/supply_chain_state.py probe \
+            --repository-json "$RUNNER_TEMP/repository.json" \
+            --source-revision "$GITHUB_SHA" \
+            --output release-evidence/supply-chain-state.json
 
       - name: Validate release inputs
         env:
@@ -213,6 +269,9 @@ jobs:
             --pull \
             --no-cache \
             --build-arg "EIMIR_BUILD_REVISION=$GITHUB_SHA" \
+            --build-arg "EIMIR_APP_VERSION=$RELEASE_VERSION" \
+            --build-arg "EIMIR_REQUIRE_BUILD_IDENTITY=true" \
+            --build-arg "VITE_EIMIR_DEMO_URL=https://demo.eimir.de" \
             --label "org.opencontainers.image.title=eimir web runtime" \
             --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
             --label "org.opencontainers.image.revision=$GITHUB_SHA" \
@@ -229,7 +288,7 @@ jobs:
 
       - name: Set up JDK 21
         if: env.INCLUDE_ANDROID == 'true'
-        uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
         with:
           distribution: temurin
           java-version: "21"
@@ -259,6 +318,9 @@ jobs:
         working-directory: web
         env:
           ANDROID_API_BASE_URL: ${{ env.ANDROID_API_BASE_URL }}
+          EIMIR_APP_VERSION: ${{ env.RELEASE_VERSION }}
+          EIMIR_BUILD_REVISION: ${{ github.sha }}
+          EIMIR_REQUIRE_BUILD_IDENTITY: "true"
         run: |
           set -euo pipefail
           npm ci --ignore-scripts --no-audit --no-fund
@@ -398,6 +460,8 @@ jobs:
       - name: Validate and index release evidence
         env:
           SOURCE_REVISION: ${{ github.sha }}
+          CORE_REPOSITORY: ${{ inputs.core_repository }}
+          CORE_REVISION: ${{ inputs.core_revision }}
           INCLUDE_ANDROID: ${{ env.INCLUDE_ANDROID }}
           ANDROID_VERSION_CODE: ${{ env.ANDROID_VERSION_CODE }}
           RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
@@ -501,6 +565,12 @@ jobs:
               "artifacts": artifacts,
               "android": android,
           }
+          # Decision 0019: bind the pinned Core revision next to the Pro source.
+          if os.environ.get("CORE_REVISION") or os.environ.get("CORE_REPOSITORY"):
+              index["coreSource"] = {
+                  "repository": os.environ["CORE_REPOSITORY"],
+                  "revision": os.environ["CORE_REVISION"],
+              }
           (root / "evidence-index.json").write_text(
               json.dumps(index, indent=2, sort_keys=True) + "\n",
               encoding="utf-8",
@@ -515,6 +585,7 @@ jobs:
               sbom/backend-runtime.spdx.json
               sbom/web-runtime.spdx.json
               evidence-index.json
+              supply-chain-state.json
             )
             if [ "$INCLUDE_VIDEO_MEDIA" = "true" ]; then
               files+=(media-runtime.image.tar sbom/media-runtime.spdx.json)
@@ -565,7 +636,24 @@ jobs:
       - name: Verify transported checksums
         run: (cd release-evidence && sha256sum --check --strict SHA256SUMS)
 
+      - name: Confirm the recorded supply-chain state
+        # The checksummed record must equal a fresh probe of this repository, so a
+        # stale or copied record can never switch attestations off (Decision 0019, D5).
+        id: supply_chain
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EIMIR_SUPPLY_CHAIN_EXCEPTION: ${{ vars.EIMIR_SUPPLY_CHAIN_EXCEPTION }}
+        run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}" > "$RUNNER_TEMP/repository.json"
+          python3 scripts/supply_chain_state.py verify \
+            --repository-json "$RUNNER_TEMP/repository.json" \
+            --source-revision "$GITHUB_SHA" \
+            --record release-evidence/supply-chain-state.json \
+            --github-output "$GITHUB_OUTPUT"
+
       - name: Attest backend runtime
+        if: steps.supply_chain.outputs.attestation == 'available'
         uses: ./.github/actions/attest-release-artifact
         with:
           subject-path: release-evidence/backend-runtime.image.tar
@@ -574,6 +662,7 @@ jobs:
           bundle-prefix: backend-runtime
 
       - name: Attest Web runtime
+        if: steps.supply_chain.outputs.attestation == 'available'
         uses: ./.github/actions/attest-release-artifact
         with:
           subject-path: release-evidence/web-runtime.image.tar
@@ -582,7 +671,7 @@ jobs:
           bundle-prefix: web-runtime
 
       - name: Attest restricted video worker
-        if: env.INCLUDE_VIDEO_MEDIA == 'true'
+        if: env.INCLUDE_VIDEO_MEDIA == 'true' && steps.supply_chain.outputs.attestation == 'available'
         uses: ./.github/actions/attest-release-artifact
         with:
           subject-path: release-evidence/media-runtime.image.tar
@@ -591,7 +680,7 @@ jobs:
           bundle-prefix: media-runtime
 
       - name: Attest Android APK
-        if: inputs.include_android || github.event_name == 'pull_request'
+        if: (inputs.include_android || github.event_name == 'pull_request') && steps.supply_chain.outputs.attestation == 'available'
         uses: ./.github/actions/attest-release-artifact
         with:
           subject-path: release-evidence/android/eimir-release-unsigned.apk
@@ -600,7 +689,7 @@ jobs:
           bundle-prefix: android-apk
 
       - name: Attest Android AAB
-        if: inputs.include_android || github.event_name == 'pull_request'
+        if: (inputs.include_android || github.event_name == 'pull_request') && steps.supply_chain.outputs.attestation == 'available'
         uses: ./.github/actions/attest-release-artifact
         with:
           subject-path: release-evidence/android/eimir-release-unsigned.aab
@@ -609,15 +698,41 @@ jobs:
           bundle-prefix: android-aab
 
       - name: Capture current trusted roots
+        if: steps.supply_chain.outputs.attestation == 'available'
         run: gh attestation trusted-root > release-evidence/attestations/trusted_root.jsonl
 
       - name: Verify retained attestations offline
+        # Runs in both states. Available: every bundle exists and verifies.
+        # Unavailable: the exact record verifies and no bundle exists.
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EIMIR_SUPPLY_CHAIN_EXCEPTION: ${{ vars.EIMIR_SUPPLY_CHAIN_EXCEPTION }}
         run: |
           set -euo pipefail
           repo="$GITHUB_REPOSITORY"
           signer="$GITHUB_REPOSITORY/.github/workflows/release-evidence.yml"
           root="release-evidence/attestations/trusted_root.jsonl"
+
+          subjects=(--subject backend-runtime --subject web-runtime)
+          if [ "$INCLUDE_VIDEO_MEDIA" = "true" ]; then
+            subjects+=(--subject media-runtime)
+          fi
+          if [ "$INCLUDE_ANDROID" = "true" ]; then
+            subjects+=(--subject android-apk --subject android-aab)
+          fi
+          gh api "repos/${GITHUB_REPOSITORY}" > "$RUNNER_TEMP/repository.json"
+          python3 scripts/supply_chain_state.py verify \
+            --repository-json "$RUNNER_TEMP/repository.json" \
+            --source-revision "$GITHUB_SHA" \
+            --record release-evidence/supply-chain-state.json \
+            --attestation-dir release-evidence/attestations \
+            "${subjects[@]}" \
+            --github-output "$RUNNER_TEMP/supply-chain-outputs"
+          if grep -qx 'attestation=unavailable' "$RUNNER_TEMP/supply-chain-outputs"; then
+            echo "Attestations are unavailable on ${repo}; verified the recorded state instead (Decision 0019, D5)."
+            exit 0
+          fi
 
           verify_subject() {
             local subject="$1"
@@ -644,6 +759,9 @@ jobs:
           fi
 
       - name: Upload offline-verification bundles
+        # Unavailable attestations leave nothing to upload; the publisher reads the
+        # checksummed record from the evidence set instead.
+        if: steps.supply_chain.outputs.attestation == 'available'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-attestations-${{ github.sha }}

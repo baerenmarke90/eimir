@@ -12,7 +12,7 @@ public class AppIconPlugin extends Plugin {
     public void apply(PluginCall call) {
         String iconId = call.getString("iconId");
         try {
-            LauncherIcons.apply(getContext(), iconId);
+            LauncherIcons.request(getContext(), iconId);
             call.resolve(new JSObject().put("iconId", iconId));
         } catch (IllegalArgumentException invalid) {
             call.reject("Unknown app icon", "UNKNOWN_APP_ICON");

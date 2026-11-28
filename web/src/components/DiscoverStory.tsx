@@ -4,6 +4,7 @@ import {
   type KeyboardEvent,
   type MouseEvent,
   type PointerEvent,
+  type ReactNode,
   type RefObject,
   useCallback,
   useEffect,
@@ -44,9 +45,11 @@ import './DiscoverStory.css';
 import '../motion/story-playback.css';
 import { useReducedMotion } from '../motion/reducedMotion';
 import { usePageVisible } from '../motion/scene';
+import { WorldSwitchEntry } from './memoryWorlds/WorldHead';
 
 /** A press longer than this pauses the story and does not count as a tap. */
 const HOLD_THRESHOLD_MS = 350;
+const STORY_CONTROLS_QUIET_MS = 1500;
 
 type LoadMemoryImage = (
   memoryId: string,
@@ -54,7 +57,25 @@ type LoadMemoryImage = (
   signal?: AbortSignal,
 ) => Promise<ObjectUrlSource>;
 
-type SlideKind = 'photo' | 'heart' | 'milestone' | 'words';
+type SlideKind = 'photo' | 'heart' | 'milestone' | 'words' | 'lead';
+
+/** Theme keys of the viewer: the lead's own theme plus the curated ones. */
+type StoryThemeKey = DiscoverStoryThemeKey | 'remember';
+
+/**
+ * The rediscovery lead (`story.featuredKicker`) plays as the story's first
+ * slide, in a theme of its own. The page renders its composition (the
+ * developing polaroid); the story places it first, pages past it and opens
+ * it through its own open link, so the slide content holds no link.
+ */
+export interface DiscoverStoryLead {
+  key: string;
+  path: string;
+  kindLabel: string;
+  title: string;
+  content: ReactNode;
+  face: ReactNode;
+}
 
 interface StorySlide {
   key: string;
@@ -70,9 +91,12 @@ interface StorySlide {
   cover?: MemoryAttachmentSummary;
   emotion?: HeartEmotionValue;
   experience?: Extract<StoryItem, { kind: 'MEMORY' }>['memory'];
+  content?: ReactNode;
+  face?: ReactNode;
 }
 
-const THEME_SLIDE_KIND: Record<DiscoverStoryThemeKey, SlideKind> = {
+const THEME_SLIDE_KIND: Record<StoryThemeKey, SlideKind> = {
+  remember: 'lead',
   photos: 'photo',
   heartMoments: 'heart',
   milestones: 'milestone',
@@ -120,10 +144,24 @@ function buildSlide(
   }
 }
 
-/** True while at least half of the element is inside the viewport. */
-function useHalfVisible(
+/**
+ * Share of the viewer that must be on screen for the story to play (#2192):
+ * scrolled further, with only 60 % of the photo left, it pauses.
+ */
+export const STORY_PLAY_VISIBLE_SHARE = 0.6;
+
+/** Fine steps, so the share is re-read close to where it crosses the limit. */
+const VISIBILITY_STEPS = Array.from({ length: 21 }, (_, index) => index / 20);
+
+/**
+ * True while more than `share` of the element is on screen. A viewer taller
+ * than the viewport (large text) is measured against the viewport height, so
+ * it can still count as fully visible.
+ */
+function useMostlyVisible(
   ref: RefObject<HTMLElement | null>,
   mounted: boolean,
+  share: number,
 ): boolean {
   const [visible, setVisible] = useState(
     () => typeof IntersectionObserver === 'undefined',
@@ -135,13 +173,20 @@ function useHalfVisible(
     const observer = new IntersectionObserver(
       (entries) => {
         const entry = entries.at(-1);
-        if (entry) setVisible(entry.intersectionRatio >= 0.5);
+        if (!entry) return;
+        const viewport = entry.rootBounds?.height ?? window.innerHeight;
+        const full = Math.min(entry.boundingClientRect.height, viewport);
+        setVisible(
+          entry.isIntersecting &&
+            full > 0 &&
+            entry.intersectionRect.height / full > share,
+        );
       },
-      { threshold: [0, 0.5, 1] },
+      { threshold: VISIBILITY_STEPS },
     );
     observer.observe(node);
     return () => observer.disconnect();
-  }, [ref, mounted]);
+  }, [ref, mounted, share]);
   return visible;
 }
 
@@ -182,6 +227,7 @@ function ThemeFace({
       </svg>
     );
   if (kind === 'milestone') return <KeepsakeStampMark />;
+  if (kind === 'lead') return slide.face ?? null;
   return null;
 }
 
@@ -197,6 +243,8 @@ function StorySlideContent({
   const { t } = useTranslation();
   const date = <time dateTime={slide.dateTime}>{slide.dateLabel}</time>;
   switch (slide.kind) {
+    case 'lead':
+      return slide.content ?? null;
     case 'photo':
       return (
         <>
@@ -294,6 +342,7 @@ function StorySlideContent({
 }
 
 const SLIDE_CLASS: Record<SlideKind, string> = {
+  lead: 'momente-story-slide-lead',
   photo: 'momente-story-slide-photo',
   heart: 'momente-story-slide-heart',
   milestone: 'momente-story-slide-milestone',
@@ -302,10 +351,12 @@ const SLIDE_CLASS: Record<SlideKind, string> = {
 
 /**
  * Momente > Erinnerungen "Fotostory": round theme bubbles above one large
- * story viewer. Photos, Heart Moments, Milestones and Memories told in words
- * play as slides in the canonical order of the curated selection. Autoplay
- * runs only with motion allowed, while the viewer is at least half visible,
- * the document is visible and nobody holds, pauses or keyboard-focuses it;
+ * story viewer. The rediscovery lead (`story.featuredKicker`), when there
+ * is one, plays first; Photos, Heart Moments, Milestones and Memories told
+ * in words follow as slides in the canonical order of the curated
+ * selection. Autoplay runs only with motion allowed, while more than 60 % of
+ * the viewer is visible, the document is visible and nobody holds, pauses or
+ * keyboard-focuses it;
  * the progress segment's CSS animation is the timer (no per-frame renders).
  */
 export function DiscoverStory({
@@ -313,7 +364,10 @@ export function DiscoverStory({
   loadMemoryImage,
   onOpen,
   nicknameFor,
+  lead,
 }: {
+  /** The rediscovery lead, played before the curated themes. */
+  lead?: DiscoverStoryLead | null;
   items: readonly StoryItem[];
   loadMemoryImage: LoadMemoryImage;
   onOpen: (event: MouseEvent<HTMLAnchorElement>, to: string) => void;
@@ -322,13 +376,30 @@ export function DiscoverStory({
   const { t } = useTranslation();
   const locale = resolvedLocale();
   const themes = useMemo(() => {
-    return buildDiscoverStoryThemes(items).map((theme) => ({
-      key: theme.key,
-      items: theme.items.map((item) =>
-        buildSlide(item, THEME_SLIDE_KIND[theme.key], t, locale, nicknameFor),
-      ),
-    }));
-  }, [items, t, locale, nicknameFor]);
+    const curated: { key: StoryThemeKey; items: StorySlide[] }[] =
+      buildDiscoverStoryThemes(items).map((theme) => ({
+        key: theme.key,
+        items: theme.items.map((item) =>
+          buildSlide(item, THEME_SLIDE_KIND[theme.key], t, locale, nicknameFor),
+        ),
+      }));
+    if (!lead) return curated;
+    const leadSlide: StorySlide = {
+      key: `lead:${lead.key}`,
+      kind: 'lead',
+      path: lead.path,
+      kindLabel: lead.kindLabel,
+      title: lead.title,
+      titleIsDate: false,
+      dateTime: '',
+      dateLabel: '',
+      authorName: '',
+      memoryId: '',
+      content: lead.content,
+      face: lead.face,
+    };
+    return [{ key: 'remember' as const, items: [leadSlide] }, ...curated];
+  }, [items, t, locale, nicknameFor, lead]);
   const selectionKey = themes
     .map((theme) => theme.items.map((slide) => slide.key).join(','))
     .join('|');
@@ -337,9 +408,7 @@ export function DiscoverStory({
     theme: 0,
     slide: 0,
   });
-  const [seen, setSeen] = useState<ReadonlySet<DiscoverStoryThemeKey>>(
-    () => new Set(),
-  );
+  const [seen, setSeen] = useState<ReadonlySet<StoryThemeKey>>(() => new Set());
   const [userPaused, setUserPaused] = useState(false);
   const [holding, setHolding] = useState(false);
   const [keyboardFocus, setKeyboardFocus] = useState(false);
@@ -357,7 +426,11 @@ export function DiscoverStory({
 
   const viewerRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
-  const halfVisible = useHalfVisible(viewerRef, themes.length > 0);
+  const mostlyVisible = useMostlyVisible(
+    viewerRef,
+    themes.length > 0,
+    STORY_PLAY_VISIBLE_SHARE,
+  );
   const documentVisible = usePageVisible();
   const autoplay = !reducedMotion;
   const playing =
@@ -365,7 +438,7 @@ export function DiscoverStory({
     !userPaused &&
     !holding &&
     !keyboardFocus &&
-    halfVisible &&
+    mostlyVisible &&
     documentVisible;
 
   const themeIndex = Math.min(position.theme, themes.length - 1);
@@ -413,11 +486,34 @@ export function DiscoverStory({
     [themes, themeIndex, slideIndex],
   );
 
+  // Like the media viewer in Erinnerungen, the overlaid controls (pause and
+  // open) fade after a quiet moment so the slide stands on its own. A touch,
+  // the pointer entering or focus brings them back at once; while the story
+  // is paused they stay, so the play control is never hidden.
+  const [controlsResting, setControlsResting] = useState(false);
+  const quietTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wakeControls = useCallback(() => {
+    if (quietTimer.current) clearTimeout(quietTimer.current);
+    setControlsResting(false);
+    quietTimer.current = setTimeout(() => {
+      quietTimer.current = null;
+      setControlsResting(true);
+    }, STORY_CONTROLS_QUIET_MS);
+  }, []);
+  useEffect(() => {
+    wakeControls();
+    return () => {
+      if (quietTimer.current) clearTimeout(quietTimer.current);
+    };
+  }, [wakeControls]);
+  const controlsQuiet = controlsResting && !userPaused;
+
   // Press-and-hold pauses after a short delay; a quick tap never flickers
   // the progress and still pages. A completed hold does not count as a tap.
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suppressTap = useRef(false);
   function onPointerDown(event: PointerEvent<HTMLDivElement>) {
+    wakeControls();
     if (!autoplay || event.button !== 0) return;
     if ((event.target as Element).closest('a, .momente-story-playback')) return;
     suppressTap.current = false;
@@ -456,6 +552,7 @@ export function DiscoverStory({
   function onFocus(event: FocusEvent<HTMLDivElement>) {
     // Keyboard focus inside the viewer suspends autoplay (APG carousel).
     setKeyboardFocus(isKeyboardFocus(event.target));
+    wakeControls();
   }
   function onBlur(event: FocusEvent<HTMLDivElement>) {
     if (!event.currentTarget.contains(event.relatedTarget as Node | null))
@@ -473,50 +570,58 @@ export function DiscoverStory({
       data-autoplay={autoplay ? 'true' : 'false'}
       data-playing={playing ? 'true' : 'false'}
     >
-      <ul
-        className="momente-story-themes"
-        aria-label={t('discoverStory.themesLabel')}
-      >
-        {themes.map((entry, index) => {
-          const active = index === themeIndex;
-          const wasSeen = !active && seen.has(entry.key);
-          return (
-            <li key={entry.key}>
-              <button
-                type="button"
-                className="momente-story-bubble"
-                data-story-theme={entry.key}
-                data-seen={wasSeen ? 'true' : undefined}
-                aria-current={active ? 'true' : undefined}
-                onClick={() => {
-                  setFinished(false);
-                  setPosition({ theme: index, slide: 0 });
-                }}
-              >
-                <span className="momente-story-bubble-ring" aria-hidden="true">
+      {/* The theme circles and, at the end of the row, the round "Welt
+        wechseln" entry when the Story is the memory world (#2283). */}
+      <div className="momente-story-top">
+        <ul
+          className="momente-story-themes"
+          aria-label={t('discoverStory.themesLabel')}
+        >
+          {themes.map((entry, index) => {
+            const active = index === themeIndex;
+            const wasSeen = !active && seen.has(entry.key);
+            return (
+              <li key={entry.key}>
+                <button
+                  type="button"
+                  className="momente-story-bubble"
+                  data-story-theme={entry.key}
+                  data-seen={wasSeen ? 'true' : undefined}
+                  aria-current={active ? 'true' : undefined}
+                  onClick={() => {
+                    setFinished(false);
+                    setPosition({ theme: index, slide: 0 });
+                  }}
+                >
                   <span
-                    className="momente-story-bubble-face"
-                    data-heart-emotion={entry.items[0].emotion}
+                    className="momente-story-bubble-ring"
+                    aria-hidden="true"
                   >
-                    <ThemeFace
-                      kind={THEME_SLIDE_KIND[entry.key]}
-                      slide={entry.items[0]}
-                      loadMemoryImage={loadMemoryImage}
-                    />
+                    <span
+                      className="momente-story-bubble-face"
+                      data-heart-emotion={entry.items[0].emotion}
+                    >
+                      <ThemeFace
+                        kind={THEME_SLIDE_KIND[entry.key]}
+                        slide={entry.items[0]}
+                        loadMemoryImage={loadMemoryImage}
+                      />
+                    </span>
                   </span>
-                </span>
-                <span className="momente-story-bubble-label">
-                  {t(`discoverStory.theme.${entry.key}`)}
-                  <span className="sr-only">
-                    {`, ${t('discoverStory.themeCount', { count: entry.items.length })}`}
-                    {wasSeen ? `, ${t('discoverStory.themeSeen')}` : ''}
+                  <span className="momente-story-bubble-label">
+                    {t(`discoverStory.theme.${entry.key}`)}
+                    <span className="sr-only">
+                      {`, ${t('discoverStory.themeCount', { count: entry.items.length })}`}
+                      {wasSeen ? `, ${t('discoverStory.themeSeen')}` : ''}
+                    </span>
                   </span>
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+        <WorldSwitchEntry />
+      </div>
       {/* biome-ignore lint/a11y/useSemanticElements: the viewer is the slide group of the APG carousel pattern, not a form fieldset. */}
       <div
         ref={viewerRef}
@@ -524,11 +629,13 @@ export function DiscoverStory({
         role="group"
         aria-label={themeLabel}
         data-story-theme={theme.key}
+        data-controls={controlsQuiet ? 'quiet' : undefined}
         // biome-ignore lint/a11y/noNoninteractiveTabindex: the viewer takes focus so ArrowLeft/ArrowRight page the story.
         tabIndex={0}
         onKeyDown={onKeyDown}
         onFocus={onFocus}
         onBlur={onBlur}
+        onPointerEnter={wakeControls}
         onPointerDown={onPointerDown}
         onPointerUp={endPress}
         onPointerCancel={endPress}
@@ -656,7 +763,7 @@ export function DiscoverStory({
           })}
           onClick={(event) => onOpen(event, current.path)}
         >
-          {t('discoverStory.open')}
+          {t('common.open')}
         </Link>
       </div>
     </section>

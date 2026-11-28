@@ -5,10 +5,9 @@ import { paletteDeclarations, paletteRoles } from './identity-palette.mjs';
  * palette and bounded presets; this module validates the file and turns it
  * into semantic custom properties. See docs/DESIGN-TOKEN-SETS.md.
  *
- * A design applies app-wide from the root element (`data-app-design`), so
- * every tab, portaled sheet and the browser theme colour follow it. In a
- * design with its own palette, contextual colour worlds (`data-color-world`)
- * resolve to that palette; designs on the default palette keep them.
+ * The root applies design presets and palette colours separately. A custom
+ * palette also replaces contextual colour worlds (`data-color-world`).
+ * The original palette keeps those contextual worlds.
  */
 
 const FIELDS = [
@@ -309,11 +308,6 @@ function presetDeclarations(design, tokens) {
     design.icon.stroke !== identity.icon.strokePx
   )
     lines.push(`--icon-stroke-width: ${design.icon.stroke};`);
-  if (design.icon.accent === 'mono')
-    lines.push(
-      '--identity-icon-accent: currentColor;',
-      '--identity-icon-cool: currentColor;',
-    );
   return lines;
 }
 
@@ -326,14 +320,24 @@ function motionDeclarations(design, tokens) {
   );
 }
 
-/** The 16-role declarations followed by the fine roles the palette sets. */
-function designPalette(palette, status, mode) {
+/**
+ * The 16-role declarations followed by the fine roles the palette sets.
+ * With `emphasis` the emphasised controls (checked list marks, composer save
+ * and selected tag chips) take the same action colour, so a chosen palette
+ * leaves no canonical blue behind.
+ */
+function designPalette(palette, status, mode, { emphasis = false } = {}) {
   const lines = paletteDeclarations(palette, status, mode);
   const { fill, onFill } = actionColours(palette, mode);
   lines.push(
     `--color-action-primary: ${fill};`,
     `--color-on-action-primary: ${onFill};`,
   );
+  if (emphasis)
+    lines.push(
+      `--color-action-emphasis: ${fill};`,
+      `--color-on-action-emphasis: ${onFill};`,
+    );
   for (const [role, aliases] of Object.entries(FINE_ROLES))
     if (role in palette)
       for (const alias of aliases) lines.push(`--${alias}: ${palette[role]};`);
@@ -411,7 +415,13 @@ export function buildAppDesigns(tokens, designs) {
     const key = JSON.stringify(design.palette);
     previews.set(key, [...(previews.get(key) ?? []), design]);
   }
+  const paletteIds = [];
   for (const group of previews.values()) {
+    const representative =
+      group.find((design) => design.id === fallback.id) ??
+      group.find((design) => design.tier === 'free') ??
+      group[0];
+    paletteIds.push(JSON.stringify(representative.id));
     const selectors = (prefix) =>
       group
         .map((design) => `${prefix}[data-design-preview="${design.id}"]`)
@@ -428,36 +438,42 @@ export function buildAppDesigns(tokens, designs) {
     );
   }
   for (const design of validated) {
-    if (design.id === fallback.id) continue;
-    const root = `[data-app-design="${design.id}"]`;
-    const ownPalette = design.palette.world !== identity.defaultWorld;
+    if (design.palette.world === identity.defaultWorld) continue;
+    const palette = `[data-app-palette="${design.id}"]`;
     const scoped = (prefix) =>
-      ownPalette
-        ? `${prefix}${root},\n${prefix}${root} [data-color-world]`
-        : `${prefix}${root}`;
-    const extra = presetDeclarations(design, tokens);
-    // A design on the default colour world inherits the root palette.
-    if (!ownPalette) css.push(block(scoped(':root'), extra));
-    else
+      `${prefix}${palette},\n${prefix}${palette} [data-color-world]`;
+    css.push(
+      ...schemeBlocks(
+        scoped(':root'),
+        scoped(':root[data-theme="dark"]'),
+        scoped(':root:not([data-theme])'),
+        designPalette(design.palette.light, status.light, 'light', {
+          emphasis: true,
+        }),
+        designPalette(design.palette.dark, status.dark, 'dark', {
+          emphasis: true,
+        }),
+      ),
+    );
+  }
+  for (const design of validated) {
+    if (design.id === fallback.id) continue;
+    const root = `:root[data-app-design="${design.id}"]`;
+    css.push(block(root, presetDeclarations(design, tokens)));
+    if (design.icon.accent === 'mono') {
+      // Match the palette's highest specificity, including contextual colour worlds.
+      const mono = `${root}[data-app-palette]`;
       css.push(
-        ...schemeBlocks(
-          scoped(':root'),
-          scoped(':root[data-theme="dark"]'),
-          scoped(':root:not([data-theme])'),
-          [
-            ...designPalette(design.palette.light, status.light, 'light'),
-            ...extra,
-          ],
-          [
-            ...designPalette(design.palette.dark, status.dark, 'dark'),
-            ...extra,
-          ],
-        ),
+        block(`${mono},\n${mono} [data-color-world]`, [
+          '--identity-icon-accent: currentColor;',
+          '--identity-icon-cool: currentColor;',
+        ]),
       );
+    }
     const motion = motionDeclarations(design, tokens);
     if (motion.length)
       css.push(
-        `@media (prefers-reduced-motion: no-preference) {\n${block(scoped(':root'), motion, '  ')}\n}`,
+        `@media (prefers-reduced-motion: no-preference) {\n${block(root, motion, '  ')}\n}`,
       );
   }
 
@@ -472,6 +488,7 @@ export function buildAppDesigns(tokens, designs) {
     `export type AppDesignLayout = ${presets.layouts.map((layout) => `'${layout}'`).join(' | ')};`,
     "export type AppDesignTier = 'free' | 'pro';",
     `export const DEFAULT_APP_DESIGN = '${fallback.id}';`,
+    `export const APP_PALETTE_IDS = [${paletteIds.join(', ')}] as const;`,
     `export const APP_DESIGNS: Readonly<Record<string, { readonly tier: AppDesignTier; readonly layout: AppDesignLayout }>> = {\n${entries}\n};`,
   ].join('\n\n');
   return { css: `${css.join('\n\n')}\n`, registry: `${registry}\n` };

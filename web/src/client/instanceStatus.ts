@@ -42,6 +42,10 @@ export interface InstanceStatusResult {
   oidcConnections?: OidcConnectionView[];
   /** A person may create a new Account through a provider right now. */
   oidcSignupAvailable?: boolean;
+  /** The operator accepts support reports (#2189); false while unknown. */
+  supportReportsAvailable?: boolean;
+  /** A Space member can redeem an eimir. gift code here; false while unknown. */
+  giftCodesAvailable?: boolean;
 }
 
 export function isSelfServiceSignupAllowed(
@@ -76,6 +80,8 @@ export async function loadInstanceAccessStatus(
       termsOfUseVersion: status.termsOfUseVersion ?? null,
       oidcConnections: status.oidcConnections ?? [],
       oidcSignupAvailable: Boolean(status.oidcSignupAvailable),
+      supportReportsAvailable: status.supportReportsAvailable === true,
+      giftCodesAvailable: status.giftCodesAvailable === true,
     };
   } catch {
     return {
@@ -88,6 +94,8 @@ export async function loadInstanceAccessStatus(
       termsOfUseVersion: null,
       oidcConnections: [],
       oidcSignupAvailable: false,
+      supportReportsAvailable: false,
+      giftCodesAvailable: false,
     };
   }
 }

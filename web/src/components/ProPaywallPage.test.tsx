@@ -1,8 +1,17 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { MemoryWorldId } from '../api/generated/models/MemoryWorldId';
+import { ApiRuntimeProvider } from '../client/apiRuntimeContext';
 import {
   type BillingChannel,
   currentBillingChannel,
@@ -11,8 +20,12 @@ import {
   unlocksFeature,
   yearlySavingPercent,
 } from '../client/proBilling';
+import { instanceStatusQueryOptions } from '../client/supportReportsAvailability';
+import memoryWorldSettings from '../i18n/locales/memoryWorldSettings';
 import proPaywall from '../i18n/locales/proPaywall';
+import { PRO_MEMORY_WORLD_IDS } from './ProFeatureCatalogue';
 import { ProPaywallPage } from './ProPaywallPage';
+import germanUi from '../i18n/locales/de';
 
 const session = vi.hoisted(() => ({
   data: undefined as { tier: string } | undefined,
@@ -35,20 +48,43 @@ vi.mock('../client/proPresentation', () => ({
   useHideProFeatureMarks: () => false,
 }));
 
-function renderPaywall(path: string, billingChannel?: BillingChannel) {
+const platform = vi.hoisted(() => ({ native: false }));
+vi.mock('../pwa', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../pwa')>()),
+  isCapacitorNative: () => platform.native,
+}));
+
+const API_BASE = 'http://api.example.test';
+
+function renderPaywall(
+  path: string,
+  billingChannel?: BillingChannel,
+  { giftCodesAvailable = false }: { giftCodesAvailable?: boolean } = {},
+) {
   const client = new QueryClient();
+  // The shared instance status says whether gift codes can be redeemed here.
+  client.setQueryData(instanceStatusQueryOptions(API_BASE).queryKey, {
+    giftCodesAvailable,
+  });
   render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={[path]}>
-        <Routes>
-          <Route
-            path="/more/pro"
-            element={<ProPaywallPage billingChannel={billingChannel} />}
-          />
-          <Route path="/plan" element={<p>Planning home</p>} />
-          <Route path="/more" element={<p>More home</p>} />
-        </Routes>
-      </MemoryRouter>
+      <ApiRuntimeProvider
+        apiBaseUrl={API_BASE}
+        accessToken="token"
+        accountId="account-1"
+        spaceId="space-1"
+      >
+        <MemoryRouter initialEntries={[path]}>
+          <Routes>
+            <Route
+              path="/more/pro"
+              element={<ProPaywallPage billingChannel={billingChannel} />}
+            />
+            <Route path="/plan" element={<p>Planning home</p>} />
+            <Route path="/more" element={<p>More home</p>} />
+          </Routes>
+        </MemoryRouter>
+      </ApiRuntimeProvider>
     </QueryClientProvider>,
   );
   return client;
@@ -69,7 +105,17 @@ function channel(result: ProPurchaseOutcome) {
   };
 }
 
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+});
+
 beforeEach(() => {
+  platform.native = false;
   session.data = { tier: 'FREE' };
   session.error = null;
   session.refetch.mockReset();
@@ -101,9 +147,10 @@ describe('ProPaywallPage', () => {
     ['recaps', proPaywall.contexts.recaps],
     ['memoryMap', proPaywall.contexts.memoryMap],
     ['photoSources', proPaywall.contexts.photoSources],
+    ['storage', proPaywall.contexts.storage],
     ['calendar', proPaywall.contexts.calendar],
     ['games', proPaywall.contexts.games],
-  ])('presents the %s context with three benefits', (context, copy) => {
+  ])('presents the %s context with its benefits', (context, copy) => {
     renderPaywall(`/more/pro?context=${context}`);
     expect(
       screen.getByRole('heading', { level: 1, name: copy.title }),
@@ -112,7 +159,14 @@ describe('ProPaywallPage', () => {
       expect(screen.getByText(benefit.title)).toBeTruthy();
     expect(
       screen.getByRole('list', { name: proPaywall.benefitsLabel }).children,
-    ).toHaveLength(3);
+    ).toHaveLength(Object.keys(copy.benefits).length);
+  });
+
+  it('gives the storage context two benefits, none about imports', () => {
+    expect(Object.keys(proPaywall.contexts.storage.benefits)).toEqual([
+      'first',
+      'second',
+    ]);
   });
 
   it('uses the full catalogue for an unknown context', () => {
@@ -127,11 +181,39 @@ describe('ProPaywallPage', () => {
       proPaywall.catalogue.features,
     )) {
       expect(catalogue.textContent).toContain(title);
-      expect(catalogue.textContent).toContain(body);
+      // Interpolated bodies are checked up to their first placeholder.
+      expect(catalogue.textContent).toContain(body.split('{{')[0]);
     }
     expect(
       screen.queryByRole('list', { name: proPaywall.benefitsLabel }),
     ).toBeNull();
+  });
+
+  it('lists the ten Pro memory worlds by their settings names', () => {
+    const free: readonly string[] = ['story', 'stack'];
+    expect([...PRO_MEMORY_WORLD_IDS].sort()).toEqual(
+      Object.values(MemoryWorldId)
+        .filter((id) => !free.includes(id))
+        .sort(),
+    );
+    renderPaywall('/more/pro');
+    const catalogue = screen.getByRole('region', {
+      name: proPaywall.catalogue.title,
+    });
+    for (const id of PRO_MEMORY_WORLD_IDS)
+      expect(catalogue.textContent).toContain(
+        memoryWorldSettings.worlds[id].name,
+      );
+    expect(catalogue.textContent).not.toContain('{{');
+  });
+
+  it('offers the Cloud storage allowance in the catalogue', () => {
+    renderPaywall('/more/pro');
+    const storage = proPaywall.catalogue.features.storage;
+    expect(storage.title).toContain('50 GB');
+    expect(storage.title).toContain('eimir. Cloud');
+    expect(screen.getByText(storage.title)).toBeTruthy();
+    expect(screen.getByText(storage.body)).toBeTruthy();
   });
 
   it('preselects the yearly plan and lets the monthly plan be chosen', () => {
@@ -170,9 +252,60 @@ describe('ProPaywallPage', () => {
     expect(screen.getByText(proPaywall.active.title)).toBeTruthy();
     expect(screen.queryByRole('radio')).toBeNull();
     fireEvent.click(
-      screen.getByRole('button', { name: proPaywall.active.continue }),
+      screen.getByRole('button', { name: germanUi.common.continue }),
     );
     expect(screen.getByText('Planning home')).toBeTruthy();
+  });
+
+  it('offers gift code redemption quietly below the web unavailable note', () => {
+    renderPaywall('/more/pro', undefined, { giftCodesAvailable: true });
+    const entry = screen.getByRole('button', {
+      name: proPaywall.giftCode.title,
+    });
+    expect(entry.className).toContain('tertiary');
+    const note = screen.getByRole('note');
+    expect(
+      note.compareDocumentPosition(entry) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    fireEvent.click(entry);
+    expect(
+      screen.getByRole('dialog', { name: proPaywall.giftCode.title }),
+    ).toBeTruthy();
+  });
+
+  it('offers gift code redemption below the active state', () => {
+    session.data = { tier: 'PREMIUM' };
+    renderPaywall('/more/pro', undefined, { giftCodesAvailable: true });
+    const active = screen
+      .getByText(proPaywall.active.title)
+      .closest('section') as HTMLElement;
+    const entry = screen.getByRole('button', {
+      name: proPaywall.giftCode.title,
+    });
+    expect(
+      active.compareDocumentPosition(entry) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('shows no gift code entry where redemption is unavailable', () => {
+    renderPaywall('/more/pro');
+    expect(
+      screen.queryByRole('button', { name: proPaywall.giftCode.title }),
+    ).toBeNull();
+  });
+
+  it('shows no gift code entry in the native app', () => {
+    platform.native = true;
+    renderPaywall('/more/pro', channel('confirmed').channel, {
+      giftCodesAvailable: true,
+    });
+    expect(
+      screen.queryByRole('button', { name: proPaywall.giftCode.title }),
+    ).toBeNull();
+    // The store purchase stays the only filled action.
+    expect(
+      screen.getByRole('button', { name: proPaywall.purchase.yearly }),
+    ).toBeTruthy();
   });
 
   it('keeps an unknown entitlement status neutral and retryable', () => {
@@ -275,5 +408,242 @@ describe('ProPaywallPage', () => {
     );
     expect(test.purchase).toHaveBeenCalledWith('yearly');
     await waitFor(() => expect(screen.getByText('Planning home')).toBeTruthy());
+  });
+});
+
+describe('Pro showcase', () => {
+  const scenes = proPaywall.showcase.scenes;
+
+  function showcase() {
+    return screen.getByRole('region', { name: proPaywall.showcase.label });
+  }
+
+  it('shows four highlights on the general page in order', () => {
+    renderPaywall('/more/pro');
+    const region = showcase();
+    const items = within(region).getAllByRole('listitem');
+    expect(items).toHaveLength(4);
+    expect(
+      items.map((item) => within(item).getByRole('heading').textContent),
+    ).toEqual([
+      scenes.memoryWorlds.title,
+      scenes.recapFilms.title,
+      scenes.gamesGarden.title,
+      scenes.mapCloseness.title,
+    ]);
+    expect(within(region).getByText(scenes.recapFilms.body)).toBeTruthy();
+    expect(
+      [...region.querySelectorAll('[data-scene]')].map(
+        (node) => (node as HTMLElement).dataset.scene,
+      ),
+    ).toEqual(['memoryWorlds', 'recapFilms', 'gamesGarden', 'mapCloseness']);
+    for (const node of region.querySelectorAll('[data-scene]'))
+      expect(node.getAttribute('aria-hidden')).toBe('true');
+    // The gallery replaces the brand hero on the general page.
+    expect(document.querySelector('.pro-paywall-hero')).toBeNull();
+  });
+
+  it('marks the first highlight current and never advances on its own', () => {
+    vi.useFakeTimers();
+    try {
+      renderPaywall('/more/pro');
+      const indicators = within(showcase()).getAllByRole('button');
+      expect(
+        indicators.map((button) => button.getAttribute('aria-label')),
+      ).toEqual(
+        [1, 2, 3, 4].map((index) =>
+          proPaywall.showcase.indicator
+            .replace('{{index}}', String(index))
+            .replace('{{count}}', '4'),
+        ),
+      );
+      expect(indicators[0].getAttribute('aria-current')).toBe('true');
+      act(() => {
+        vi.advanceTimersByTime(60_000);
+      });
+      expect(indicators[0].getAttribute('aria-current')).toBe('true');
+      expect(indicators[1].hasAttribute('aria-current')).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('moves to a highlight from its indicator', () => {
+    renderPaywall('/more/pro');
+    const indicators = within(showcase()).getAllByRole('button');
+    fireEvent.click(indicators[2]);
+    expect(indicators[2].getAttribute('aria-current')).toBe('true');
+    expect(indicators[0].hasAttribute('aria-current')).toBe(false);
+  });
+
+  it('names the yearly price per month for both partners', () => {
+    renderPaywall('/more/pro');
+    const [before, after] = proPaywall.showcase.anchor
+      .replace(/<\/?strong>/g, '')
+      .split('{{price}}');
+    expect(showcase().querySelector('.pro-showcase-anchor')?.textContent).toBe(
+      `${before}5,00\u00a0€${after}`,
+    );
+  });
+
+  it('shows the matching scene as hero on context pages', () => {
+    renderPaywall('/more/pro?context=memoryMap');
+    expect(
+      screen.queryByRole('region', { name: proPaywall.showcase.label }),
+    ).toBeNull();
+    const hero = document.querySelector('[data-scene]') as HTMLElement;
+    expect(hero.dataset.scene).toBe('mapCloseness');
+    expect(document.querySelector('.pro-paywall-hero')).toBeNull();
+  });
+
+  it.each([
+    ['recaps', 'recapFilms'],
+    ['games', 'gamesGarden'],
+  ])('shows the %s scene as hero', (context, scene) => {
+    renderPaywall(`/more/pro?context=${context}`);
+    expect(
+      (document.querySelector('[data-scene]') as HTMLElement).dataset.scene,
+    ).toBe(scene);
+  });
+
+  it('keeps the brand hero where no scene fits', () => {
+    renderPaywall('/more/pro?context=dateIdeas');
+    expect(document.querySelector('[data-scene]')).toBeNull();
+    expect(document.querySelector('.pro-paywall-hero')).toBeTruthy();
+  });
+
+  it('keeps the gallery for an active Space without plans or price', () => {
+    session.data = { tier: 'PREMIUM' };
+    renderPaywall('/more/pro');
+    expect(within(showcase()).getAllByRole('listitem')).toHaveLength(4);
+    expect(screen.queryByRole('radio')).toBeNull();
+    expect(showcase().querySelector('.pro-showcase-anchor')).toBeNull();
+  });
+
+  it('falls back to the general gallery for an unknown context', () => {
+    renderPaywall('/more/pro?context=nope');
+    expect(within(showcase()).getAllByRole('listitem')).toHaveLength(4);
+  });
+
+  it('makes no request of its own', () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    try {
+      renderPaywall('/more/pro');
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+});
+
+describe('Pro showcase scrolling', () => {
+  function track() {
+    return screen
+      .getByRole('region', { name: proPaywall.showcase.label })
+      .querySelector('.pro-showcase-track') as HTMLUListElement;
+  }
+
+  /** Lays the four cards out 300 px apart in a 330 px wide track. */
+  function layOut(list: HTMLUListElement) {
+    const cards = [...list.children] as HTMLElement[];
+    cards.forEach((card, index) => {
+      Object.defineProperty(card, 'offsetLeft', {
+        configurable: true,
+        value: 16 + index * 300,
+      });
+    });
+    Object.defineProperty(list, 'clientWidth', {
+      configurable: true,
+      value: 330,
+    });
+    Object.defineProperty(list, 'scrollWidth', {
+      configurable: true,
+      value: 1200,
+    });
+  }
+
+  function scrollTo(list: HTMLUListElement, left: number) {
+    list.scrollLeft = left;
+    fireEvent.scroll(list);
+  }
+
+  function currentIndex() {
+    return within(
+      screen.getByRole('region', { name: proPaywall.showcase.label }),
+    )
+      .getAllByRole('button')
+      .findIndex((button) => button.getAttribute('aria-current') === 'true');
+  }
+
+  it('lets the keyboard reach the scrolling cards', () => {
+    renderPaywall('/more/pro');
+    expect(track().tabIndex).toBe(0);
+  });
+
+  it('follows the swiped card once scrolling settles', () => {
+    vi.useFakeTimers();
+    try {
+      renderPaywall('/more/pro');
+      const list = track();
+      layOut(list);
+      act(() => scrollTo(list, 300));
+      expect(currentIndex()).toBe(0);
+      act(() => {
+        vi.advanceTimersByTime(500);
+      });
+      expect(currentIndex()).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('makes the last card current at the end of the track', () => {
+    vi.useFakeTimers();
+    try {
+      renderPaywall('/more/pro');
+      const list = track();
+      layOut(list);
+      act(() => scrollTo(list, 870));
+      act(() => {
+        vi.advanceTimersByTime(500);
+      });
+      expect(currentIndex()).toBe(3);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps the chosen card while the gallery scrolls past others', () => {
+    vi.useFakeTimers();
+    try {
+      renderPaywall('/more/pro');
+      const list = track();
+      layOut(list);
+      list.scrollTo = vi.fn();
+      const buttons = within(
+        screen.getByRole('region', { name: proPaywall.showcase.label }),
+      ).getAllByRole('button');
+      fireEvent.click(buttons[2]);
+      expect(list.scrollTo).toHaveBeenCalledWith(
+        expect.objectContaining({ left: 600 }),
+      );
+      // The smooth scroll passes the second card on its way.
+      act(() => scrollTo(list, 300));
+      act(() => {
+        vi.advanceTimersByTime(100);
+      });
+      act(() => scrollTo(list, 600));
+      act(() => {
+        vi.advanceTimersByTime(500);
+      });
+      expect(currentIndex()).toBe(2);
+      expect(
+        document
+          .querySelector('[data-scene="recapFilms"]')
+          ?.hasAttribute('data-started'),
+      ).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

@@ -8,6 +8,7 @@ as lifecycle FK, so workers do not acquire Account locks after Attachment.
 
 from __future__ import annotations
 
+from math import asin, cos, radians, sin, sqrt
 from typing import TYPE_CHECKING
 from uuid import UUID
 
@@ -24,6 +25,7 @@ from eimir.authorization import AuthorizationContext, PrivacyClass
 from eimir.core.errors import ConflictError, UnauthenticatedError
 from eimir.db.locks import lock_subject
 from eimir.identity.models import Account
+from eimir.places.models import Place
 
 
 def preference(session: Session, account_id: UUID) -> tuple[bool, int]:
@@ -121,20 +123,26 @@ def bind(
     lock_subject(session, "photo-locations", str(context.account_id))
     enabled, version = preference(session, context.account_id)
     drafts = []
+    private_drafts = []
     for attachment in attachments:
         draft = session.get(PhotoLocationDraft, attachment.id)
         if draft is not None:
             session.delete(draft)
-            if (
+            if not (
                 enabled
                 and draft.preference_version == version
                 and draft.owner_id == context.account_id
                 and draft.payload.owner_id == context.account_id
                 and draft.payload.attachment_id == attachment.id
                 and attachment.space_id == context.space_id
-                and target.privacy_class == PrivacyClass.SPACE_SHARED.value
             ):
+                continue
+            if target.privacy_class == PrivacyClass.SPACE_SHARED.value:
                 drafts.append(draft.payload)
+            elif heart and target.privacy_class == PrivacyClass.OWNER_ONLY.value:
+                private_drafts.append(draft.payload)
+    if private_drafts:
+        _fill_private_location(session, context, target, private_drafts[0])
     if not drafts:
         return
     kind = relations.PLACE_HEART_MOMENTS if heart else relations.PLACE_MEMORIES
@@ -157,12 +165,18 @@ def bind(
         select(Account.locale).where(Account.id == context.account_id)
     ).scalar_one()
     name = initial_photo_place_name(locale)
-    seen: set[tuple[float, float]] = set()
+    # Coordinates live in the protected payload, so nearness cannot be asked in SQL.
+    # Serialize per Space before reading candidates: two uploads at one spot must
+    # not both decide that no Place exists yet.
+    lock_subject(session, "photo-place-space", str(context.space_id))
+    known = _space_places(session, context.space_id)
     for payload in drafts:
-        pair = (payload.latitude, payload.longitude)
-        if pair in seen:
+        existing = _nearest_within_radius(known, payload.latitude, payload.longitude)
+        if existing is not None:
+            # A photo at a known spot reuses that Place. Linking is idempotent, so a
+            # second photo on the same entry changes nothing.
+            relations.link(session, context, existing.id, target_id, kind, automatic=True)
             continue
-        seen.add(pair)
         place = places.create_place(
             session,
             context,
@@ -172,7 +186,91 @@ def bind(
             latitude=payload.latitude,
             longitude=payload.longitude,
         )
+        known.append(place)
         relations.link(session, context, place.id, target_id, kind, automatic=True)
         from eimir.places.photo_enrichment import schedule_place
 
         schedule_place(session, place)
+
+
+def _fill_private_location(
+    session: Session,
+    context: AuthorizationContext,
+    target: Memory | HeartMoment,
+    payload: PhotoLocationPayload,
+) -> None:
+    """A private Heart Moment keeps its photo location to itself.
+
+    It never becomes a shared Place: the coordinates fill the moment's own
+    protected location, which only its author reads, and only when the author
+    chose none. A background job then replaces the placeholder name.
+    """
+    from eimir.heart_moments.location import HeartMomentLocation
+    from eimir.heart_moments.models import HeartMoment
+
+    if not isinstance(target, HeartMoment) or target.payload.location is not None:
+        return
+    locale = session.execute(
+        select(Account.locale).where(Account.id == context.account_id)
+    ).scalar_one()
+    target.payload = target.payload.model_copy(
+        update={
+            "location": HeartMomentLocation(
+                name=initial_photo_place_name(locale),
+                latitude=payload.latitude,
+                longitude=payload.longitude,
+            )
+        }
+    )
+    session.flush()
+    from eimir.places.photo_enrichment import schedule_private_location
+
+    schedule_private_location(session, target)
+
+
+# Photos taken at one spot differ by GPS jitter of a few metres to some tens of
+# metres. Photon (the reverse geocoder) itself accepts points within 200 m, so this
+# stays well below that and below the distance between neighbouring addresses.
+SAME_PLACE_RADIUS_METERS = 75.0
+_SPACE_PLACE_SCAN_LIMIT = 500
+_EARTH_RADIUS_METERS = 6_371_000.0
+
+
+def _space_places(session: Session, space_id: UUID) -> list[Place]:
+    """Newest located, non-archived Places of the Space (all are space-shared)."""
+    return list(
+        session.execute(
+            select(Place)
+            .where(Place.space_id == space_id, Place.archived.is_(False), Place.located())
+            .order_by(Place.created_at.desc(), Place.id.desc())
+            .limit(_SPACE_PLACE_SCAN_LIMIT)
+        )
+        .scalars()
+        .all()
+    )
+
+
+def _distance_meters(
+    latitude_a: float, longitude_a: float, latitude_b: float, longitude_b: float
+) -> float:
+    """Great-circle distance; accurate far below the metre for these short spans."""
+    phi_a, phi_b = radians(latitude_a), radians(latitude_b)
+    delta_phi = phi_b - phi_a
+    delta_lambda = radians(longitude_b - longitude_a)
+    haversine = sin(delta_phi / 2) ** 2 + cos(phi_a) * cos(phi_b) * sin(delta_lambda / 2) ** 2
+    return 2 * _EARTH_RADIUS_METERS * asin(min(1.0, sqrt(haversine)))
+
+
+def _nearest_within_radius(
+    candidates: list[Place], latitude: float, longitude: float
+) -> Place | None:
+    best: tuple[float, Place] | None = None
+    for candidate in candidates:
+        if candidate.latitude is None or candidate.longitude is None:
+            continue
+        distance = _distance_meters(
+            latitude, longitude, float(candidate.latitude), float(candidate.longitude)
+        )
+        if distance <= SAME_PLACE_RADIUS_METERS and (best is None or distance < best[0]):
+            best = (distance, candidate)
+    return None if best is None else best[1]

@@ -449,20 +449,50 @@
   }
 }
 
-/* A kept primary tab is layout-transparent; hidden tabs leave layout entirely. */
+/* A kept primary tab is a plain block around its page. */
 .primary-tab-panel {
   /* Measured per peek by the tab panels; these are the neutral defaults. */
   --primary-tab-peek-left: 0px;
   --primary-tab-peek-width: 100%;
   --primary-tab-peek-origin: 0px;
 
-  display: contents;
+  display: block;
 }
 
-.primary-tab-panel[hidden],
+/* A hidden tab keeps its rendering state and skips it: it is laid over the
+   viewport out of the reading flow, like a pager page, so showing it again
+   (a peek or a return) reuses its layout and never restarts its CSS
+   animations, which `display: none` would. */
+.product-main > .primary-tab-panel[hidden],
 .product-main:not([data-primary-tab-dragging])
   > .primary-tab-panel[data-primary-tab-peek] {
-  display: none;
+  position: fixed;
+  z-index: -1;
+  top: 0;
+  left: 0;
+  display: block;
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  content-visibility: hidden;
+  pointer-events: none;
+}
+
+.product-main > .primary-tab-panel[hidden] > .page,
+.product-main:not([data-primary-tab-dragging])
+  > .primary-tab-panel[data-primary-tab-peek]
+  > .page {
+  width: calc(100% - 2 * var(--page-gutter));
+  margin-inline: auto;
+}
+
+/* A built neighbour is drawn for one frame before its first reveal
+   (`PrimaryTabPanels`): practically invisible, but painted (opacity 0 would
+   skip the paint), so its first layout and the GPU's first use of its
+   effects are paid while nobody touches the screen. */
+.product-main > .primary-tab-panel[hidden][data-primary-tab-rehearse] {
+  content-visibility: visible;
+  opacity: 0.002;
 }
 
 /* A panel prepared before its first visit (#2063) is laid out like the
@@ -486,6 +516,13 @@
   margin-inline: auto;
 }
 
+/* Once the prepared page has drawn (a map's first complete view), the panel
+   rests like a parked tab: its rendering state is kept, but photos that
+   still arrive no longer lay it out or paint it until the first visit. */
+.product-main > .primary-tab-panel[data-primary-tab-prewarm="rested"] {
+  content-visibility: hidden;
+}
+
 /* Resolve the shell's width before descendants introduce their own containers. */
 @property --shell-inline-size {
   syntax: "<length>";
@@ -493,12 +530,24 @@
   initial-value: 0px;
 }
 
+/* Only the two moving page boxes need the per-frame offsets. Inheriting them
+   through cards, controls and the warmed map invalidates styles during drag. */
+@property --primary-tab-offset {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --primary-tab-peek-offset {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
 .product-main {
   --shell-focus-bottom-clearance: var(--shell-content-bottom-clearance);
   --shell-inline-size: 100cqi;
   --shell-main-padding-top: clamp(var(--space-6), 4vw, var(--space-10));
-  --primary-tab-peek-offset: 0px;
-  --primary-tab-offset: 0px;
 
   width: calc(100% - 2 * var(--page-gutter));
   margin: 0 auto;
@@ -508,20 +557,35 @@
 @media (prefers-reduced-motion: no-preference) {
   /* A swipe drags the pages themselves, like a pager: the current page follows
      the finger and the neighbouring tab travels beside it. */
+  .product-main[data-primary-tab-dragging]
+    > .primary-tab-panel:not(
+      [hidden],
+      [data-primary-tab-peek],
+      [data-primary-tab-prewarm]
+    ) {
+    --primary-tab-offset: inherit;
+  }
+
   .product-main[data-primary-tab-dragging] > .page,
   .product-main[data-primary-tab-dragging]
-    > .primary-tab-panel:not([data-primary-tab-peek])
+    > .primary-tab-panel:not(
+      [hidden],
+      [data-primary-tab-peek],
+      [data-primary-tab-prewarm]
+    )
     > .page {
-    /* Offset, don't transform: a transformed page would become the containing
-       block of its fixed add action, which then sits at the page's bottom edge
-       and snaps to the viewport corner once the page settles. */
-    position: relative;
-    left: var(--primary-tab-offset, 0px);
+    --primary-tab-offset: inherit;
+    transform: translate3d(var(--primary-tab-offset, 0px), 0, 0);
+    will-change: transform;
   }
 
   .product-main[data-navigation-slide] > .page,
   .product-main[data-navigation-slide]
-    > .primary-tab-panel:not([hidden], [data-primary-tab-peek])
+    > .primary-tab-panel:not(
+      [hidden],
+      [data-primary-tab-peek],
+      [data-primary-tab-prewarm]
+    )
     > .page {
     position: relative;
   }
@@ -537,7 +601,8 @@
      left in, in the column the tab panels measured, and clipped to the screen
      (not the column) so it travels in from the edge like a pager page. */
   .product-main[data-primary-tab-dragging]
-  > .primary-tab-panel[data-primary-tab-peek] {
+    > .primary-tab-panel[data-primary-tab-peek] {
+    --primary-tab-peek-offset: inherit;
     position: fixed;
     z-index: 1;
     top: 0;
@@ -547,6 +612,8 @@
     height: 100dvh;
     overflow: hidden;
     pointer-events: none;
+    transform: translate3d(var(--primary-tab-peek-offset, 0px), 0, 0);
+    will-change: transform;
   }
 
   .product-main[data-primary-tab-dragging]
@@ -555,12 +622,9 @@
     width: var(--primary-tab-peek-width, 100%);
     margin-top: var(--primary-tab-peek-origin, 0px);
     margin-left: var(--primary-tab-peek-left, 0px);
-    transform: translate3d(var(--primary-tab-peek-offset, 0px), 0, 0);
-    will-change: transform;
   }
 
-  .product-shell-body:has(.product-main[data-primary-tab-dragging]),
-  .product-shell-body:has(.product-main[data-navigation-slide]) {
+  .product-shell[data-pages-moving] .product-shell-body {
     overflow-x: clip;
   }
 
@@ -720,6 +784,21 @@
   pointer-events: none;
 }
 
+/* The brand fill drops below 3:1 on the dark navigation surface of some app
+   designs; the brand text role stays legible in all of them. */
+.shell-nav-link .notification-dot {
+  top: -3px;
+  right: -3px;
+  width: 12px;
+  height: 12px;
+  border-width: 2px;
+  background-color: var(--color-brand-text);
+}
+
+.mobile-bottom-nav .notification-dot {
+  border-color: var(--color-surface-overlay);
+}
+
 .mobile-bottom-shell {
   position: fixed;
   z-index: 50;
@@ -762,6 +841,17 @@
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
+}
+
+/* While the pages slide sideways between tabs (a swipe or a tab chosen in
+   the bar), the glass pauses and the bar takes its opaque surface, as with
+   reduced transparency: the blur would otherwise be computed again for every
+   frame of the slide. Resting and scrolling keep the glass (Product Owner,
+   2026-11-26). */
+.product-shell[data-pages-moving] .mobile-bottom-shell {
+  background: var(--color-surface-overlay);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 .mobile-bottom-shell .mobile-bottom-nav {
@@ -960,6 +1050,21 @@
   grid-column: 2;
 }
 
+/* Problem state: a quiet tertiary action sits below the retry action. The
+   retry keeps the shared secondary button; the report action is smaller and
+   lighter so the two never read as equals. */
+.problem-state-actions {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-1);
+}
+
+.problem-state-actions button.tertiary {
+  min-height: var(--touch-target-web);
+  font: var(--font-supporting-copy);
+  font-weight: 600;
+}
+
 .ui-state-error .ui-state-mark,
 .ui-state-permission .ui-state-mark {
   background: var(--color-error-surface);
@@ -1048,7 +1153,35 @@
   }
 }
 
+/* The create entry lives in the top bar (Expanded, web): one labelled pill at
+   the bar's end on every page, instead of a pill dropped into each page's
+   content. Compact keeps its floating/dock entries, so the bar one stays hidden
+   there. */
+.topbar-create {
+  display: flex;
+}
+
+.topbar-create-slot {
+  display: contents;
+}
+
+.topbar-duplicate-create {
+  display: contents;
+}
+
 @media (min-width: 840px) {
+  .product-shell:has(> .product-topbar .topbar-create)
+    .topbar-duplicate-create {
+    display: none;
+  }
+
+  /* A page's own create action (note, place, person, plan, list, moment…)
+     is moved into the slot by AddAction while its tab is the visible one. The
+     everything-menu steps aside only while the slot holds one. */
+  .topbar-create:has(> .topbar-create-slot > *) > .topbar-create-global {
+    display: none;
+  }
+
   .product-shell {
     --shell-content-top-inset: var(--shell-topbar-min-height);
   }
@@ -1111,50 +1244,59 @@
   font-size: 1.1rem;
 }
 
-/* Shared app-level pull-to-refresh feedback (#1027). */
+/*
+ * Shared app-level pull-to-refresh feedback (#1027). The anchor takes no room
+ * in the page and creates no stacking context. The clip is fixed at the anchor's
+ * own place (a fixed box with no offsets keeps its static position, and a pull
+ * only happens at the top), so the disc stays above sticky page chrome such as
+ * the relationship bar or the Planen filter bar (z-index 4 to 6) yet below the
+ * top bar (40) and bottom navigation (50). The disc moves by transform and
+ * opacity only (written by usePullToRefresh), so a pull never reflows content.
+ * The box has no height and only its top edge clips: the disc emerges from the
+ * top edge of .product-main instead of crossing the header, and it may travel
+ * as deep as the person pulls without being cut off.
+ */
 .app-pull-refresh-indicator {
-  display: grid;
-  overflow: hidden;
-  place-items: end center;
   height: 0;
-  margin: 0;
-  opacity: 0;
-  transition: opacity var(--duration-feedback) var(--easing-standard);
   pointer-events: none;
 }
 
-.app-pull-refresh-indicator.is-visible,
-.app-pull-refresh-indicator.is-refreshing {
-  opacity: 1;
+.app-pull-refresh-clip {
+  position: fixed;
+  z-index: 30;
+  right: 0;
+  left: 0;
+  height: 0;
+  margin-top: calc(-1 * var(--space-6));
+  clip-path: inset(0 -2rem -100vh -2rem);
+  pointer-events: none;
 }
 
 .app-pull-refresh-disc {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
   display: grid;
+  /* 36px is the pull's travel distance (usePullToRefresh); keep them equal. */
   width: 36px;
   height: 36px;
-  margin-bottom: var(--space-2);
+  margin-inline: auto;
   place-items: center;
-  border: var(--border-surface-width) solid var(--color-border-subtle);
   border-radius: 50%;
-  background: var(--color-surface-raised);
-  color: var(--color-text-secondary);
+  /* A filled disc in the action colour with a light open ring, like the
+     refresh spinner of the platform's own apps; the ring turns while the
+     refresh runs. The glyph colour is the on-action colour, so it reads in
+     both themes. */
+  background: var(--color-action-primary);
+  color: var(--color-on-action-primary);
   box-shadow: var(--shadow-soft);
-}
-
-.app-pull-refresh-indicator.is-ready .app-pull-refresh-disc {
-  border-color: var(--color-brand);
-  color: var(--color-brand-strong);
+  opacity: 0;
+  transform: translate3d(0, -100%, 0);
 }
 
 html.app-pull-refresh-enabled,
 html.app-pull-refresh-enabled body {
   overscroll-behavior-y: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .app-pull-refresh-indicator {
-    transition: none;
-  }
 }
 
 /*

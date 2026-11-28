@@ -79,6 +79,31 @@ describe('HandwrittenMessage (#2372)', () => {
     expect(phase()).toBe('final');
   });
 
+  it('keeps writing on a same-width observer report and finishes on a new width', async () => {
+    let report = () => {};
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(callback: () => void) {
+          report = callback;
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+    try {
+      render(<HandwrittenMessage text={WORDS} messageKey="m-resize" />);
+      await flush();
+      act(() => report());
+      expect(phase()).toBe('playing');
+      width.mockReturnValue(500);
+      act(() => report());
+      expect(phase()).toBe('final');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('shows the finished words at once on a tap', async () => {
     render(<HandwrittenMessage text={WORDS} messageKey="m-3" />);
     await flush();
@@ -94,13 +119,29 @@ describe('HandwrittenMessage (#2372)', () => {
     expect(phase()).toBe('final');
   });
 
+  it('writes the words by hand and shows an emoji in place when the pen reaches it', async () => {
+    const { container } = render(
+      <HandwrittenMessage text={'It does not work 😢'} messageKey="m-6" />,
+    );
+    expect(container.querySelector('.sr-only')?.textContent).toBe(
+      'It does not work 😢',
+    );
+    const symbol = container.querySelector('.once-handwriting-symbol');
+    expect(symbol?.textContent).toBe('😢');
+    expect(
+      Number((symbol as SVGElement).style.getPropertyValue('--stroke-start')),
+    ).toBeGreaterThan(0.5);
+    await flush();
+    expect(phase()).toBe('playing');
+  });
+
   it('keeps the normal type when the font cannot write the words', () => {
     const { container } = render(
-      <HandwrittenMessage text={'Love you ❤️'} messageKey="m-5" />,
+      <HandwrittenMessage text={'Привет ❤️'} messageKey="m-5" />,
     );
     expect(strokes()).toBeNull();
     expect(container.querySelector('.once-words')?.textContent).toBe(
-      'Love you ❤️',
+      'Привет ❤️',
     );
   });
 });

@@ -7,9 +7,10 @@ import { HANDWRITING_GLYPHS } from './handwritingFont';
  * word is written stroke by stroke (the joined letters, then its dots and
  * umlauts, like a person lifting the pen), and every stroke carries its
  * position and length as fractions of the whole pen path, so a steady pen
- * speed can time it. Returns null when the text cannot be written by hand:
- * too long, or a character the font does not have (emoji, non-Latin
- * scripts); the caller then shows the normal type.
+ * speed can time it. Emoji and other symbols the font lacks keep their own
+ * form and sit in the line, appearing when the pen reaches them. Returns null
+ * when the text cannot be written by hand: too long, or letters of a script
+ * the font does not have; the caller then shows the normal type.
  */
 
 /** Longer messages keep the normal type. */
@@ -49,6 +50,8 @@ export interface HandwrittenLayout {
   /** The whole pen path in font units, for the writing time. */
   length: number;
   strokes: HandwrittenStroke[];
+  /** Emoji and other symbols, shown in place as the pen reaches them. */
+  symbols: HandwrittenSymbol[];
 }
 
 type Point = [number, number];
@@ -98,48 +101,107 @@ function normalize(text: string): string {
   return result;
 }
 
-const advanceOf = (character: string) =>
-  HANDWRITING_GLYPHS[character]?.[0] ?? 0;
+/** User-perceived characters, so an emoji sequence stays one token. */
+function graphemes(text: string): string[] {
+  if (typeof Intl !== 'undefined' && 'Segmenter' in Intl)
+    return [
+      ...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(
+        text,
+      ),
+    ].map((part) => part.segment);
+  return [...text];
+}
 
-const widthOf = (word: string) =>
-  [...word].reduce((sum, character) => sum + advanceOf(character), 0);
+/** A grapheme the font writes, or a symbol (emoji) placed into the line. */
+type Token = { kind: 'glyph'; text: string } | { kind: 'symbol'; text: string };
+
+const PICTOGRAPH = /\p{Extended_Pictographic}|\p{Regional_Indicator}|⃣/u;
+const LETTER = /[\p{L}\p{N}]/u;
+
+/**
+ * The font writes Latin letters; emoji and other symbols sit in the line as
+ * they are. A letter of another script returns null (normal type).
+ */
+function tokenOf(grapheme: string): Token | null {
+  if (HANDWRITING_GLYPHS[grapheme]) return { kind: 'glyph', text: grapheme };
+  if (PICTOGRAPH.test(grapheme) || !LETTER.test(grapheme))
+    return { kind: 'symbol', text: grapheme };
+  return null;
+}
+
+/** An emoji's advance and size in font units, and its share of the pen path. */
+const SYMBOL_ADVANCE = 1100;
+export const SYMBOL_SIZE = 900;
+const SYMBOL_PEN = 700;
+
+const advanceOf = (token: Token) =>
+  token.kind === 'symbol'
+    ? SYMBOL_ADVANCE
+    : (HANDWRITING_GLYPHS[token.text]?.[0] ?? 0);
+
+const widthOf = (word: readonly Token[]) =>
+  word.reduce((sum, token) => sum + advanceOf(token), 0);
 
 /** Splits a word that is wider than a line into line-sized pieces. */
-function pieces(word: string, maxWidth: number): string[] {
+function pieces(word: Token[], maxWidth: number): Token[][] {
   if (widthOf(word) <= maxWidth) return [word];
-  const result: string[] = [];
-  let current = '';
-  for (const character of word) {
-    if (current && widthOf(current + character) > maxWidth) {
+  const result: Token[][] = [];
+  let current: Token[] = [];
+  for (const token of word) {
+    if (current.length && widthOf([...current, token]) > maxWidth) {
       result.push(current);
-      current = '';
+      current = [];
     }
-    current += character;
+    current.push(token);
   }
-  if (current) result.push(current);
+  if (current.length) result.push(current);
   return result;
 }
+
+export interface HandwrittenSymbol {
+  text: string;
+  /** Left edge and baseline, in font units of the view box. */
+  x: number;
+  y: number;
+  /** When it appears, as fractions of the whole pen path (like a stroke). */
+  start: number;
+  share: number;
+}
+
+type PenItem =
+  | { kind: 'stroke'; points: Point[] }
+  | { kind: 'symbol'; text: string; x: number; y: number };
 
 export function layoutHandwriting(
   text: string,
   maxWidth: number,
 ): HandwrittenLayout | null {
   const source = normalize(text);
-  if (!source || [...source].length > HANDWRITING_MAX_CHARACTERS) return null;
-  for (const character of source)
-    if (
-      character !== '\n' &&
-      character !== ' ' &&
-      !HANDWRITING_GLYPHS[character]
-    )
-      return null;
-
-  const space = advanceOf(' ') || 300;
-  const lines: string[][] = [];
+  if (!source) return null;
+  const paragraphs: Token[][][] = [];
+  let count = 0;
   for (const paragraph of source.split('\n')) {
-    let line: string[] = [];
+    const words: Token[][] = [];
+    for (const word of paragraph.split(/ +/).filter(Boolean)) {
+      const tokens: Token[] = [];
+      for (const grapheme of graphemes(word)) {
+        const token = tokenOf(grapheme);
+        if (!token) return null;
+        tokens.push(token);
+        count += 1;
+      }
+      words.push(tokens);
+    }
+    paragraphs.push(words);
+  }
+  if (count > HANDWRITING_MAX_CHARACTERS) return null;
+
+  const space = HANDWRITING_GLYPHS[' ']?.[0] || 300;
+  const lines: Token[][][] = [];
+  for (const paragraph of paragraphs) {
+    let line: Token[][] = [];
     let width = 0;
-    for (const word of paragraph.split(/ +/).filter(Boolean))
+    for (const word of paragraph)
       for (const piece of pieces(word, maxWidth)) {
         const pieceWidth = widthOf(piece);
         const next = line.length ? width + space + pieceWidth : pieceWidth;
@@ -155,50 +217,72 @@ export function layoutHandwriting(
     lines.push(line);
   }
 
-  const strokes: Point[][] = [];
+  const items: PenItem[] = [];
   lines.forEach((words, row) => {
     const baseline = ASCENT + row * LINE_HEIGHT;
     let x = 0;
     for (const word of words) {
-      const lifts: Point[][] = [];
-      for (const character of word) {
-        const [advance, glyphStrokes] = HANDWRITING_GLYPHS[character];
+      const lifts: PenItem[] = [];
+      for (const token of word) {
+        if (token.kind === 'symbol') {
+          items.push({ kind: 'symbol', text: token.text, x, y: baseline });
+          x += SYMBOL_ADVANCE;
+          continue;
+        }
+        const [advance, glyphStrokes] = HANDWRITING_GLYPHS[token.text];
         for (const flat of glyphStrokes) {
           const points: Point[] = [];
           for (let i = 0; i + 1 < flat.length; i += 2)
             points.push([flat[i] + x, baseline - flat[i + 1]]);
-          (lengthOf(points) < LIFT ? lifts : strokes).push(points);
+          (lengthOf(points) < LIFT ? lifts : items).push({
+            kind: 'stroke',
+            points,
+          });
         }
         x += advance;
       }
-      strokes.push(...lifts);
+      items.push(...lifts);
       x += space;
     }
   });
-  if (!strokes.length) return null;
+  if (!items.length) return null;
 
-  const all = strokes.flat();
-  const minX = Math.min(...all.map((p) => p[0])) - PAD;
-  const minY = Math.min(0, ...all.map((p) => p[1])) - PAD;
-  const maxX = Math.max(...all.map((p) => p[0])) + PAD;
+  const corners: Point[] = items.flatMap((item) =>
+    item.kind === 'stroke'
+      ? item.points
+      : [
+          [item.x, item.y - SYMBOL_SIZE],
+          [item.x + SYMBOL_ADVANCE, item.y + SYMBOL_SIZE * 0.25],
+        ],
+  );
+  const minX = Math.min(...corners.map((p) => p[0])) - PAD;
+  const minY = Math.min(0, ...corners.map((p) => p[1])) - PAD;
+  const maxX = Math.max(...corners.map((p) => p[0])) + PAD;
   const maxY =
     Math.max(
       ASCENT + (lines.length - 1) * LINE_HEIGHT + 350,
-      ...all.map((p) => p[1]),
+      ...corners.map((p) => p[1]),
     ) + PAD;
-  const lengths = strokes.map(lengthOf);
+  const lengths = items.map((item) =>
+    item.kind === 'stroke' ? lengthOf(item.points) : SYMBOL_PEN,
+  );
   const total = lengths.reduce((sum, value) => sum + value, 0) || 1;
+  const strokes: HandwrittenStroke[] = [];
+  const symbols: HandwrittenSymbol[] = [];
   let start = 0;
+  items.forEach((item, index) => {
+    const share = lengths[index] / total;
+    if (item.kind === 'stroke')
+      strokes.push({ d: smoothPath(item.points), start, share });
+    else symbols.push({ text: item.text, x: item.x, y: item.y, start, share });
+    start += share;
+  });
   return {
     viewBox: `${round(minX)} ${round(minY)} ${round(maxX - minX)} ${round(maxY - minY)}`,
     width: maxX - minX,
     height: maxY - minY,
     length: total,
-    strokes: strokes.map((points, index) => {
-      const share = lengths[index] / total;
-      const stroke = { d: smoothPath(points), start, share };
-      start += share;
-      return stroke;
-    }),
+    strokes,
+    symbols,
   };
 }

@@ -358,9 +358,10 @@ test('two devices exchange actual encrypted content, deliberately reveal once an
 });
 
 for (const scenario of [
-  { width: 360, theme: 'dark', large: false },
-  { width: 430, theme: 'light', large: false },
-  { width: 320, theme: 'light', large: true },
+  { width: 360, theme: 'dark', large: false, emoji: false },
+  // An emoji keeps its own form inside the handwriting (#2372 follow-up).
+  { width: 430, theme: 'light', large: false, emoji: true },
+  { width: 320, theme: 'light', large: true, emoji: false },
 ] as const) {
   const label = `${scenario.width}-${scenario.theme}${scenario.large ? '-large-reduced' : ''}`;
   test(`an opened message written by hand at ${label} (#2372)`, async ({
@@ -385,7 +386,8 @@ for (const scenario of [
       await enable(sender, a, app, ACCOUNT_ID);
       await enable(receiver, b, app, PARTNER_ID);
       await sender.goto(`${ROOT}/new`);
-      await sender.getByLabel(copy.message, { exact: true }).fill(WORDS);
+      const words = scenario.emoji ? `${WORDS} \u{1F622}` : WORDS;
+      await sender.getByLabel(copy.message, { exact: true }).fill(words);
       await sender
         .getByRole('button', { name: copy.send, exact: true })
         .click();
@@ -397,17 +399,47 @@ for (const scenario of [
         await receiver.evaluate(() => {
           document.documentElement.style.fontSize = '200%';
         });
+      // Phase changes with their times: a writing that jumps to its end
+      // still reaches `final`, so the end state alone proves nothing.
+      await receiver.evaluate(() => {
+        const log: [string, number][] = [];
+        (window as unknown as { __phases: typeof log }).__phases = log;
+        new MutationObserver(() => {
+          const phase = document
+            .querySelector('.once-handwriting-strokes')
+            ?.getAttribute('data-phase');
+          if (phase && log.at(-1)?.[0] !== phase)
+            log.push([phase, performance.now()]);
+        }).observe(document.body, {
+          attributes: true,
+          childList: true,
+          subtree: true,
+        });
+      });
+      const cdp = await b.newCDPSession(receiver);
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
       await receiver
         .getByRole('button', { name: copy.open, exact: true })
         .click();
-      await expect(receiver.getByText(WORDS, { exact: true })).toBeVisible();
+      await expect(receiver.getByText(words, { exact: true })).toBeVisible();
       const handwriting = receiver.locator('.once-handwriting-strokes');
+      await expect(handwriting.locator('.once-handwriting-symbol')).toHaveCount(
+        scenario.emoji ? 1 : 0,
+      );
       // Reduced motion shows the finished handwriting at once.
       if (scenario.large)
         await expect(handwriting).toHaveAttribute('data-phase', 'final');
       await expect(handwriting).toHaveAttribute('data-phase', 'final', {
         timeout: 5_000,
       });
+      const phases = await receiver.evaluate(
+        () => (window as unknown as { __phases: [string, number][] }).__phases,
+      );
+      const at = (name: string) =>
+        phases.find(([phase]) => phase === name)?.[1] ?? Number.NaN;
+      if (scenario.large) expect(at('playing')).toBeNaN();
+      else expect(at('final') - at('playing')).toBeGreaterThan(1_000);
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
       expect(
         await receiver.evaluate(
           () =>

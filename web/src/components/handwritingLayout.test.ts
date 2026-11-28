@@ -39,9 +39,34 @@ describe('layoutHandwriting (#2372)', () => {
     ).not.toBeNull();
   });
 
-  it('keeps the normal type for emoji, other scripts and long messages', () => {
-    expect(layoutHandwriting('Love you ❤️', 6000)).toBeNull();
+  it('places emoji in the line, in pen order, as one symbol each', () => {
+    const layout = layoutHandwriting(
+      'It does not work 😢 but love you ❤️👩‍❤️‍👨',
+      6000,
+    );
+    expect(layout).not.toBeNull();
+    // Each emoji sequence (variation selector, ZWJ family) stays one symbol.
+    expect(layout?.symbols.map((symbol) => symbol.text)).toEqual([
+      '😢',
+      '❤️',
+      '👩‍❤️‍👨',
+    ]);
+    // Strokes and symbols share one pen path: their shares add up to 1, and
+    // a symbol appears after the letters written before it.
+    const shares = [...(layout?.strokes ?? []), ...(layout?.symbols ?? [])];
+    expect(shares.reduce((sum, item) => sum + item.share, 0)).toBeCloseTo(1, 6);
+    const crying = layout?.symbols[0];
+    expect(crying?.start).toBeGreaterThan(0.3);
+    expect(
+      layout?.strokes.filter((stroke) => stroke.start < (crying?.start ?? 0))
+        .length,
+    ).toBeGreaterThan(10);
+    expect(layoutHandwriting('😢', 6000)?.strokes).toEqual([]);
+  });
+
+  it('keeps the normal type for other scripts and long messages', () => {
     expect(layoutHandwriting('Привет', 6000)).toBeNull();
+    expect(layoutHandwriting('Love you, Привет ❤️', 6000)).toBeNull();
     expect(
       layoutHandwriting('a'.repeat(HANDWRITING_MAX_CHARACTERS + 1), 6000),
     ).toBeNull();

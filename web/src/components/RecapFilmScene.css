@@ -334,9 +334,27 @@
   .recap-film-picture:first-child {
   grid-column: auto;
 }
+/* The strip runs past the card's edge, so the row it slides in is the card, not
+ * the moving box: a box that clips its own pictures drags that clip edge across
+ * the card and leaves the last picture cut off beside an empty gap. The travel
+ * stops exactly when the last picture reaches the right edge. */
+.recap-film-frame[data-layout="strip"] {
+  overflow: hidden;
+}
 .recap-film-frame[data-layout="strip"] .recap-film-media {
   display: flex;
+  overflow: visible;
   padding-inline: var(--space-2);
+  --film-strip-travel: calc(
+    -1 *
+    max(
+      0px,
+      (var(--film-count, 2) * 0.62 - 1) *
+      (100% - 2 * var(--space-2)) +
+      (var(--film-count, 2) - 1) *
+      var(--space-2)
+    )
+  );
 }
 .recap-film-frame[data-layout="strip"] .recap-film-picture {
   flex: 0 0 62%;

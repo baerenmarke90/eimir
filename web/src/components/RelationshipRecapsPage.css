@@ -654,9 +654,11 @@ a.recap-status-row:hover strong {
   padding-inline: max(var(--space-3), env(safe-area-inset-left, 0px))
     max(var(--space-3), env(safe-area-inset-right, 0px));
 }
-.recap-fullscreen-toggle {
-  min-inline-size: 44px;
-  min-block-size: 44px;
+/* The same round control as the three-dot menu beside it (ItemActions.css);
+   only the glyph is sized here so it reads like the menu's. */
+.recap-fullscreen-toggle .eimir-icon {
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
 }
 .recap-scene-copy {
   position: relative;

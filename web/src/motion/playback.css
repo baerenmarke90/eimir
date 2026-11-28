@@ -131,10 +131,11 @@
 
 @keyframes eimir-motion-recap-film-strip {
   from {
-    transform: translateX(4%);
+    transform: translateX(0);
   }
   to {
-    transform: translateX(-50%);
+    /* Set per strip from its picture count; the fallback is a half-width pan. */
+    transform: translateX(var(--film-strip-travel, -50%));
   }
 }
 

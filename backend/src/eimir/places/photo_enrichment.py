@@ -21,6 +21,7 @@ from eimir.core.clock import now
 from eimir.core.errors import RateLimitedError
 from eimir.db.locks import lock_subject
 from eimir.domain.events import EventType
+from eimir.heart_moments.location import HeartMomentLocation
 from eimir.heart_moments.models import HeartMoment
 from eimir.identity.models import Account
 from eimir.jobs import queue
@@ -271,7 +272,144 @@ def enrich(session: Session, payload: dict[str, Any]) -> None:
     session.flush()
 
 
+PRIVATE_JOB_KIND = "photo_private_location_enrichment"
+
+
+def _untouched_private_location(moment: HeartMoment) -> bool:
+    location = moment.payload.location
+    return (
+        moment.privacy_class == PrivacyClass.OWNER_ONLY.value
+        and location is not None
+        and location.latitude is not None
+        and location.longitude is not None
+        and location.name in PHOTO_PLACE_NAMES.values()
+        and location.address is None
+    )
+
+
+def schedule_private_location(session: Session, moment: HeartMoment) -> Job | None:
+    """Name the photo location of a private Heart Moment, like a photo Place."""
+    if not get_settings().photo_place_geocoding_url or not _untouched_private_location(moment):
+        return None
+    preference = session.execute(
+        select(Account.photo_locations_enabled, Account.photo_locations_version).where(
+            Account.id == moment.owner_id,
+            Account.disabled_at.is_(None),
+        )
+    ).one_or_none()
+    if preference is None or not preference[0]:
+        return None
+    lock_subject(session, "photo-place-enrichment-queue", str(moment.id))
+    if session.get(Job, moment.id) is not None:
+        return None
+    job = queue.enqueue(
+        session,
+        PRIVATE_JOB_KIND,
+        {
+            "heart_moment_id": str(moment.id),
+            "space_id": str(moment.space_id),
+            "owner_id": str(moment.owner_id),
+            "preference_version": int(preference[1]),
+        },
+        max_attempts=5,
+    )
+    # One durable job per moment, as for photo Places.
+    job.id = moment.id
+    return job
+
+
+def _lock_authorized_private_location(
+    session: Session, payload: dict[str, Any]
+) -> tuple[HeartMoment, Account] | None:
+    try:
+        moment_id, space_id, owner_id = (
+            UUID(str(payload[key])) for key in ("heart_moment_id", "space_id", "owner_id")
+        )
+    except (KeyError, ValueError, TypeError):
+        return None
+    preference_version = payload.get("preference_version")
+    if not isinstance(preference_version, int) or isinstance(preference_version, bool):
+        return None
+    account = session.execute(
+        select(Account)
+        .where(
+            Account.id == owner_id,
+            Account.disabled_at.is_(None),
+            Account.photo_locations_enabled.is_(True),
+            Account.photo_locations_version == preference_version,
+        )
+        .with_for_update(read=True)
+        .execution_options(populate_existing=True)
+    ).scalar_one_or_none()
+    if account is None:
+        return None
+    member = session.execute(
+        select(Membership)
+        .where(
+            Membership.account_id == owner_id,
+            Membership.space_id == space_id,
+            Membership.status == MembershipStatus.ACTIVE.value,
+        )
+        .with_for_update(read=True)
+    ).scalar_one_or_none()
+    if member is None:
+        return None
+    moment = session.execute(
+        select(HeartMoment)
+        .where(
+            HeartMoment.id == moment_id,
+            HeartMoment.space_id == space_id,
+            HeartMoment.owner_id == owner_id,
+        )
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    ).scalar_one_or_none()
+    if moment is None or not _untouched_private_location(moment):
+        return None
+    return moment, account
+
+
+def enrich_private_location(session: Session, payload: dict[str, Any]) -> None:
+    origin = get_settings().photo_place_geocoding_url
+    if not origin:
+        return
+    authorized = _lock_authorized_private_location(session, payload)
+    if authorized is None:
+        return
+    moment, account = authorized
+    try:
+        rate_limit.check(session, JOB_KIND, "configured-provider", PROVIDER_LIMIT)
+    except RateLimitedError:
+        raise DeferredJobError(now() + PROVIDER_LIMIT.window) from None
+    location = moment.payload.location
+    assert location is not None and location.latitude is not None
+    assert location.longitude is not None
+    try:
+        candidate = PhotonReverseGeocoder(origin).reverse(
+            GeoPoint(latitude=location.latitude, longitude=location.longitude),
+            account.locale,
+        )
+    except GeocodingUnavailableError:
+        raise RetryableJobError("PHOTO_GEOCODING_UNAVAILABLE") from None
+    if candidate is None:
+        return
+    moment.payload = moment.payload.model_copy(
+        update={
+            # Validated, so a long provider label cannot exceed the stored bounds.
+            "location": HeartMomentLocation(
+                name=candidate.name[:200],
+                address=candidate.address[:500] if candidate.address else None,
+                latitude=location.latitude,
+                longitude=location.longitude,
+            )
+        }
+    )
+    session.flush()
+
+
 def register_handlers(target: JobRegistry | None = None) -> None:
     destination = target if target is not None else registry
     if destination.get(JOB_KIND) is None:
         destination.register(JOB_KIND, enrich)
+    if destination.get(PRIVATE_JOB_KIND) is None:
+        destination.register(PRIVATE_JOB_KIND, enrich_private_location)

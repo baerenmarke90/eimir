@@ -123,20 +123,26 @@ def bind(
     lock_subject(session, "photo-locations", str(context.account_id))
     enabled, version = preference(session, context.account_id)
     drafts = []
+    private_drafts = []
     for attachment in attachments:
         draft = session.get(PhotoLocationDraft, attachment.id)
         if draft is not None:
             session.delete(draft)
-            if (
+            if not (
                 enabled
                 and draft.preference_version == version
                 and draft.owner_id == context.account_id
                 and draft.payload.owner_id == context.account_id
                 and draft.payload.attachment_id == attachment.id
                 and attachment.space_id == context.space_id
-                and target.privacy_class == PrivacyClass.SPACE_SHARED.value
             ):
+                continue
+            if target.privacy_class == PrivacyClass.SPACE_SHARED.value:
                 drafts.append(draft.payload)
+            elif heart and target.privacy_class == PrivacyClass.OWNER_ONLY.value:
+                private_drafts.append(draft.payload)
+    if private_drafts:
+        _fill_private_location(session, context, target, private_drafts[0])
     if not drafts:
         return
     kind = relations.PLACE_HEART_MOMENTS if heart else relations.PLACE_MEMORIES
@@ -185,6 +191,41 @@ def bind(
         from eimir.places.photo_enrichment import schedule_place
 
         schedule_place(session, place)
+
+
+def _fill_private_location(
+    session: Session,
+    context: AuthorizationContext,
+    target: Memory | HeartMoment,
+    payload: PhotoLocationPayload,
+) -> None:
+    """A private Heart Moment keeps its photo location to itself.
+
+    It never becomes a shared Place: the coordinates fill the moment's own
+    protected location, which only its author reads, and only when the author
+    chose none. A background job then replaces the placeholder name.
+    """
+    from eimir.heart_moments.location import HeartMomentLocation
+    from eimir.heart_moments.models import HeartMoment
+
+    if not isinstance(target, HeartMoment) or target.payload.location is not None:
+        return
+    locale = session.execute(
+        select(Account.locale).where(Account.id == context.account_id)
+    ).scalar_one()
+    target.payload = target.payload.model_copy(
+        update={
+            "location": HeartMomentLocation(
+                name=initial_photo_place_name(locale),
+                latitude=payload.latitude,
+                longitude=payload.longitude,
+            )
+        }
+    )
+    session.flush()
+    from eimir.places.photo_enrichment import schedule_private_location
+
+    schedule_private_location(session, target)
 
 
 # Photos taken at one spot differ by GPS jitter of a few metres to some tens of

@@ -361,7 +361,7 @@ def test_photo_places_stay_enabled_and_legacy_writes_preserve_pending_gps(client
     assert len(places(client, couple, memory["id"]).json()["items"]) == 1
 
 
-def test_private_binding_discards_gps_before_later_sharing(client, couple, session):  # type: ignore[no-untyped-def]
+def test_private_binding_never_creates_a_shared_place_even_after_sharing(client, couple, session):  # type: ignore[no-untyped-def]
     staged = binding.ready_attachment(client, couple, session)
     created = binding.heart_moment(client, couple, visibility="PRIVATE", attachment_id=staged)
     assert created.status_code == 201
@@ -483,7 +483,7 @@ def test_heart_moment_replacement_keeps_a_single_photo_place(client, couple, ses
 
 
 def gps_jpeg(latitude_seconds: int, longitude_seconds: int, latitude_minutes: int = 31) -> bytes:
-    """A photo taken at 52°<minutes>'<seconds>" N, 13°24'<seconds>" E (1" is about 31 m)."""
+    """A photo taken at 52Â°<minutes>'<seconds>" N, 13Â°24'<seconds>" E (1" is about 31 m)."""
     image = Image.new("RGB", (32, 24), (10, 20, 30))
     exif = Image.Exif()
     exif[0x8825] = {

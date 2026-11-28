@@ -630,6 +630,10 @@ def _write_export_archive(
                 account_document["personalAppearance"]["memoryWorld"] = (
                     preference.effective_memory_world.value
                 )
+            if preference is not None and preference.wir_reel_style is not None:
+                account_document["personalAppearance"]["wirReelStyle"] = (
+                    preference.effective_wir_reel_style.value
+                )
             from eimir.personal_settings import service as personal_settings
 
             account_document["personalSettings"] = personal_settings.portable_snapshot(

@@ -65,6 +65,21 @@ const DATE = notice(
     createdAt: '2026-11-27T08:30:00Z',
   },
 );
+const NOTE = notice(
+  '00000000-0000-4000-8000-0000000000a4',
+  'SHARED_NOTE_CREATED',
+  {
+    targetType: 'SHARED_NOTE',
+    targetId: '00000000-0000-4000-8000-0000000000b4',
+    target: {
+      targetType: 'SHARED_NOTE',
+      targetId: '00000000-0000-4000-8000-0000000000b4',
+      title: 'Door code',
+    },
+    preview: { text: 'Ring twice.', items: [], moreItems: 0 },
+    createdAt: '2026-11-27T08:20:00Z',
+  },
+);
 const HEART = notice(
   '00000000-0000-4000-8000-0000000000a3',
   'HEART_HUNT_FOUND',
@@ -497,6 +512,8 @@ for (const reelStyle of ['tiles', 'chips'] as const) {
     { width: 390, theme: 'light' as const },
     { width: 390, theme: 'dark' as const },
     { width: 430, theme: 'dark' as const },
+    // Expanded: the reels keep their own width beside the wider page.
+    { width: 1100, theme: 'light' as const },
   ]) {
     test(`the ${reelStyle} style at ${width} ${theme}`, async ({ page }) => {
       await openWir(page, width, theme, false, { reelStyle });
@@ -560,3 +577,35 @@ test('a Free account sees the Pro styles and is led to Pro', async ({
   await dialog.getByRole('button', { name: reelCopy.discover }).click();
   await expect(page).toHaveURL(/\/pro/);
 });
+
+test('a shared note tile has the same shape as its neighbours in the tiles style', async ({
+  page,
+}) => {
+  await installMocksForNote(page);
+  const shape = (title: string) =>
+    reel(page)
+      .locator('a', { hasText: title })
+      .evaluate((element) => {
+        const style = getComputedStyle(element);
+        return {
+          radius: style.borderTopLeftRadius,
+          padding: style.paddingTop,
+          display: style.display,
+        };
+      });
+  await expect(reel(page).getByText('Door code')).toBeVisible();
+  expect(await shape('Door code')).toEqual(await shape('Weekend shopping'));
+});
+
+async function installMocksForNote(page: Page) {
+  await page.clock.setFixedTime(NOW);
+  await page.setViewportSize({ width: 390, height: 844 });
+  const server = await installMocks(page, { reelStyle: 'tiles' });
+  server.notices = [NOTE, ...server.notices];
+  await page.goto('/today');
+  await page.getByLabel(de.login.email).fill('anna@example.org');
+  await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
+  await page.getByRole('button', { name: de.login.submit }).click();
+  await expect(page).toHaveURL(/\/today$/);
+  return server;
+}

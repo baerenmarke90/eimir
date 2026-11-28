@@ -27,7 +27,8 @@ import './WirReelStyleSettings.css';
  */
 export function WirReelStyleSettings() {
   const state = useWirReelStyle();
-  if (!state?.ready) return null;
+  // Shown once loaded; a later read keeps it in place (only saving waits).
+  if (!state?.shown) return null;
   return <Settings state={state} />;
 }
 
@@ -65,10 +66,11 @@ function Settings({
   const free =
     capability.isSuccess && capability.data === false && !capability.isFetching;
   const canSave =
-    !paid ||
-    (capability.isSuccess &&
-      capability.data === true &&
-      !capability.isFetching);
+    state.ready &&
+    (!paid ||
+      (capability.isSuccess &&
+        capability.data === true &&
+        !capability.isFetching));
   const denied =
     error instanceof ClientProblemError &&
     error.code === 'PREMIUM_ENTITLEMENT_REQUIRED';

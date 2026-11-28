@@ -12,6 +12,7 @@ import type { AppearanceApi } from '../api/generated/apis/AppearanceApi';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { AppIconId } from '../api/generated/models/AppIconId';
 import { setDocumentAppIcon } from '../theme';
+import { refreshAppearanceSiblings } from './appearanceSiblings';
 import {
   APP_ICON_CAPABILITY,
   type AppIconSnapshot,
@@ -108,10 +109,8 @@ function useAppIconState({
     onSuccess: (snapshot, { ownsQuery }) => {
       if (active.current && ownsQuery()) {
         client.setQueryData(key, snapshot);
-        void client.invalidateQueries({
-          queryKey: ['wir-design', instance, accountId, spaceId],
-          exact: true,
-        });
+        // All appearance choices share one version token (#2345).
+        refreshAppearanceSiblings(client, 'app-icon');
       }
     },
     onError: (error, { ownsQuery }) => {

@@ -392,4 +392,31 @@ describe('WirNewForYouModule (#2345 B)', () => {
     expect(comment.textContent).toContain(i18n.t('wirNotices.kinds.comment'));
     expect(comment.textContent).toContain('Again!');
   });
+
+  it('renders repeated list entries without key clashes in the tiles style', async () => {
+    reelStyle.value = { style: 'tiles', pending: false };
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    renderModule({
+      items: [
+        notice({
+          id: 'n-list',
+          kind: 'COLLECTION_SENT',
+          targetType: 'COLLECTION',
+          targetId: 'list-1',
+          target: {
+            targetType: 'COLLECTION',
+            targetId: 'list-1',
+            title: 'Groceries',
+          },
+          preview: { items: ['Milk', 'Milk', 'Bread'], moreItems: 0 },
+        }),
+      ],
+    });
+    const list = (await screen.findByText('Groceries')).closest('a');
+    expect(list?.querySelectorAll('.wir-ntile-check')).toHaveLength(3);
+    expect(
+      error.mock.calls.some((call) => String(call[0]).includes('same key')),
+    ).toBe(false);
+    error.mockRestore();
+  });
 });

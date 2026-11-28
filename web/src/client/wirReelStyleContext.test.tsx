@@ -116,16 +116,59 @@ it('renders a remembered style at once', () => {
   expect(state.id).toEqual({ style: 'chips', pending: false });
 });
 
-it('resolves an unknown style to circles', async () => {
+it('resolves an unknown style to circles and keeps the setting usable', async () => {
+  rememberWirReelStyle(
+    wirReelStyleStorageKey(INSTANCE, 'account', 'space'),
+    'tiles',
+  );
   const { state } = setup(({ url }) =>
-    url.endsWith(STYLE_PATH) ? styleView('stripes') : undefined,
+    url.endsWith(STYLE_PATH) ? styleView('stripes', 4, '"t4"') : undefined,
   );
-  await waitFor(() =>
-    expect(state.full?.ready === false && state.id?.pending === false).toBe(
-      true,
-    ),
+  await waitFor(() => expect(state.full?.ready).toBe(true));
+  expect(state.id).toEqual({ style: 'circles', pending: false });
+});
+
+it('reads the style again after a conflict, so the next save can succeed', async () => {
+  const { state, invalidate } = setup(
+    ({ method, url }) =>
+      url.endsWith(STYLE_PATH)
+        ? method === 'PATCH'
+          ? json(
+              {
+                type: 'about:blank',
+                detail: 'Changed.',
+                code: 'RESOURCE_VERSION_CONFLICT',
+                status: 409,
+                title: 'Conflict',
+              },
+              {
+                status: 409,
+                headers: { 'Content-Type': 'application/problem+json' },
+              },
+            )
+          : styleView('circles')
+        : undefined,
+    ['theme.bespoke_packs'],
   );
-  expect(state.id?.style).toBe('circles');
+  await waitFor(() => expect(state.full?.ready).toBe(true));
+  await act(async () => {
+    await state.full?.save('tiles').catch(() => undefined);
+  });
+  expect(invalidate).toHaveBeenCalledWith({
+    queryKey: ['wir-reel-style', INSTANCE, 'account', 'space'],
+    exact: true,
+  });
+});
+
+it('stays shown while it reads again, so the settings do not jump', async () => {
+  const { state, client } = setup(({ url }) =>
+    url.endsWith(STYLE_PATH) ? styleView('chips') : undefined,
+  );
+  await waitFor(() => expect(state.full?.shown).toBe(true));
+  await act(async () => {
+    void client.invalidateQueries({ queryKey: ['wir-reel-style'] });
+  });
+  expect(state.full?.shown).toBe(true);
 });
 
 it('keeps a saved Pro style after Pro ends', async () => {

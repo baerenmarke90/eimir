@@ -207,7 +207,8 @@
   font-weight: 650;
 }
 
-.wir-ntile-paper {
+/* The list preview inside a list tile (not the `paper` tone of a note tile). */
+.wir-ntile-list {
   display: grid;
   gap: 0.35rem;
   padding: var(--space-2) var(--space-3);

@@ -1,6 +1,16 @@
 import type { Tile } from './WirNewForYouModule';
 import './WirReelTiles.css';
 
+/** Entries may repeat ("Milk" twice); each repeat gets its own stable key. */
+function keyedEntries(items: readonly string[]) {
+  const seen = new Map<string, number>();
+  return items.map((item) => {
+    const count = seen.get(item) ?? 0;
+    seen.set(item, count + 1);
+    return { key: `${item}#${count}`, item };
+  });
+}
+
 /**
  * The body of a new-for-you (`wirNotices`) tile in the tiles style (#2345, from #2349): a
  * real content preview per kind. Pictures are decorative; the visible text
@@ -37,9 +47,9 @@ export function WirNoticeTileBody({ tile }: { tile: Tile }) {
         <span className="wir-ntile-body">
           <span className="wir-ntile-title">{tile.title}</span>
           {tile.previewItems && tile.previewItems.length > 0 ? (
-            <span className="wir-ntile-paper">
-              {tile.previewItems.map((item) => (
-                <span key={item} className="wir-ntile-check">
+            <span className="wir-ntile-list">
+              {keyedEntries(tile.previewItems).map(({ key, item }) => (
+                <span key={key} className="wir-ntile-check">
                   <span className="wir-ntile-box" aria-hidden="true" />
                   {item}
                 </span>

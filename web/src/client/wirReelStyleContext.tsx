@@ -14,6 +14,7 @@ import {
   type WirReelStylePreferenceView,
   WirReelStylePreferenceViewFromJSON,
 } from '../api/generated/models/WirReelStylePreferenceView';
+import { refreshAppearanceSiblings } from './appearanceSiblings';
 import {
   ClientProblemError,
   clientProblemKind,
@@ -48,29 +49,23 @@ export function wirReelStyleQueryKey(
   return ['wir-reel-style', instance, accountId, spaceId] as const;
 }
 
-/** All appearance choices of a person share one version token (#2283). */
-const SIBLING_APPEARANCE_KEYS = [
-  'app-icon',
-  'wir-design',
-  'person-colours',
-  'memory-world',
-] as const;
-
 async function snapshot(response: Response): Promise<Snapshot> {
   const preference = WirReelStylePreferenceViewFromJSON(await response.json());
   const etag = response.headers.get('ETag');
-  if (
-    !etag ||
-    !Number.isInteger(preference.version) ||
-    preference.version < 0 ||
-    !isWirReelStyle(preference.styleId)
-  )
+  if (!etag || !Number.isInteger(preference.version) || preference.version < 0)
     throw new ClientProblemError(
       'server',
       response.status,
       'INVALID_APPEARANCE_RESPONSE',
     );
-  return { preference, etag };
+  // A style this client does not know yet (a newer server) shows as circles;
+  // the token stays valid, so the person can still choose a style here.
+  return {
+    preference: isWirReelStyle(preference.styleId)
+      ? preference
+      : { ...preference, styleId: DEFAULT_WIR_REEL_STYLE },
+    etag,
+  };
 }
 
 function useWirReelStyleState({
@@ -134,10 +129,12 @@ function useWirReelStyleState({
       client.setQueryData(key, result);
       rememberWirReelStyle(storageKey, result.preference.styleId);
       // The other choices need their fresh concurrency token after this save.
-      for (const sibling of SIBLING_APPEARANCE_KEYS)
-        void client.invalidateQueries({ queryKey: [sibling] });
+      refreshAppearanceSiblings(client, 'wir-reel-style');
     },
     onError: (error) => {
+      // A newer token elsewhere: read it, so "open the choice again" works.
+      if (clientProblemKind(error) === 'conflict')
+        void client.invalidateQueries({ queryKey: key, exact: true });
       if (
         error instanceof ClientProblemError &&
         error.code === 'PREMIUM_ENTITLEMENT_REQUIRED'
@@ -192,6 +189,9 @@ function useWirReelStyleState({
       if (!inspect) setInspect(true);
       else if (capability.isError) void capability.refetch();
     },
+    /** The settings stay shown while the style is read again. */
+    shown:
+      !query.isPlaceholderData && query.isSuccess && Boolean(query.data?.etag),
     ready:
       !query.isPlaceholderData &&
       query.isSuccess &&

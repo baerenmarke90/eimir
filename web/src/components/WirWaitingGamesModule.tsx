@@ -174,10 +174,7 @@ export function WirWaitingGamesModule({
       aria-labelledby={headingId}
     >
       <div className="today-section-header">
-        <h2
-          id={headingId}
-          className={`today-section-title${reelStyle === 'chips' ? ' sr-only' : ''}`}
-        >
+        <h2 id={headingId} className="today-section-title">
           {t('games.waiting.title')}
         </h2>
       </div>

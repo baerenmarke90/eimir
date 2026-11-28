@@ -2,9 +2,10 @@ import type { WirReelStyleId } from '../api/generated/models/WirReelStyleId';
 import { APP_ICON_CAPABILITY } from './appIcon';
 
 /**
- * Wir reel styles (#2345): the personal presentation of the Wir reels
- * "Neu für dich" and "Du bist dran". Circles are the default and Free; tiles
- * and chips are Pro presentation choices (`theme.bespoke_packs`). A saved
+ * Wir reel styles (#2345): the personal presentation of the Wir reels of
+ * new-for-you notices (`wirNotices`) and waiting games (`games.waiting`).
+ * Circles are the default and Free; tiles and chips are Pro presentation
+ * choices (`theme.bespoke_packs`). A saved
  * style stays in effect after Pro ends; only choosing another Pro style
  * needs Pro.
  */

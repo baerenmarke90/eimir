@@ -220,7 +220,7 @@ describe('WirWaitingGamesModule', () => {
       name: i18n.t('games.waiting.title'),
     });
     expect(section.querySelector('ul')?.className).toContain('wir-reel-chips');
-    expect(section.querySelector('h2')?.className).toContain('sr-only');
+    expect(section.querySelector('h2')?.className).not.toContain('sr-only');
     const chip = section.querySelector('a.wir-gchip');
     expect(chip?.querySelector('.wir-gchip-text')?.textContent).toBe(
       i18n.t('games.waiting.labels.PICTURE_PING_PONG'),

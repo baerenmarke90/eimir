@@ -76,7 +76,7 @@ class MemoryWorldId(StrEnum):
 
 
 class WirReelStyleId(StrEnum):
-    """A personal presentation of the Wir reels "Neu für dich" and "Du bist dran" (#2345).
+    """A personal presentation of the Wir reels: new-for-you notices and waiting games (#2345).
 
     A style only changes how the same items are shown; the items, their order
     and their read state are identical. It is never shared with the partner.

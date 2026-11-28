@@ -19,7 +19,7 @@ import { WirReelStyleArt } from './WirReelStyleArt';
 import './WirReelStyleSettings.css';
 
 /**
- * Settings > Appearance: how Wir shows "Neu für dich" and "Du bist dran"
+ * Settings > Appearance: how Wir shows new-for-you notices and waiting games
  * (#2345). It works like the Erinnerungswelten: a summary with the current
  * style, a sheet with all styles and an explicit save. Circles are free;
  * tiles and chips are Pro presentation choices that stay after Pro ends.

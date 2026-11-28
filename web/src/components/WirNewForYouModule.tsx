@@ -413,10 +413,7 @@ export function WirNewForYouModule({
       aria-labelledby={headingId}
     >
       <div className="today-section-header">
-        <h2
-          id={headingId}
-          className={`today-section-title${reelStyle === 'chips' ? ' sr-only' : ''}`}
-        >
+        <h2 id={headingId} className="today-section-title">
           {t('wirNotices.title')}
         </h2>
       </div>

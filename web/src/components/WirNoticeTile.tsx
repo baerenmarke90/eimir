@@ -2,7 +2,7 @@ import type { Tile } from './WirNewForYouModule';
 import './WirReelTiles.css';
 
 /**
- * The body of a "Neu für dich" tile in the tiles style (#2345, from #2349): a
+ * The body of a new-for-you (`wirNotices`) tile in the tiles style (#2345, from #2349): a
  * real content preview per kind. Pictures are decorative; the visible text
  * carries the title, the quote and the line.
  */

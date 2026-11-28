@@ -359,7 +359,8 @@ describe('WirNewForYouModule (#2345 B)', () => {
       expect(section.querySelectorAll('a.wir-nchip')).toHaveLength(3),
     );
     expect(section.querySelector('ul')?.className).toContain('wir-reel-chips');
-    expect(section.querySelector('h2')?.className).toContain('sr-only');
+    // Unlike draft C, the chips keep the visible title (Product Owner 2026-11-28).
+    expect(section.querySelector('h2')?.className).not.toContain('sr-only');
     const texts = [...section.querySelectorAll('.wir-nchip-text')].map(
       (element) => element.textContent,
     );

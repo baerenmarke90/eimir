@@ -1,4 +1,4 @@
-/* Settings > Appearance > "Neu für dich & Du bist dran" (#2345). */
+/* Settings > Appearance > the Wir reel style (`wirReelStyleSettings`, #2345). */
 .wir-reel-style-settings {
   display: grid;
   gap: var(--space-4);

@@ -1,6 +1,6 @@
+import type { ChapterPeriodSummary } from '../api/generated/models/ChapterPeriodSummary';
 import type { ChapterTimelineMarker } from '../api/generated/models/ChapterTimelineMarker';
 import type { StoryItem } from '../api/generated/models/StoryItem';
-import type { ChapterPeriodSummary } from '../api/generated/models/ChapterPeriodSummary';
 
 export type DiaryEntry =
   | { type: 'chapter'; chapter: ChapterTimelineMarker }
@@ -22,6 +22,35 @@ export function interleaveDiaryEntries(
   for (; sourceIndex < items.length; sourceIndex++)
     entries.push({ type: 'story', item: items[sourceIndex] });
   return entries;
+}
+
+function entryIdentity(entry: DiaryEntry): string {
+  if (entry.type === 'chapter') return `chapter:${entry.chapter.id}`;
+  const { item } = entry;
+  switch (item.kind) {
+    case 'MEMORY':
+      return `memory:${item.memory.id}`;
+    case 'HEART_MOMENT':
+      return `heart:${item.heartMoment.id}`;
+    case 'MILESTONE':
+      return `milestone:${item.milestone.id}`;
+  }
+}
+
+/**
+ * The ordered identity of the rendered diary, for the first-entry reveal.
+ * A count is not enough: the first page has a fixed size, so a new entry
+ * pushes the oldest one off and remounts the list at the same length.
+ */
+export function diaryRevealRevision(
+  groups: readonly { key: string; entries: readonly DiaryEntry[] }[],
+): string {
+  return groups
+    .flatMap((group) => [
+      `month:${group.key}`,
+      ...group.entries.map(entryIdentity),
+    ])
+    .join('|');
 }
 
 /** Group the diary-only projection without re-sorting or broadening Story kinds. */

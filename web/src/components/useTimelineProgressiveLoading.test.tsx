@@ -78,7 +78,7 @@ describe('useTimelineReveal', () => {
         rootRef: { current: firstRoot },
         enabled: true,
         scopeKey: 'space:default',
-        revision: 1,
+        revision: 'month:2026-09',
       }),
     );
 
@@ -100,11 +100,50 @@ describe('useTimelineReveal', () => {
         rootRef: { current: secondRoot },
         enabled: true,
         scopeKey: 'space:default',
-        revision: 1,
+        revision: 'month:2026-09',
       }),
     );
 
     expect(sameEntry.dataset.timelineRevealed).toBe('true');
+  });
+
+  it('observes entries that replace others at the same count', () => {
+    const root = document.createElement('div');
+    const older = document.createElement('article');
+    older.dataset.timelineRevealKey = 'item:memory-old';
+    root.append(older);
+    document.body.append(root);
+
+    const { rerender } = renderHook(
+      ({ revision }) =>
+        useTimelineReveal({
+          rootRef: { current: root },
+          enabled: true,
+          scopeKey: 'space:replace',
+          revision,
+        }),
+      { initialProps: { revision: 'item:memory-old' } },
+    );
+    act(() => {
+      MockIntersectionObserver.instances[0].trigger(older);
+    });
+
+    // A fixed-size first page: a newer entry takes the place of the older one
+    // and the list remounts its nodes.
+    const newer = document.createElement('article');
+    newer.dataset.timelineRevealKey = 'item:heart-new';
+    const remounted = document.createElement('article');
+    remounted.dataset.timelineRevealKey = 'item:memory-old';
+    root.replaceChildren(newer, remounted);
+    rerender({ revision: 'item:heart-new|item:memory-old' });
+
+    expect(remounted.dataset.timelineRevealed).toBe('true');
+    const current = MockIntersectionObserver.instances.at(-1);
+    expect(current?.observe).toHaveBeenCalledWith(newer);
+    act(() => {
+      current?.trigger(newer);
+    });
+    expect(newer.dataset.timelineRevealed).toBe('true');
   });
 
   it('shows content immediately when reduced motion is requested', () => {
@@ -124,7 +163,7 @@ describe('useTimelineReveal', () => {
         rootRef: { current: root },
         enabled: true,
         scopeKey: 'space:reduced',
-        revision: 1,
+        revision: 'month:2026-09',
       }),
     );
 

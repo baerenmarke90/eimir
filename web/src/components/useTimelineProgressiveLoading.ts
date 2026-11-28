@@ -45,12 +45,11 @@ function prefersReducedMotion(): boolean {
  * `attrPrefix` namespaces both the query selector and the dataset flags so
  * unrelated consumers never share DOM attribute names.
  *
- * `revision` re-runs the DOM scan/observe pass whenever it changes. A plain
- * count (as Timeline passes) is enough there because pages only ever grow.
- * A consumer whose backing collection can be replaced in place with a
- * different, same-length set (Discover's selection refresh) must instead
- * pass a value that encodes ordered content identity, e.g. the joined item
- * keys — otherwise newly mounted keyed nodes are never (re-)observed.
+ * `revision` re-runs the DOM scan/observe pass whenever it changes. It must
+ * encode ordered content identity, e.g. the joined item keys, not a count:
+ * a collection can be replaced in place by a different set of the same length
+ * (Timeline's fixed-size first page after a new entry), and newly
+ * mounted keyed nodes would otherwise never be observed and stay hidden.
  */
 function useFirstEntryReveal({
   rootRef,
@@ -121,7 +120,8 @@ export function useTimelineReveal(options: {
   rootRef: RefObject<HTMLElement | null>;
   enabled: boolean;
   scopeKey: string;
-  revision: number;
+  /** The ordered identity of the rendered entries, not their count. */
+  revision: string;
 }) {
   useFirstEntryReveal({ ...options, attrPrefix: 'timeline' });
 }

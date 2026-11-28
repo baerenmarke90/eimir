@@ -69,6 +69,7 @@ export {
 export {
   attachGestureFollow,
   type CommitPreset,
+  type CommitSide,
   type CommitThreshold,
   commitDistance,
   decideRelease,

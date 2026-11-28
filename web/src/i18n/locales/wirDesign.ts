@@ -2,7 +2,6 @@ export default {
   title: 'App-Design',
   intro: 'So fühlt sich eimir. für dich an. Nur deine Ansicht ändert sich.',
   choices: 'Dein App-Design',
-  change: 'Design auswählen',
   palette: {
     title: 'Designfarben',
     choices: 'Designfarben auswählen',

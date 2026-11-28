@@ -4,20 +4,6 @@
   gap: var(--space-4);
   scroll-margin-block-start: var(--space-8);
 }
-.memory-world-summary {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-4);
-}
-.memory-world-summary > div {
-  display: grid;
-  justify-items: start;
-  gap: var(--space-1);
-}
-.memory-world-summary > button {
-  margin-inline-start: auto;
-}
 .memory-world-summary-art {
   inline-size: calc(var(--space-12) * 2);
   aspect-ratio: 16 / 10;

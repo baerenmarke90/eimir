@@ -113,18 +113,13 @@
 .design-palette-swatches > span:nth-child(3) {
   background: var(--color-link-text);
 }
-.wir-design-summary {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-4);
-}
-.wir-design-summary > div {
+.design-palette-trigger-copy {
   display: grid;
+  justify-items: start;
   gap: var(--space-1);
 }
-.wir-design-summary > button {
-  margin-inline-start: auto;
+.design-palette-trigger-copy > span {
+  color: var(--color-text-secondary);
 }
 .wir-design-options {
   display: grid;

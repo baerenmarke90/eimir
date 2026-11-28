@@ -186,9 +186,16 @@ function Settings({
       ) : (
         <>
           <p className="settings-section-intro">{t('wirDesign.intro')}</p>
-          <div className="wir-design-summary">
+          <button
+            type="button"
+            className="design-palette-trigger wir-design-trigger"
+            aria-labelledby="wir-design-title wir-design-value"
+            aria-haspopup="dialog"
+            ref={opener}
+            onClick={openChoices}
+          >
             <DesignPreview design={state.current} />
-            <div>
+            <span className="design-palette-trigger-copy" id="wir-design-value">
               <strong>{choiceName(state.current)}</strong>
               <span>
                 {state.current === DEFAULT_WIR_DESIGN ? (
@@ -199,16 +206,8 @@ function Settings({
                   <ProMark label={t('wirDesign.pro')} />
                 )}
               </span>
-            </div>
-            <button
-              type="button"
-              className="button-link"
-              ref={opener}
-              onClick={openChoices}
-            >
-              {t('wirDesign.change')}
-            </button>
-          </div>
+            </span>
+          </button>
         </>
       )}
       {preference.isPending ? (

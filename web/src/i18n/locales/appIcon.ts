@@ -2,7 +2,6 @@ const appIcon = {
   title: 'App-Icon',
   intro: 'Ein kleines Detail, das zu dir passt.',
   colorMode: 'Farbmodus',
-  all: 'Alle Icons ansehen',
   current: 'Deine Auswahl',
   choices: 'Dein App-Icon auswählen',
   close: 'Icon-Auswahl schließen',

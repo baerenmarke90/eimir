@@ -4,7 +4,6 @@ const memoryWorldSettings = {
   intro:
     'Story und Stapel sind inklusive, alle anderen Welten gehören zu Pro. Deine Partnerperson wählt ihre eigene Welt.',
   choices: 'Welt auswählen',
-  change: 'Alle Welten',
   close: 'Schließen',
   current: 'Aktiv',
   free: 'Inklusive',

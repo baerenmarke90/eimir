@@ -1618,7 +1618,6 @@
     "title": "App icon",
     "intro": "A little detail that suits you.",
     "colorMode": "Colour mode",
-    "all": "See all icons",
     "current": "Your choice",
     "choices": "Choose your app icon",
     "close": "Close icon selection",
@@ -1698,7 +1697,6 @@
     "help": "How your memories meet you in Moments › Memories – only in your own view.",
     "intro": "Story and Stack are included, every other world is part of Pro. Your partner chooses their own world.",
     "choices": "Choose a world",
-    "change": "All worlds",
     "close": "Close",
     "current": "Active",
     "free": "Included",
@@ -1821,7 +1819,6 @@
     "title": "App design",
     "intro": "How eimir. feels for you. Only your view changes.",
     "choices": "Your app design",
-    "change": "Choose design",
     "palette": {
       "title": "Design colours",
       "choices": "Choose design colours",

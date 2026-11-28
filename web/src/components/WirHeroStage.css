@@ -825,6 +825,8 @@ a.wir-distance-word:focus-visible {
     max-inline-size: 100%;
     font-size: 0.8em;
     overflow-wrap: anywhere;
+    /* A long word ("zusammen") breaks at a syllable with a hyphen first. */
+    hyphens: auto;
   }
 
   .wir-bridge-rest .wir-bridge-occasion {
@@ -860,6 +862,19 @@ a.wir-distance-word:focus-visible {
 .wir-stage[data-important-day="playing"] .wir-bridge-occasion,
 .wir-stage[data-important-day="playing"] .wir-bridge-heart-fill {
   transition: opacity var(--duration-gesture-moment) var(--easing-standard);
+}
+
+/* #2370: the days-together count rolls into place while the copy fades in,
+   digits right to left one stagger step apart (capped like every stagger).
+   Only `playing` animates, so a return or remount shows it at rest. */
+.wir-stage[data-important-day="playing"] .rolling-count-strip {
+  animation: eimir-motion-value-roll var(--duration-gesture-moment)
+    var(--easing-enter)
+    calc(
+      min(var(--rolling-order, 0), var(--motion-stagger-max-items)) *
+      var(--duration-stagger-item)
+    )
+    both;
 }
 
 /* Birthday: a warm ring, a soft halo behind it (opacity only, never a scaled
